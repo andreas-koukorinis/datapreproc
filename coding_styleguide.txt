@@ -1,5 +1,6 @@
-As far as possible we will adhere to :
+Our basic coding practise can be summarized as empathy for the fellow coder.
 
+As far as possible we will adhere to :
 https://code.google.com/p/google-styleguide/
 
 python: http://google-styleguide.googlecode.com/svn/trunk/pyguide.html
