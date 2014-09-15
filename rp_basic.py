@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from load_data import load_returns,compute_returns
+from init import load_data,compute_returns,compute_returns_specific
 from numpy import *
 import scipy.ndimage
 
@@ -25,19 +25,22 @@ def setWeightsU(data,day,lookback_trend,lookback_risk,rebalance_freq):
 # Main script
 
 #Compute/Load Log Returns
-#data = getData('data.csv')
-data = getData('ES_TY.txt')
-#data = getReturns(load('data_ES_TY.csv.npy'),load('data_SPECS_ES_TY.csv.npy'))
+prices = load_data('ES_TY_PRICES.txt','float')
+spec = load_data('ES_TY_SPEC.txt','string')
+data = compute_returns_specific(prices,spec)
+#data = compute_returns(prices)
 
 num_instruments = data.shape[1]
 num_days = data.shape[0]
+
+# To adjust for tick value versus absolute value
 conversion_factor = ones(num_instruments)						# ??Should have been directly loaded from file?? 
-data = log(1+((exp(data)-1)*conversion_factor))						# To take care of tick value versus absolute value
+data = log(1+((exp(data)-1)*conversion_factor))						
 
 # Parameters
 capital = 100000
 rebalance_freq = 5                           						# In number of days
-lookback_trend = 60                            					# In number of days
+lookback_trend = 60	                            					# In number of days
 lookback_risk = 20			     						# In multiple of rebalance frequency
 periodic_returns = []
 PnL = 0
