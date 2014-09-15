@@ -1,0 +1,18 @@
+[Parameters]
+capital = 100000
+
+# In number of days
+rebalance_freq = 20
+
+# In number of days                           						
+lookback_trend = 240
+
+# In multiple of rebalance frequency	                            					
+lookback_risk = 10
+
+
+
+[Files]
+prices = ES_TY_PRICES.csv
+specs = ES_TY_SPEC.csv
+#returns = data.csv			     						

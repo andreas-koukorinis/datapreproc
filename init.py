@@ -11,13 +11,6 @@ def load_data(file_,typ):
     data = array(data)
     data = data.astype(typ)
     return data
-#    with open(file_) as file:
-#        if(typ!='string'):
-#            array2d = [[float(word) for word in line.split(',')] for line in file]
-#        else:
-#            array2d = [[word for word in line.split(',')] for line in file]
-#        array2d = array(array2d)
-#    return array2d
 
 # Compute Returns based on prices and Specific Symbol (data is filtered beforehand based on common dates)
 # Prices : should be n*k 2d array where n is the number of trading days and k is the number of instruments
@@ -29,10 +22,9 @@ def compute_returns(prices):
     return returns
 
 
-#[??specific not handled??]
 # Compute Returns based on prices and Specific Symbol (data is filtered beforehand based on common dates)
 # Prices : should be n*k 2d array where n is the number of trading days and k is the number of instruments
-# Specific : ??? 
+# Specific : Specific symbol corresponding to the instrument 
 def compute_returns_specs(prices,specific):
     prices=prices.astype(float)
     returns = zeros([prices.shape[0]-1,prices.shape[1]]) 
