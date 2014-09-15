@@ -1,38 +1,11 @@
 #!/usr/bin/python
 
-import csv
+from load_data import load_returns,compute_returns
 from numpy import *
 import scipy.ndimage
 
 #TO CORRECT : FUTURE CONVERSION COST NOT INCLUDED,FUTURE SPECIFIC SYMBOL NOT CONSIDERED,CONVERSION FACTOR NOT SET,RISK BASED ON SIMPLE STDDEV,NO TRANSACTION COST,DATA TO BE CHANGED
 
-# read log returns data directly from file
-def getData(file_):
-    data = []
-    with open(file_, 'rb') as csvfile:
-        reader = csv.reader(csvfile)
-        for row in reader:
-            data.append(row)
-    data = array(data)
-    data = data.astype(float)
-    return data
-
-#[??specific not handled??]
-# Compute Returns based on prices and Specific Symbol (data is filtered beforehand based on common dates)
-# Prices : should be n*k 2d array where n is the number of trading days and k is the number of instruments
-# Specific : ??? 
-def getReturns(prices,specific):
-    prices=prices.astype(float)
-    returns = zeros([prices.shape[0]-1,prices.shape[1]]) 
-    # Without Specific symbol
-    for i in xrange(1,prices.shape[0]):
-        returns[i-1,:] = log(prices[i,:]/prices[i-1,:])
-    # With Specific symbol
-#   for i in xrange(1,prices.shape[0]-1):
-#       returns[i,:] = where(specific[i,:]==specific[i-1,:],prices[i,:]/prices[i-1,:],)
-    return returns
-
-    
 # Returns Weights for unlevered RP portfolio
 # data : n*k 2d array of log returns where n is the number of trading days and k is the number of instruments
 # day : the day number on which the weights are to be calculated
@@ -40,8 +13,7 @@ def getReturns(prices,specific):
 # rebalance_freq : after how many days should the portfolio be rebalanced 
 # lookback risk : what multiple of [rebalance_freq] should be used to calculate the risk associated with the instrument
 def setWeightsU(data,day,lookback_trend,lookback_risk,rebalance_freq):
-    window = ones(data.shape[1])
-    origin=-(rebalance_freq/2)							
+    window = ones(data.shape[1])						
     periodic_ret = scipy.ndimage.filters.convolve1d(data[day-lookback_risk*rebalance_freq:day,:],window, axis=0,origin=-(rebalance_freq/2))[rebalance_freq-1::rebalance_freq,:] 
 											# Convolve for running window sum of returns,then select every (rebalance_freq)^th element 
     risk = 1/std(periodic_ret,axis=0)			
@@ -51,10 +23,12 @@ def setWeightsU(data,day,lookback_trend,lookback_risk,rebalance_freq):
 
 
 # Main script
-periodic_returns = []
-PnL = 0
+
+#Compute/Load Log Returns
 #data = getData('data.csv')
-data = getReturns(load('data_ES_TY.csv.npy'),load('data_SPECS_ES_TY.csv.npy'))
+data = getData('ES_TY.txt')
+#data = getReturns(load('data_ES_TY.csv.npy'),load('data_SPECS_ES_TY.csv.npy'))
+
 num_instruments = data.shape[1]
 num_days = data.shape[0]
 conversion_factor = ones(num_instruments)						# ??Should have been directly loaded from file?? 
@@ -65,6 +39,9 @@ capital = 100000
 rebalance_freq = 5                           						# In number of days
 lookback_trend = 60                            					# In number of days
 lookback_risk = 20			     						# In multiple of rebalance frequency
+periodic_returns = []
+PnL = 0
+
 day = max(lookback_risk*rebalance_freq,lookback_trend)					# Start from offset so that historical returns can be used
 w = setWeightsU(data,day,lookback_trend,lookback_risk,rebalance_freq)			# Set initial weights for unlevered RP portfolio
 		
