@@ -33,7 +33,7 @@ def compute_returns(prices):
 # Compute Returns based on prices and Specific Symbol (data is filtered beforehand based on common dates)
 # Prices : should be n*k 2d array where n is the number of trading days and k is the number of instruments
 # Specific : ??? 
-def compute_returns_specific(prices,specific):
+def compute_returns_specs(prices,specific):
     prices=prices.astype(float)
     returns = zeros([prices.shape[0]-1,prices.shape[1]]) 
     for i in xrange(1,prices.shape[0]):

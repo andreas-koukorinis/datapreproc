@@ -1,8 +1,10 @@
 #!/usr/bin/python
 
-from init import load_data,compute_returns,compute_returns_specific
+from init import load_data,compute_returns,compute_returns_specs
 from numpy import *
 import scipy.ndimage
+import ConfigParser
+
 
 #TO CORRECT : FUTURE CONVERSION COST NOT INCLUDED,FUTURE SPECIFIC SYMBOL NOT CONSIDERED,CONVERSION FACTOR NOT SET,RISK BASED ON SIMPLE STDDEV,NO TRANSACTION COST,DATA TO BE CHANGED
 
@@ -24,24 +26,31 @@ def setWeightsU(data,day,lookback_trend,lookback_risk,rebalance_freq):
 
 # Main script
 
+config = ConfigParser.ConfigParser()
+config.readfp(open(r'config.txt'))
+capital = config.getint('Parameters', 'capital')
+rebalance_freq = config.getint('Parameters', 'rebalance_freq')
+lookback_trend = config.getint('Parameters', 'lookback_trend')
+lookback_risk = config.getint('Parameters', 'lookback_risk')
+file_returns = config.get('Files', 'returns') if(config.has_option('Files', 'returns')) else ''
+file_prices = config.get('Files', 'prices') if(config.has_option('Files', 'prices')) else ''
+file_specs = config.get('Files', 'specs') if(config.has_option('Files', 'specs')) else ''
+
+
 #Compute/Load Log Returns
-prices = load_data('ES_TY_PRICES.txt','float')
-spec = load_data('ES_TY_SPEC.txt','string')
-data = compute_returns_specific(prices,spec)
-#data = compute_returns(prices)
+if(config.has_option('Files', 'returns')):
+    data = load_data(file_returns,'float')
+elif(config.has_option('Files', 'specs')): 
+    prices = load_data(file_prices,'float')
+    specs = load_data(file_specs,'string')
+    data = compute_returns_specs(prices,specs)
+else:
+    prices = load_data(file_prices,'float')
+    data = compute_returns(prices)
 
 num_instruments = data.shape[1]
 num_days = data.shape[0]
 
-# To adjust for tick value versus absolute value
-conversion_factor = ones(num_instruments)						# ??Should have been directly loaded from file?? 
-data = log(1+((exp(data)-1)*conversion_factor))						
-
-# Parameters
-capital = 100000
-rebalance_freq = 5                           						# In number of days
-lookback_trend = 60	                            					# In number of days
-lookback_risk = 20			     						# In multiple of rebalance frequency
 periodic_returns = []
 PnL = 0
 
