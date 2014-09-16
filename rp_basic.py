@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
-from init import load_data,compute_returns,compute_returns_specs
-from weights import setWeightsUnleveredRP
+from init import getLogReturns
+import weights 
+from getPerfStats import getPerfStats
 from numpy import *
 import ConfigParser
 
@@ -12,53 +13,48 @@ import ConfigParser
 # Returns : Periodic returns for the portfolio
 # setWeights : The function used to compute weights for the portfolio
 # data : n*k 2d array of log returns where n is the number of trading days and k is the number of instruments
-# lookback_trend : how many days in the past are considered for deciding the trend
 # rebalance_freq : after how many days should the portfolio be rebalanced 
-# lookback risk : what multiple of [rebalance_freq] should be used to calculate the risk associated with the instrument
-def computePortfolioResults(setWeights,data,lookback_risk,lookback_trend,rebalance_freq):
+# weightfunc_args : contains the arguments given to weight function(can be different depending on the weight function passed).Check config.txt
+def computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args):
     num_instruments = data.shape[1]
     num_days = data.shape[0]
     periodic_returns = []
 
-    day = max(lookback_risk*rebalance_freq,lookback_trend)						# Start from offset so that historical returns can be used
-    w = setWeights(data,day,lookback_trend,lookback_risk,rebalance_freq)				# Set initial weights for unlevered RP portfolio
+    lookback_risk=weightfunc_args[0]
+    lookback_trend=weightfunc_args[1] if(len(weightfunc_args)>1) else 0
+     
+    day = max(lookback_risk*rebalance_freq,lookback_trend)   								# Start from offset so that historical returns can be used
+    
+    w = Weightsfunc(data,day,rebalance_freq,weightfunc_args)								# Set initial weights for unlevered RP portfolio
+
+    if(day+rebalance_freq >=num_days):
+        print('Data not sufficient for initial lookback')
 		
     for i in range(day+rebalance_freq,num_days,rebalance_freq):
-        w1 = setWeights(data,i,lookback_trend,lookback_risk,rebalance_freq)				# Compute new weights on every rebalancing day
-        periodic_returns.append(log(1+ sum((w-w1)*(exp(sum(data[i-rebalance_freq:i,:],axis=0))-1))))	# convert log returns to actual returns,take weighted sum and then log
+        w1 = Weightsfunc(data,i,rebalance_freq,weightfunc_args)								# Compute new weights on every rebalancing day
+        periodic_returns.append(log(1+ sum((w-w1)*(exp(sum(data[i-rebalance_freq:i,:],axis=0))-1))))		# convert log returns to actual returns,take weighted sum and then log
         w=w1
-    return periodic_returns
+    return array(periodic_returns).astype(float)
 
 
 # Main script
 # Read config file
 config = ConfigParser.ConfigParser()
 config.readfp(open(r'config.txt'))
-capital = config.getint('Parameters', 'capital')
+weightfunc_name = config.get('WeightFunction', 'func')
+weightfunc_args = config.get('WeightFunction', 'args').strip().split(",")
+weightfunc_args = [int(i) for i in weightfunc_args]
+Weightsfunc = getattr(weights, weightfunc_name)
 rebalance_freq = config.getint('Parameters', 'rebalance_freq')
-lookback_trend = config.getint('Parameters', 'lookback_trend')
-lookback_risk = config.getint('Parameters', 'lookback_risk')
-file_returns = config.get('Files', 'returns') if(config.has_option('Files', 'returns')) else ''
-file_prices = config.get('Files', 'prices') if(config.has_option('Files', 'prices')) else ''
-file_specs = config.get('Files', 'specs') if(config.has_option('Files', 'specs')) else ''
-
+products = config.get('Products', 'symbols').strip().split(",")
+startdate = config.get('Products', 'startdate')
+enddate = config.get('Products', 'enddate')
 
 #Compute/Load Log Returns
-if(config.has_option('Files', 'returns')):
-    data = load_data(file_returns,'float')
-elif(config.has_option('Files', 'specs')): 
-    prices = load_data(file_prices,'float')
-    specs = load_data(file_specs,'string')
-    data = compute_returns_specs(prices,specs)
-else:
-    prices = load_data(file_prices,'float')
-    data = compute_returns(prices)
+data = getLogReturns(products,startdate,enddate)   
 
-
-periodic_returns = computePortfolioResults(setWeightsUnleveredRP,data,lookback_risk,lookback_trend,rebalance_freq)
-
+#Compute Portfolio periodic returns
+periodic_returns = computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args)
 
 # Print Results
-PnL = capital*(exp(sum(periodic_returns))-1)								# PnL = capital*Actual Returns 
-#print (periodic_returns)
-print "PnL: %f"%PnL
+getPerfStats(periodic_returns,rebalance_freq)
