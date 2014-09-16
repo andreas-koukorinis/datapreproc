@@ -1,18 +1,24 @@
+#-------------------------------------------------------------------------------------------------------------------------
+#add the symbols of the products to be analyzed 
+[Products]
+symbols = ES1
+startdate = 20130101
+enddate = 20131231
+
+
+#---------------------------------------------------------------------------------------------------------------------------
+#Options for weight functions
+####setWeightsUnleveredDemystified(data,day,rebalance_freq,listargs)    listargs = args(lookback_risk,lookback_trend)
+####setWeightsUnleveredRP(data,day,rebalance_freq,listargs)             listargs = args(lookback_risk)
+
+#Units
+####rebalance_freq,lookback_trend : In number of days
+####lookback_risk : In multiple of rebalance frequency
+
+#Select the weight function from above options and specify args in order(as listargs)
+[WeightFunction]
+func = setWeightsUnleveredRP
+args = 5
+
 [Parameters]
-capital = 100000
-
-# In number of days
-rebalance_freq = 20
-
-# In number of days                           						
-lookback_trend = 60
-
-# In multiple of rebalance frequency	                            					
-lookback_risk = 5
-
-
-
-[Files]
-prices = ES_TY_PRICES.csv
-specs = ES_TY_SPEC.csv
-#returns = data.csv			     						
+rebalance_freq = 5

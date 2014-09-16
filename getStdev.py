@@ -8,5 +8,4 @@ def getSimpleStdev(returns):
 
 #To be completed
 def getExponentialStdev(returns):
-    ###
-
+    print 'Not completed'
