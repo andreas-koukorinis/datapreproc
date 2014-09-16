@@ -6,10 +6,10 @@ from numpy import *
 import ConfigParser
 
 
-#TO CORRECT : RISK BASED ON SIMPLE STDDEV,EXCESS RETURN ZERO
+#TO CORRECT : RISK BASED ON SIMPLE STDDEV OF RETURNS????,EXCESS RETURN ZERO,ADD STATISTICS,ADD LEVERED RP PORTFOLIO
 
 
-# Returns Periodic Returns for the portfolio
+# Returns : Periodic returns for the portfolio
 # setWeights : The function used to compute weights for the portfolio
 # data : n*k 2d array of log returns where n is the number of trading days and k is the number of instruments
 # lookback_trend : how many days in the past are considered for deciding the trend

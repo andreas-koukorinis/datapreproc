@@ -13,8 +13,9 @@ def setWeightsUnleveredRP(data,day,lookback_trend,lookback_risk,rebalance_freq):
     for i in range(day-lookback_risk*rebalance_freq,day,rebalance_freq):
         periodic_ret.append(sum(data[i:i+rebalance_freq,:],axis=0))
     periodic_ret = array(periodic_ret)      
-    risk = 1/std(periodic_ret,axis=0)			
+    risk = 1/std(exp(periodic_ret)-1,axis=0)			
     w = sign(sum(data[day-lookback_trend:day,:],axis=0))/risk						# weights = Sign(excess returns)/Risk
     w = w/sum(absolute(w))										# normalize the weights to ensure unlevered portfolio		
     return w
+
 

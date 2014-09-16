@@ -21,8 +21,8 @@ def compute_returns(prices):
         returns[i-1,:] = log(prices[i,:]/prices[i-1,:])
     return returns
 
-
-# Compute Returns based on prices and Specific Symbol (data is filtered beforehand based on common dates)
+#To be generallized
+# Computes Returns based on prices and Specific Symbol (data is assumed to be filtered beforehand based on common dates)
 # Prices : should be n*k 2d array where n is the number of trading days and k is the number of instruments
 # Specific : Specific symbol corresponding to the instrument 
 def compute_returns_specs(prices,specific):

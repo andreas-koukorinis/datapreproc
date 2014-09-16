@@ -5,10 +5,10 @@ capital = 100000
 rebalance_freq = 20
 
 # In number of days                           						
-lookback_trend = 240
+lookback_trend = 60
 
 # In multiple of rebalance frequency	                            					
-lookback_risk = 10
+lookback_risk = 5
 
 
 
