@@ -51,7 +51,7 @@ startdate = config.get('Products', 'startdate')
 enddate = config.get('Products', 'enddate')
 
 #Compute/Load Log Returns
-data = getLogReturns(products,startdate,enddate)   
+data = getLogReturns(products,startdate,enddate)  
 
 #Compute Portfolio periodic returns
 daily_returns = computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args)
