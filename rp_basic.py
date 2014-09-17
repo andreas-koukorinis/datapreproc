@@ -5,7 +5,7 @@ import weights
 from getPerfStats import getPerfStats
 from numpy import *
 import ConfigParser
-
+import sys
 
 #TO CORRECT : RISK BASED ON SIMPLE STDDEV OF RETURNS????,EXCESS RETURN ZERO,ADD STATISTICS,ADD LEVERED RP PORTFOLIO
 
@@ -40,7 +40,7 @@ def computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args):
 # Main script
 # Read config file
 config = ConfigParser.ConfigParser()
-config.readfp(open(r'config.txt'))
+config.readfp(open(sys.argv[1],'r'))
 weightfunc_name = config.get('WeightFunction', 'func')
 weightfunc_args = config.get('WeightFunction', 'args').strip().split(",")
 weightfunc_args = [int(i) for i in weightfunc_args]

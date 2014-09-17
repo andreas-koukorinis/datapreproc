@@ -19,7 +19,7 @@ enddate = 20131231
 #Select the weight function from above options and specify args in order(as listargs)
 [WeightFunction]
 func = setWeightsUnleveredDemystified
-args = 60,60
+args = 60,20
 
 [Parameters]
-rebalance_freq = 1000
+rebalance_freq = 5
