@@ -13,7 +13,7 @@ def getPrice(product,startdate,enddate):
         query = "SELECT Date,"+product+" FROM "+sym+" WHERE Date >= '"+startdate+"' AND Date <= '"+enddate+"'"
         cur.execute(query)
         alldata = cur.fetchall()
-        #printPrice(cur)
+        #printCursorContent(cur)
         return ([(i[0]) for i in alldata],array([(i[1]) for i in alldata]).astype(float))
     except MySQLdb.Error:
         print "ERROR IN DB CONNECTION"
@@ -28,19 +28,19 @@ def getSpec(product,startdate,enddate):
         cur = db.cursor() 
         query = "SELECT Spec FROM "+sym+" WHERE Date >= '"+startdate+"' AND Date <= '"+enddate+"'"
         cur.execute(query)
+        #printCursorContent(cur)
         return ([(i[0]) for i in cur.fetchall()])
     except MySQLdb.Error:
         print "ERROR IN DB CONNECTION"
         return False    
 
 #Prints the dates and prices corresponding to the 'cur' database object
-def printPrice(cur):
+def printCursorContent(cur):
     for row in cur.fetchall() :
         st = ""
         for i in xrange(0,len(row)):
             st = st + str(row[i]) + " "
         print(st)
-
 
 
 
