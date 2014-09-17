@@ -7,25 +7,31 @@ from numpy import *
 #Assumption: The price table's name is assumed to be the product symbol with the rightmost digits removed (ES for ES1,ES2) 
 def getPrice(product,startdate,enddate):
     sym = product.rstrip('1234567890')
-    db = MySQLdb.connect(host="fixed-income.clmdxgxhslqn.us-east-1.rds.amazonaws.com", user="cvmysql",passwd="fixedcvincome", db="risk_parity") 
-    cur = db.cursor() 
-    query = "SELECT Date,"+product+" FROM "+sym+" WHERE Date >= '"+startdate+"' AND Date <= '"+enddate+"'"
-    cur.execute(query)
-    alldata = cur.fetchall()
-#    printPrice(cur)
-    return ([(i[0]) for i in alldata],array([(i[1]) for i in alldata]).astype(float))
-
+    try:
+        db = MySQLdb.connect(host="fixed-income.clmdxgxhslqn.us-east-1.rds.amazonaws.com", user="cvmysql",passwd="fixedcvincome", db="risk_parity") 
+        cur = db.cursor() 
+        query = "SELECT Date,"+product+" FROM "+sym+" WHERE Date >= '"+startdate+"' AND Date <= '"+enddate+"'"
+        cur.execute(query)
+        alldata = cur.fetchall()
+        #printPrice(cur)
+        return ([(i[0]) for i in alldata],array([(i[1]) for i in alldata]).astype(float))
+    except MySQLdb.Error:
+        print "ERROR IN DB CONNECTION"
+        return False
 
 #Returns an n*1 array of (Specific Symbols) corresponding to symbol 'product' between dates 'startdate' and 'enddate'
 #Assumption: The price table's name is assumed to be the product symbol with the rightmost digits removed (ES for ES1,ES2) 
 def getSpec(product,startdate,enddate):
     sym = product.rstrip('1234567890')
-    db = MySQLdb.connect(host="fixed-income.clmdxgxhslqn.us-east-1.rds.amazonaws.com", user="cvmysql",passwd="fixedcvincome", db="risk_parity") 
-    cur = db.cursor() 
-    query = "SELECT Spec FROM "+sym+" WHERE Date >= '"+startdate+"' AND Date <= '"+enddate+"'"
-    cur.execute(query)
-    return ([(i[0]) for i in cur.fetchall()])
-
+    try:
+        db = MySQLdb.connect(host="fixed-income.clmdxgxhslqn.us-east-1.rds.amazonaws.com", user="cvmysql",passwd="fixedcvincome", db="risk_parity") 
+        cur = db.cursor() 
+        query = "SELECT Spec FROM "+sym+" WHERE Date >= '"+startdate+"' AND Date <= '"+enddate+"'"
+        cur.execute(query)
+        return ([(i[0]) for i in cur.fetchall()])
+    except MySQLdb.Error:
+        print "ERROR IN DB CONNECTION"
+        return False    
 
 #Prints the dates and prices corresponding to the 'cur' database object
 def printPrice(cur):
