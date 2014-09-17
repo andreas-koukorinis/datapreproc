@@ -22,16 +22,18 @@ def computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args):
     lookback_risk=weightfunc_args[0]
     lookback_trend=weightfunc_args[1] if(len(weightfunc_args)>1) else 0
      
-    start_day = max(lookback_risk*rebalance_freq,lookback_trend)   						        # Start from offset so that historical returns can be used
-    
-    print 'Net days = %d'%(num_days-start_day)
+    start_day = max(lookback_risk,lookback_trend)   						        # Start from offset so that historical returns can be used
+
+    print 'Total Trading days given = %d'%(num_days)
+    print 'Days left for calculations based on past = %d'%(start_day)    
+    print 'Net days on which returns are calculated = %d'%(num_days-start_day)
     if(start_day >=num_days):
         print('Data not sufficient for initial lookback')
 		
-    for i in range(start_day,num_days,1):
-        if((i-start_day)%rebalance_freq ==0):
-            w = Weightsfunc(data,i,rebalance_freq,weightfunc_args)						# Compute new weights on every rebalancing day
-        daily_returns.append(log(1+ sum(w*(exp(data[i,:])-1))))
+    for current_day in range(start_day,num_days,1):
+        if((current_day-start_day)%rebalance_freq ==0):
+            w = Weightsfunc(data,current_day,weightfunc_args)						# Compute new weights on every rebalancing day
+        daily_returns.append(log(1+ sum(w*(exp(data[current_day,:])-1))))                               # Calculate the daily returns for a particular day and append to array
     return array(daily_returns).astype(float)
 
 
