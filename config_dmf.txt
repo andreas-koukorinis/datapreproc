@@ -4,13 +4,8 @@
 # Add symbols from this list : AD1,BA1,BP1,CD1,CF1,DJ1,DM1,DU1,EC1,ED1,ER1,ES1,FV1,GX1,IB1,JB1,JY1,NQ1,NV1,NX1,PE1,PT1,RX1,SF1,ST1,TU1,TY1,US1,VG1,WN1,XP1
 symbols = ES1,TY1
 #Date : YYYYMMDD
-<<<<<<< HEAD:config.txt
-startdate = 2013001
-enddate = 20140901
-=======
 startdate = 20140101
 enddate = 20141231
->>>>>>> 00669e959a863e70c751f77ead695d673e3e3120:config_dmf.txt
 
 
 #---------------------------------------------------------------------------------------------------------------------------
