@@ -32,6 +32,7 @@ def computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args):
 		
     for current_day in range(start_day,num_days,1):
         if((current_day-start_day)%rebalance_freq ==0):
+            print 'Day %d:'%current_day
             w = Weightsfunc(data,current_day,weightfunc_args)						# Compute new weights on every rebalancing day
         daily_returns.append(log(1+ sum(w*(exp(data[current_day,:])-1))))                               # Calculate the daily returns for a particular day and append to array
     return array(daily_returns).astype(float)
@@ -57,4 +58,5 @@ data = getLogReturns(products,startdate,enddate)
 daily_returns = computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args)
 
 # Print Results
+print 'STRATEGY : %s'%weightfunc_name
 getPerfStats(daily_returns)

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from numpy import *
-from getStdev import getSimpleStdev
+from getStdev import getSimpleStdev,getExponentialStdev
 
 
 # Returns Weights for unlevered trend following RP portfolio[Demystified]
@@ -14,9 +14,13 @@ def setWeightsUnleveredDemystified(data,day,weightfunc_args):
     lookback_risk=weightfunc_args[0] 
     lookback_trend=weightfunc_args[1]
     past_ret = array(data[day-lookback_risk:day,:])      
-    risk = 1/getSimpleStdev(past_ret)			
+    risk = getSimpleStdev(past_ret)			
     w = sign(sum(data[day-lookback_trend:day,:],axis=0))/risk						# weights = Sign(excess returns)/Risk
     w = w/sum(absolute(w))										# normalize the weights to ensure unlevered portfolio		
+    print '\nMoney Allocated:'
+    print w*100000
+    print 'Risk:'
+    print risk*sqrt(250)
     return w
 
 
@@ -28,9 +32,13 @@ def setWeightsUnleveredDemystified(data,day,weightfunc_args):
 def setWeightsUnleveredRP(data,day,weightfunc_args):
     lookback_risk=weightfunc_args[0] 
     past_ret = array(data[day-lookback_risk:day,:])      
-    risk = 1/getSimpleStdev(past_ret)			
+    risk = getSimpleStdev(past_ret)			
     w = 1/risk												# weights = 1/Risk
-    w = w/sum(absolute(w))										# normalize the weights to ensure unlevered portfolio		
+    w = w/sum(absolute(w))
+    print '\nMoney Allocated:'
+    print w*100000
+    print 'Risk:'
+    print risk*sqrt(250)										# normalize the weights to ensure unlevered portfolio		
     return w
 
 
