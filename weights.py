@@ -1,12 +1,7 @@
 #!/usr/bin/python
 
 from numpy import *
-<<<<<<< HEAD
-from getStdev import getSimpleStdev,getExponentialStdev
-=======
-from getStdev import getSimpleStdev
-from getStdev import getAnnualizedStdev
->>>>>>> 00669e959a863e70c751f77ead695d673e3e3120
+from getStdev import getSimpleStdev,getExponentialStdev,getAnnualizedStdev
 
 
 # Returns Weights for unlevered trend following RP portfolio[Demystified]
