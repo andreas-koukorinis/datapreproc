@@ -1,7 +1,12 @@
 #!/usr/bin/python
 
 from numpy import *
+<<<<<<< HEAD
 from getStdev import getSimpleStdev,getExponentialStdev
+=======
+from getStdev import getSimpleStdev
+from getStdev import getAnnualizedStdev
+>>>>>>> 00669e959a863e70c751f77ead695d673e3e3120
 
 
 # Returns Weights for unlevered trend following RP portfolio[Demystified]
@@ -39,6 +44,20 @@ def setWeightsUnleveredRP(data,day,weightfunc_args):
     print w*100000
     print 'Risk:'
     print risk*sqrt(250)										# normalize the weights to ensure unlevered portfolio		
+    return w
+
+
+# Returns Weights for unlevered RP portfolio
+# data : n*k 2d array of log returns where n is the number of trading days and k is the number of instruments
+# day : the day number on which the weights are to be calculated
+# weightfunc_args[0] = lookback risk : number of days to be used to calculate the risk associated with the instrument
+####weightfunc_args -> list(lookback_risk)
+def setWeightsTargetRiskRP(data,day,weightfunc_args):
+    lookback_risk=weightfunc_args[0] 
+    past_ret = array(data[day-lookback_risk:day,:])      
+    annualized_risk = getAnnualizedStdev(past_ret)
+    target_risk = (float(weightfunc_args[2])/100) # should check if argument exists
+    w = ( target_risk / annualized_risk.shape[0] ) / annualized_risk	# weights = target_risk/num_products/annualized_risk
     return w
 
 
