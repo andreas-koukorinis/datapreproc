@@ -8,7 +8,7 @@ def getSimpleStdev(returns):
 
 # Returns the simple Standard deviation of 'returns' ndarray
 def getAnnualizedStdev(returns):
-    return getSimpleStdev(returns) * ( sqrt(252)/returns.shape[0] )
+    return getSimpleStdev(returns) * ( sqrt(252) )
 
 #To be completed
 def getExponentialStdev(returns,decay):
