@@ -8,7 +8,7 @@ from numpy import *
 def getPrice(product,startdate,enddate):
     sym = product.rstrip('1234567890')
     try:
-        db = MySQLdb.connect(host="fixed-income.clmdxgxhslqn.us-east-1.rds.amazonaws.com", user="cvmysql",passwd="fixedcvincome", db="risk_parity") 
+        db = MySQLdb.connect(host="fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com", user="cvmysql",passwd="fixedcvincome", db="risk_parity") 
         cur = db.cursor() 
         query = "SELECT Date,"+product+" FROM "+sym+" WHERE Date >= '"+startdate+"' AND Date <= '"+enddate+"'"
         cur.execute(query)
@@ -24,7 +24,7 @@ def getPrice(product,startdate,enddate):
 def getSpec(product,startdate,enddate):
     sym = product.rstrip('1234567890')
     try:
-        db = MySQLdb.connect(host="fixed-income.clmdxgxhslqn.us-east-1.rds.amazonaws.com", user="cvmysql",passwd="fixedcvincome", db="risk_parity") 
+        db = MySQLdb.connect(host="fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com", user="cvmysql",passwd="fixedcvincome", db="risk_parity") 
         cur = db.cursor() 
         query = "SELECT Spec FROM "+sym+" WHERE Date >= '"+startdate+"' AND Date <= '"+enddate+"'"
         cur.execute(query)
