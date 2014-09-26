@@ -18,12 +18,15 @@ class TradeAlgorithm(object):
         perf_tracker = Performance_Tracker()
         portfolio = Portfolio()
         commission_mgr = Commission_Model()
+        sim_params = {'products':products,'initial_capital':initial_capital,'start_date':start_date,'end_date':end_date}
+        simulator = Simulator(sim_params)
 
     def init(context): 
         pass
 
-    def onEventListener(data):
+    def onEventListener(self,data):
         pass
 
-
-    
+    def execute(self):
+        self.init()
+        self.simulator.simulate()

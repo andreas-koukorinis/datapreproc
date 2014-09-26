@@ -2,7 +2,7 @@
 #add the symbols of the products to be analyzed 
 [Products]
 # Add symbols from this list : AD1,BA1,BP1,CD1,CF1,DJ1,DM1,DU1,EC1,ED1,ER1,ES1,FV1,GX1,IB1,JB1,JY1,NQ1,NV1,NX1,PE1,PT1,RX1,SF1,ST1,TU1,TY1,US1,VG1,WN1,XP1
-symbols = ES1,TY1,DM1,AD1
+symbols = ES1,TY1,AD1
 #Date : YYYYMMDD
 startdate = 20140101
 enddate = 20141231
