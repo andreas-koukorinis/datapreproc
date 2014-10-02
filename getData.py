@@ -42,10 +42,3 @@ def printCursorContent(cur):
             st = st + str(row[i]) + " "
         print(st)
 
-
-
-
-
-#(d,p) = getPrice('TY1','20140901','20140905')
-#getPrice(sys.argv[1],sys.argv[2],sys.argv[3])
-#print getSpec('TY1','20140901','20140905')
