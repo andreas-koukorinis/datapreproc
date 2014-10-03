@@ -1,7 +1,7 @@
 import csv
+import MySQLdb
 from numpy import *
 from getData import getPrice,getSpec
-import MySQLdb
 
 # read log returns data directly from csv file
 def load_data(file_,typ):
