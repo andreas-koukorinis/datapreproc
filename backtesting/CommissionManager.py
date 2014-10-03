@@ -1,0 +1,18 @@
+class CommissionManager:
+    def getcommission(self,order,book):							#should check book
+        return self.execution_cost(order,book)+self.pershare(order)+self.pertrade(order)
+  
+    #Cost due to the price at which we were able to buy/sell the stock
+    def execution_cost(self,order,book):
+        return (order['amount']/1000.0)
+   
+    #Cost based on PerShare cost of the order
+    def pershare(self,order):
+        return 0.005*order['amount']
+
+    #Cost based on PerTrade cost
+    def pertrade(self,order):
+        return 1
+        
+        
+
