@@ -1,11 +1,11 @@
 #!/usr/bin/python
 
+import sys
+from numpy import *
 from init import getLogReturns
 import weights 
 from getPerfStats import getPerfStats
-from numpy import *
 import ConfigParser
-import sys
 
 #TO CORRECT : RISK BASED ON SIMPLE STDDEV OF RETURNS????,EXCESS RETURN ZERO,ADD STATISTICS,ADD LEVERED RP PORTFOLIO
 
@@ -14,7 +14,7 @@ import sys
 # setWeights : The function used to compute weights for the portfolio
 # data : n*k 2d array of log returns where n is the number of trading days and k is the number of instruments
 # rebalance_freq : after how many days should the portfolio be rebalanced 
-# weightfunc_args : contains the arguments given to weight function(can be different depending on the weight function passed).Check config.txt
+# weightfunc_args : contains the arguments given to weight function(can be different depending on the weight function passed). Check config.txt
 def computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args):
     num_days = data.shape[0]
     daily_returns = []
@@ -33,8 +33,14 @@ def computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args):
     for current_day in range(start_day,num_days,1):
         if((current_day-start_day)%rebalance_freq ==0):
             print 'Day %d:'%current_day
-            w = Weightsfunc(data,current_day,weightfunc_args)						# Compute new weights on every rebalancing day
-        daily_returns.append(log(1+ sum(w*(exp(data[current_day,:])-1))))                               # Calculate the daily returns for a particular day and append to array
+            w = Weightsfunc(data,current_day,weightfunc_args)	# Compute new weights on every rebalancing day
+
+        # Calculate the daily returns for a particular day and append to array
+        # If notional anount of the money at risk in each instrument is M * abs(w_i)
+        # then the pnl of the position = sign(w_i) * M * abs(w_i) * ( exp ( logret_i(t) ) - 1 ) = M * w_i * ( exp ( logret_i(t) - 1 ) )
+        # Hence the new portfolio value = M + sum ( M * w_i * ( exp ( logret_i(t) - 1 ) ) )
+        # Hence logret_day_ = log(1+ sum(w*(exp(data[current_day,:])-1)))
+        daily_returns.append ( log ( 1 + sum ( w * ( exp(data[current_day,:]) - 1 ) ) ) )
     return array(daily_returns).astype(float)
 
 
