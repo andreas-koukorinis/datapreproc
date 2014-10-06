@@ -9,10 +9,11 @@ import matplotlib.dates as mdates
 import pylab
 
 class PerformanceTracker:
-    def __init__(self,initial_capital,products):
+    def __init__(self,initial_capital,products,conversion_factor):
         self.initial_capital = initial_capital
         self.cash = initial_capital
         self.products = products
+        self.conversion_factor = conversion_factor
         self.num_shares = {}
         for product in products:
             self.num_shares[product] = 0
@@ -48,7 +49,7 @@ class PerformanceTracker:
             if(self.num_shares[product]!=0): 
                 book = self.bb_objects[product].dailybook
                 current_price = book[len(book)-1][1]
-                netValue = netValue + current_price*self.num_shares[product]
+                netValue = netValue + current_price*self.num_shares[product]*self.conversion_factor[product]
         return netValue
 
     def analyze(self,filled_orders,current_date):

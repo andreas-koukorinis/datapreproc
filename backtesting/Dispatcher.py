@@ -29,8 +29,7 @@ class Dispatcher:
         current_dt = heapq.nsmallest(1,self.heap)[0][0]                                         #Get the lowest timestamp which has not been handled               
         while(current_dt<=self.end_dt):                                                         #While timestamp does not surpass the end date
             concurrent_events=[]       
-            done=0  
-            print current_dt,self.heap                                                    
+            done=0                                                      
             while(len(self.heap)>0 and heapq.nsmallest(1,self.heap)[0][0]==current_dt):         #Add all the concurrent events for the current_dt to the list concurrent_events    
                 tup = heapq.heappop(self.heap)
                 event = tup[1]

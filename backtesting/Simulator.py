@@ -17,19 +17,18 @@ end_date = sys.argv[2]
 products = ast.literal_eval(sys.argv[3])
 initial_capital = float(sys.argv[4])
 conv_factor = conversion_factor(products)
-print conv_factor
 
 #Initialize portfolio using initial_capital and list of products
 portfolio = Portfolio(initial_capital,products)
 
 #Initialize performance tracker with initial_capital,list of products
-performance_tracker = PerformanceTracker(initial_capital,products)   
+performance_tracker = PerformanceTracker(initial_capital,products,conv_factor)   
 
 #Initialize Bacltesting objects for each product 
 #Pass instance of Portfolio and Performance Tracker to each Backtester since Backtester updates the portfolio and passes the control to Performance Tracker
 bt_objects = {}
 for product in products:
-    bt_objects[product] = BackTester(product,portfolio,performance_tracker)
+    bt_objects[product] = BackTester(product,portfolio,performance_tracker,conv_factor[product])
 
 #Initialize the Order Manager
 #Pass all the backtester instances to the Order Manager because Order Manager will send the orders to the Backtester  
@@ -40,7 +39,7 @@ order_manager = OrderManager(bt_objects)
 #Pass OrderManager to the strategy as the strategy will send orders to the order manager
 #Pass Portfolio to the strategy since the strategy can make decisions based on its current portfolio
 #Pass Performance tracker to the strategy since strategy can make decisions based on its past performance
-strategy = TradeLogic(order_manager,portfolio,performance_tracker,products)
+strategy = TradeLogic(order_manager,portfolio,performance_tracker,products,conv_factor)
 
 #Initialize the Book Builder objects 
 #Pass strategy to the book builders since book builders will update the indicators which are part of the strategy

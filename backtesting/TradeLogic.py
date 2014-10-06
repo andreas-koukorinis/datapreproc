@@ -26,7 +26,8 @@ class TradeLogic(TradeAlgorithm):
         return std(returns[n-k-1:n-1])
 
     #'events' is a list of concurrent events
-    #event = {'price': 100, 'product': 'ES1', 'type':'ENDOFDAY', 'dt': datetime(2005,1,2,23,59,99999), 'table': 'ES'}
+    # event = {'price': 100, 'product': 'ES1', 'type':'ENDOFDAY', 'dt': datetime(2005,1,2,23,59,99999), 'table': 'ES'}
+    # access conversion_factor using : self.conversion_factor['ES1']
     ##########RISK PARITY UNLEVERED###########
     def OnEventListener(self,events):
         if(events[0]['type']=='ENDOFDAY'):

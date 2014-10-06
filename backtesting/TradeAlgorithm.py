@@ -25,11 +25,12 @@ class TradeAlgorithm(object):
             self.place_order(events[0]['dt'],events[0]['product'],10)                                #place an order to buy 10 shares of product corresponding to event 0
 
     '''
-    def __init__(self,order_manager,portfolio,performance_tracker,products):
+    def __init__(self,order_manager,portfolio,performance_tracker,products,conversion_factor):
         self.order_manager = order_manager
         self.portfolio = portfolio
         self.performance_tracker = performance_tracker
         self.products=products
+        self.conversion_factor = conversion_factor
         self.init()
 
     #User is expected to write the function
