@@ -2,9 +2,8 @@ COMMAND TO RUN:
 ---------------
    python -W ignore Simulator.py start_date end_date product_list initial_capital
    
-   EXAMPLE:
-   python -W ignore Simulator.py 2014-01-01 2014-08-20 "['ES1','TY1']" 100000000
-
+   EXAMPLE: python -W ignore Simulator.py 2014-01-01 2014-08-20 "['fES1','fES2','fTY1','fTY2']" 100000000
+   
 SYMBOL LIST
 -----------
 fAD1,fBA1,fBP1,fCD1,fCF1,fDM1,fDU1,fED1,fER1,fES1,fFV1,fGX1,fJY1,fNQ1,fNV1,fNX1,fPE1,fRX1,fSF1,fTU1,fTY1,fUS1,fVG1,fWN1

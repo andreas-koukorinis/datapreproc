@@ -8,8 +8,8 @@ from BackTester import BackTester
 from BookBuilder import BookBuilder
 from Utils import getdtfromdate,conversion_factor
 
-#Command to run : python Simulator.py start_date end_date list_products initial_capital
-#Example        : python Simulator.py 2014-01-01 2014-08-20 "['fES1','fTY1']" 1000000
+#Command to run : python -W ignore Simulator.py start_date end_date list_products initial_capital
+#Example        : python -W ignore Simulator.py 2014-01-01 2014-08-20 "['fES1','fES2','fTY1','fTY2']" 100000000
 
 #Take arguments from terminal
 start_date = sys.argv[1]
