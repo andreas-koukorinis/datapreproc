@@ -29,6 +29,6 @@ class BookBuilder:
         self.backtester.updatePendingOrders(self.dailybook,event['dt'].date(),track)                            #Call Backtester to update the pending orders that have been filled
         for indicator in self.strategy.daily_indicators:						        #Update indicators,For each indicator written by user in TradeLogic.py
             indicatorfunc = getattr(self.strategy,indicator)                                                    #convert string name to function
-            self.strategy.indicator_values[indicator+self.product] = indicatorfunc(self.dailybook,self.product) #call the indicator function and store the value
-														#EG: if product = 'ES1' and indicatorfunc = Stddev,then 
-														#update self.strategy.indicator_values['ES1Stddev']= Stddev(book,'ES1')
+            indicatorfunc(self.product) 		               						#call the indicator function and store the value
+														#EG: if product = 'fES1' and indicatorfunc = Stddev,then 
+														#call Stddev('fES1')

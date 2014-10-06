@@ -54,6 +54,9 @@ performance_tracker.bb_objects = bb_objects
 #Store effective startdate(so that we can track daily performance)
 performance_tracker.date = (getdtfromdate(start_date)+datetime.timedelta(days=strategy.warmupdays)).date()
 
+#Allow strategy to see books to update the indicators
+strategy.bb_objects = bb_objects
+
 #Initialize Dispatcher
 #Pass all BookBuilder instances to the Dispatcher since Dispatcher will pass control to the book builders on an event
 #Pass strategy to the Dispatcher since the dispatcher will pass control to the strategy for events on each timestamp after all books for that timestamp have been updated
