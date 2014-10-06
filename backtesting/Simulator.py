@@ -6,7 +6,7 @@ from TradeLogic import TradeLogic
 from Dispatcher import Dispatcher
 from BackTester import BackTester
 from BookBuilder import BookBuilder
-from Utils import getdtfromdate
+from Utils import getdtfromdate,conversion_factor
 
 #Command to run : python Simulator.py start_date end_date list_products initial_capital
 #Example        : python Simulator.py 2014-01-01 2014-08-20 "['fES1','fTY1']" 1000000
@@ -16,6 +16,8 @@ start_date = sys.argv[1]
 end_date = sys.argv[2]
 products = ast.literal_eval(sys.argv[3])
 initial_capital = float(sys.argv[4])
+conv_factor = conversion_factor(products)
+print conv_factor
 
 #Initialize portfolio using initial_capital and list of products
 portfolio = Portfolio(initial_capital,products)

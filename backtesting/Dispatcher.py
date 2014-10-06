@@ -1,7 +1,7 @@
 import sys
 import datetime
 import heapq
-from Utils import getdtfromdate,db_connect
+from Utils import getdtfromdate,db_connect,db_close
 from BookBuilder import BookBuilder
 
 #The job of the dispatcher is 
@@ -16,7 +16,7 @@ class Dispatcher:
         self.end_dt = getdtfromdate(end_date)
         self.products = products
         self.heap = []										#Initialize the heap,heap will contain tuples of the form (timestamp,event)
-        self.db_cursor = db_connect()                                                           #Initialize the database cursor
+        (self.dbconn,self.db_cursor) = db_connect()                                             #Initialize the database cursor
         self.bb_objects = bb_objects                                                            
         self.strategy = strategy
         self.days = 0										#To check warmup period
@@ -29,13 +29,12 @@ class Dispatcher:
         current_dt = heapq.nsmallest(1,self.heap)[0][0]                                         #Get the lowest timestamp which has not been handled               
         while(current_dt<=self.end_dt):                                                         #While timestamp does not surpass the end date
             concurrent_events=[]       
-            done=0                                                      
+            done=0  
+            print current_dt,self.heap                                                    
             while(len(self.heap)>0 and heapq.nsmallest(1,self.heap)[0][0]==current_dt):         #Add all the concurrent events for the current_dt to the list concurrent_events    
                 tup = heapq.heappop(self.heap)
                 event = tup[1]
-                concurrent_events.append(event)							#If the are still elements in the heap,update the timestamp to next timestamp
-            if(len(self.heap)>0):
-                current_dt = heapq.nsmallest(1,self.heap)[0][0] 
+                concurrent_events.append(event)							
             for event in concurrent_events: 
                 if(event['type']=='ENDOFDAY'):                                                  #This is an endofday event
                     if(done==0):                                                                #Update the current day's number,f it has not been updated
@@ -48,8 +47,11 @@ class Dispatcher:
                     self.pushdailyevent(event['product'],current_dt+datetime.timedelta(days=1)) #Push the next daily event for this product
                 if(event['type']=='INTRADAY'):                                                  #This is an intraday event
                     pass                                                                        #TO BE COMPLETED:call intradaybookbuilder and push next
+            if(len(self.heap)>0):
+                current_dt = heapq.nsmallest(1,self.heap)[0][0]                                 #If the are still elements in the heap,update the timestamp to next timestamp
             if(len(concurrent_events)>0 and track==1):                                                    
                 self.strategy.OnEventListener(concurrent_events)                                #Make 1 call to the  oneventlistener of the strategy for all the concurrent events
+        db_close(self.dbconn)									#Close database connection
 
     #Initialize the heap with 1 event for each source closest to startdate
     #TO BE COMPLETED:Add intraday events also to the heap
