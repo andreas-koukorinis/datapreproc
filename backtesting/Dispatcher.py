@@ -1,7 +1,7 @@
 import sys
 import datetime
 import heapq
-from Utils import getdtfromdate,db_connect,db_close
+from Utils import getdtfromdate,db_connect,db_close,check_settlement_day
 from BookBuilder import BookBuilder
 
 #The job of the dispatcher is 
@@ -63,16 +63,20 @@ class Dispatcher:
 
     #given a product name and a timestamp(dt),fetch the next eligible ENDOFDAY event from the database
     def pushdailyevent(self,product,dt):
-        (date,price) = self.fetchnextdb(product.rstrip('1234567890'),product,dt)
+        (date,price) = self.fetchnextdb(product.rstrip('1234567890').lstrip('f'),product,dt)
+        if(product[0]=='f' and product[-1]=='1'):
+            is_settlement_day = check_settlement_day(self.db_cursor,product,date)
+        else:
+            is_settlement_day = False
         dt = getdtfromdate(date)
-        event = {'price': price, 'product':product, 'type':'ENDOFDAY', 'dt':dt, 'table':product.rstrip('1234567890')} 
+        event = {'price': price, 'product':product, 'type':'ENDOFDAY', 'dt':dt, 'table':product.rstrip('1234567890').lstrip('f'),'is_settlement_day':is_settlement_day} 
         heapq.heappush(self.heap,(dt,event))
 
     #Given the tablename,product and datetime,fetch 1 record from the product's table with the least date greater than the given date
     #ASSUMPTION :Since db contains only dates,therefore convert given datetime to date and compare
     def fetchnextdb(self,table,product,dt):
         try:
-            query = "SELECT Date,"+product+" FROM "+table+" WHERE Date >= '"+str(dt.date())+"' ORDER BY Date LIMIT 1"
+            query = "SELECT Date,"+product.lstrip('f')+" FROM "+table+" WHERE Date >= '"+str(dt.date())+"' ORDER BY Date LIMIT 1"
             self.db_cursor.execute(query)
             data = self.db_cursor.fetchall()                                                      #should check if data exists or not
             return (str(data[0][0]),float(data[0][1]))

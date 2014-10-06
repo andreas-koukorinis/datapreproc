@@ -23,6 +23,13 @@ def getdtfromdate(date):
     date = date.strip().split('-')
     return datetime.datetime(int(date[0]),int(date[1]),int(date[2]),23, 59, 59, 999999)
 
+def check_settlement_day(db_cursor,product,date):
+    query = "SELECT Spec from "+product.rstrip('0123456789').lstrip('f')+" WHERE Date >='"+date+"' ORDER BY Date LIMIT 2"
+    db_cursor.execute(query)
+    data = db_cursor.fetchall()
+    return data[0][0]!='#NA' and data[1][0]!='#NA' and data[0][0]!=data[1][0]
+
+
 def conversion_factor(products):
     (db,db_cursor) = db_connect()
     tick_factor = {}
@@ -30,7 +37,7 @@ def conversion_factor(products):
     currency_factor = {}
     conv_factor = {}
     for product in products:
-        symbol = product.rstrip('0123456789')
+        symbol = product.rstrip('0123456789').lstrip('f')
         query = "SELECT factor,currency FROM tick_conversion WHERE symbol='"+symbol+"'"
         db_cursor.execute(query)
         data = db_cursor.fetchall()                                                      #should check if data exists or not

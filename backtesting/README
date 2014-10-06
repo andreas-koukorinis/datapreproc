@@ -1,10 +1,23 @@
 COMMAND TO RUN:
+---------------
    python -W ignore Simulator.py start_date end_date product_list initial_capital
    
    EXAMPLE:
    python -W ignore Simulator.py 2014-01-01 2014-08-20 "['ES1','TY1']" 100000000
 
 SYMBOL LIST
+-----------
 fAD1,fBA1,fBP1,fCD1,fCF1,fDM1,fDU1,fED1,fER1,fES1,fFV1,fGX1,fJY1,fNQ1,fNV1,fNX1,fPE1,fRX1,fSF1,fTU1,fTY1,fUS1,fVG1,fWN1
 
+INSTRUCTIONS
+------------
 WRITE THE TRADING STRATEGY IN THE TradeLogic.py file
+
+ASSUMPTIONS/PENDING
+-----------
+1) Orders placed today will be executed at tomorrow's price
+2) Symbol of futures contract should be prefixed by 'f'
+3) If there is a futures contract in the symbol list on which the simulation is run,then both first and second futures contract symbols should be specified.
+   EG: If 'ES1' is specified then ES2 should also be specified
+4) All end of day events for a particular date occur simultaneously at 23:59:59:999999
+5) Intraday events need to be handled

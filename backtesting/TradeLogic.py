@@ -11,9 +11,11 @@ class TradeLogic(TradeAlgorithm):
         #Initialize space for daily indicators
         self._DailyLogReturns = {}
         self._StdDev21 = {}
+        self._yesterday_settlement = {}
         for product in self.products:
             self._DailyLogReturns[product]= empty(shape=(0))                                     #Track the daily log returns for the product
             self._StdDev21[product]=0								#Track the last month's standard deviation of daily log returns for the product
+            self._yesterday_settlement[product]=False
 
         self.day=0
         self.maxentries_dailybook = 200
@@ -27,15 +29,27 @@ class TradeLogic(TradeAlgorithm):
 #dailybook consists of tupes of the form (timestamp,closing prices) sorted by timestamp
 
     ##Track the daily log returns for the product
-    def DailyLogReturns(self,product):
-        dailybook = self.bb_objects[product].dailybook
-        n = len(dailybook)
-        if(n>=2):
-            logret = log(dailybook[n-1][1]/dailybook[n-2][1])
-            self._DailyLogReturns[product] = append(self._DailyLogReturns[product],logret)               
-
+    def DailyLogReturns(self,product,is_settlement_day): 
+        if(product[0]=='f' and self._yesterday_settlement[product] and product[-1]=='1'):       #If its the first futures contract and yesterday was the settlement day
+            product1 = product                                                                 #Example : product1 = fES1
+            product2 = product.rstrip('0123456789')+'2'                                        #Example : product2 = fES2
+            dailybook1 = self.bb_objects[product1].dailybook
+            dailybook2 = self.bb_objects[product2].dailybook
+            n1 = len(dailybook1)
+            n2 = len(dailybook2)
+            if(n1>=1 and n2>=2):
+                logret = log(dailybook1[n1-1][1]/dailybook2[n2-2][1])
+                self._DailyLogReturns[product] = append(self._DailyLogReturns[product],logret)
+        else:
+            dailybook = self.bb_objects[product].dailybook
+            n = len(dailybook)
+            if(n>=2):
+                logret = log(dailybook[n-1][1]/dailybook[n-2][1])
+                self._DailyLogReturns[product] = append(self._DailyLogReturns[product],logret)             
+        self._yesterday_settlement[product]= is_settlement_day
+         
     #Track the last month's standard deviation of daily log returns for the product
-    def StdDev21(self,product):
+    def StdDev21(self,product,is_settlement_day):
         n = self._DailyLogReturns[product].shape[0]
         k = 21
         if(n-k-1<0): return									#If lookback period not sufficient,dont calculate the indicator
@@ -51,5 +65,5 @@ class TradeLogic(TradeAlgorithm):
         if(events[0]['type']=='ENDOFDAY'):
             self.day +=1
         if(self.day%self.rebalance_frequency==0):
-            self.place_order(events[0]['dt'],'ES1',10)                                              #place an order to buy 10 shares of product 1 on every rebalance_freq^th day
+            self.place_order(events[0]['dt'],events[0]['product'],10)                                              #place an order to buy 10 shares of product 1 on every rebalance_freq^th day
 
