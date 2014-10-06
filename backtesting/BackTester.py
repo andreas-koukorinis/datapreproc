@@ -12,7 +12,7 @@ class BackTester:
     #Append the orders to the pending_list.
     #ASSUMPTION:Orders will be filled on the next event
     def sendOrder(self,order):
-        #self.printOrders(0,order)
+        self.printOrders(0,order)
         self.pending_orders.append(order)
 
     #Check which of the pending orders have been filled
@@ -28,7 +28,7 @@ class BackTester:
                 self.pending_orders.remove(order)						#should see what happens for duplicates/iteration
         if(len(filled_orders)>0):                                                            
             self.portfolio.update_portfolio(filled_orders)                                      #If some orders have been filled,then update the portfolio
-            #self.printOrders(1,filled_orders)
+            self.printOrders(1,filled_orders)
         if(track==1):
             self.performance_tracker.analyze(filled_orders,date)                                #Pass control to the performance tracker,pass date to track the daily performance
 

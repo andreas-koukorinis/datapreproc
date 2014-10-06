@@ -1,7 +1,7 @@
 import sys
 import datetime
 import heapq
-import MySQLdb
+from Utils import getdtfromdate,db_connect
 from BookBuilder import BookBuilder
 
 #The job of the dispatcher is 
@@ -12,14 +12,14 @@ from BookBuilder import BookBuilder
 class Dispatcher:
     
     def __init__(self,start_date,end_date,products,bb_objects,strategy,warmupdays):
-        self.start_dt = self.getdtfromdate(start_date)
-        self.end_dt = self.getdtfromdate(end_date)
+        self.start_dt = getdtfromdate(start_date)
+        self.end_dt = getdtfromdate(end_date)
         self.products = products
         self.heap = []										#Initialize the heap,heap will contain tuples of the form (timestamp,event)
-        self.db_cursor = self.db_connect()                                                      #Initialize the database cursor
+        self.db_cursor = db_connect()                                                           #Initialize the database cursor
         self.bb_objects = bb_objects                                                            
         self.strategy = strategy
-        self.days = 0
+        self.days = 0										#To check warmup period
         self.warmupdays = warmupdays
 
     #Main function which loops over the events and makes appropriate calls    
@@ -63,7 +63,7 @@ class Dispatcher:
     #given a product name and a timestamp(dt),fetch the next eligible ENDOFDAY event from the database
     def pushdailyevent(self,product,dt):
         (date,price) = self.fetchnextdb(product.rstrip('1234567890'),product,dt)
-        dt = self.getdtfromdate(date)
+        dt = getdtfromdate(date)
         event = {'price': price, 'product':product, 'type':'ENDOFDAY', 'dt':dt, 'table':product.rstrip('1234567890')} 
         heapq.heappush(self.heap,(dt,event))
 
@@ -73,22 +73,7 @@ class Dispatcher:
         try:
             query = "SELECT Date,"+product+" FROM "+table+" WHERE Date >= '"+str(dt.date())+"' ORDER BY Date LIMIT 1"
             self.db_cursor.execute(query)
-            data = self.db_cursor.fetchall()                  #should check if data exists or not
+            data = self.db_cursor.fetchall()                                                      #should check if data exists or not
             return (str(data[0][0]),float(data[0][1]))
         except:
             sys.exit("Error In DB.fetchnext")            
-
-    #Return a datetime object  given a date
-    #This function is used to get timestamp for end of day events
-    #ASSUMPTION : All end of day events for a particular date occur at the same time i.e. HH:MM:SS:MSMS -> 23:59:59:99999
-    def getdtfromdate(self,date):
-        date = date.strip().split('-')
-        return datetime.datetime(int(date[0]),int(date[1]),int(date[2]),23, 59, 59, 99999)
-
-    #Connect to the database and return the db cursor if the connection is successful
-    def db_connect(self):
-        try:
-            db = MySQLdb.connect(host="fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com", user="cvmysql",passwd="fixedcvincome", db="risk_parity")
-            return db.cursor()
-        except MySQLdb.Error:
-            sys.exit("Error In DB Connection") 

@@ -6,13 +6,10 @@ from TradeLogic import TradeLogic
 from Dispatcher import Dispatcher
 from BackTester import BackTester
 from BookBuilder import BookBuilder
+from Utils import getdtfromdate
 
 #Command to run : python Simulator.py start_date end_date list_products initial_capital
-#Example        : python Simulator.py 2014-01-01 2014-08-20 "['ES1','TY1']" 1000000
-
-def getdtfromdate(date):
-    date = date.strip().split('-')
-    return datetime.datetime(int(date[0]),int(date[1]),int(date[2]),23, 59, 59, 999999)
+#Example        : python Simulator.py 2014-01-01 2014-08-20 "['fES1','fTY1']" 1000000
 
 #Take arguments from terminal
 start_date = sys.argv[1]
@@ -65,6 +62,7 @@ dispatcher = Dispatcher(start_date,end_date,products,bb_objects,strategy,strateg
 #Run the dispatcher to start the backtesting process
 dispatcher.run()
 
+#Effective number of trading days will be less than [end_date-start_date] due to the warmup time specified by the user
 print 'Total Trading Days = %d\n'%(dispatcher.days-dispatcher.warmupdays)
 
 #Call the performance tracker to display the results and plot the graph of cumulative returns
