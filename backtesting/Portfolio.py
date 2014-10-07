@@ -20,5 +20,5 @@ class Portfolio:
     def update_portfolio(self,filled_orders):
         for order in filled_orders:
             self.cash = self.cash - order['value'] - order['cost']
-            assert self.cash >= 0
+            #assert self.cash >= 0
             self.num_shares[order['product']] = self.num_shares[order['product']] + order['amount']

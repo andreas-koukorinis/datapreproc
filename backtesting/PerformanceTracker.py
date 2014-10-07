@@ -48,7 +48,7 @@ class PerformanceTracker:
         for product in self.products:
             if(self.num_shares[product]!=0): 
                 book = self.bb_objects[product].dailybook
-                current_price = book[len(book)-1][1]
+                current_price = book[-1][1]
                 netValue = netValue + current_price*self.num_shares[product]*self.conversion_factor[product]
         return netValue
 
@@ -107,15 +107,15 @@ class PerformanceTracker:
         self.monthly_returns = (exp(monthly_log_returns)-1)*100
         self.quaterly_returns = (exp(quaterly_log_returns)-1)*100
         self.yearly_returns = (exp(yearly_log_returns)-1)*100
-        self.dml = self.meanlowestkpercent(self.daily_returns,10)                                  #check if we should use log returns
-        self.mml = self.meanlowestkpercent(self.monthly_returns,10)
-        self.qml = self.meanlowestkpercent(self.quaterly_returns,10)
-        self.yml = self.meanlowestkpercent(self.yearly_returns,10)
-        self.annualized_returns = 252.0 * mean(self.daily_returns)                                 #check if we should use log returns
-        self.annualized_stddev = sqrt(252.0)*std(self.daily_returns)                               #check if we should use log returns
+        self.dml = (exp(self.meanlowestkpercent(daily_log_returns,10))-1)*100.0                                            
+        self.mml = (exp(self.meanlowestkpercent(monthly_log_returns,10))-1)*100.0
+        self.qml = (exp(self.meanlowestkpercent(quaterly_log_returns,10))-1)*100.0
+        self.yml = (exp(self.meanlowestkpercent(yearly_log_returns,10))-1)*100.0
+        self.annualized_returns = 252.0 * (exp(mean(daily_log_returns))-1)*100.0                               
+        self.annualized_stddev = sqrt(252.0)*(exp(std(daily_log_returns))-1)*100.0                            
         self.sharpe = self.annualized_returns/self.annualized_stddev
-        self.skewness = ss.skew(self.daily_returns)
-        self.kurtosis = ss.kurtosis(self.daily_returns)
+        self.skewness = ss.skew(self.PnLvector)
+        self.kurtosis = ss.kurtosis(self.PnLvector)
         max_dd_log = self.drawdown(daily_log_returns)
         self.max_drawdown_percent = (exp(max_dd_log)-1)*100
         self.max_drawdown_dollar = self.drawdown(self.PnLvector)

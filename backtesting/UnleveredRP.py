@@ -1,6 +1,7 @@
 import sys
 from TradeAlgorithm import TradeAlgorithm
 from numpy import *
+from Utils import checkEOD,get_worth,get_positions_from_weights
 
 class UnleveredRP(TradeAlgorithm):
 
@@ -17,11 +18,11 @@ class UnleveredRP(TradeAlgorithm):
             self._StdDev21[product]=0								#Track the last month's standard deviation of daily log returns for the product
             self._yesterday_settlement[product]=False                                           #Track if yesterday was a settlement day,to update daily log returns correctly
 
-        self.day=0
+        self.day=-1
         self.maxentries_dailybook = 200
         self.maxentries_intradaybook = 200
         self.rebalance_frequency=5
-        self.warmupdays = 63									#number of days needed for the lookback of the strategy
+        self.warmupdays = 21									#number of days needed for the lookback of the strategy
 
 #------------------------------------------------------------------------INDICATORS---------------------------------------------------------------------------------------#
 #Use self.bb_objects[product].dailybook to access the closing prices for the 'product'
@@ -38,13 +39,13 @@ class UnleveredRP(TradeAlgorithm):
             n1 = len(dailybook1)
             n2 = len(dailybook2)
             if(n1>=1 and n2>=2):
-                logret = log(dailybook1[n1-1][1]/dailybook2[n2-2][1])
+                logret = log(dailybook1[-1][1]/dailybook2[-2][1])
                 self._DailyLogReturns[product] = append(self._DailyLogReturns[product],logret)
         else:
             dailybook = self.bb_objects[product].dailybook
             n = len(dailybook)
             if(n>=2):
-                logret = log(dailybook[n-1][1]/dailybook[n-2][1])
+                logret = log(dailybook[-1][1]/dailybook[-2][1])
                 self._DailyLogReturns[product] = append(self._DailyLogReturns[product],logret)             
         self._yesterday_settlement[product]= is_settlement_day
          
@@ -60,10 +61,49 @@ class UnleveredRP(TradeAlgorithm):
     #'events' is a list of concurrent events
     # event = {'price': 100, 'product': 'ES1', 'type':'ENDOFDAY', 'dt': datetime(2005,1,2,23,59,99999), 'table': 'ES','is_settlement_day':False}
     # access conversion_factor using : self.conversion_factor['ES1']
-    ##########RISK PARITY UNLEVERED###########
-    def OnEventListener(self,events):
-        if(events[0]['type']=='ENDOFDAY'):
-            self.day +=1
-        if(self.day%self.rebalance_frequency==0):
-            self.place_order(events[0]['dt'],events[0]['product'],10)                           #place an order to buy 10 shares of product 1 on every rebalance_freq^th day
 
+    def OnEventListener(self,events):
+        all_EOD = checkEOD(events)								#check whether all the events are ENDOFDAY
+        if(all_EOD): self.day += 1                                                              #Track the current day number
+
+        current_portfolio = self.portfolio.get_portfolio()                                      #current_portfolio consists of : 'cash','num_shares','products'   
+        positions_to_take = {}
+
+        #Get the current price for each product
+        current_price = {}
+        for product in self.products:
+            current_price[product] = self.bb_objects[product].dailybook[-1][1]
+           
+        #If today is the rebalancing day,then use indicators to calculate new positions to take
+        if(all_EOD and self.day%self.rebalance_frequency==0):
+
+            #calculate current worth
+            current_worth = get_worth(current_price,self.conversion_factor,current_portfolio)  
+
+            #Calculate weights to assign to each product using indicators
+            weight = {}
+            sum_weights=0
+            for product in self.products:
+                if(product[0]=='f' and product[-1]!='1'):					#Dont trade futures contracts other than the first futures contract
+                    weight[product] = 0
+                else:
+                    weight[product] = 1/self._StdDev21[product]
+                sum_weights = sum_weights+weight[product]
+            for product in self.products: 
+                weight[product]=weight[product]/sum_weights
+
+            #Calculate positions from weights
+            #Assumption: Use 95% of the wealth to decide positions,rest 5% for costs and price changes
+            positions_to_take = get_positions_from_weights(weight,current_worth*0.95,current_price,self.conversion_factor)   
+           
+        #Otherwise positions_to_take is same as current portfolio composition
+        else:
+            for product in self.products:
+                positions_to_take[product] = current_portfolio['num_shares'][product]
+ 
+        #Adjust positions for settlement day
+        positions_to_take = self.adjust_positions_for_settlements(events,current_price,positions_to_take)
+
+        #Place orders.Since all events are concurrent, the datetime attribute of all the events will be same
+        for product in self.products:
+                self.place_order_target(events[0]['dt'],product,positions_to_take[product])

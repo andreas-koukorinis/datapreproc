@@ -26,6 +26,8 @@ class Dispatcher:
     #ASSUMPTION:All ENDOFDAY events have same time
     def run(self):
         self.heap_initialize(self.products)							#Add 1 earliest event after the startdate from each source
+        is_settlement={}                                                                        #Track the settlement day for each product
+        for product in self.products: is_settlement[product]=False
         current_dt = heapq.nsmallest(1,self.heap)[0][0]                                         #Get the lowest timestamp which has not been handled               
         while(current_dt<=self.end_dt):                                                         #While timestamp does not surpass the end date
             concurrent_events=[]       
@@ -40,12 +42,17 @@ class Dispatcher:
                         done=1
                         self.days = self.days+1
                     if(self.days<=self.warmupdays):                                             #dont track performance if still in warmup period
-		        track=0
-                    else: track=1                        
-                    self.bb_objects[event['product']].dailyBookupdate(event,track)  		#call dailybookbuilder to update the book
+                        track=0
+                    else: 
+                        track=1                    
+                    self.bb_objects[event['product']].dailyBookupdate(event,track,is_settlement[event['product']])    #call dailybookbuilder to update the book
                     self.pushdailyevent(event['product'],current_dt+datetime.timedelta(days=1)) #Push the next daily event for this product
+                    is_settlement[event['product']]=event['is_settlement_day']                  #Delay update of settlement variable by 1 day for correct timing
                 if(event['type']=='INTRADAY'):                                                  #This is an intraday event
                     pass                                                                        #TO BE COMPLETED:call intradaybookbuilder and push next
+
+            assert self.strategy.portfolio.get_portfolio()['cash']>=0                           #After every set of concurrent events,portfolio cash should be non negative
+
             if(len(self.heap)>0):
                 current_dt = heapq.nsmallest(1,self.heap)[0][0]                                 #If the are still elements in the heap,update the timestamp to next timestamp
             if(len(concurrent_events)>0 and track==1):                                                    
@@ -64,7 +71,7 @@ class Dispatcher:
     #given a product name and a timestamp(dt),fetch the next eligible ENDOFDAY event from the database
     def pushdailyevent(self,product,dt):
         (date,price) = self.fetchnextdb(product.rstrip('1234567890').lstrip('f'),product,dt)
-        if(product[0]=='f' and product[-1]=='1'):
+        if(product[0]=='f'):
             is_settlement_day = check_settlement_day(self.db_cursor,product,date)
         else:
             is_settlement_day = False

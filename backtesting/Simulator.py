@@ -25,7 +25,6 @@ TradeLogic = getattr(module,filename)                                           
 #Fetch the conversion factor for each product from the database
 conv_factor = conversion_factor(products)
 
-
 #Initialize portfolio using initial_capital and list of products
 portfolio = Portfolio(initial_capital,products)
 
@@ -75,7 +74,7 @@ dispatcher = Dispatcher(start_date,end_date,products,bb_objects,strategy,strateg
 dispatcher.run()
 
 #Effective number of trading days will be less than [end_date-start_date] due to the warmup time specified by the user
-print 'Total Trading Days = %d\n'%(dispatcher.days-dispatcher.warmupdays)
+print '\nTotal Trading Days = %d'%(dispatcher.days-dispatcher.warmupdays)
 
 #Call the performance tracker to display the results and plot the graph of cumulative returns
 performance_tracker.showResults()
