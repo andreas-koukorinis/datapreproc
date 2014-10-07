@@ -1,8 +1,8 @@
 COMMAND TO RUN:
 ---------------
-   python -W ignore Simulator.py start_date end_date product_list initial_capital
+   python -W ignore Simulator.py start_date end_date product_list initial_capital strategy_filename
    
-   EXAMPLE: python -W ignore Simulator.py 2014-01-01 2014-08-20 "['fES1','fES2','fTY1','fTY2']" 100000000
+   EXAMPLE: python -W ignore Simulator.py 2014-01-01 2014-08-20 "['fES1','fES2','fTY1','fTY2']" 100000000 UnleveredRP.py
    
 SYMBOL LIST
 -----------

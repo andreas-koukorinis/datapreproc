@@ -2,10 +2,10 @@ import sys
 from TradeAlgorithm import TradeAlgorithm
 from numpy import *
 
-class TradeLogic(TradeAlgorithm):
+class UnleveredRP(TradeAlgorithm):
 
     def init(self):
-        self.daily_indicators = ['DailyLogReturns','StdDev21']                                 #Indicators will be updated in the same order as they are specified in the list
+        self.daily_indicators = ['DailyLogReturns','StdDev21']                                  #Indicators will be updated in the same order as they are specified in the list
         self.intraday_indicators = []
         
         #Initialize space for daily indicators
@@ -13,14 +13,14 @@ class TradeLogic(TradeAlgorithm):
         self._StdDev21 = {}
         self._yesterday_settlement = {}
         for product in self.products:
-            self._DailyLogReturns[product]= empty(shape=(0))                                     #Track the daily log returns for the product
+            self._DailyLogReturns[product]= empty(shape=(0))                                    #Track the daily log returns for the product
             self._StdDev21[product]=0								#Track the last month's standard deviation of daily log returns for the product
-            self._yesterday_settlement[product]=False
+            self._yesterday_settlement[product]=False                                           #Track if yesterday was a settlement day,to update daily log returns correctly
 
         self.day=0
         self.maxentries_dailybook = 200
         self.maxentries_intradaybook = 200
-        self.rebalance_frequency=20
+        self.rebalance_frequency=5
         self.warmupdays = 63									#number of days needed for the lookback of the strategy
 
 #------------------------------------------------------------------------INDICATORS---------------------------------------------------------------------------------------#
@@ -31,8 +31,8 @@ class TradeLogic(TradeAlgorithm):
     ##Track the daily log returns for the product
     def DailyLogReturns(self,product,is_settlement_day): 
         if(product[0]=='f' and self._yesterday_settlement[product] and product[-1]=='1'):       #If its the first futures contract and yesterday was the settlement day
-            product1 = product                                                                 #Example : product1 = fES1
-            product2 = product.rstrip('0123456789')+'2'                                        #Example : product2 = fES2
+            product1 = product                                                                  #Example : product1 = fES1
+            product2 = product.rstrip('0123456789')+'2'                                         #Example : product2 = fES2
             dailybook1 = self.bb_objects[product1].dailybook
             dailybook2 = self.bb_objects[product2].dailybook
             n1 = len(dailybook1)
@@ -52,18 +52,18 @@ class TradeLogic(TradeAlgorithm):
     def StdDev21(self,product,is_settlement_day):
         n = self._DailyLogReturns[product].shape[0]
         k = 21
-        if(n-k-1<0): return									#If lookback period not sufficient,dont calculate the indicator
-        self._StdDev21[product] = std(self._DailyLogReturns[product][n-1-k:n-1])
+        if(n-k<0): return									#If lookback period not sufficient,dont calculate the indicator
+        self._StdDev21[product] = std(self._DailyLogReturns[product][n-k:n])
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     #'events' is a list of concurrent events
-    # event = {'price': 100, 'product': 'ES1', 'type':'ENDOFDAY', 'dt': datetime(2005,1,2,23,59,99999), 'table': 'ES'}
+    # event = {'price': 100, 'product': 'ES1', 'type':'ENDOFDAY', 'dt': datetime(2005,1,2,23,59,99999), 'table': 'ES','is_settlement_day':False}
     # access conversion_factor using : self.conversion_factor['ES1']
     ##########RISK PARITY UNLEVERED###########
     def OnEventListener(self,events):
         if(events[0]['type']=='ENDOFDAY'):
             self.day +=1
         if(self.day%self.rebalance_frequency==0):
-            self.place_order(events[0]['dt'],events[0]['product'],10)                                              #place an order to buy 10 shares of product 1 on every rebalance_freq^th day
+            self.place_order(events[0]['dt'],events[0]['product'],10)                           #place an order to buy 10 shares of product 1 on every rebalance_freq^th day
 

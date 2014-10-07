@@ -2,21 +2,29 @@ import sys,ast,datetime
 from Portfolio import Portfolio
 from PerformanceTracker import PerformanceTracker
 from OrderManager import OrderManager
-from TradeLogic import TradeLogic
 from Dispatcher import Dispatcher
 from BackTester import BackTester
 from BookBuilder import BookBuilder
 from Utils import getdtfromdate,conversion_factor
+from importlib import import_module
 
-#Command to run : python -W ignore Simulator.py start_date end_date list_products initial_capital
-#Example        : python -W ignore Simulator.py 2014-01-01 2014-08-20 "['fES1','fES2','fTY1','fTY2']" 100000000
+#Command to run : python -W ignore Simulator.py start_date end_date list_products initial_capital strategy_filename
+#Example        : python -W ignore Simulator.py 2014-01-01 2014-08-20 "['fES1','fES2','fTY1','fTY2']" 100000000 UnleveredRP.py
 
 #Take arguments from terminal
 start_date = sys.argv[1]
 end_date = sys.argv[2]
 products = ast.literal_eval(sys.argv[3])
 initial_capital = float(sys.argv[4])
+
+#Import the strategy class using the terminal argument
+filename = sys.argv[5].split('.')[0]                                                              #Remove .py from filename
+module = import_module(filename)                                                                  #Import the module corresponding to the filename
+TradeLogic = getattr(module,filename)                                                             #Get the strategy class from the imported module 
+
+#Fetch the conversion factor for each product from the database
 conv_factor = conversion_factor(products)
+
 
 #Initialize portfolio using initial_capital and list of products
 portfolio = Portfolio(initial_capital,products)
