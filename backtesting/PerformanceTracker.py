@@ -91,6 +91,8 @@ class PerformanceTracker:
                 dates[i] = dates[i].strftime('%d/%m/%Y')  
         plt.plot(dailyPnL.cumsum())
         plt.xticks(range(len(dailyPnL)),dates)
+        plt.xlabel('Date')
+        plt.ylabel('Cumulative PnL')
         plt.savefig('Cumulative_PnL.png', bbox_inches='tight')
 
     def showResults(self):

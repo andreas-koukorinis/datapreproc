@@ -1,4 +1,3 @@
-import TradeLogic
 from CommissionManager import CommissionManager
       
 class BackTester:

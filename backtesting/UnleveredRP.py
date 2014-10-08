@@ -33,7 +33,7 @@ class UnleveredRP(TradeAlgorithm):
     def DailyLogReturns(self,product,is_settlement_day): 
         if(product[0]=='f' and self._yesterday_settlement[product] and product[-1]=='1'):       #If its the first futures contract and yesterday was the settlement day
             product1 = product                                                                  #Example : product1 = fES1
-            product2 = product.rstrip('0123456789')+'2'                                         #Example : product2 = fES2
+            product2 = product.rstrip('1')+'2'                                         #Example : product2 = fES2
             dailybook1 = self.bb_objects[product1].dailybook
             dailybook2 = self.bb_objects[product2].dailybook
             n1 = len(dailybook1)
