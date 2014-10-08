@@ -23,8 +23,9 @@ class PerformanceTracker:
         self.value = [initial_capital]                                                                   #Track end of day values of the portfolio
         self.PnLvector = []                            
         self.annualized_PnL = 0
+        self.annualized_stdev_PnL = 0
         self.annualized_returns = 0
-        self.annualized_stddev = 0
+        self.annualized_stddev_returns = 0
         self.sharpe = 0
         self.daily_returns = []
         self.monthly_returns = []
@@ -101,6 +102,7 @@ class PerformanceTracker:
         self.PnLvector = array(self.PnLvector).astype(float)
         self.value = array(self.value).astype(float)
         self.annualized_PnL = 252.0 * mean(self.PnLvector)
+        self.annualized_stdev_PnL = sqrt(252.0)*std(self.PnLvector)
         self.daily_returns = self.PnLvector*100.0/self.value[0:self.value.shape[0]-1]
         daily_log_returns = log(1 + self.daily_returns/100.0)
         monthly_log_returns = self.rollsum(daily_log_returns,21)
@@ -114,8 +116,8 @@ class PerformanceTracker:
         self.qml = (exp(self.meanlowestkpercent(quaterly_log_returns,10))-1)*100.0
         self.yml = (exp(self.meanlowestkpercent(yearly_log_returns,10))-1)*100.0
         self.annualized_returns = 252.0 * (exp(mean(daily_log_returns))-1)*100.0                               
-        self.annualized_stddev = sqrt(252.0)*(exp(std(daily_log_returns))-1)*100.0                            
-        self.sharpe = self.annualized_returns/self.annualized_stddev
+        self.annualized_stddev_returns = sqrt(252.0)*(exp(std(daily_log_returns))-1)*100.0                            
+        self.sharpe = self.annualized_returns/self.annualized_stddev_returns
         self.skewness = ss.skew(self.PnLvector)
         self.kurtosis = ss.kurtosis(self.PnLvector)
         max_dd_log = self.drawdown(daily_log_returns)
@@ -124,6 +126,6 @@ class PerformanceTracker:
         self.return_by_maxdrawdown = self.annualized_returns/self.max_drawdown_percent
         self.annualizedPnLbydrawdown = self.annualized_PnL/self.max_drawdown_dollar 
 
-        print "\n-------------RESULTS--------------------\nNet PNL = %.10f \nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f \n" %(self.PnL,self.net_returns,self.annualized_PnL,self.annualized_returns,self.annualized_stddev,self.sharpe,self.skewness,self.kurtosis,self.dml,self.mml,self.qml,self.yml,self.max_drawdown_percent,self.max_drawdown_dollar,self.annualizedPnLbydrawdown,self.return_by_maxdrawdown)
+        print "\n-------------RESULTS--------------------\nNet PNL = %.10f \nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Std_PnL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f \n" %(self.PnL,self.net_returns,self.annualized_PnL,self.annualized_stdev_PnL,self.annualized_returns,self.annualized_stddev_returns,self.sharpe,self.skewness,self.kurtosis,self.dml,self.mml,self.qml,self.yml,self.max_drawdown_percent,self.max_drawdown_dollar,self.annualizedPnLbydrawdown,self.return_by_maxdrawdown)
 
         self.PlotPnLVersusDates(self.dates,array(self.PnLvector).astype(float))
