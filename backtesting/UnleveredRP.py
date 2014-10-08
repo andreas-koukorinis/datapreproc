@@ -88,7 +88,7 @@ class UnleveredRP(TradeAlgorithm):
                     weight[product] = 0
                 else:
                     weight[product] = 1/self._StdDev21[product]
-                sum_weights = sum_weights+weight[product]
+                sum_weights = sum_weights+abs(weight[product])
             for product in self.products: 
                 weight[product]=weight[product]/sum_weights
 

@@ -30,8 +30,8 @@ conv_factor = conversion_factor(products)
 #Initialize portfolio using initial_capital and list of products
 portfolio = Portfolio(initial_capital,products)
 
-#Initialize performance tracker with initial_capital,list of products
-performance_tracker = PerformanceTracker(initial_capital,products,conv_factor)   
+#Initialize performance tracker with initial_capital,list of products,conversion_factor,strategy_name
+performance_tracker = PerformanceTracker(initial_capital,products,conv_factor,filename)   
 
 #Initialize Bacltesting objects for each product 
 #Pass instance of Portfolio and Performance Tracker to each Backtester since Backtester updates the portfolio and passes the control to Performance Tracker

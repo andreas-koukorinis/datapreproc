@@ -9,11 +9,12 @@ import matplotlib.dates as mdates
 import pylab
 
 class PerformanceTracker:
-    def __init__(self,initial_capital,products,conversion_factor):
+    def __init__(self,initial_capital,products,conversion_factor,strategy_name):
         self.initial_capital = initial_capital
         self.cash = initial_capital
         self.products = products
         self.conversion_factor = conversion_factor
+        self.strategy_name = strategy_name
         self.num_shares = {}
         for product in products:
             self.num_shares[product] = 0
@@ -94,7 +95,7 @@ class PerformanceTracker:
         plt.xticks(range(len(dailyPnL)),dates)
         plt.xlabel('Date')
         plt.ylabel('Cumulative PnL')
-        plt.savefig('Cumulative_PnL.png', bbox_inches='tight')
+        plt.savefig('Cumulative_PnL_'+self.strategy_name.split('.')[0]+".png", bbox_inches='tight')
 
     def showResults(self):
         self.PnL = self.getPortfolioValue() - self.initial_capital
