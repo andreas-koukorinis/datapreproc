@@ -8,7 +8,8 @@ def getPerfStats(returns):
     net_log_returns = sum(returns,axis=0) #changed to axis=0 to sum by column
     net_percent_returns = (exp(net_log_returns)-1)*100
     annualized_percent_returns = (exp((250)*mean(returns,axis=0))-1)*100 #brought 250 inside the exp
-    annualized_percent_std = ( exp(sqrt(250.0)*std(returns)) - 1 )*100
+    annualized_percent_std = ( exp(sqrt(250.0)*std(returns,axis=0)) - 1 )*100
+    # this is buggy. please fix to do it element-wise
     if annualized_percent_std > 0 :
         sharpe_percent = 0
     else :
