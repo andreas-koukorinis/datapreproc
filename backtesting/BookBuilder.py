@@ -1,5 +1,3 @@
-import TradeLogic
-
 # The job of Book Builder is:
 # Update the daily book[based on tuples(timestamp,closingprices)] on the 'ENDOFDAY' event corresponding to its product
 class BookBuilder:

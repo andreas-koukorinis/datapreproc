@@ -73,3 +73,8 @@ def get_positions_from_weights(weight,current_worth,current_price,conversion_fac
         money_allocated = weight[product]*current_worth
         positions_to_take[product] = money_allocated/(current_price[product]*conversion_factor[product])
     return positions_to_take
+
+def print_portfolio_to_file(positions_file,portfolio,dt):
+    text_file = open(positions_file, "a")
+    text_file.write("Portfolio snapshot at EOD %s\nCash:%f\tPositions:%s\n\n" % (dt,portfolio['cash'],str(portfolio['num_shares'])))
+    text_file.close()

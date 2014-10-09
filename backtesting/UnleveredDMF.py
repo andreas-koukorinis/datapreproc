@@ -3,26 +3,30 @@ from TradeAlgorithm import TradeAlgorithm
 from numpy import *
 from Utils import checkEOD,get_worth,get_positions_from_weights
 
-class UnleveredRP(TradeAlgorithm):
+class UnleveredDMF(TradeAlgorithm):
 
     def init(self):
-        self.daily_indicators = ['DailyLogReturns','StdDev21']                                  #Indicators will be updated in the same order as they are specified in the list
+        self.daily_indicators = ['DailyLogReturns','StdDev','Trend']                            #Indicators will be updated in the same order as they are specified in the list
         self.intraday_indicators = []
         
         #Initialize space for daily indicators
         self._DailyLogReturns = {}
-        self._StdDev21 = {}
+        self._StdDev = {}
+        self._Trend = {}
         self._yesterday_settlement = {}
         for product in self.products:
             self._DailyLogReturns[product]= empty(shape=(0))                                    #Track the daily log returns for the product
-            self._StdDev21[product]=0								#Track the last month's standard deviation of daily log returns for the product
+            self._StdDev[product]=0								#Track the last month's standard deviation of daily log returns for the product
+            self._Trend[product]=0                                                              #Track the direction of trend for the product
             self._yesterday_settlement[product]=False                                           #Track if yesterday was a settlement day,to update daily log returns correctly
 
         self.day=-1
         self.maxentries_dailybook = 200
         self.maxentries_intradaybook = 200
         self.rebalance_frequency=5
-        self.warmupdays = 21									#number of days needed for the lookback of the strategy
+        self.StdDev_lookback = 21                                                               #1 Month
+        self.Trend_lookback = 63                                                                #3 Months
+        self.warmupdays = max(self.StdDev_lookback,self.Trend_lookback)				#number of days needed for the lookback of the strategy
 
 #------------------------------------------------------------------------INDICATORS---------------------------------------------------------------------------------------#
 #Use self.bb_objects[product].dailybook to access the closing prices for the 'product'
@@ -50,11 +54,18 @@ class UnleveredRP(TradeAlgorithm):
         self._yesterday_settlement[product]= is_settlement_day
          
     #Track the last month's standard deviation of daily log returns for the product
-    def StdDev21(self,product,is_settlement_day):
+    def StdDev(self,product,is_settlement_day):
         n = self._DailyLogReturns[product].shape[0]
-        k = 21
+        k = self.StdDev_lookback
         if(n-k<0): return									#If lookback period not sufficient,dont calculate the indicator
-        self._StdDev21[product] = std(self._DailyLogReturns[product][n-k:n])
+        self._StdDev[product] = std(self._DailyLogReturns[product][n-k:n])
+
+    #Track the direction of trend for the product
+    def Trend(self,product,is_settlement_day):
+        n = self._DailyLogReturns[product].shape[0]
+        k = self.Trend_lookback
+        if(n-k<0): return                                                                       #If lookback period not sufficient,dont calculate the indicator
+        self._Trend[product] = sign(sum(self._DailyLogReturns[product][n-k:n]))
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -87,7 +98,7 @@ class UnleveredRP(TradeAlgorithm):
                 if(product[0]=='f' and product[-1]!='1'):					#Dont trade futures contracts other than the first futures contract
                     weight[product] = 0
                 else:
-                    weight[product] = 1/self._StdDev21[product]
+                    weight[product] = self._Trend[product]/self._StdDev[product]
                 sum_weights = sum_weights+abs(weight[product])
             for product in self.products: 
                 weight[product]=weight[product]/sum_weights

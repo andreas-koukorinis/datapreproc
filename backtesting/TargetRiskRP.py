@@ -3,26 +3,29 @@ from TradeAlgorithm import TradeAlgorithm
 from numpy import *
 from Utils import checkEOD,get_worth,get_positions_from_weights
 
-class UnleveredRP(TradeAlgorithm):
+class TargetRiskRP(TradeAlgorithm):
 
     def init(self):
-        self.daily_indicators = ['DailyLogReturns','StdDev21']                                  #Indicators will be updated in the same order as they are specified in the list
+        self.daily_indicators = ['DailyLogReturns','StdDev']                                    #Indicators will be updated in the same order as they are specified in the list
         self.intraday_indicators = []
         
         #Initialize space for daily indicators
         self._DailyLogReturns = {}
-        self._StdDev21 = {}
+        self._StdDev = {}
         self._yesterday_settlement = {}
         for product in self.products:
             self._DailyLogReturns[product]= empty(shape=(0))                                    #Track the daily log returns for the product
-            self._StdDev21[product]=0								#Track the last month's standard deviation of daily log returns for the product
+            self._StdDev[product]=0								#Track the last month's standard deviation of daily log returns for the product
             self._yesterday_settlement[product]=False                                           #Track if yesterday was a settlement day,to update daily log returns correctly
 
         self.day=-1
         self.maxentries_dailybook = 200
         self.maxentries_intradaybook = 200
         self.rebalance_frequency=5
-        self.warmupdays = 21									#number of days needed for the lookback of the strategy
+        self.StdDev_lookback = 21                                                               #1 Month
+        self.target_risk = 10                                                                   #In percent
+        self.warmupdays = self.StdDev_lookback    	                  			#number of days needed for the lookback of the strategy
+        self.leverage = 20.0
 
 #------------------------------------------------------------------------INDICATORS---------------------------------------------------------------------------------------#
 #Use self.bb_objects[product].dailybook to access the closing prices for the 'product'
@@ -50,11 +53,11 @@ class UnleveredRP(TradeAlgorithm):
         self._yesterday_settlement[product]= is_settlement_day
          
     #Track the last month's standard deviation of daily log returns for the product
-    def StdDev21(self,product,is_settlement_day):
+    def StdDev(self,product,is_settlement_day):
         n = self._DailyLogReturns[product].shape[0]
-        k = 21
+        k = self.StdDev_lookback
         if(n-k<0): return									#If lookback period not sufficient,dont calculate the indicator
-        self._StdDev21[product] = std(self._DailyLogReturns[product][n-k:n])
+        self._StdDev[product] = std(self._DailyLogReturns[product][n-k:n])
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -81,20 +84,20 @@ class UnleveredRP(TradeAlgorithm):
             current_worth = get_worth(current_price,self.conversion_factor,current_portfolio)  
 
             #Calculate weights to assign to each product using indicators
+            sum_weights = 0
             weight = {}
-            sum_weights=0
             for product in self.products:
                 if(product[0]=='f' and product[-1]!='1'):					#Dont trade futures contracts other than the first futures contract
                     weight[product] = 0
                 else:
-                    weight[product] = 1/self._StdDev21[product]
-                sum_weights = sum_weights+abs(weight[product])
-            for product in self.products: 
-                weight[product]=weight[product]/sum_weights
-
+                    target_risk_per_product = self.target_risk/float(len(self.products))
+                    risk_of_product = sqrt(252.0)*(exp(self._StdDev[product])-1)*100   
+                    weight[product] = target_risk_per_product/risk_of_product
+                sum_weights = sum_weights + weight[product]
+            print sum_weights
             #Calculate positions from weights
             #Assumption: Use 95% of the wealth to decide positions,rest 5% for costs and price changes
-            positions_to_take = get_positions_from_weights(weight,current_worth*0.95,current_price,self.conversion_factor)   
+            positions_to_take = get_positions_from_weights(weight,current_worth*(0.95),current_price,self.conversion_factor)   
            
         #Otherwise positions_to_take is same as current portfolio composition
         else:

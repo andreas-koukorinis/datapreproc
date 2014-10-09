@@ -1,7 +1,7 @@
 import sys
 import datetime
 import heapq
-from Utils import getdtfromdate,db_connect,db_close,check_settlement_day
+from Utils import getdtfromdate,db_connect,db_close,check_settlement_day,print_portfolio_to_file
 from BookBuilder import BookBuilder
 
 #The job of the dispatcher is 
@@ -11,7 +11,7 @@ from BookBuilder import BookBuilder
 #4)Push the next events into the heap and repeat
 class Dispatcher:
     
-    def __init__(self,start_date,end_date,products,bb_objects,strategy,warmupdays):
+    def __init__(self,start_date,end_date,products,bb_objects,strategy,warmupdays,positions_file):
         self.start_dt = getdtfromdate(start_date)
         self.end_dt = getdtfromdate(end_date)
         self.products = products
@@ -21,6 +21,7 @@ class Dispatcher:
         self.strategy = strategy
         self.days = 0										#To check warmup period
         self.warmupdays = warmupdays
+        self.positions_file = positions_file
 
     #Main function which loops over the events and makes appropriate calls    
     #ASSUMPTION:All ENDOFDAY events have same time
@@ -53,10 +54,14 @@ class Dispatcher:
 
             assert self.strategy.portfolio.get_portfolio()['cash']>=0                           #After every set of concurrent events,portfolio cash should be non negative
 
-            if(len(self.heap)>0):
-                current_dt = heapq.nsmallest(1,self.heap)[0][0]                                 #If the are still elements in the heap,update the timestamp to next timestamp
             if(len(concurrent_events)>0 and track==1):                                                    
                 self.strategy.OnEventListener(concurrent_events)                                #Make 1 call to the  oneventlistener of the strategy for all the concurrent events
+
+            print_portfolio_to_file(self.positions_file,self.strategy.portfolio.get_portfolio(),current_dt) #Portfolio is printed to file for analysis
+
+            if(len(self.heap)>0):
+                current_dt = heapq.nsmallest(1,self.heap)[0][0]                                 #If the are still elements in the heap,update the timestamp to next timestamp
+
         db_close(self.dbconn)									#Close database connection
 
     #Initialize the heap with 1 event for each source closest to startdate

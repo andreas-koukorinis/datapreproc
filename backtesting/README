@@ -1,8 +1,8 @@
 COMMAND TO RUN:
 ---------------
-   python -W ignore Simulator.py start_date end_date product_list initial_capital strategy_filename
+   python -W ignore Simulator.py start_date end_date product_list initial_capital strategy_filename positions_filename
    
-   EXAMPLE: python -W ignore Simulator.py 2014-01-01 2014-08-20 "['fES1','fES2','fTY1','fTY2']" 100000000 UnleveredRP.py
+   EXAMPLE: python -W ignore Simulator.py 2014-01-01 2014-08-20 "['fES1','fES2','fTY1','fTY2']" 100000000 UnleveredRP.py positions_UnleveredRP.txt
    
 SYMBOL LIST
 -----------
@@ -17,9 +17,10 @@ ASSUMPTIONS/PENDING
 1) Orders placed today will be executed at tomorrow's price and all orders are filled (should check order book)
 2) Commission Model needs to be changed
 3) Symbol of futures contract (only) should be prefixed by 'f' and suffixed by its number '1','2','3' etc
-4) We only trade first futures contract 
-5) If there is a futures contract in the symbol list on which the simulation is run,then both first and second futures contract symbols should be specified.
+4) We only trade first futures contract or non futures
+5) 95% of the wealth is used to decide positions,5% is for cost and changes in prices
+6) If there is a futures contract in the symbol list on which the simulation is run,then both first and second futures contract symbols should be specified.
    EG: If 'ES1' is specified then ES2 should also be specified
-6) All end of day events for a particular date occur simultaneously at 23:59:59:999999
-7) Intraday events need to be handled
+7) All end of day events for a particular date occur simultaneously at 23:59:59:999999
+8) Intraday events need to be handled
 
