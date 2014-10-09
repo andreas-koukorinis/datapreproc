@@ -8,8 +8,11 @@ def getPerfStats(returns):
     net_log_returns = sum(returns)
     net_percent_returns = (exp(net_log_returns)-1)*100
     annualized_percent_returns = (250.0)*(exp(mean(returns))-1)*100
-    annualized_percent_std = sqrt(250.0)*std(exp(returns)-1)*100
-    sharpe_percent = (annualized_percent_returns/annualized_percent_std)
+    annualized_percent_std = ( exp(sqrt(250.0)*std(returns)) - 1 )*100
+    if annualized_percent_std > 0 :
+        sharpe_percent = 0
+    else :
+        sharpe_percent = (annualized_percent_returns/annualized_percent_std)
     cum_returns = returns.cumsum()
     max_dd_log = max(maximum.accumulate(cum_returns) - cum_returns)
     max_dd_percent = (exp(max_dd_log)-1)*100
