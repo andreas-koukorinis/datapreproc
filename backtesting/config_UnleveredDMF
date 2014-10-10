@@ -1,0 +1,36 @@
+[Parameters]
+rebalance_frequency=5
+
+#number of days needed for the lookback of the strategy
+warmupdays=70		
+
+#The maximum limit on the number of entries present in the intraday book
+maxentries_intradaybook=200
+
+initial_capital=100000000
+
+[Dates]
+start_date=2010-01-01
+end_date=2014-01-01
+
+# Add symbols from this list : fAD1,fBA1,fBP1,fCD1,fCF1,fDM1,fDU1,fED1,fER1,fES1,fFV1,fGX1,fJY1,fNQ1,fNV1,fNX1,fPE1,fRX1,fSF1,fTU1,fTY1,fUS1,fVG1,fWN1
+#If it is a futures contract,add both first and second futures symbols
+[Products]
+symbols=fES1,fES2,fTY1,fTY2
+
+[Files]
+positions_file=positions_UnleveredDMF.txt
+returns_file=returns_UnleveredDMF.txt
+
+[Strategy]
+name=UnleveredDMF
+
+
+#------------------------------------------------------------------INDICATORS--------------------------------------------------------------------------------------
+
+[StdDev]
+periods=21,42
+
+[Trend]
+periods=21
+

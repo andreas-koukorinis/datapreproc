@@ -1,6 +1,9 @@
 #emacs files
 *~
 
+#vim files
+.*sw?
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
