@@ -1,9 +1,12 @@
 #emacs files
 *~
 .DS_Store
+<<<<<<< HEAD
 
 #vim files
 .*sw?
+=======
+>>>>>>> 70727452b709db3c551c42aa9fbeeff0a660be1b
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
