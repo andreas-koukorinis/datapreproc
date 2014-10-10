@@ -1,5 +1,6 @@
 #emacs files
 *~
+.DS_Store
 
 #vim files
 .*sw?
