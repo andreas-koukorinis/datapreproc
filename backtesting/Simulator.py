@@ -1,4 +1,5 @@
 import sys,ast,datetime
+import ConfigParser
 from Performance.PerformanceTracker import PerformanceTracker
 from OrderManager.OrderManager import OrderManager
 from Dispatcher.Dispatcher import Dispatcher
@@ -7,7 +8,7 @@ from BookBuilder.BookBuilder import BookBuilder
 from Utils.Regular import getdtfromdate
 from Utils.DbQueries import conv_factor
 from importlib import import_module
-import ConfigParser
+from Portfolio import Portfolio
 
 def __main__() :
     #Command to run : python -W ignore Simulator.py config_file
@@ -44,6 +45,10 @@ def __main__() :
     #     don't foresee any other class creating a strategy instance. Hence this GetUniqueInstance will only
     #     be called once.
     strategy = TradeLogic.GetUniqueInstance(products,config_file,TradeLogic)
+
+    # Give strategy the access to the portfolio instance,
+    # so that it can calculate its current worth and decide positions based on it.
+    strategy.portfolio = Portfolio.GetUniqueInstance(products,config_file)
 
     #Initialize Dispatcher using products list
     dispatcher = Dispatcher.GetUniqueInstance(products,config_file)

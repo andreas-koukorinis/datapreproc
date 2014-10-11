@@ -4,7 +4,6 @@ from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import EventsListener
 from BookBuilder.BookBuilder import BookBuilder
 from Utils.DbQueries import conv_factor
-from Portfolio import Portfolio
 
 class TradeAlgorithm(EventsListener):
 
@@ -31,10 +30,6 @@ class TradeAlgorithm(EventsListener):
 
         dispatcher = Dispatcher.GetUniqueInstance(products,config_file)
         dispatcher.AddEventsListener(self)
-
-        # Give strategy the access to the portfolio instance,
-        # so that it can calculate its current worth and decide positions based on it.
-        self.portfolio = Portfolio.GetUniqueInstance(products,config_file)
 
     @staticmethod
     def GetUniqueInstance(products,config_file,StrategyClass):
