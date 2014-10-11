@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import sys
 from numpy import *
@@ -22,7 +22,7 @@ def computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args):
     lookback_risk=weightfunc_args[0]
     lookback_trend=weightfunc_args[1] if(len(weightfunc_args)>1) else 0
 
-    start_day = max(lookback_risk,lookback_trend)   						        # Start from offset so that historical returns can be used
+    start_day = max(lookback_risk,lookback_trend) # Start from offset so that historical returns can be used
 
     print 'Total Trading days given = %d'%(num_days)
     print 'Days left for calculations based on past = %d'%(start_day)
@@ -43,27 +43,36 @@ def computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args):
         daily_returns.append ( log ( 1 + sum ( w * ( exp(data[current_day,:]) - 1 ) ) ) )
     return array(daily_returns).astype(float)
 
-
 # Main script
-# Read config file
-config = ConfigParser.ConfigParser()
-config.readfp(open(sys.argv[1],'r'))
-weightfunc_name = config.get('WeightFunction', 'func')
-weightfunc_args = config.get('WeightFunction', 'args').strip().split(",")
-weightfunc_args = [int(i) for i in weightfunc_args]
-Weightsfunc = getattr(weights, weightfunc_name)
-rebalance_freq = config.getint('Parameters', 'rebalance_freq')
-products = config.get('Products', 'symbols').strip().split(",")
-startdate = config.get('Products', 'startdate')
-enddate = config.get('Products', 'enddate')
+def __main__() :
+    # Read config file
+    config = ConfigParser.ConfigParser()
+    if len(sys.argv) < 2 :
+        print "Arguments: config_file <startdate enddate>"
+        sys.exit(0)
+    
+    config.readfp(open(sys.argv[1],'r'))
+    weightfunc_name = config.get('WeightFunction', 'func')
+    weightfunc_args = config.get('WeightFunction', 'args').strip().split(",")
+    weightfunc_args = [int(i) for i in weightfunc_args]
+    Weightsfunc = getattr(weights, weightfunc_name)
+    rebalance_freq = config.getint('Parameters', 'rebalance_freq')
+    products = config.get('Products', 'symbols').strip().split(",")
+    startdate = config.get('Products', 'startdate')
+    enddate = config.get('Products', 'enddate')
+    if len ( sys.argv ) >= 4:
+        startdate = sys.argv[2]
+        enddate = sys.argv[3]
 
-#Compute/Load Log Returns
-data = getLogReturns(products,startdate,enddate)
+    #Compute/Load Log Returns
+    data = getLogReturns(products,startdate,enddate)
 
-#Compute Portfolio periodic returns
-daily_returns = computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args)
+    #Compute Portfolio periodic returns
+    daily_returns = computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args)
 
-# Print Results
-print 'STRATEGY : %s'%weightfunc_name
-performance_stats = getPerfStats(daily_returns)
-print "\nNet_Log_Returns = %.10f \nNet_Percent_Returns = %.10f%%\nAnnualized_Returns = %.10f%% \nAnnualized_Std = %.10f%% \nSharpe_Ratio = %.10f \nMax_drawdown = %.10f%% \nReturn_drawdown_Ratio = %.10f \n" %(performance_stats.net_log_returns, performance_stats.net_percent_returns, performance_stats.annualized_percent_returns, performance_stats.annualized_percent_std, performance_stats.sharpe_percent, performance_stats.max_dd_percent, performance_stats.return_dd_ratio_percent )
+    # Print Results
+    print 'STRATEGY : %s'%weightfunc_name
+    performance_stats = getPerfStats(daily_returns)
+    print "\nNet_Log_Returns = %.10f \nNet_Percent_Returns = %.10f%%\nAnnualized_Returns = %.10f%% \nAnnualized_Std = %.10f%% \nSharpe_Ratio = %.10f \nMax_drawdown = %.10f%% \nReturn_drawdown_Ratio = %.10f \n" %(performance_stats.net_log_returns, performance_stats.net_percent_returns, performance_stats.annualized_percent_returns, performance_stats.annualized_percent_std, performance_stats.sharpe_percent, performance_stats.max_dd_percent, performance_stats.return_dd_ratio_percent )
+
+__main__();
