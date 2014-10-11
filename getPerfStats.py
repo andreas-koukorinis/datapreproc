@@ -1,21 +1,34 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
-from numpy import *
+import numpy as np
 
-# Prints the performance statistics for the daily return series 'returns' 
+class PerformanceStats(object):
+  """A collection of performance statistics of a strategy"""
+  def __init__(self):
+    self.net_log_returns = 0
+    self.net_percent_returns = 0
+    self.annualized_percent_returns = 0
+    self.annualized_percent_std = 10 # dummy value
+    self.sharpe_percent = 0
+    self.cum_returns = 0
+    self.max_dd_log = 0.1 # dummy value
+    self.max_dd_percent = 10 # dummy value
+    self.return_dd_ratio_percent = 0
+
+# Prints the performance statistics for the daily return series 'returns'
 # returns : 1D array of daily returns
-def getPerfStats(returns):
-    net_log_returns = sum(returns) 
-    net_percent_returns = (exp(net_log_returns)-1)*100
-    annualized_percent_returns = (exp((250)*mean(returns))-1)*100               #brought 250 inside the exp
-    annualized_percent_std = ( exp(sqrt(250.0)*std(returns)) - 1 )*100
-    if annualized_percent_std > 0 :
-        sharpe_percent = 0
+def getPerfStats(_returns):
+    _performance_stats = PerformanceStats()
+    _performance_stats.net_log_returns = np.sum(_returns)
+    _performance_stats.net_percent_returns = ( np.exp ( _performance_stats.net_log_returns ) -1 )*100
+    _performance_stats.annualized_percent_returns = ( np.exp((250)*np.mean(_returns))-1)*100 #brought 250 inside the exp
+    _performance_stats.annualized_percent_std = ( np.exp( np.sqrt(250.0)*np.std(_returns)) - 1 )*100
+    if _performance_stats.annualized_percent_std > 0 :
+        _performance_stats.sharpe_percent = 0
     else :
-        sharpe_percent = (annualized_percent_returns/annualized_percent_std)
-    cum_returns = returns.cumsum()
-    max_dd_log = max(maximum.accumulate(cum_returns) - cum_returns)
-    max_dd_percent = (exp(max_dd_log)-1)*100
-    return_dd_ratio_percent = annualized_percent_returns / max_dd_percent
-    print "\nNet_Log_Returns = %.10f \nNet_Percent_Returns = %.10f%%\nAnnualized_Returns = %.10f%% \nAnnualized_Std = %.10f%% \nSharpe_Ratio = %.10f \nMax_drawdown = %.10f%% \nReturn_drawdown_Ratio = %.10f \n" %(net_log_returns,net_percent_returns,annualized_percent_returns,annualized_percent_std,sharpe_percent,max_dd_percent,return_dd_ratio_percent)
-
+        _performance_stats.sharpe_percent = (_performance_stats.annualized_percent_returns/_performance_stats.annualized_percent_std)
+    _performance_stats.cum_returns = _returns.cumsum()
+    _performance_stats.max_dd_log = max(np.maximum.accumulate(_performance_stats.cum_returns) - _performance_stats.cum_returns)
+    _performance_stats.max_dd_percent = (np.exp(_performance_stats.max_dd_log)-1)*100
+    _performance_stats.return_dd_ratio_percent = _performance_stats.annualized_percent_returns / _performance_stats.max_dd_percent
+    return ( _performance_stats )

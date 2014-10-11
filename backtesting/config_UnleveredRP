@@ -22,7 +22,7 @@ symbols=fES1,fES2,fTY1,fTY2
 #The positions,orders placed and orders filled will be written to this file for analysis
 positions_file=positions_UnleveredRP.txt
 
-#The dailyPnL vector along witht the dates will be written to this file for future calculations
+#The dailyPnL vector along with the dates will be written to this file for future calculations
 returns_file=returns_UnleveredRP.txt
 
 [Strategy]

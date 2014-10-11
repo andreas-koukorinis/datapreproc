@@ -58,8 +58,14 @@ class BackTester(DailyBookListener,OrderManagerListener):
                 filled_orders.append({'dt':order['dt'],'product':order['product'],'amount':order['amount'],'cost':cost,'value':value})
                 self.pending_orders.remove(order)						#should see what happens for duplicates/iteration
         current_dt = dailybook[-1][0]
-        for listener in self.listeners:                                                     
+
+        # here the listeners will be portfolio and performance tracker
+        for listener in self.listeners:                     
             listener.OnOrderUpdate(filled_orders,current_dt.date())                             #Pass control to the performance tracker,pass date to track the daily performance
+
+        # The assumption here is that we only trade in the first futures contract
+        # TODO : we need to change that
+        # This seems to be something that needs to be moved to book.
         if(self.yesterday_settlement_day and self.product[-1]=='1'):                            #Only switch once for each product
             for listener in self.listeners:
                 listener.AfterSettlementDay(self.product)

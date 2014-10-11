@@ -1,6 +1,6 @@
 #emacs files
 *~
-.DS_Store #specific to mac
+.DS_Store
 
 #vim files
 .*sw?

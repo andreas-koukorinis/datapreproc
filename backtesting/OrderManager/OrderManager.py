@@ -41,6 +41,8 @@ class OrderManager(TradeAlgorithmListener):
     def OnSendOrder(self,dt,product,amount):
         order = {'dt':dt,'product':product,'amount':amount}
         self.printOrder(order)
+
+        # the listeners of OrderManager are BackTester
         for listener in self.listeners:              					#Send the order to the Backtester
             if(listener.product==order['product']):
                 listener.OnSendOrder(order)

@@ -32,7 +32,7 @@ class Trend(DailyLogReturnsListener):
     
     ##Udate the trend indicators on each ENDOFDAY event
     def OnDailyLogReturnsUpdate(self,product,DailyLogReturns):
-        self._Trend[product] = empty(shape=(0))
+        self._Trend[product] = empty(shape=(0)) # way to initialize numpy array of 0 size
         for period in self.periods:
             n=DailyLogReturns.shape[0]
             if(n>=period): 

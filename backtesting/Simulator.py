@@ -20,6 +20,8 @@ config.readfp(open(config_file,'r'))
 
 #Read product list from config file
 products = config.get('Products', 'symbols').strip().split(",")
+# if there is fES1 ... make sure fES2 is also there, if not add it
+
 
 #Initialize performance tracker with list of products
 performance_tracker = PerformanceTracker.GetUniqueInstance(products,config_file)

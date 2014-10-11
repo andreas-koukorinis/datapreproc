@@ -40,6 +40,7 @@ class BookBuilder(DailyEventListener):
 
     #Update the daily book with closing price and timestamp
     def OnDailyEventUpdate(self,event):
+        # Should we store is_settlement_day also?
         self.dailybook.append((event['dt'],event['price']))                                                #Add entry to the book.If max entries are reached pop first entry
         if(len(self.dailybook)>self.maxentries_dailybook):                               
             self.dailybook.pop(0)                                                                                  
