@@ -4,10 +4,11 @@ from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import EventsListener
 from BookBuilder.BookBuilder import BookBuilder
 from Utils.DbQueries import conv_factor
+from Portfolio import Portfolio
 
 class TradeAlgorithm(EventsListener):
 
-    instance=[]
+    instance=[] # Doubt { gchak } Why do we need "instance" in UnleveredRP if there is an instance here already ?
 
     '''
     Base class for strategy development
@@ -16,7 +17,7 @@ class TradeAlgorithm(EventsListener):
     def __init__(self,products,config_file,StrategyClass):
         self.products=products
         self.init(config_file)
-        self.Daily_Indicators={}    
+        self.Daily_Indicators={}
         self.conversion_factor=conv_factor(products)
         self.listeners=[]
         for indicator in self.daily_indicators:                                                    #Initialize daily indicators
@@ -31,19 +32,23 @@ class TradeAlgorithm(EventsListener):
         dispatcher = Dispatcher.GetUniqueInstance(products,config_file)
         dispatcher.AddEventsListener(self)
 
+        # Give strategy the access to the portfolio instance,
+        # so that it can calculate its current worth and decide positions based on it.
+        self.portfolio = Portfolio.GetUniqueInstance(products,config_file)
+
     @staticmethod
     def GetUniqueInstance(products,config_file,StrategyClass):
         if(len(StrategyClass.instance)==0):
             new_instance = StrategyClass(products,config_file,StrategyClass)
             StrategyClass.instance.append(new_instance)
-        return StrategyClass.instance[0]    
+        return StrategyClass.instance[0]
 
     def AddListener(self,listener):
         self.listeners.append(listener)
 
     #User is expected to write the function
     def OnEventsUpdate(self,concurrent_events):
-        pass										  
+        pass
 
     #Return the portfolio variables as a dictionary
     def get_portfolio(self):
@@ -64,7 +69,7 @@ class TradeAlgorithm(EventsListener):
         if(to_place!=0):
             self.place_order(dt,product,to_place)
 
-    #Shift the positions from first futures contract to second futures contract on the settlement day        
+    #Shift the positions from first futures contract to second futures contract on the settlement day
     def adjust_positions_for_settlements(self,events,current_price,positions_to_take):
         settlement_products=[]
         for event in events:
@@ -77,5 +82,5 @@ class TradeAlgorithm(EventsListener):
         return positions_to_take
 
     #TO BE COMPLETED
-    def cancel_order():									         
+    def cancel_order():
         pass

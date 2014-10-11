@@ -10,7 +10,7 @@ class Portfolio(BackTesterListener):
 
     def __init__(self,products,config_file):
         config = ConfigParser.ConfigParser()
-        config.readfp(open(config_file,'r'))        
+        config.readfp(open(config_file,'r'))
         self.cash = config.getfloat('Parameters', 'initial_capital')
         self.products = products
         self.num_shares = {}
@@ -36,7 +36,7 @@ class Portfolio(BackTesterListener):
     #cost_of_order : the commission and execution cost combined
     #value_of order : price*number_of_shares_bought/sold (-ve for sold,+ve for bought)
     #num_shares : +ve for buy,-ve for sell
-    def OnOrderUpdate(self,filled_orders,date):        
+    def OnOrderUpdate(self,filled_orders,date):
         for order in filled_orders:
             self.cash = self.cash - order['value'] - order['cost']
             #assert self.cash >= 0
@@ -48,4 +48,3 @@ class Portfolio(BackTesterListener):
         assert self.num_shares[p1]==0
         self.num_shares[p1] = self.num_shares[p2]
         self.num_shares[p2] = 0
-

@@ -22,13 +22,13 @@ import pickle
 #It outputs the list of [dates,dailyreturns] to returns_file for later analysis
 #It outputs the portfolio snapshots and orders in the positions_file for debugging
 class PerformanceTracker(BackTesterListener,EventsListener):
- 
+
     instance=[]
 
     def __init__(self,products,config_file):
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
-        start_date = config.get('Dates', 'start_date') 
+        start_date = config.get('Dates', 'start_date')
         self.positions_file = config.get('Files','positions_file')
         self.returns_file = config.get('Files','returns_file')
         self.initial_capital = config.getfloat('Parameters', 'initial_capital')
@@ -40,10 +40,10 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         for product in products:
             self.num_shares[product] = 0
         self.dates = []
-        self.PnL = 0                                                                                 
+        self.PnL = 0
         self.net_returns = 0
         self.value = array([self.initial_capital])                                                                   #Track end of day values of the portfolio
-        self.PnLvector = empty(shape=(0))                            
+        self.PnLvector = empty(shape=(0))
         self.annualized_PnL = 0
         self.annualized_stdev_PnL = 0
         self.annualized_returns = 0
@@ -64,24 +64,24 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.skewness = 0
         self.kurtosis = 0
         self.portfolio_snapshots = []
-        self.total_orders = 0      
+        self.total_orders = 0
         dispatcher = Dispatcher.GetUniqueInstance(products,config_file)
-        dispatcher.AddEventsListener(self)  
+        dispatcher.AddEventsListener(self)
         for product in products:
             backtester = BackTester.GetUniqueInstance(product,config_file)
-            backtester.AddListener(self) 
+            backtester.AddListener(self)
 
-        self.bb_objects={}  
+        self.bb_objects={}
         for product in products:
             self.bb_objects[product] = BookBuilder.GetUniqueInstance(product,config_file)
 
     @staticmethod
     def GetUniqueInstance(products,config_file):
-        if(len(PerformanceTracker.instance)==0):
+        if(len(PerformanceTracker.instance)==0): # till now, no PerformanceTracker objects have been created
             new_instance = PerformanceTracker(products,config_file)
             PerformanceTracker.instance.append(new_instance)
-        return PerformanceTracker.instance[0]
- 
+        return PerformanceTracker.instance[0] # if there is an object already, then it returns that object
+
     def OnOrderUpdate(self,filled_orders,current_date):
         for order in filled_orders:
             self.cash = self.cash - order['value'] - order['cost']
@@ -95,21 +95,21 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.num_shares[p1]=self.num_shares[p2]
         self.num_shares[p2]=0
 
-    def OnEventsUpdate(self,events): 
+    def OnEventsUpdate(self,events):
         all_EOD = checkEOD(events)                                                              #check whether all the events are ENDOFDAY
         if(all_EOD):
             self.ComputeDailyStats(events[0]['dt'].date())
-            self.PrintSnapshot(events[0]['dt'].date()) 
+            self.PrintSnapshot(events[0]['dt'].date())
 
     def getPortfolioValue(self):
         netValue = self.cash
         for product in self.products:
             if(self.num_shares[product]!=0):
                 book = self.bb_objects[product].dailybook
-                current_price = book[-2][1]                                                        #Yesterday's price 
+                current_price = book[-2][1]                                                        #Yesterday's price
                 netValue = netValue + current_price*self.num_shares[product]*self.conversion_factor[product]
         return netValue
-           
+
     def ComputeDailyStats(self,date):
         todaysValue = self.getPortfolioValue()
         self.value = append(self.value,todaysValue)
@@ -139,7 +139,7 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         if(n<period):
             return array([])                                                                             #empty array
         return array([sum(series[i:i+period]) for i in xrange(0,n-period+1)]).astype(float)
-    
+
     def meanlowestkpercent(self,series,k):
         sorted_series = sort(series)
         n = sorted_series.shape[0]
@@ -152,7 +152,7 @@ class PerformanceTracker(BackTesterListener,EventsListener):
             if(i%num!=0 and i!= len(dates)-1):
                 dates[i]=''
             else:
-                dates[i] = dates[i].strftime('%d/%m/%Y')  
+                dates[i] = dates[i].strftime('%d/%m/%Y')
         plt.plot(dailyPnL.cumsum())
         plt.xticks(range(len(dailyPnL)),dates)
         plt.xlabel('Date')
@@ -163,7 +163,7 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         with open(self.returns_file, 'wb') as f:
             pickle.dump(zip(dates,daily_log_returns), f)
 
-    def showResults(self): 
+    def showResults(self):
         self.PnL = self.getPortfolioValue() - self.initial_capital
         self.net_returns = self.PnL*100.0/self.initial_capital
         self.annualized_PnL = 252.0 * mean(self.PnLvector)
@@ -176,12 +176,12 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.monthly_returns = (exp(monthly_log_returns)-1)*100
         self.quaterly_returns = (exp(quaterly_log_returns)-1)*100
         self.yearly_returns = (exp(yearly_log_returns)-1)*100
-        self.dml = (exp(self.meanlowestkpercent(daily_log_returns,10))-1)*100.0                                            
+        self.dml = (exp(self.meanlowestkpercent(daily_log_returns,10))-1)*100.0
         self.mml = (exp(self.meanlowestkpercent(monthly_log_returns,10))-1)*100.0
         self.qml = (exp(self.meanlowestkpercent(quaterly_log_returns,10))-1)*100.0
         self.yml = (exp(self.meanlowestkpercent(yearly_log_returns,10))-1)*100.0
-        self.annualized_returns = (exp(252.0*mean(daily_log_returns))-1)*100.0                               
-        self.annualized_stddev_returns = (exp(sqrt(252.0)*std(daily_log_returns))-1)*100.0                            
+        self.annualized_returns = (exp(252.0*mean(daily_log_returns))-1)*100.0
+        self.annualized_stddev_returns = (exp(sqrt(252.0)*std(daily_log_returns))-1)*100.0
         self.sharpe = self.annualized_returns/self.annualized_stddev_returns
         self.skewness = ss.skew(self.PnLvector)
         self.kurtosis = ss.kurtosis(self.PnLvector)
@@ -189,7 +189,7 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.max_drawdown_percent = (exp(max_dd_log)-1)*100
         self.max_drawdown_dollar = self.drawdown(self.PnLvector)
         self.return_by_maxdrawdown = self.annualized_returns/self.max_drawdown_percent
-        self.annualizedPnLbydrawdown = self.annualized_PnL/self.max_drawdown_dollar 
+        self.annualizedPnLbydrawdown = self.annualized_PnL/self.max_drawdown_dollar
 
         self.saveResults(self.dates,daily_log_returns)
 

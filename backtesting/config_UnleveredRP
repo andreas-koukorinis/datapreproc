@@ -2,7 +2,7 @@
 rebalance_frequency=5
 
 #number of days needed for the lookback of the strategy
-warmupdays=70		
+warmupdays=70
 
 #The maximum limit on the number of entries present in the intraday book
 maxentries_intradaybook=200
@@ -36,4 +36,3 @@ periods=21,42
 
 [Trend]
 periods=21
-
