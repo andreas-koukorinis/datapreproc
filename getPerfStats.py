@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import numpy as np
+from numpy import sum,exp,mean,std,sqrt,maximum
 
 class PerformanceStats(object):
   """A collection of performance statistics of a strategy"""
@@ -19,16 +19,16 @@ class PerformanceStats(object):
 # returns : 1D array of daily returns
 def getPerfStats(_returns):
     _performance_stats = PerformanceStats()
-    _performance_stats.net_log_returns = np.sum(_returns)
-    _performance_stats.net_percent_returns = ( np.exp ( _performance_stats.net_log_returns ) -1 )*100
-    _performance_stats.annualized_percent_returns = ( np.exp((250)*np.mean(_returns))-1)*100 #brought 250 inside the exp
-    _performance_stats.annualized_percent_std = ( np.exp( np.sqrt(250.0)*np.std(_returns)) - 1 )*100
+    _performance_stats.net_log_returns = sum(_returns)
+    _performance_stats.net_percent_returns = ( exp ( _performance_stats.net_log_returns ) -1 )*100
+    _performance_stats.annualized_percent_returns = ( exp((250)*mean(_returns))-1)*100 #brought 250 inside the exp
+    _performance_stats.annualized_percent_std = ( exp( sqrt(250.0)*std(_returns)) - 1 )*100
     if _performance_stats.annualized_percent_std > 0 :
         _performance_stats.sharpe_percent = 0
     else :
         _performance_stats.sharpe_percent = (_performance_stats.annualized_percent_returns/_performance_stats.annualized_percent_std)
     _performance_stats.cum_returns = _returns.cumsum()
-    _performance_stats.max_dd_log = max(np.maximum.accumulate(_performance_stats.cum_returns) - _performance_stats.cum_returns)
-    _performance_stats.max_dd_percent = (np.exp(_performance_stats.max_dd_log)-1)*100
+    _performance_stats.max_dd_log = max(maximum.accumulate(_performance_stats.cum_returns) - _performance_stats.cum_returns)
+    _performance_stats.max_dd_percent = (exp(_performance_stats.max_dd_log)-1)*100
     _performance_stats.return_dd_ratio_percent = _performance_stats.annualized_percent_returns / _performance_stats.max_dd_percent
     return ( _performance_stats )

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-from numpy import *
+from numpy import array,sum,log,exp
 from init import getLogReturns
 import weights
 from getPerfStats import getPerfStats
@@ -50,7 +50,7 @@ def __main__() :
     if len(sys.argv) < 2 :
         print "Arguments: config_file <startdate enddate>"
         sys.exit(0)
-    
+
     config.readfp(open(sys.argv[1],'r'))
     weightfunc_name = config.get('WeightFunction', 'func')
     weightfunc_args = config.get('WeightFunction', 'args').strip().split(",")
