@@ -1,9 +1,9 @@
 import sys
 import datetime
 import heapq
+import ConfigParser
 from Utils.DbQueries import db_connect,db_close,check_settlement_day
 from Utils.Regular import getdtfromdate
-import ConfigParser
 
 #The job of the dispatcher is
 #1)To maintain a heap of all the event sources keyed by the timestamp(datetime object in python)
