@@ -1,7 +1,7 @@
 import csv
 import MySQLdb
 from numpy import *
-from getData import getPrice,getSpec
+from getData import get_dated_price_data,get_spec
 
 # read log returns data directly from csv file
 def load_data(file_,typ):
@@ -24,13 +24,13 @@ def getLogReturns(products,startdate,enddate):
     for prod_ in products:
         sym = prod_.rstrip('1234567890')
         if(len(sym)==len(prod_)):
-            (d,p) = getPrice(sym,startdate,enddate)							#If the product has same specific and generic symbol
+            (d,p) = get_dated_price_data(sym,startdate,enddate)							#If the product has same specific and generic symbol
             r = compute_returns(p)
             d = d[1:]
         else:
-            (d1,p1) = getPrice(sym+"1",startdate,enddate)
-            (d2,p2) = getPrice(sym+"2",startdate,enddate)
-            specs   = getSpec(sym,startdate,enddate)
+            (d1,p1) = get_dated_price_data(sym+"1",startdate,enddate)
+            (d2,p2) = get_dated_price_data(sym+"2",startdate,enddate)
+            specs   = get_spec(sym,startdate,enddate)
             (d,r)   = (d1[1:],compute_returns_specs(array([p1,p2]).T,specs))
         all_dates.append(d)
         all_returns.append(r)
@@ -53,7 +53,7 @@ def filter_returns(all_dates,all_returns):
 #Returns 2 arrays of (Dates,ModifiedPrices) corresponding to symbol 'product' between dates 'startdate' and 'enddate'
 def getModifiedPrice(product,startdate,enddate):
     ret = getLogReturns([product],startdate,enddate)
-    (dates,prices) = getPrice(product,startdate,enddate)
+    (dates,prices) = get_dated_price_data(product,startdate,enddate)
     modified_prices = zeros(prices.shape[0])
     modified_prices[modified_prices.shape[0]-1] = prices[modified_prices.shape[0]-1]
     modified_prices[0:modified_prices.shape[0]-1] = prices[1:modified_prices.shape[0]]/exp(ret[:,0])

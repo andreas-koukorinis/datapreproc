@@ -20,9 +20,7 @@ def computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args):
     daily_returns = []
 
     lookback_risk=weightfunc_args[0]
-    lookback_trend=weightfunc_args[1] if(len(weightfunc_args)>1) else 0
-
-    start_day = max(lookback_risk,lookback_trend) # Start from offset so that historical returns can be used
+    start_day = lookback_risk
 
     print 'Total Trading days given = %d'%(num_days)
     print 'Days left for calculations based on past = %d'%(start_day)
@@ -30,18 +28,22 @@ def computePortfolioResults(Weightsfunc,data,rebalance_freq,weightfunc_args):
     if(start_day >=num_days):
         print('Data not sufficient for initial lookback')
 
+    _num_products = data.shape[1]
+    _current_weights = weights.initialize_weights ( _num_products )
+
     for current_day in range(start_day,num_days,1):
         if((current_day-start_day)%rebalance_freq ==0):
             print 'Day %d:'%current_day
-            w = Weightsfunc(data,current_day,weightfunc_args)	# Compute new weights on every rebalancing day
+            _new_weights = Weightsfunc(data,current_day,weightfunc_args) # Compute new weights on every rebalancing day
+            _current_weights = _new_weights # TODO { gchak } add some error checking before assigning weights to new weights
 
         # Calculate the daily returns for a particular day and append to array
         # If notional anount of the money at risk in each instrument is M * abs(w_i)
         # then the pnl of the position = sign(w_i) * M * abs(w_i) * ( exp ( logret_i(t) ) - 1 ) = M * w_i * ( exp ( logret_i(t) - 1 ) )
         # Hence the new portfolio value = M + sum ( M * w_i * ( exp ( logret_i(t) - 1 ) ) )
         # Hence logret_day_ = log(1+ sum(w*(exp(data[current_day,:])-1)))
-        daily_returns.append ( log ( 1 + sum ( w * ( exp(data[current_day,:]) - 1 ) ) ) )
-    return array(daily_returns).astype(float)
+        daily_returns.append ( log ( 1 + sum ( _current_weights * ( exp(data[current_day,:]) - 1 ) ) ) )
+    return ( array(daily_returns).astype(float) )
 
 # Main script
 def __main__() :

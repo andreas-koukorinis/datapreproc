@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from numpy import sum,exp,mean,std,sqrt,maximum
 
 class PerformanceStats(object):
