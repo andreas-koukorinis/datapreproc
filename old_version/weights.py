@@ -31,7 +31,7 @@ def setWeightsUnleveredDemystified(data,day,weightfunc_args):
     print '\nMoney Allocated:'
     print _weights*100000
     print 'Risk:'
-    print risk*sqrt(251)
+    print risk*sqrt(252)
     return _weights
 
 
@@ -52,7 +52,7 @@ def setWeightsUnleveredRP(data,day,weightfunc_args):
     print '\nMoney Allocated:'
     print _weights*100000
     print 'Risk:'
-    print risk*sqrt(251) # normalize the weights to ensure unlevered portfolio
+    print risk*sqrt(252) # normalize the weights to ensure unlevered portfolio
     return _weights
 
 

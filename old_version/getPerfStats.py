@@ -19,8 +19,8 @@ def getPerfStats(_returns):
     _performance_stats = PerformanceStats()
     _performance_stats.net_log_returns = sum(_returns)
     _performance_stats.net_percent_returns = ( exp ( _performance_stats.net_log_returns ) -1 )*100
-    _performance_stats.annualized_percent_returns = ( exp((250)*mean(_returns))-1)*100 #brought 250 inside the exp
-    _performance_stats.annualized_percent_std = ( exp( sqrt(250.0)*std(_returns)) - 1 )*100
+    _performance_stats.annualized_percent_returns = ( exp((252)*mean(_returns))-1)*100 #brought 252 inside the exp
+    _performance_stats.annualized_percent_std = ( exp( sqrt(252.0)*std(_returns)) - 1 )*100
     if _performance_stats.annualized_percent_std > 0 :
         _performance_stats.sharpe_percent = 0
     else :
