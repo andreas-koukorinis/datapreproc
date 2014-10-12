@@ -1,6 +1,5 @@
 import sys,ast,datetime
 import ConfigParser
-from Performance.PerformanceTracker import PerformanceTracker
 from OrderManager.OrderManager import OrderManager
 from Dispatcher.Dispatcher import Dispatcher
 from BackTester.BackTester import BackTester
@@ -25,15 +24,10 @@ def __main__() :
     products = config.get('Products', 'symbols').strip().split(",")
     # if there is fES1 ... make sure fES2 is also there, if not add it
 
-    # TODO { gchak } : we only want performance_tracker for the products we are trading and not all the ones we have data for.
-    # TODO { gchak } : we probably should align the performance_tracker object to one instance of the TradeLogic
-    # Initialize performance tracker with list of products
-    performance_tracker = PerformanceTracker.get_unique_instance ( products, config_file )
-
     #Import the strategy class using 'Strategy'->'name' in config file
-    stratfile = config.get('Strategy', 'name') #Remove .py from filename
-    module = import_module('Strategies.'+stratfile) #Import the module corresponding to the filename
-    TradeLogic = getattr(module,stratfile) #Get the strategy class from the imported module
+    stratfile = config.get ( 'Strategy', 'name' ) #Remove .py from filename
+    module = import_module ( 'Strategies.' + stratfile ) #Import the module corresponding to the filename
+    TradeLogic = getattr ( module, stratfile ) #Get the strategy class from the imported module
 
     # Initialize the strategy
     # Strategy is written by the user and it inherits from TradeAlgorithm,
@@ -43,18 +37,18 @@ def __main__() :
     #     line in the stratfile. This is used for optimization. But even without optimization, we probably
     #     don't foresee any other class creating a strategy instance. Hence this get_unique_instance will only
     #     be called once.
-    strategy = TradeLogic.get_unique_instance(products,config_file,TradeLogic)
+    _tradelogic_instance = TradeLogic.get_unique_instance ( products, config_file, TradeLogic )
 
     #Initialize Dispatcher using products list
-    dispatcher = Dispatcher.get_unique_instance(products,config_file)
+    _dispatcher = Dispatcher.get_unique_instance(products,config_file)
 
     #Run the dispatcher to start the backtesting process
-    dispatcher.run()
+    _dispatcher.run()
 
     #Effective number of trading days will be less than [end_date-start_date] due to the warmup time specified by the user
-    print '\nTotal Trading Days = %d'%(dispatcher.trading_days)
+    print '\nTotal Trading Days = %d'%(_dispatcher.trading_days)
 
     #Call the performance tracker to display the results and plot the graph of cumulative PnL
-    performance_tracker.showResults()
+    _tradelogic_instance.performance_tracker.showResults()
 
 __main__();
