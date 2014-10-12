@@ -65,18 +65,18 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.kurtosis = 0
         self.portfolio_snapshots = []
         self.total_orders = 0
-        dispatcher = Dispatcher.GetUniqueInstance(products,config_file)
+        dispatcher = Dispatcher.get_unique_instance(products,config_file)
         dispatcher.AddEventsListener(self)
         for product in products:
-            backtester = BackTester.GetUniqueInstance(product,config_file)
+            backtester = BackTester.get_unique_instance(product,config_file)
             backtester.AddListener(self)
 
         self.bb_objects={}
         for product in products:
-            self.bb_objects[product] = BookBuilder.GetUniqueInstance(product,config_file)
+            self.bb_objects[product] = BookBuilder.get_unique_instance(product,config_file)
 
     @staticmethod
-    def GetUniqueInstance(products,config_file):
+    def get_unique_instance(products,config_file):
         if(len(PerformanceTracker.instance)==0): # till now, no PerformanceTracker objects have been created
             new_instance = PerformanceTracker(products,config_file)
             PerformanceTracker.instance.append(new_instance)

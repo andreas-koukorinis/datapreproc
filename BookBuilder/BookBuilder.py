@@ -22,11 +22,11 @@ class BookBuilder(DailyEventListener):
         self.dailybook_listeners = []
         self.intradaybook_listeners = []
         products = config.get('Products', 'symbols').strip().split(",")
-        dispatcher = Dispatcher.GetUniqueInstance(products,config_file)
+        dispatcher = Dispatcher.get_unique_instance(products,config_file)
         dispatcher.AddEventListener(self) 
 
     @staticmethod
-    def GetUniqueInstance(product,config_file):
+    def get_unique_instance(product,config_file):
         if(product not in BookBuilder.instances.keys()):
             new_instance = BookBuilder(product,config_file)    
             BookBuilder.instances[product]=new_instance

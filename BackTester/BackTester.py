@@ -20,16 +20,16 @@ class BackTester(DailyBookListener,OrderManagerListener):
         self.commission_manager = CommissionManager()
         self.listeners = []
         self.yesterday_settlement_day=False
-        bookbuilder = BookBuilder.GetUniqueInstance(product,config_file)
+        bookbuilder = BookBuilder.get_unique_instance(product,config_file)
         bookbuilder.AddDailyBookListener(self)
-        ordermanager = OrderManager.GetUniqueInstance(config_file)
+        ordermanager = OrderManager.get_unique_instance(config_file)
         ordermanager.AddListener(self)
 
     def AddListener(self,listener):
         self.listeners.append(listener)
 
     @staticmethod
-    def GetUniqueInstance(product,positions_file): 
+    def get_unique_instance(product,positions_file): 
         if(product not in BackTester.instances.keys()):
             new_instance = BackTester(product,positions_file)
             BackTester.instances[product]=new_instance

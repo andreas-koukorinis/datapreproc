@@ -25,11 +25,11 @@ class OrderManager(TradeAlgorithmListener):
         name = config.get('Strategy', 'name')                                                              #Remove .py from filename
         module = import_module('Strategies.'+name)                                                                  #Import the module corresponding to the filename
         TradeLogic = getattr(module,name)                                                             #Get the strategy class from the imported module 
-        tradelogic = TradeLogic.GetUniqueInstance(products,config_file,TradeLogic)
+        tradelogic = TradeLogic.get_unique_instance(products,config_file,TradeLogic)
         tradelogic.AddListener(self)
 
     @staticmethod
-    def GetUniqueInstance(config_file): 
+    def get_unique_instance(config_file): 
         if(len(OrderManager.instance)==0):
             new_instance = OrderManager(config_file)
             OrderManager.instance.append(new_instance)

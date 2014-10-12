@@ -29,7 +29,7 @@ def __main__() :
     # TODO { gchak } : we only want performance_tracker for the products we are trading and not all the ones we have data for.
     # TODO { gchak } : we probably hsould align the performance_tracker object to one instance of the TradeLogic
     # Initialize performance tracker with list of products
-    performance_tracker = PerformanceTracker.GetUniqueInstance ( products, config_file )
+    performance_tracker = PerformanceTracker.get_unique_instance ( products, config_file )
 
     #Import the strategy class using 'Strategy'->'name' in config file
     stratfile = config.get('Strategy', 'name') #Remove .py from filename
@@ -39,19 +39,19 @@ def __main__() :
     # Initialize the strategy
     # Strategy is written by the user and it inherits from TradeAlgorithm,
     # TradeLogic here is the strategy class name converted to variable.Eg: UnleveredRP
-    # Doubt { gchak } : I think this is one class where we don't need GetUniqueInstance. For instance in
+    # Doubt { gchak } : I think this is one class where we don't need get_unique_instance. For instance in
     #     DVC::basetrade we have a for-loop over the stratfile that creates a strategy insatnce for each
     #     line in the stratfile. This is used for optimization. But even without optimization, we probably
-    #     don't foresee any other class creating a strategy instance. Hence this GetUniqueInstance will only
+    #     don't foresee any other class creating a strategy instance. Hence this get_unique_instance will only
     #     be called once.
-    strategy = TradeLogic.GetUniqueInstance(products,config_file,TradeLogic)
+    strategy = TradeLogic.get_unique_instance(products,config_file,TradeLogic)
 
     # Give strategy the access to the portfolio instance,
     # so that it can calculate its current worth and decide positions based on it.
-    strategy.portfolio = Portfolio.GetUniqueInstance(products,config_file)
+    strategy.portfolio = Portfolio.get_unique_instance(products,config_file)
 
     #Initialize Dispatcher using products list
-    dispatcher = Dispatcher.GetUniqueInstance(products,config_file)
+    dispatcher = Dispatcher.get_unique_instance(products,config_file)
 
     #Run the dispatcher to start the backtesting process
     dispatcher.run()

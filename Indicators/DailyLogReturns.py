@@ -19,14 +19,14 @@ class DailyLogReturns(DailyBookListener):
             self._yesterday_settlement[product] = False
             self.prices[product]=[0,0]                                          #Remember last two prices for each product #prices[0] is latest
             self.dt[product]=datetime.datetime.fromtimestamp(1)
-            bookbuilder = BookBuilder.GetUniqueInstance(product,config_file)
+            bookbuilder = BookBuilder.get_unique_instance(product,config_file)
             bookbuilder.AddDailyBookListener(self)
 
     def AddListener(self,listener):
         self.listeners.append(listener)
 
     @staticmethod
-    def GetUniqueInstance(products,config_file):
+    def get_unique_instance(products,config_file):
         if(len(DailyLogReturns.instance)==0):
             new_instance = DailyLogReturns(products,config_file)
             DailyLogReturns.instance.append(new_instance)

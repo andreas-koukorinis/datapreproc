@@ -17,14 +17,14 @@ class Trend(DailyLogReturnsListener):
         self.periods = config.get('Trend', 'periods').strip().split(",")
         self.periods = [int(i) for i in self.periods] 
         self.listeners=[]
-        dailylogret = DailyLogReturns.GetUniqueInstance(products,config_file)
+        dailylogret = DailyLogReturns.get_unique_instance(products,config_file)
         dailylogret.AddListener(self)                                                     #Add as a listener to DailyLogReturns Indicator
 
     def AddListener(self,listener):
         self.listeners.append(listener)
 
     @staticmethod
-    def GetUniqueInstance(products,config_file):
+    def get_unique_instance(products,config_file):
         if(len(Trend.instance)==0):
             new_instance = Trend(products,config_file)
             Trend.instance.append(new_instance)

@@ -18,11 +18,11 @@ class Portfolio(BackTesterListener):
         for product in products:
             self.num_shares[product] = 0
             self.value[product]=0
-            backtester = BackTester.GetUniqueInstance(product,config_file)
+            backtester = BackTester.get_unique_instance(product,config_file)
             backtester.AddListener(self)
 
     @staticmethod
-    def GetUniqueInstance(products,config_file):
+    def get_unique_instance(products,config_file):
         if(len(Portfolio.instance)==0):
             new_instance = Portfolio(products,config_file)
             Portfolio.instance.append(new_instance)

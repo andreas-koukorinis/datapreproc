@@ -18,14 +18,14 @@ class StdDev(DailyLogReturnsListener):
         self.periods = config.get('StdDev', 'periods').strip().split(",")
         self.periods = [int(i) for i in self.periods]                                     #Get periods to track Std as a list
         self.listeners=[]
-        dailylogret = DailyLogReturns.GetUniqueInstance(products,config_file)
+        dailylogret = DailyLogReturns.get_unique_instance(products,config_file)
         dailylogret.AddListener(self)                                                     #Add as a listener to DailyLogReturns Indicator
 
     def AddListener(self,listener):
         self.listeners.append(listener)
 
     @staticmethod
-    def GetUniqueInstance(products,config_file):
+    def get_unique_instance(products,config_file):
         if(len(StdDev.instance)==0):
             new_instance = StdDev(products,config_file)
             StdDev.instance.append(new_instance)

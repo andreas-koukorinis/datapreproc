@@ -34,7 +34,7 @@ class Dispatcher (object):
         self.eventslisteners = [] #These are the listeners which receive all the concurrent events at once.Here Strategy and Performance Tracker
 
     @staticmethod
-    def GetUniqueInstance(products,config_file):
+    def get_unique_instance(products,config_file):
         if(len(Dispatcher.instance)==0):
             new_instance = Dispatcher(products,config_file)
             Dispatcher.instance.append(new_instance)

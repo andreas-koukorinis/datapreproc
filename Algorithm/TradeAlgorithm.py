@@ -22,17 +22,17 @@ class TradeAlgorithm(EventsListener):
         for indicator in self.daily_indicators:                                                    #Initialize daily indicators
             module = import_module('Indicators.'+indicator)
             Indicatorclass = getattr(module,indicator)
-            self.Daily_Indicators[indicator] = Indicatorclass.GetUniqueInstance(products,config_file)                  #Instantiate indicator objects
+            self.Daily_Indicators[indicator] = Indicatorclass.get_unique_instance(products,config_file)                  #Instantiate indicator objects
 
         self.bb_objects={}
         for product in products:
-            self.bb_objects[product] = BookBuilder.GetUniqueInstance(product,config_file)
+            self.bb_objects[product] = BookBuilder.get_unique_instance(product,config_file)
 
-        dispatcher = Dispatcher.GetUniqueInstance(products,config_file)
+        dispatcher = Dispatcher.get_unique_instance(products,config_file)
         dispatcher.AddEventsListener(self)
 
     @staticmethod
-    def GetUniqueInstance(products,config_file,StrategyClass):
+    def get_unique_instance(products,config_file,StrategyClass):
         if(len(StrategyClass.instance)==0):
             new_instance = StrategyClass(products,config_file,StrategyClass)
             StrategyClass.instance.append(new_instance)
