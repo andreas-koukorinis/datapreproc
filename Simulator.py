@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys,ast,datetime
 import ConfigParser
 from OrderManager.OrderManager import OrderManager

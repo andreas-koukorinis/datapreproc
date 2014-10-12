@@ -1,10 +1,3 @@
-from BackTester.BackTester_Listeners import BackTesterListener
-from BackTester.BackTester import BackTester
-from Dispatcher.Dispatcher import Dispatcher
-from Dispatcher.Dispatcher_Listeners import EventsListener
-from Utils.Regular import checkEOD,getdtfromdate
-from Utils.DbQueries import conv_factor
-from BookBuilder.BookBuilder import BookBuilder
 import datetime
 import ConfigParser
 from numpy import *
@@ -15,6 +8,14 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import pylab
 import pickle
+
+from BackTester.BackTester_Listeners import BackTesterListener
+from BackTester.BackTester import BackTester
+from Dispatcher.Dispatcher import Dispatcher
+from Dispatcher.Dispatcher_Listeners import EventsListener
+from Utils.Regular import checkEOD,getdtfromdate
+from Utils.DbQueries import conv_factor
+from BookBuilder.BookBuilder import BookBuilder
 
 #Performance tracker listens to the Dispatcher for concurrent events so that it can record the daily returns
 #It also listens to the Backtester for any new filled orders
@@ -49,10 +50,11 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.annualized_returns = 0
         self.annualized_stddev_returns = 0
         self.sharpe = 0
-        self.daily_returns = empty(shape=(0))
-        self.monthly_returns = empty(shape=(0))
-        self.quaterly_returns = empty(shape=(0))
-        self.yearly_returns = empty(shape=(0))
+        self.daily_returns = empty ( shape=(0) )
+        self.daily_log_returns = empty ( shape=(0) )
+        self.monthly_returns = empty ( shape=(0) )
+        self.quaterly_returns = empty ( shape=(0) )
+        self.yearly_returns = empty ( shape=(0) )
         self.dml = 0
         self.mml = 0
         self.qml = 0
@@ -95,7 +97,9 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.num_shares[p1]=self.num_shares[p2]
         self.num_shares[p2]=0
 
+    # Called by Dispatcher
     def OnEventsUpdate(self,events):
+        # TODO { } probably more efficient to compute and send by dispatcher ?
         all_EOD = checkEOD(events)                                                              #check whether all the events are ENDOFDAY
         if(all_EOD):
             self.ComputeDailyStats(events[0]['dt'].date())
@@ -113,7 +117,11 @@ class PerformanceTracker(BackTesterListener,EventsListener):
     def ComputeDailyStats(self,date):
         todaysValue = self.getPortfolioValue()
         self.value = append(self.value,todaysValue)
-        self.PnLvector = append(self.PnLvector,self.value[-1]-self.value[-2])                     #daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
+        self.PnLvector = append(self.PnLvector,self.value[-1]-self.value[-2]) #daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
+        if ( len ( self.value ) >= 2 ) :
+            # This should be the case always. TODO {gchak} check and remove if condition
+            self.daily_log_returns = append ( self.daily_log_returns, log ( self.value[-1] / self.value[-2] ) )
+            # TODO {gchak} check if the number is negative.
         self.dates.append(date)
 
     def PrintFilledOrders(self,filled_orders):
@@ -159,9 +167,9 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         plt.ylabel('Cumulative PnL')
         plt.savefig('Cumulative_PnL_'+self.strategy_name.split('.')[0]+".png", bbox_inches='tight')
 
-    def _save_results(self,dates,daily_log_returns):
+    def _save_results(self):
         with open(self.returns_file, 'wb') as f:
-            pickle.dump(zip(dates,daily_log_returns), f)
+            pickle.dump(zip(self.dates,self.daily_log_returns), f)
 
     def showResults(self):
         self.PnL = self.getPortfolioValue() - self.initial_capital
@@ -169,29 +177,28 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.annualized_PnL = 252.0 * mean(self.PnLvector)
         self.annualized_stdev_PnL = sqrt(252.0)*std(self.PnLvector)
         self.daily_returns = self.PnLvector*100.0/self.value[0:self.value.shape[0]-1]
-        daily_log_returns = log(1 + self.daily_returns/100.0)
-        monthly_log_returns = self.rollsum(daily_log_returns,21)
-        quaterly_log_returns = self.rollsum(daily_log_returns,63)
-        yearly_log_returns = self.rollsum(daily_log_returns,252)
+        monthly_log_returns = self.rollsum(self.daily_log_returns,21)
+        quaterly_log_returns = self.rollsum(self.daily_log_returns,63)
+        yearly_log_returns = self.rollsum(self.daily_log_returns,252)
         self.monthly_returns = (exp(monthly_log_returns)-1)*100
         self.quaterly_returns = (exp(quaterly_log_returns)-1)*100
         self.yearly_returns = (exp(yearly_log_returns)-1)*100
-        self.dml = (exp(self.meanlowestkpercent(daily_log_returns,10))-1)*100.0
+        self.dml = (exp(self.meanlowestkpercent(self.daily_log_returns,10))-1)*100.0
         self.mml = (exp(self.meanlowestkpercent(monthly_log_returns,10))-1)*100.0
         self.qml = (exp(self.meanlowestkpercent(quaterly_log_returns,10))-1)*100.0
         self.yml = (exp(self.meanlowestkpercent(yearly_log_returns,10))-1)*100.0
-        self.annualized_returns = (exp(252.0*mean(daily_log_returns))-1)*100.0
-        self.annualized_stddev_returns = (exp(sqrt(252.0)*std(daily_log_returns))-1)*100.0
+        self.annualized_returns = (exp(252.0*mean(self.daily_log_returns))-1)*100.0
+        self.annualized_stddev_returns = (exp(sqrt(252.0)*std(self.daily_log_returns))-1)*100.0
         self.sharpe = self.annualized_returns/self.annualized_stddev_returns
-        self.skewness = ss.skew(self.PnLvector)
-        self.kurtosis = ss.kurtosis(self.PnLvector)
-        max_dd_log = self.drawdown(daily_log_returns)
+        self.skewness = ss.skew(self.daily_log_returns)
+        self.kurtosis = ss.kurtosis(self.daily_log_returns)
+        max_dd_log = self.drawdown(self.daily_log_returns)
         self.max_drawdown_percent = (exp(max_dd_log)-1)*100
         self.max_drawdown_dollar = self.drawdown(self.PnLvector)
         self.return_by_maxdrawdown = self.annualized_returns/self.max_drawdown_percent
         self.annualizedPnLbydrawdown = self.annualized_PnL/self.max_drawdown_dollar
 
-        self._save_results(self.dates,daily_log_returns)
+        self._save_results()
 
         print "\n-------------RESULTS--------------------\nInitial Capital = %.10f\nNet PNL = %.10f \nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Std_PnL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f \n" %(self.initial_capital,self.PnL,self.net_returns,self.annualized_PnL,self.annualized_stdev_PnL,self.annualized_returns,self.annualized_stddev_returns,self.sharpe,self.skewness,self.kurtosis,self.dml,self.mml,self.qml,self.yml,self.max_drawdown_percent,self.max_drawdown_dollar,self.annualizedPnLbydrawdown,self.return_by_maxdrawdown)
 
