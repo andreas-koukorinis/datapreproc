@@ -14,4 +14,3 @@ def checkEOD(events):
     for event in events:
         if(event['type']!='ENDOFDAY'): ret = False
     return ret
-

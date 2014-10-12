@@ -43,5 +43,3 @@ def conv_factor(products):
         conv_factor[product] = tick_factor_product*currency_factor_product
     db_close(db)
     return conv_factor
-
-
