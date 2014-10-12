@@ -4,10 +4,12 @@ from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import EventsListener
 from BookBuilder.BookBuilder import BookBuilder
 from Utils.DbQueries import conv_factor
+from OrderManager.OrderManager import OrderManager
+from Portfolio import Portfolio
 
 class TradeAlgorithm(EventsListener):
 
-    instance=[] # Doubt { gchak } Why do we need "instance" in UnleveredRP if there is an instance here already ?
+    instance=[] # DOUBT { gchak } Why do we need "instance" in UnleveredRP if there is an instance here already ?
 
     '''
     Base class for strategy development
@@ -24,12 +26,20 @@ class TradeAlgorithm(EventsListener):
             Indicatorclass = getattr(module,indicator)
             self.Daily_Indicators[indicator] = Indicatorclass.get_unique_instance(products,config_file)                  #Instantiate indicator objects
 
+        # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects={}
         for product in products:
             self.bb_objects[product] = BookBuilder.get_unique_instance(product,config_file)
 
+        # TradeAlgorithm will be notified once all indicators have been updated.
+        # Currently it is implemented as an EventsListener
         dispatcher = Dispatcher.get_unique_instance(products,config_file)
         dispatcher.AddEventsListener(self)
+        self.ordermanager = OrderManager.get_unique_instance(config_file)
+        # Give strategy the access to the portfolio instance,
+        # so that it can calculate its current worth and decide positions based on it.
+        self.portfolio = Portfolio.get_unique_instance(products,config_file)
+
 
     @staticmethod
     def get_unique_instance(products,config_file,StrategyClass):
@@ -37,9 +47,6 @@ class TradeAlgorithm(EventsListener):
             new_instance = StrategyClass(products,config_file,StrategyClass)
             StrategyClass.instance.append(new_instance)
         return StrategyClass.instance[0]
-
-    def AddListener(self,listener):
-        self.listeners.append(listener)
 
     #User is expected to write the function
     def OnEventsUpdate(self,concurrent_events):
@@ -53,8 +60,7 @@ class TradeAlgorithm(EventsListener):
     #If num_shares is +ve -> it is a buy trade
     #If num_shares is -ve -> it is a sell trade
     def place_order(self,dt,product,num_shares):
-        for listener in self.listeners:	                           	   #Pass the order to the order manager
-            listener.OnSendOrder(dt,product,num_shares)
+        self.ordermanager.SendOrder(dt,product,num_shares)
 
     #Place an order to make the total number of shares of 'product' = 'target'
     #It can be a buy or a sell order depending on the current number of shares in the portfolio and the value of the target

@@ -1,15 +1,13 @@
 from BookBuilder.BookBuilder_Listeners import DailyBookListener
 from BookBuilder.BookBuilder import BookBuilder
-from OrderManager.OrderManager_Listeners import OrderManagerListener
-from OrderManager.OrderManager import OrderManager
 from CommissionManager import CommissionManager
 from Utils.DbQueries import conv_factor
 
 #Backtester listens to the Book builder for daily updates
-#It also listens to OrderManager for any new orders
+#OrderManager calls SendOrder and CancelOrder functions on it
 #On any filled orders it calls the OnOrderUpdate on its listeners : Portfolio and Performance Tracker
-#If the Backtester's product had a settlement day yesterday,then it will call AfterSettlementDay on its listeners so that the can account for the change in symbols       
-class BackTester(DailyBookListener,OrderManagerListener):
+#If the Backtester's product had a settlement day yesterday,then it will call AfterSettlementDay on its listeners so that the can account for the change in symbols
+class BackTester(DailyBookListener):
 
     instances={}
 
@@ -22,14 +20,12 @@ class BackTester(DailyBookListener,OrderManagerListener):
         self.yesterday_settlement_day=False
         bookbuilder = BookBuilder.get_unique_instance(product,config_file)
         bookbuilder.AddDailyBookListener(self)
-        ordermanager = OrderManager.get_unique_instance(config_file)
-        ordermanager.AddListener(self)
 
     def AddListener(self,listener):
         self.listeners.append(listener)
 
     @staticmethod
-    def get_unique_instance(product,positions_file): 
+    def get_unique_instance(product,positions_file):
         if(product not in BackTester.instances.keys()):
             new_instance = BackTester(product,positions_file)
             BackTester.instances[product]=new_instance
@@ -37,15 +33,15 @@ class BackTester(DailyBookListener,OrderManagerListener):
 
     #Append the orders to the pending_list.
     #ASSUMPTION:Orders will be filled on the next event
-    def OnSendOrder(self,order):
+    def SendOrder(self,order):
         self.pending_orders.append(order)
 
-    def OnCancelOrder(self,order):
+    def CancelOrder(self,order):
         pass
 
     #Check which of the pending orders have been filled
     #ASSUMPTION: all the pending orders are filled #SHOULD BE CHANGED
-    def OnDailyBookUpdate(self,product,dailybook,is_settlement_day): 
+    def OnDailyBookUpdate(self,product,dailybook,is_settlement_day):
         filled_orders = []
         for order in self.pending_orders:
             if(True):										#should check if order can be filled based on current book,if yes remove from                                                                                                           pending_list and add to filled_list
@@ -60,7 +56,7 @@ class BackTester(DailyBookListener,OrderManagerListener):
         current_dt = dailybook[-1][0]
 
         # here the listeners will be portfolio and performance tracker
-        for listener in self.listeners:                     
+        for listener in self.listeners:
             listener.OnOrderUpdate(filled_orders,current_dt.date())                             #Pass control to the performance tracker,pass date to track the daily performance
 
         # The assumption here is that we only trade in the first futures contract

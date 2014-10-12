@@ -159,7 +159,7 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         plt.ylabel('Cumulative PnL')
         plt.savefig('Cumulative_PnL_'+self.strategy_name.split('.')[0]+".png", bbox_inches='tight')
 
-    def saveResults(self,dates,daily_log_returns):
+    def _save_results(self,dates,daily_log_returns):
         with open(self.returns_file, 'wb') as f:
             pickle.dump(zip(dates,daily_log_returns), f)
 
@@ -191,7 +191,7 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.return_by_maxdrawdown = self.annualized_returns/self.max_drawdown_percent
         self.annualizedPnLbydrawdown = self.annualized_PnL/self.max_drawdown_dollar
 
-        self.saveResults(self.dates,daily_log_returns)
+        self._save_results(self.dates,daily_log_returns)
 
         print "\n-------------RESULTS--------------------\nInitial Capital = %.10f\nNet PNL = %.10f \nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Std_PnL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f \n" %(self.initial_capital,self.PnL,self.net_returns,self.annualized_PnL,self.annualized_stdev_PnL,self.annualized_returns,self.annualized_stddev_returns,self.sharpe,self.skewness,self.kurtosis,self.dml,self.mml,self.qml,self.yml,self.max_drawdown_percent,self.max_drawdown_dollar,self.annualizedPnLbydrawdown,self.return_by_maxdrawdown)
 

@@ -8,7 +8,6 @@ from BookBuilder.BookBuilder import BookBuilder
 from Utils.Regular import getdtfromdate
 from Utils.DbQueries import conv_factor
 from importlib import import_module
-from Portfolio import Portfolio
 
 def __main__() :
     #Command to run : python -W ignore Simulator.py config_file
@@ -27,7 +26,7 @@ def __main__() :
     # if there is fES1 ... make sure fES2 is also there, if not add it
 
     # TODO { gchak } : we only want performance_tracker for the products we are trading and not all the ones we have data for.
-    # TODO { gchak } : we probably hsould align the performance_tracker object to one instance of the TradeLogic
+    # TODO { gchak } : we probably should align the performance_tracker object to one instance of the TradeLogic
     # Initialize performance tracker with list of products
     performance_tracker = PerformanceTracker.get_unique_instance ( products, config_file )
 
@@ -45,10 +44,6 @@ def __main__() :
     #     don't foresee any other class creating a strategy instance. Hence this get_unique_instance will only
     #     be called once.
     strategy = TradeLogic.get_unique_instance(products,config_file,TradeLogic)
-
-    # Give strategy the access to the portfolio instance,
-    # so that it can calculate its current worth and decide positions based on it.
-    strategy.portfolio = Portfolio.get_unique_instance(products,config_file)
 
     #Initialize Dispatcher using products list
     dispatcher = Dispatcher.get_unique_instance(products,config_file)
