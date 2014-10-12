@@ -23,7 +23,7 @@ class TargetRiskRP(TradeAlgorithm):
     # Use self.bb_objects[product].intradaybook to access the intraday prices for the 'product'
     # dailybook consists of tupes of the form (timestamp,closing prices) sorted by timestamp
     # 'events' is a list of concurrent events
-    # event = {'price': 100, 'product': 'ES1', 'type':'ENDOFDAY', 'dt': datetime(2005,1,2,23,59,99999), 'table': 'ES','is_settlement_day':False}
+    # event = {'price': 100, 'product': 'ES1', 'type':'ENDOFDAY', 'dt': datetime(2005,1,2,23,59,99999), 'table': 'ES','is_last_trading_day':False}
     # access conversion_factor using : self.conversion_factor['ES1']
 
     def OnEventsUpdate(self,events):

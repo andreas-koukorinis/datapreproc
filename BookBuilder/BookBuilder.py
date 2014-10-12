@@ -40,12 +40,12 @@ class BookBuilder(DailyEventListener):
 
     #Update the daily book with closing price and timestamp
     def OnDailyEventUpdate(self,event):
-        # Should we store is_settlement_day also?
+        # Should we store is_last_trading_day also?
         self.dailybook.append((event['dt'],event['price']))                                                #Add entry to the book.If max entries are reached pop first entry
         if(len(self.dailybook)>self.maxentries_dailybook):                               
             self.dailybook.pop(0)                                                                                  
         for listener in self.dailybook_listeners:
-            listener.OnDailyBookUpdate(self.product,self.dailybook,event['is_settlement_day'])             #Pass the full dailybook to its listeners
+            listener.OnDailyBookUpdate(self.product,self.dailybook,event['is_last_trading_day'])             #Pass the full dailybook to its listeners
 
     #TO BE COMPLETED
     #bidorask : bid=0,ask=1

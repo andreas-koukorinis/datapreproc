@@ -78,7 +78,7 @@ class TradeAlgorithm(EventsListener):
     def adjust_positions_for_settlements(self,events,current_price,positions_to_take):
         settlement_products=[]
         for event in events:
-            if(event['is_settlement_day'] and event['product'][-1]=='1'): settlement_products.append(event['product'])
+            if(event['is_last_trading_day'] and event['product'][-1]=='1'): settlement_products.append(event['product'])
         for product in settlement_products:
             p1 = product                                                                            #Example: 'ES1'
             p2 = product.rstrip('1')+'2'                                                            #Example: 'ES2'

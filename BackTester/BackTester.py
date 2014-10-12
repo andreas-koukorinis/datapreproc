@@ -41,7 +41,7 @@ class BackTester(DailyBookListener):
 
     #Check which of the pending orders have been filled
     #ASSUMPTION: all the pending orders are filled #SHOULD BE CHANGED
-    def OnDailyBookUpdate(self,product,dailybook,is_settlement_day):
+    def OnDailyBookUpdate(self,product,dailybook,is_last_trading_day):
         filled_orders = []
         for order in self.pending_orders:
             if(True):										#should check if order can be filled based on current book,if yes remove from                                                                                                           pending_list and add to filled_list
@@ -65,4 +65,4 @@ class BackTester(DailyBookListener):
         if(self.yesterday_settlement_day and self.product[-1]=='1'):                            #Only switch once for each product
             for listener in self.listeners:
                 listener.AfterSettlementDay(self.product)
-        self.yesterday_settlement_day=is_settlement_day
+        self.yesterday_settlement_day=is_last_trading_day

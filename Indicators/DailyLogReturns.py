@@ -33,7 +33,7 @@ class DailyLogReturns(DailyBookListener):
         return DailyLogReturns.instance[0]
 
     ##Update the daily log returns on each ENDOFDAY event
-    def OnDailyBookUpdate(self,product,dailybook,is_settlement_day):
+    def OnDailyBookUpdate(self,product,dailybook,is_last_trading_day):
         self.dt[product]=dailybook[-1][0]
         self.prices[product][1]=self.prices[product][0]
         self.prices[product][0]=dailybook[-1][1]
@@ -53,4 +53,4 @@ class DailyLogReturns(DailyBookListener):
                 logret = log(p1/p2)
                 self._DailyLogReturns[product] = append(self._DailyLogReturns[product],logret)
                 for listener in self.listeners: listener.OnDailyLogReturnsUpdate(product,self._DailyLogReturns[product])
-        self._yesterday_settlement[product]= is_settlement_day
+        self._yesterday_settlement[product]= is_last_trading_day

@@ -63,11 +63,8 @@ class Dispatcher (object):
                         if(listener.product==event['product']):
                             listener.OnDailyEventUpdate(event) #call dailybookbuilder to update the book
 
-                    self.pushdailyevent(event['product'],current_dt+datetime.timedelta(days=1)) #Push the next daily event for this product
-
                 if(event['type']=='INTRADAY'): #This is an intraday event
                     pass          #TO BE COMPLETED:call intradaybookbuilder and push next
-                #assert self.strategy.portfolio.get_portfolio()['cash']>=0 #After every set of concurrent events,portfolio cash should be non negative
 
             if(len(concurrent_events)>0 and current_dt >= self.strategy_start_dt): #if there are some events and warmupdays are over
                 for listener in self.eventslisteners:
@@ -76,6 +73,11 @@ class Dispatcher (object):
 
             if(len(self.heap)>0):
                 current_dt = heapq.nsmallest(1,self.heap)[0][0] #If the are still elements in the heap,update the timestamp to next timestamp
+            else :
+                # TODO { } probably need to see if we need to fetch events here
+                #Push the next daily event for this product
+                for _product in products :
+                    self.pushdailyevent(_product,current_dt+datetime.timedelta(days=1))
 
         db_close(self.dbconn)									#Close database connection
 
@@ -83,20 +85,42 @@ class Dispatcher (object):
     #TO BE COMPLETED:Add intraday events also to the heap
     def heap_initialize(self,products):
         #Push DB EOD sources
-        for product in products:
-            self.pushdailyevent(product,self.start_dt)
+        for _product in products:
+            # Earlier we were pushing only the first event
+            # self.pushdailyevent(_product, start_dt)
+            # TODO { gchak } fetch all data for this product, not just first
+            # and make events
+            try:
+                _table_name = _product.rstrip('1234567890').lstrip('f')
+                _query = "SELECT Date," + _product.lstrip('f') + ",Spec FROM " + _table_name + " WHERE Date >= '" + str(self.start_dt.date())+"' AND Date <= '" + str(self.end_dt.date()) + " ORDER BY Date"
+                self.db_cursor.execute(_query)
+                _data_list = self.db_cursor.fetchall() #should check if data exists or not
+                for _data_list_index in xrange ( 0, len(_data_list) ) :
+                    _data_item = _data_list [ _data_list_index ]
+                    _data_item_date = _data_item[0]
+                    _data_item_price = _data_item[1]
+                    _data_item_symbol = _data_item[2]
+                    _is_last_trading_day = False
+                    if ( ( _product[0] == 'f' ) and ( _data_list_index < ( len(_data_list) - 1 ) ) and ( _data_item_symbol != _data_list [ _data_list_index + 1 ][2] ) ) :
+                        _is_last_trading_day = True
+                    _event = {'price': _data_item_price, 'product':_product, 'type':'ENDOFDAY', 'dt':_data_item_date, 'table':_table_name, 'is_last_trading_day':_is_last_trading_day}
+            except:
+                sys.exit("Error In DB.fetchnext")
+                # TODO {} log error in logfile and gracefully exit
+
         # TODO {} Push FLAT FILE sources
+
 
     #given a product name and a timestamp(dt),fetch the next eligible ENDOFDAY event from the database
     #Settlement day for each future roduct is tracked,so that Daily log returns can be calculated properly and shifting on settlement day can be done
     def pushdailyevent(self,product,dt):
         (date,price) = self.fetchnextdb(product.rstrip('1234567890').lstrip('f'),product,dt)
         if(product[0]=='f'):
-            is_settlement_day = check_settlement_day(self.db_cursor,product,date)
+            is_last_trading_day = check_settlement_day(self.db_cursor,product,date)
         else:
-            is_settlement_day = False
+            is_last_trading_day = False
         dt = getdtfromdate(date)
-        event = {'price': price, 'product':product, 'type':'ENDOFDAY', 'dt':dt, 'table':product.rstrip('1234567890').lstrip('f'),'is_settlement_day':is_settlement_day}
+        event = {'price': price, 'product':product, 'type':'ENDOFDAY', 'dt':dt, 'table':product.rstrip('1234567890').lstrip('f'),'is_last_trading_day':is_last_trading_day}
         heapq.heappush(self.heap,(dt,event))
 
     #Given the tablename,product and datetime,fetch 1 record from the product's table with the least date greater than the given date

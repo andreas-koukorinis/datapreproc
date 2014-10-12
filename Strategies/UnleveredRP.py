@@ -22,7 +22,7 @@ class UnleveredRP(TradeAlgorithm):
     # Use self.bb_objects[product].intradaybook to access the intraday prices for the 'product'
     # dailybook consists of tupes of the form (timestamp,closing prices) sorted by timestamp
     # 'events' is a list of concurrent events
-    # event = {'price': 100, 'product': 'ES1', 'type':'ENDOFDAY', 'dt': datetime(2005,1,2,23,59,99999), 'table': 'ES','is_settlement_day':False}
+    # event = {'price': 100, 'product': 'ES1', 'type':'ENDOFDAY', 'dt': datetime(2005,1,2,23,59,99999), 'table': 'ES','is_last_trading_day':False}
     # access conversion_factor using : self.conversion_factor['ES1']
     #To access the daily indicators.EG:StdDev : self.Daily_Indicators['StdDev']._StdDev[product] will contain the list of updated daily log return standard deviations for each period specified in the config file in the same order
     def OnEventsUpdate(self,events):
