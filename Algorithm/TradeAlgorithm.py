@@ -34,7 +34,8 @@ class TradeAlgorithm(EventsListener):
         # Currently it is implemented as an EventsListener
         dispatcher = Dispatcher.get_unique_instance(products,config_file)
         dispatcher.AddEventsListener(self)
-        self.ordermanager = OrderManager.get_unique_instance(config_file)
+
+        self.ordermanager = OrderManager.get_unique_instance(products,config_file)
 
         # Give strategy the access to the portfolio instance,
         # so that it can calculate its current worth and decide positions based on it.

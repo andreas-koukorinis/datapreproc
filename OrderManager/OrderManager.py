@@ -12,23 +12,23 @@ class OrderManager(object):
 
     instance=[]
 
-    def __init__(self,config_file):
+    def __init__(self,products,config_file):
         _config = ConfigParser.ConfigParser()
         _config.readfp(open(config_file,'r'))
-        products = _config.get('Products', 'symbols').strip().split(",")
+        self.products = products
         self.positions_file = _config.get('Files', 'positions_file')
-        open(self.positions_file, 'w').close()
+        open(self.positions_file, 'w').close()                                          #Empty the positions_file,if not present create it
         self.all_orders=[]                                                              #List of all orders placed till now
         self.count = 0									#Count of all orders placed till now
         self.listeners=[]
         self.backtesters={}
-        for product in products:
+        for product in self.products:
             self.backtesters[product] = BackTester.get_unique_instance(product,config_file)
 
     @staticmethod
-    def get_unique_instance(config_file):
+    def get_unique_instance(products,config_file):
         if(len(OrderManager.instance)==0):
-            new_instance = OrderManager(config_file)
+            new_instance = OrderManager(products,config_file)
             OrderManager.instance.append(new_instance)
         return OrderManager.instance[0]
 
