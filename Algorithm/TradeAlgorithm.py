@@ -10,13 +10,11 @@ from Performance.PerformanceTracker import PerformanceTracker
 
 class TradeAlgorithm(EventsListener):
 
-    instance=[] # DOUBT { gchak } Why do we need "instance" in UnleveredRP if there is an instance here already ?
-
     '''
     Base class for strategy development
     User should inherit this class and override init and OnEventListener functions
     '''
-    def __init__(self,products,config_file,StrategyClass):
+    def __init__(self,products,config_file):
         self.products=products
         self.init(config_file)
         self.Daily_Indicators={}
@@ -37,20 +35,15 @@ class TradeAlgorithm(EventsListener):
         dispatcher = Dispatcher.get_unique_instance(products,config_file)
         dispatcher.AddEventsListener(self)
         self.ordermanager = OrderManager.get_unique_instance(config_file)
+
         # Give strategy the access to the portfolio instance,
         # so that it can calculate its current worth and decide positions based on it.
         self.portfolio = Portfolio.get_unique_instance(products,config_file)
+
         # TODO { gchak } : we only want performance_tracker for the products we are trading and not all the ones we have data for.
         # we probably should align the performance_tracker object to one instance of the TradeLogic
         # Initialize performance tracker with list of products
         self.performance_tracker = PerformanceTracker.get_unique_instance ( products, config_file )
-
-    @staticmethod
-    def get_unique_instance(products,config_file,StrategyClass):
-        if(len(StrategyClass.instance)==0):
-            new_instance = StrategyClass(products,config_file,StrategyClass)
-            StrategyClass.instance.append(new_instance)
-        return StrategyClass.instance[0]
 
     #User is expected to write the function
     def OnEventsUpdate(self,concurrent_events):

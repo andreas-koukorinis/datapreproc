@@ -7,8 +7,6 @@ import ConfigParser
 
 class UnleveredDMF(TradeAlgorithm):
 
-    instance=[]
-
     def init(self,config_file):
         self.daily_indicators = ['StdDev','Trend']                                                 #Indicators will be updated in the same order as they are specified in the list
         self.intraday_indicators = []

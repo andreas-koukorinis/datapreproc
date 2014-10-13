@@ -39,7 +39,7 @@ def __main__() :
     #     line in the stratfile. This is used for optimization. But even without optimization, we probably
     #     don't foresee any other class creating a strategy instance. Hence this get_unique_instance will only
     #     be called once.
-    _tradelogic_instance = TradeLogic.get_unique_instance ( products, config_file, TradeLogic )
+    _tradelogic_instance = TradeLogic( products, config_file )
 
     #Initialize Dispatcher using products list
     _dispatcher = Dispatcher.get_unique_instance(products,config_file)
