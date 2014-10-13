@@ -28,7 +28,7 @@ class PerformanceTracker(BackTesterListener,EventsListener):
     def __init__(self,products,config_file):
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
-        start_date = config.get('Dates', 'start_date')
+        self.date = get_dt_from_date(config.get('Dates', 'start_date')).date()  #The earliest date for which daily stats still need to be computed
         self.positions_file = config.get('Files','positions_file')
         self.returns_file = config.get('Files','returns_file')
         self.initial_capital = config.getfloat('Parameters', 'initial_capital')
@@ -97,24 +97,31 @@ class PerformanceTracker(BackTesterListener,EventsListener):
             self.compute_daily_stats(events[0]['dt'].date())
             self.print_snapshot(events[0]['dt'].date())
 
-    def get_portfolio_value(self):
+    # Computes the portfolio value at ENDOFDAY on 'date'
+    def get_portfolio_value(self,date):
         netValue = self.cash
         for product in self.products:
             if(self.num_shares[product]!=0):
                 book = self.bb_objects[product].dailybook
-                current_price = book[-1][1]  # Was calculating yesterday's value earlier
+                if(len(book)>=2 and date==book[-2][0].date()):
+                    current_price = book[-2][1]  # If the date matches use the price
+                elif(len(book) >= 1):
+                    current_price = book[-1][1]  # Else use the latest price(date may not be the same)
+                else:
+                   sys.exit('DailyBook length 0')  # Should not reach here
                 netValue = netValue + current_price*self.num_shares[product]*self.conversion_factor[product]
         return netValue
 
+    # Computes the daily stats for the most recent trading day prior to 'date'
     def compute_daily_stats(self,date):
-        todaysValue = self.get_portfolio_value()
-        self.value = append(self.value,todaysValue)
-        self.PnLvector = append(self.PnLvector,self.value[-1]-self.value[-2]) # daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
-        if ( len ( self.value ) >= 2 ) :
-            # This should be the case always. TODO {gchak} check and remove if condition
+        if(self.date < date):
+            todaysValue = self.get_portfolio_value(self.date)
+            self.value = append(self.value,todaysValue)
+            self.PnLvector = append(self.PnLvector,self.value[-1]-self.value[-2])  # daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
             self.daily_log_returns = append ( self.daily_log_returns, log ( self.value[-1] / self.value[-2] ) )
             # TODO {gchak} check if the number is negative.
-        self.dates.append(date)
+            self.dates.append(self.date)
+            self.date=date
 
     def print_filled_orders(self,filled_orders):
         if(len(filled_orders)==0): return
@@ -148,6 +155,7 @@ class PerformanceTracker(BackTesterListener,EventsListener):
 
     def PlotPnLVersusDates(self,dates,dailyPnL):
         num = int(len(dates)/5.0)
+        if(num==0): num=1
         for i in xrange(0,len(dates)):
             if(i%num!=0 and i!= len(dates)-1):
                 dates[i]=''
@@ -164,7 +172,7 @@ class PerformanceTracker(BackTesterListener,EventsListener):
             pickle.dump(zip(self.dates,self.daily_log_returns), f)
 
     def showResults(self):
-        self.PnL = self.get_portfolio_value() - self.initial_capital
+        self.PnL = sum(self.PnLvector)
         self.net_returns = self.PnL*100.0/self.initial_capital
         self.annualized_PnL = 252.0 * mean(self.PnLvector)
         self.annualized_stdev_PnL = sqrt(252.0)*std(self.PnLvector)

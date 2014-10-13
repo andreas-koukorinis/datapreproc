@@ -50,7 +50,7 @@ class UnleveredRP(TradeAlgorithm):
                     weight[product] = 0
                 else:
                     risk = (self.daily_indicators['StdDev']._StdDev[product][0]+self.daily_indicators['StdDev']._StdDev[product][1])/2  # Average of 1 month and 2month Std
-                weight[product] = 1/risk
+                    weight[product] = 1/risk
                 sum_weights = sum_weights+abs(weight[product])
             for product in self.products:
                 weight[product]=weight[product]/sum_weights

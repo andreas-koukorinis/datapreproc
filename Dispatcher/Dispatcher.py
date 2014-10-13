@@ -50,9 +50,9 @@ class Dispatcher (object):
     # Main function which loops over the events and makes appropriate calls
     # ASSUMPTION:All ENDOFDAY events have same time
     def run(self):
-        self.heap_initialize(self.products)  # Add 1 earliest event after the startdate from each source
+        self.heap_initialize(self.products)  # Add all events for all the products to the heap
         current_dt = heapq.nsmallest(1,self.heap)[0][0]  # Get the lowest timestamp which has not been handled
-        while(current_dt<=self.end_dt):  # While timestamp does not surpass the end date
+        while(current_dt<=self.end_dt + timedelta (days=1)):  # Run simulation till one day after end date,so that end date orders can be filled
             concurrent_events=[]
             while( ( len(self.heap)>0 ) and ( heapq.nsmallest(1,self.heap)[0][0]==current_dt ) ) : # Add all the concurrent events for the current_dt to the list concurrent_events
                 tup = heapq.heappop(self.heap)
@@ -70,7 +70,7 @@ class Dispatcher (object):
             if( ( len(concurrent_events)>0 ) and ( current_dt >= self.start_dt ) ):  # If there are some events and warmupdays are over
                 for listener in self.events_listeners:
                     listener.on_events_update(concurrent_events)  # Make 1 call to OnEventsUpdate of the strategy and Performance Tracker for all the concurrent events
-                self.trading_days=self.trading_days+1
+                if(current_dt <= self.end_dt):  self.trading_days=self.trading_days+1
 
             if(len(self.heap)>0):
                 current_dt = heapq.nsmallest(1,self.heap)[0][0]  # If the are still elements in the heap,update the timestamp to next timestamp
@@ -98,7 +98,7 @@ class Dispatcher (object):
                 _data_list = self.db_cursor.fetchall() #should check if data exists or not
                 for _data_list_index in xrange ( 0, len(_data_list) ) :
                     _data_item = _data_list [ _data_list_index ]
-                    _data_item_datetime = datetime.combine ( _data_item[0], datetime.min.time() )
+                    _data_item_datetime = datetime.combine ( _data_item[0], datetime.max.time() )
                     _data_item_price = float(_data_item[1])
                     _data_item_symbol = _data_item[2]
                     _is_last_trading_day = False
