@@ -4,4 +4,4 @@ class DailyLogReturnsListener:
     __metaclass__=ABCMeta
 
     @abstractmethod
-    def OnDailyLogReturnsUpdate(self,product,DailyLogReturns): pass
+    def on_daily_log_returns_update(self,product,daily_log_returns): pass

@@ -4,11 +4,11 @@ class DailyEventListener:
     __metaclass__=ABCMeta
 
     @abstractmethod
-    def OnDailyEventUpdate(self,event): pass
+    def on_daily_event_update(self,event): pass
 
 class EventsListener:
     __metaclass__=ABCMeta
 
     @abstractmethod
-    def OnEventsUpdate(self,concurrent_events): pass
+    def on_events_update(self,concurrent_events): pass
 

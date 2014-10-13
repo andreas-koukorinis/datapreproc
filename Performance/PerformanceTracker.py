@@ -13,15 +13,16 @@ from BackTester.BackTester_Listeners import BackTesterListener
 from BackTester.BackTester import BackTester
 from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import EventsListener
-from Utils.Regular import checkEOD,getdtfromdate
+from Utils.Regular import check_eod,get_dt_from_date
 from Utils.DbQueries import conv_factor
 from BookBuilder.BookBuilder import BookBuilder
 
-#Performance tracker listens to the Dispatcher for concurrent events so that it can record the daily returns
-#It also listens to the Backtester for any new filled orders
-#At the end it shows the results and plot the cumulative PnL graph
-#It outputs the list of [dates,dailyreturns] to returns_file for later analysis
-#It outputs the portfolio snapshots and orders in the positions_file for debugging
+'''Performance tracker listens to the Dispatcher for concurrent events so that it can record the daily returns
+ It also listens to the Backtester for any new filled orders
+ At the end it shows the results and plot the cumulative PnL graph
+ It outputs the list of [dates,dailyreturns] to returns_file for later analysis
+ It outputs the portfolio snapshots and orders in the positions_file for debugging 
+'''
 class PerformanceTracker(BackTesterListener,EventsListener):
 
     def __init__(self,products,config_file):
@@ -41,7 +42,7 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.dates = []
         self.PnL = 0
         self.net_returns = 0
-        self.value = array([self.initial_capital])                                                                   #Track end of day values of the portfolio
+        self.value = array([self.initial_capital])  # Track end of day values of the portfolio
         self.PnLvector = empty(shape=(0))
         self.annualized_PnL = 0
         self.annualized_stdev_PnL = 0
@@ -66,22 +67,22 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.portfolio_snapshots = []
         self.total_orders = 0
         dispatcher = Dispatcher.get_unique_instance(products,config_file)
-        dispatcher.AddEventsListener(self)
+        dispatcher.add_events_listener(self)
         for product in products:
             backtester = BackTester.get_unique_instance(product,config_file)
-            backtester.AddListener(self)
+            backtester.add_listener(self)
 
         self.bb_objects={}
         for product in products:
             self.bb_objects[product] = BookBuilder.get_unique_instance(product,config_file)
 
-    def OnOrderUpdate(self,filled_orders,current_date):
+    def on_order_update(self,filled_orders,current_date):
         for order in filled_orders:
             self.cash = self.cash - order['value'] - order['cost']
             self.num_shares[order['product']] = self.num_shares[order['product']] + order['amount']
-        self.PrintFilledOrders(filled_orders)
+        self.print_filled_orders(filled_orders)
 
-    def AfterSettlementDay(self,product):
+    def after_settlement_day(self,product):
         p1 = product
         p2 = product.rstrip('1')+'2'
         assert self.num_shares[p1]==0
@@ -89,33 +90,33 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.num_shares[p2]=0
 
     # Called by Dispatcher
-    def OnEventsUpdate(self,events):
+    def on_events_update(self,events):
         # TODO { } probably more efficient to compute and send by dispatcher ?
-        all_EOD = checkEOD(events)                                                              #check whether all the events are ENDOFDAY
-        if(all_EOD):
-            self.ComputeDailyStats(events[0]['dt'].date())
-            self.PrintSnapshot(events[0]['dt'].date())
+        all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
+        if(all_eod):
+            self.compute_daily_stats(events[0]['dt'].date())
+            self.print_snapshot(events[0]['dt'].date())
 
-    def getPortfolioValue(self):
+    def get_portfolio_value(self):
         netValue = self.cash
         for product in self.products:
             if(self.num_shares[product]!=0):
                 book = self.bb_objects[product].dailybook
-                current_price = book[-2][1]                                                        #Yesterday's price
+                current_price = book[-1][1]  # Was calculating yesterday's value earlier
                 netValue = netValue + current_price*self.num_shares[product]*self.conversion_factor[product]
         return netValue
 
-    def ComputeDailyStats(self,date):
-        todaysValue = self.getPortfolioValue()
+    def compute_daily_stats(self,date):
+        todaysValue = self.get_portfolio_value()
         self.value = append(self.value,todaysValue)
-        self.PnLvector = append(self.PnLvector,self.value[-1]-self.value[-2]) #daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
+        self.PnLvector = append(self.PnLvector,self.value[-1]-self.value[-2]) # daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
         if ( len ( self.value ) >= 2 ) :
             # This should be the case always. TODO {gchak} check and remove if condition
             self.daily_log_returns = append ( self.daily_log_returns, log ( self.value[-1] / self.value[-2] ) )
             # TODO {gchak} check if the number is negative.
         self.dates.append(date)
 
-    def PrintFilledOrders(self,filled_orders):
+    def print_filled_orders(self,filled_orders):
         if(len(filled_orders)==0): return
         s = 'ORDER FILLED : '
         for order in filled_orders:
@@ -124,7 +125,7 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         text_file.write("%s\n" % s)
         text_file.close()
 
-    def PrintSnapshot(self,date):
+    def print_snapshot(self,date):
         text_file = open(self.positions_file, "a")
         text_file.write("\nPortfolio snapshot at StartOfDay %s\nCash:%f\tPositions:%s\n\n" % (date,self.cash,str(self.num_shares)))
         text_file.close()
@@ -163,7 +164,7 @@ class PerformanceTracker(BackTesterListener,EventsListener):
             pickle.dump(zip(self.dates,self.daily_log_returns), f)
 
     def showResults(self):
-        self.PnL = self.getPortfolioValue() - self.initial_capital
+        self.PnL = self.get_portfolio_value() - self.initial_capital
         self.net_returns = self.PnL*100.0/self.initial_capital
         self.annualized_PnL = 252.0 * mean(self.PnLvector)
         self.annualized_stdev_PnL = sqrt(252.0)*std(self.PnLvector)

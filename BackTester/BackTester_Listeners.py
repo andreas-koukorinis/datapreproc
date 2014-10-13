@@ -4,7 +4,7 @@ class BackTesterListener:
     __metaclass__=ABCMeta
 
     @abstractmethod
-    def OnOrderUpdate(self,filled_orders,date): pass
+    def on_order_update(self,filled_orders,date): pass
    
     @abstractmethod
-    def AfterSettlementDay(self,product): pass
+    def after_settlement_day(self,product): pass
