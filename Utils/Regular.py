@@ -16,6 +16,7 @@ def checkEOD(events):
         if(event['type']!='ENDOFDAY'): ret = False
     return ret
 
+# if there is fES1 ... make sure fES2 is also there, if not add it
 def add_complementary_future_pair(products):
     add_products=[]
     for product in products:

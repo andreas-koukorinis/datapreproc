@@ -39,12 +39,12 @@ class TradeAlgorithm(EventsListener):
 
         # Give strategy the access to the portfolio instance,
         # so that it can calculate its current worth and decide positions based on it.
-        self.portfolio = Portfolio.get_unique_instance(products,config_file)
+        self.portfolio = Portfolio(products,config_file)
 
         # TODO { gchak } : we only want performance_tracker for the products we are trading and not all the ones we have data for.
         # we probably should align the performance_tracker object to one instance of the TradeLogic
         # Initialize performance tracker with list of products
-        self.performance_tracker = PerformanceTracker.get_unique_instance ( products, config_file )
+        self.performance_tracker = PerformanceTracker( products, config_file )
 
     #User is expected to write the function
     def OnEventsUpdate(self,concurrent_events):

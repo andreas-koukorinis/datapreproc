@@ -24,8 +24,6 @@ from BookBuilder.BookBuilder import BookBuilder
 #It outputs the portfolio snapshots and orders in the positions_file for debugging
 class PerformanceTracker(BackTesterListener,EventsListener):
 
-    instance=[]
-
     def __init__(self,products,config_file):
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
@@ -76,13 +74,6 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.bb_objects={}
         for product in products:
             self.bb_objects[product] = BookBuilder.get_unique_instance(product,config_file)
-
-    @staticmethod
-    def get_unique_instance(products,config_file):
-        if(len(PerformanceTracker.instance)==0): # till now, no PerformanceTracker objects have been created
-            new_instance = PerformanceTracker(products,config_file)
-            PerformanceTracker.instance.append(new_instance)
-        return PerformanceTracker.instance[0] # if there is an object already, then it returns that object
 
     def OnOrderUpdate(self,filled_orders,current_date):
         for order in filled_orders:

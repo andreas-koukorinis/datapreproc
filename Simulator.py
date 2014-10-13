@@ -35,7 +35,7 @@ def __main__() :
     # Strategy is written by the user and it inherits from TradeAlgorithm,
     # TradeLogic here is the strategy class name converted to variable.Eg: UnleveredRP
     # Doubt { gchak } : I think this is one class where we don't need get_unique_instance. For instance in
-    #     DVC::basetrade we have a for-loop over the stratfile that creates a strategy insatnce for each
+    #     DVC::basetrade we have a for-loop over the stratfile that creates a strategy instance for each
     #     line in the stratfile. This is used for optimization. But even without optimization, we probably
     #     don't foresee any other class creating a strategy instance. Hence this get_unique_instance will only
     #     be called once.

@@ -6,8 +6,6 @@ from Utils.DbQueries import conv_factor
 
 class Portfolio(BackTesterListener):
 
-    instance=[]
-
     def __init__(self,products,config_file):
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
@@ -20,14 +18,6 @@ class Portfolio(BackTesterListener):
             self.value[product]=0
             backtester = BackTester.get_unique_instance(product,config_file)
             backtester.AddListener(self)
-
-    @staticmethod
-    def get_unique_instance(products,config_file):
-        if(len(Portfolio.instance)==0):
-            new_instance = Portfolio(products,config_file)
-            Portfolio.instance.append(new_instance)
-        return Portfolio.instance[0]
-
 
     #Return the portfolio variables as a dictionary
     def get_portfolio(self):
