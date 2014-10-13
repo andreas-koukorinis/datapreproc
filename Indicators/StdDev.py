@@ -36,9 +36,8 @@ class StdDev(DailyLogReturnsListener):
         self._StdDev[product] = empty(shape=(0))
         for period in self.periods:
             n=DailyLogReturns.shape[0]
-            if(n>=period):
-                val = std(DailyLogReturns[n-period:n])
-                self._StdDev[product]=append(self._StdDev[product],val)
-            else:
-                self._StdDev[product]=append(self._StdDev[product],nan)
-
+            _start_index = max(0,n-period) #If sufficient lookback not available,use the available data only to compute indicator
+            val = std(DailyLogReturns[_start_index:n])
+            if(val==0): 
+                val=0.001 #Dummy value for insufficient lookback period(case where only 1 log return)
+            self._StdDev[product]=append(self._StdDev[product],val)

@@ -42,8 +42,11 @@ class DailyLogReturns(DailyBookListener):
             product2 = product.rstrip('12')+'2'                                                  #Example : product2 = fES2
             p1 = self.prices[product1][0]
             p2 = self.prices[product2][1]
-            if(self.dt[product1]==self.dt[product2] and p2!=0):
-                logret = log(p1/p2)
+            if(self.dt[product1]==self.dt[product2]):
+                if(p2!=0):
+                    logret = log(p1/p2)
+                else:
+                    logret = 0 #If last two prices not available for a product,let logreturn = 0
                 self._DailyLogReturns[product1] = append(self._DailyLogReturns[product1],logret)
                 for listener in self.listeners: listener.OnDailyLogReturnsUpdate(product1,self._DailyLogReturns[product1])
         else:
@@ -51,6 +54,8 @@ class DailyLogReturns(DailyBookListener):
             p2 = self.prices[product][1]
             if(p2!=0):
                 logret = log(p1/p2)
-                self._DailyLogReturns[product] = append(self._DailyLogReturns[product],logret)
-                for listener in self.listeners: listener.OnDailyLogReturnsUpdate(product,self._DailyLogReturns[product])
+            else:
+                logret = 0 #If last two prices not available for a product,let logreturn = 0
+            self._DailyLogReturns[product] = append(self._DailyLogReturns[product],logret)
+            for listener in self.listeners: listener.OnDailyLogReturnsUpdate(product,self._DailyLogReturns[product])
         self._yesterday_settlement[product]= is_last_trading_day

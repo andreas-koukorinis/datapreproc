@@ -28,7 +28,7 @@ class Dispatcher (object):
         self.end_dt = getdtfromdate(end_date)
         self.trading_days=0
         warmupdays = config.getint('Parameters','warmupdays')
-        self.strategy_start_dt = self.start_dt + timedelta (days=warmupdays)
+        self.sim_start_dt = self.start_dt + timedelta (days=-warmupdays)
         self.products = products
         self.heap = []	#Initialize the heap, heap will contain tuples of the form (timestamp,event)
         (self.dbconn, self.db_cursor) = db_connect() #Initialize the database cursor
@@ -68,7 +68,7 @@ class Dispatcher (object):
                 if(event['type']=='INTRADAY'): #This is an intraday event
                     pass          #TO BE COMPLETED:call intradaybookbuilder and push next
 
-            if( ( len(concurrent_events)>0 ) and ( current_dt >= self.strategy_start_dt ) ): #if there are some events and warmupdays are over
+            if( ( len(concurrent_events)>0 ) and ( current_dt >= self.start_dt ) ): #if there are some events and warmupdays are over
                 for listener in self.eventslisteners:
                     listener.OnEventsUpdate(concurrent_events) #Make 1 call to OnEventsUpdate of the strategy and Performance Tracker for all the concurrent events
                 self.trading_days=self.trading_days+1
@@ -94,7 +94,7 @@ class Dispatcher (object):
             # and make events
             try:
                 _table_name = _product.rstrip('1234567890').lstrip('f')
-                _query = "SELECT Date," + _product.lstrip('f') + ",Spec FROM " + _table_name + " WHERE Date >= '" + str(self.start_dt.date())+"' AND Date <= '" + str( ( self.end_dt + timedelta (days=1) ).date()) + "' ORDER BY Date";
+                _query = "SELECT Date," + _product.lstrip('f') + ",Spec FROM " + _table_name + " WHERE Date >= '" + str(self.sim_start_dt.date())+"' AND Date <= '" + str( ( self.end_dt + timedelta (days=1) ).date()) + "' ORDER BY Date";
                 self.db_cursor.execute(_query)
                 _data_list = self.db_cursor.fetchall() #should check if data exists or not
                 for _data_list_index in xrange ( 0, len(_data_list) ) :

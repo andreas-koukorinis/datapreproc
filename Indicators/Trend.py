@@ -35,8 +35,6 @@ class Trend(DailyLogReturnsListener):
         self._Trend[product] = empty(shape=(0)) # way to initialize numpy array of 0 size
         for period in self.periods:
             n=DailyLogReturns.shape[0]
-            if(n>=period): 
-                val = sign(sum(DailyLogReturns[n-period:n]))
-                self._Trend[product]=append(self._Trend[product],val)
-            else:
-                self._Trend[product]=append(self._Trend[product],nan)
+            _start_index = max(0,n-period) #If sufficient lookback not available,use the available data only to compute indicator
+            val = sign(sum(DailyLogReturns[_start_index:n]))
+            self._Trend[product]=append(self._Trend[product],val)

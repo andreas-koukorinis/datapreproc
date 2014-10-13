@@ -15,7 +15,7 @@ class BookBuilder(DailyEventListener):
         self.product=product
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
-        self.maxentries_dailybook = config.getint('Parameters', 'warmupdays')
+        self.maxentries_dailybook = config.getint('Parameters', 'maxentries_dailybook')
         self.maxentries_intradaybook = config.getint('Parameters', 'maxentries_intradaybook')
         self.dailybook=[]         					#list of tuples (datetime,price)
         self.intradaybook=[]                                            #list of tuples (type,size,price) #type = 0 -> bid, type = 1 -> ask
