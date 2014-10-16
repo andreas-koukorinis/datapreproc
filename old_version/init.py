@@ -76,7 +76,7 @@ def compute_returns_specs(prices,specific):
     prices=prices.astype(float)
     returns = zeros(prices.shape[0]-1)
     for i in xrange(1,prices.shape[0]):
-        returns[i-1] = where(specific[i]=="" or specific[i-1] =="" or specific[i]==specific[i-1],log(prices[i,0]/prices[i-1,0]),log(prices[i,0]/prices[i-1,1]))
+        returns[i-1] = where(specific[i]=="" or specific[i-1] =="" or specific[i]==specific[i-1] or specific[i]=="#NA" or specific[i-1]=="#NA",log(prices[i,0]/prices[i-1,0]),log(prices[i,0]/prices[i-1,1]))
     returns= returns.astype(float)
     return returns
 
