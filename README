@@ -1,7 +1,7 @@
 COMMAND TO RUN:
 ---------------
 #Command to run : python -W ignore Simulator.py config_file
-#Example        : python -W ignore Simulator.py config_UnleveredRP
+#Example        : python -W ignore Simulator.py test/config_UnleveredRP.cfg
    
 SYMBOL LIST
 -----------

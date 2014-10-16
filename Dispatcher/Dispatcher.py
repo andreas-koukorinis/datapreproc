@@ -24,7 +24,9 @@ class Dispatcher (object):
         start_date = config.get('Dates','start_date')
         end_date = config.get('Dates','end_date')
         self.start_dt = get_dt_from_date(start_date)  # Convert date to datetime object with time hardcoded as 23:59:59:999999
-        self.end_dt = get_dt_from_date(end_date)
+        self.end_dt_orig = get_dt_from_date(end_date)
+        self.end_dt = self.end_dt_orig + timedelta (days=10) #Since filled price depends on the next day,we need to run simluation till the trading day next to end_date
+                                                             #Assumption is that after the end_date there will be a trading day within the next 10 days
         self.trading_days=0
         warmupdays = config.getint('Parameters','warmupdays')
         self.sim_start_dt = self.start_dt + timedelta (days=-warmupdays)
@@ -52,7 +54,8 @@ class Dispatcher (object):
     def run(self):
         self.heap_initialize(self.products)  # Add all events for all the products to the heap
         current_dt = heapq.nsmallest(1,self.heap)[0][0]  # Get the lowest timestamp which has not been handled
-        while(current_dt<=self.end_dt + timedelta (days=1)):  # Run simulation till one day after end date,so that end date orders can be filled
+        while(current_dt<=self.end_dt ):   # Run simulation till one day after end date,so that end date orders can be filled
+            last = self.end_dt_orig.date()<current_dt.date()
             concurrent_events=[]
             while( ( len(self.heap)>0 ) and ( heapq.nsmallest(1,self.heap)[0][0]==current_dt ) ) : # Add all the concurrent events for the current_dt to the list concurrent_events
                 tup = heapq.heappop(self.heap)
@@ -79,7 +82,7 @@ class Dispatcher (object):
                 # Push the next daily event for this product
                 for _product in self.products :
                     self.push_daily_event ( _product, current_dt + timedelta(days=1) )
-
+            if(last): break;
         db_close(self.dbconn)
 
     #Initialize the heap with 1 event for each source closest to startdate

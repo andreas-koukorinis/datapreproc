@@ -99,6 +99,7 @@ class PerformanceTracker(BackTesterListener,EventsListener):
 
     # Computes the portfolio value at ENDOFDAY on 'date'
     def get_portfolio_value(self,date):
+        s = ''
         netValue = self.cash
         for product in self.products:
             if(self.num_shares[product]!=0):
@@ -109,8 +110,15 @@ class PerformanceTracker(BackTesterListener,EventsListener):
                     current_price = book[-1][1]  # Else use the latest price(date may not be the same)
                 else:
                    sys.exit('DailyBook length 0')  # Should not reach here
+                s = s + product + ' ' + str(current_price)
                 netValue = netValue + current_price*self.num_shares[product]*self.conversion_factor[product]
+        self.print_prices(date,s)  
         return netValue
+
+    def print_prices(self,date,s):
+        text_file = open(self.positions_file, "a")
+        text_file.write("Prices at end of day %s are: %s\n" % (date,s))
+        text_file.close()
 
     # Computes the daily stats for the most recent trading day prior to 'date'
     def compute_daily_stats(self,date):
@@ -127,14 +135,14 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         if(len(filled_orders)==0): return
         s = 'ORDER FILLED : '
         for order in filled_orders:
-            s = s + 'product:%s amount:%f cost:%f value:%f'%(order['product'],order['amount'],order['cost'],order['value'])
+            s = s + 'product:%s amount:%f cost:%f value:%f fill_price:%f'%(order['product'],order['amount'],order['cost'],order['value'],order['fill_price'])
         text_file = open(self.positions_file, "a")
         text_file.write("%s\n" % s)
         text_file.close()
 
     def print_snapshot(self,date):
         text_file = open(self.positions_file, "a")
-        text_file.write("\nPortfolio snapshot at StartOfDay %s\nCash:%f\tPositions:%s\n\n" % (date,self.cash,str(self.num_shares)))
+        text_file.write("\nPortfolio snapshot at StartOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f PnL for last trading day:%f \n\n" % (date,self.cash,str(self.num_shares),self.value[-1],self.PnLvector[-1]))
         text_file.close()
 
     def drawdown(self,returns):

@@ -2,7 +2,7 @@ from numpy import *
 
 class CommissionManager:
     def getcommission(self,order,book):							#should check book
-        return self.execution_cost(order,book)+self.pershare(order)+self.pertrade(order)
+        return 0#self.execution_cost(order,book)+self.pershare(order)+self.pertrade(order)
   
     #Cost due to the price at which we were able to buy/sell the stock
     def execution_cost(self,order,book):
