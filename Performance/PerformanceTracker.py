@@ -12,7 +12,7 @@ import pickle
 from BackTester.BackTester_Listeners import BackTesterListener
 from BackTester.BackTester import BackTester
 from Dispatcher.Dispatcher import Dispatcher
-from Dispatcher.Dispatcher_Listeners import EventsListener
+from Dispatcher.Dispatcher_Listeners import EndOfDayListener
 from Utils.Regular import check_eod,get_dt_from_date
 from Utils.DbQueries import conv_factor
 from BookBuilder.BookBuilder import BookBuilder
@@ -23,7 +23,7 @@ from BookBuilder.BookBuilder import BookBuilder
  It outputs the list of [dates,dailyreturns] to returns_file for later analysis
  It outputs the portfolio snapshots and orders in the positions_file for debugging 
 '''
-class PerformanceTracker(BackTesterListener,EventsListener):
+class PerformanceTracker(BackTesterListener,EndOfDayListener):
 
     def __init__(self,products,config_file):
         config = ConfigParser.ConfigParser()
@@ -64,10 +64,11 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.annualizedPnLbydrawdown = 0
         self.skewness = 0
         self.kurtosis = 0
+        self.trading_cost = 0 
         self.portfolio_snapshots = []
         self.total_orders = 0
         dispatcher = Dispatcher.get_unique_instance(products,config_file)
-        dispatcher.add_events_listener(self)
+        dispatcher.add_end_of_day_listener(self)
         for product in products:
             backtester = BackTester.get_unique_instance(product,config_file)
             backtester.add_listener(self)
@@ -80,6 +81,8 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         for order in filled_orders:
             self.cash = self.cash - order['value'] - order['cost']
             self.num_shares[order['product']] = self.num_shares[order['product']] + order['amount']
+            self.trading_cost = self.trading_cost + order['cost']
+            self.total_orders = self.total_orders+1
         self.print_filled_orders(filled_orders)
 
     def after_settlement_day(self,product):
@@ -90,12 +93,10 @@ class PerformanceTracker(BackTesterListener,EventsListener):
         self.num_shares[p2]=0
 
     # Called by Dispatcher
-    def on_events_update(self,events):
+    def on_end_of_day(self,date):
         # TODO { } probably more efficient to compute and send by dispatcher ?
-        all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
-        if(all_eod):
-            self.compute_daily_stats(events[0]['dt'].date())
-            self.print_snapshot(events[0]['dt'].date())
+        self.compute_daily_stats(date)
+        self.print_snapshot(date)
 
     # Computes the portfolio value at ENDOFDAY on 'date'
     def get_portfolio_value(self,date):
@@ -122,14 +123,14 @@ class PerformanceTracker(BackTesterListener,EventsListener):
 
     # Computes the daily stats for the most recent trading day prior to 'date'
     def compute_daily_stats(self,date):
-        if(self.date < date):
+        if(self.date < date and self.total_orders>0): #If no orders have been filled,it implies trading has not started yet
             todaysValue = self.get_portfolio_value(self.date)
             self.value = append(self.value,todaysValue)
             self.PnLvector = append(self.PnLvector,self.value[-1]-self.value[-2])  # daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
             self.daily_log_returns = append ( self.daily_log_returns, log ( self.value[-1] / self.value[-2] ) )
             # TODO {gchak} check if the number is negative.
             self.dates.append(self.date)
-            self.date=date
+        self.date=date
 
     def print_filled_orders(self,filled_orders):
         if(len(filled_orders)==0): return
@@ -142,7 +143,11 @@ class PerformanceTracker(BackTesterListener,EventsListener):
 
     def print_snapshot(self,date):
         text_file = open(self.positions_file, "a")
-        text_file.write("\nPortfolio snapshot at StartOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f PnL for last trading day:%f \n\n" % (date,self.cash,str(self.num_shares),self.value[-1],self.PnLvector[-1]))
+        if(self.PnLvector.shape[0]>0):
+            s = ("\nPortfolio snapshot at StartOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f PnL for last trading day:%f \n\n" % (date,self.cash,str(self.num_shares),self.value[-1],self.PnLvector[-1]))
+        else:
+            s = ("\nPortfolio snapshot at StartOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f\n\n" % (date,self.cash,str(self.num_shares),self.value[-1]))
+        text_file.write(s)
         text_file.close()
 
     def drawdown(self,returns):
@@ -208,6 +213,6 @@ class PerformanceTracker(BackTesterListener,EventsListener):
 
         self._save_results()
 
-        print "\n-------------RESULTS--------------------\nInitial Capital = %.10f\nNet PNL = %.10f \nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Std_PnL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f \n" %(self.initial_capital,self.PnL,self.net_returns,self.annualized_PnL,self.annualized_stdev_PnL,self.annualized_returns,self.annualized_stddev_returns,self.sharpe,self.skewness,self.kurtosis,self.dml,self.mml,self.qml,self.yml,self.max_drawdown_percent,self.max_drawdown_dollar,self.annualizedPnLbydrawdown,self.return_by_maxdrawdown)
+        print "\n-------------RESULTS--------------------\nInitial Capital = %.10f\nNet PNL = %.10f \nTrading Cost = %.10f\nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Std_PnL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f \n" %(self.initial_capital,self.PnL,self.trading_cost,self.net_returns,self.annualized_PnL,self.annualized_stdev_PnL,self.annualized_returns,self.annualized_stddev_returns,self.sharpe,self.skewness,self.kurtosis,self.dml,self.mml,self.qml,self.yml,self.max_drawdown_percent,self.max_drawdown_dollar,self.annualizedPnLbydrawdown,self.return_by_maxdrawdown)
 
         self.PlotPnLVersusDates(self.dates,array(self.PnLvector).astype(float))

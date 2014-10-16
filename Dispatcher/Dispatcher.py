@@ -4,7 +4,7 @@ import heapq
 import ConfigParser
 import MySQLdb
 from Utils.DbQueries import db_connect,db_close,check_settlement_day
-from Utils.Regular import get_dt_from_date
+from Utils.Regular import get_dt_from_date,check_eod
 
 '''The job of the dispatcher is :
  1)To maintain a heap of all the event sources keyed by the timestamp(datetime object in python)
@@ -24,8 +24,8 @@ class Dispatcher (object):
         start_date = config.get('Dates','start_date')
         end_date = config.get('Dates','end_date')
         self.start_dt = get_dt_from_date(start_date)  # Convert date to datetime object with time hardcoded as 23:59:59:999999
-        self.end_dt_orig = get_dt_from_date(end_date)
-        self.end_dt = self.end_dt_orig + timedelta (days=10) #Since filled price depends on the next day,we need to run simluation till the trading day next to end_date
+        self.end_dt = get_dt_from_date(end_date)
+        self.end_dt_sim = self.end_dt + timedelta (days=10) #Since filled price depends on the next day,we need to run simluation till the trading day next to end_date
                                                              #Assumption is that after the end_date there will be a trading day within the next 10 days
         self.trading_days=0
         warmupdays = config.getint('Parameters','warmupdays')
@@ -34,8 +34,9 @@ class Dispatcher (object):
         self.heap = []	# Initialize the heap, heap will contain tuples of the form (timestamp,event)
         (self.dbconn, self.db_cursor) = db_connect()  # Initialize the database cursor
         self.event_listeners = []  # These are the listeners which receive 1 daily event for their product.Here bookbuilders
-        self.events_listeners = []  # These are the listeners which receive all the concurrent events at once.Here Strategy and Performance Tracker
-
+        self.events_listeners = []  # These are the listeners which receive all the concurrent events at once.Here Strategy only
+        self.end_of_day_listeners = []  # These are the listeners called on eand of each trading day.Here Performance Tracker
+ 
     @staticmethod
     def get_unique_instance(products,config_file):
         if(len(Dispatcher.instance)==0):
@@ -49,13 +50,16 @@ class Dispatcher (object):
     def add_events_listener(self,listener):  # For strategy and Performance Tracker
         self.events_listeners.append(listener)
 
+    def add_end_of_day_listener(self,listener):
+        self.end_of_day_listeners.append(listener)
+
     # Main function which loops over the events and makes appropriate calls
     # ASSUMPTION:All ENDOFDAY events have same time
     def run(self):
         self.heap_initialize(self.products)  # Add all events for all the products to the heap
         current_dt = heapq.nsmallest(1,self.heap)[0][0]  # Get the lowest timestamp which has not been handled
-        while(current_dt<=self.end_dt ):   # Run simulation till one day after end date,so that end date orders can be filled
-            last = self.end_dt_orig.date()<current_dt.date()
+        while(current_dt<=self.end_dt_sim ):   # Run simulation till one day after end date,so that end date orders can be filled
+            last = self.end_dt.date()<current_dt.date()
             concurrent_events=[]
             while( ( len(self.heap)>0 ) and ( heapq.nsmallest(1,self.heap)[0][0]==current_dt ) ) : # Add all the concurrent events for the current_dt to the list concurrent_events
                 tup = heapq.heappop(self.heap)
@@ -70,19 +74,23 @@ class Dispatcher (object):
                 if(event['type']=='INTRADAY'):  # This is an intraday event
                     pass  # TODO:call intradaybookbuilder and push next
 
-            if( ( len(concurrent_events)>0 ) and ( current_dt >= self.start_dt ) ):  # If there are some events and warmupdays are over
+            if( current_dt.date() >= self.start_dt.date() and current_dt.date() <= self.end_dt.date() ):  # If there are some events and warmupdays are over
                 for listener in self.events_listeners:
-                    listener.on_events_update(concurrent_events)  # Make 1 call to OnEventsUpdate of the strategy and Performance Tracker for all the concurrent events
-                if(current_dt <= self.end_dt):  self.trading_days=self.trading_days+1
+                    listener.on_events_update(concurrent_events)  # Make 1 call to OnEventsUpdate of the strategy for all the concurrent events
+            if( current_dt >= self.start_dt and check_eod(concurrent_events)):
+                for listener in self.end_of_day_listeners:
+                    listener.on_end_of_day(concurrent_events[0]['dt'].date())
+
+                if(current_dt.date() <= self.end_dt.date()):  self.trading_days=self.trading_days+1
 
             if(len(self.heap)>0):
                 current_dt = heapq.nsmallest(1,self.heap)[0][0]  # If the are still elements in the heap,update the timestamp to next timestamp
-            else :
+            else : break # If sufficient data is not available,break out of loop
                 # TODO { } probably need to see if we need to fetch events here
                 # Push the next daily event for this product
-                for _product in self.products :
-                    self.push_daily_event ( _product, current_dt + timedelta(days=1) )
-            if(last): break;
+                #for _product in self.products :
+                #    self.push_daily_event ( _product, current_dt + timedelta(days=1) )
+            if(last): break # if we have surpassed end_date,stop the simulation
         db_close(self.dbconn)
 
     #Initialize the heap with 1 event for each source closest to startdate
@@ -96,7 +104,7 @@ class Dispatcher (object):
             # and make events
             try:
                 _table_name = _product.rstrip('1234567890').lstrip('f')
-                _query = "SELECT Date," + _product.lstrip('f') + ",Spec FROM " + _table_name + " WHERE Date >= '" + str(self.sim_start_dt.date())+"' AND Date <= '" + str( ( self.end_dt + timedelta (days=1) ).date()) + "' ORDER BY Date";
+                _query = "SELECT Date," + _product.lstrip('f') + ",Spec FROM " + _table_name + " WHERE Date >= '" + str(self.sim_start_dt.date())+"' AND Date <= '" + str( ( self.end_dt_sim ).date() ) + "' ORDER BY Date";
                 self.db_cursor.execute(_query)
                 _data_list = self.db_cursor.fetchall() #should check if data exists or not
                 for _data_list_index in xrange ( 0, len(_data_list) ) :
@@ -105,7 +113,7 @@ class Dispatcher (object):
                     _data_item_price = float(_data_item[1])
                     _data_item_symbol = _data_item[2]
                     _is_last_trading_day = False
-                    if ( ( _product[0] == 'f' ) and ( _data_list_index < ( len(_data_list) - 1 ) ) and ( _data_item_symbol != _data_list [ _data_list_index + 1 ][2] ) ) :
+                    if((_product[0] == 'f' ) and ( _data_list_index < ( len(_data_list) - 1 ) ) and ( _data_item_symbol != _data_list [ _data_list_index + 1 ][2] and _data_item_symbol != '#NA' and _data_list [ _data_list_index + 1 ][2] !='#NA' and len(_data_item_symbol)>=0 and len(_data_list[_data_list_index+1][2])>=0)): # To take care of '' and '#NA' present in Specific Symbol
                         _is_last_trading_day = True
                     _event = {'price': _data_item_price, 'product':_product, 'type':'ENDOFDAY', 'dt':_data_item_datetime, 'table':_table_name, 'is_last_trading_day':_is_last_trading_day}
                     heapq.heappush ( self.heap, ( _data_item_datetime, _event ) )
