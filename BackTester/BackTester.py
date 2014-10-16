@@ -49,8 +49,8 @@ class BackTester(DailyBookListener):
                 if(self.yesterday_settlement_day):
                     fill_price = dailybook[-2][1]  # For settlement orders,estimated fill_price = price at which order is placed
                 else:
-                    #fill_price = dailybook[-1][1]*0.1 + dailybook[-2][1]*0.9  # Estimated fill_price = 0.9*(price at which order is placed) + 0.1*(price on next day)
-                    fill_price = dailybook[-2][1]
+                    fill_price = dailybook[-1][1]*0.1 + dailybook[-2][1]*0.9  # Estimated fill_price = 0.9*(price at which order is placed) + 0.1*(price on next day)
+                    #fill_price = dailybook[-2][1]
                 value = fill_price*order['amount']*self.conversion_factor  #Assuming that book is of the format [(dt,prices)]     # +ve for buy,-ve for sell
                 filled_orders.append({'dt':order['dt'],'product':order['product'],'amount':order['amount'],'cost':cost,'value':value,'fill_price':fill_price})
                 self.pending_orders.remove(order)  # Should see what happens for duplicates/iteration
