@@ -26,7 +26,14 @@ def add_complementary_future_pair(products):
             pair = sym + str(num+1) # pair : fES2 for fES1
             add_products.append(pair) #append to a separate list to avoid infinite loop
     return list(set(products) | set(add_products)) #Take union of two lists and return
-            
 
-    
+# Return the number of products in the product list counting only once for a future symbol.EG: ES1,ES2 counted as 1            
+def get_num_trade_products(products):
+    symbols=[]
+    for product in products:
+        if(product[0]=='f'):
+            symbols.append(product.lstrip('f').rstrip('0123456789'))    
+        else: 
+            symbols.append(product)
+    return float(len(list(set(symbols)))) # Remove duplicates from list 'symbols' and return its length
 

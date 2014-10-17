@@ -55,8 +55,7 @@ class UnleveredDMF(TradeAlgorithm):
                 weight[product]=weight[product]/sum_weights
 
             # Calculate positions from weights
-            # Assumption: Use 95% of the wealth to decide positions,rest 5% for costs and price changes
-            positions_to_take = get_positions_from_weights(weight,current_worth*0.95,current_price,self.conversion_factor)   
+            positions_to_take = get_positions_from_weights(weight,current_worth,current_price,self.conversion_factor)   
            
         # Otherwise positions_to_take is same as current portfolio composition
         else:
