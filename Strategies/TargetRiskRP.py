@@ -2,7 +2,7 @@ import sys
 from numpy import *
 import ConfigParser
 from Algorithm.TradeAlgorithm import TradeAlgorithm
-from Utils.Regular import check_eod
+from Utils.Regular import check_eod,get_num_trade_products
 from Utils.Calculate import get_worth,get_positions_from_weights
 
 class TargetRiskRP(TradeAlgorithm):
@@ -43,17 +43,17 @@ class TargetRiskRP(TradeAlgorithm):
 
             # Calculate weights to assign to each product using indicators
             weight = {}
+            num_trade_products = get_num_trade_products(self.products) # Since only first futures contract is traded,all other futures contracts should not be counted
             for product in self.products:
                 if(product[0]=='f' and product[-1]!='1'):  # Dont trade futures contracts other than the first futures contract
                     weight[product] = 0
                 else:
-                    target_risk_per_product = self.target_risk/float(len(self.products))
+                    target_risk_per_product = self.target_risk/num_trade_products
                     risk = self.daily_indicators['StdDev']._StdDev[product][0]                                  
                     annualized_risk_of_product = (exp(sqrt(252.0)*risk)-1)*100.0
                     weight[product] = target_risk_per_product/annualized_risk_of_product
 
             # Calculate positions from weights
-            # Assumption: Use 95% of the wealth to decide positions,rest 5% for costs and price changes
             positions_to_take = get_positions_from_weights(weight,current_worth,current_price,self.conversion_factor)   
            
         # Otherwise positions_to_take is same as current portfolio composition
