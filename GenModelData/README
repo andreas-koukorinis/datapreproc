@@ -1,0 +1,4 @@
+Instructions:
+1) Go to stratdev/GenModelData/
+2) COMMAND TO RUN: python Simulator.py test/config.cfg
+3) Indicator values will be printed in 'directory' as specified in config file
