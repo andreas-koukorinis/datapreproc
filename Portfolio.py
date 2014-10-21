@@ -33,8 +33,8 @@ class Portfolio(BackTesterListener):
             self.num_shares[order['product']] = self.num_shares[order['product']] + order['amount']
 
     def after_settlement_day(self,product):
-        p1 = product
-        p2 = product.rstrip('1')+'2'
-        assert self.num_shares[p1]==0
-        self.num_shares[p1] = self.num_shares[p2]
-        self.num_shares[p2] = 0
+        p1 = product.rstrip('12')+'1'
+        p2 = product.rstrip('12')+'2'
+        if(self.num_shares[p1]==0 and self.num_shares[p2]!=0):
+            self.num_shares[p1] = self.num_shares[p2]
+            self.num_shares[p2] = 0

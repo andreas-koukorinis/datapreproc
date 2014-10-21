@@ -86,11 +86,11 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
         self.print_filled_orders(filled_orders)
 
     def after_settlement_day(self,product):
-        p1 = product
-        p2 = product.rstrip('1')+'2'
-        assert self.num_shares[p1]==0
-        self.num_shares[p1]=self.num_shares[p2]
-        self.num_shares[p2]=0
+        p1 = product.rstrip('12')+'1'
+        p2 = product.rstrip('12')+'2'
+        if(self.num_shares[p1]==0 and self.num_shares[p2]!=0):
+            self.num_shares[p1] = self.num_shares[p2]
+            self.num_shares[p2] = 0
 
     # Called by Dispatcher
     def on_end_of_day(self,date):
@@ -113,7 +113,7 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
                    sys.exit('DailyBook length 0')  # Should not reach here
                 s = s + product + ' ' + str(current_price)
                 netValue = netValue + current_price*self.num_shares[product]*self.conversion_factor[product]
-        self.print_prices(date,s)  
+        #self.print_prices(date,s)  
         return netValue
 
     def print_prices(self,date,s):
