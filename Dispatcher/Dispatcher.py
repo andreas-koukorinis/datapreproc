@@ -103,20 +103,34 @@ class Dispatcher (object):
             # TODO { gchak } fetch all data for this product, not just first
             # and make events
             try:
-                _table_name = _product.rstrip('1234567890').lstrip('f')
-                _query = "SELECT Date," + _product.lstrip('f') + ",Spec FROM " + _table_name + " WHERE Date >= '" + str(self.sim_start_dt.date())+"' AND Date <= '" + str( ( self.end_dt_sim ).date() ) + "' ORDER BY Date";
-                self.db_cursor.execute(_query)
-                _data_list = self.db_cursor.fetchall() #should check if data exists or not
-                for _data_list_index in xrange ( 0, len(_data_list) ) :
-                    _data_item = _data_list [ _data_list_index ]
-                    _data_item_datetime = datetime.combine ( _data_item[0], datetime.max.time() )
-                    _data_item_price = float(_data_item[1])
-                    _data_item_symbol = _data_item[2]
-                    _is_last_trading_day = False
-                    if((_product[0] == 'f' ) and ( _data_list_index < ( len(_data_list) - 1 ) ) and ( _data_item_symbol != _data_list [ _data_list_index + 1 ][2] and _data_item_symbol != '#NA' and _data_list [ _data_list_index + 1 ][2] !='#NA' and len(_data_item_symbol)>=0 and len(_data_list[_data_list_index+1][2])>=0)): # To take care of '' and '#NA' present in Specific Symbol
-                        _is_last_trading_day = True
-                    _event = {'price': _data_item_price, 'product':_product, 'type':'ENDOFDAY', 'dt':_data_item_datetime, 'table':_table_name, 'is_last_trading_day':_is_last_trading_day}
-                    heapq.heappush ( self.heap, ( _data_item_datetime, _event ) )
+                if(_product[0]=='f'):
+                    _table_name = _product.rstrip('1234567890').lstrip('f')
+                    _query = "SELECT Date," + _product.lstrip('f') + ",Spec FROM " + _table_name + " WHERE Date >= '" + str(self.sim_start_dt.date())+"' AND Date <= '" + str( ( self.end_dt_sim ).date() ) + "' ORDER BY Date";
+                    self.db_cursor.execute(_query)
+                    _data_list = self.db_cursor.fetchall() #should check if data exists or not
+                    for _data_list_index in xrange ( 0, len(_data_list) ) :
+                        _data_item = _data_list [ _data_list_index ]
+                        _data_item_datetime = datetime.combine ( _data_item[0], datetime.max.time() )
+                        _data_item_price = float(_data_item[1])
+                        _data_item_symbol = _data_item[2]
+                        _is_last_trading_day = False
+                        if((_product[0] == 'f' ) and ( _data_list_index < ( len(_data_list) - 1 ) ) and ( _data_item_symbol != _data_list [ _data_list_index + 1 ][2] and _data_item_symbol != '#NA' and _data_list [ _data_list_index + 1 ][2] !='#NA' and len(_data_item_symbol)>0 and len(_data_list[_data_list_index+1][2])>0)): # To take care of '' and '#NA' present in Specific Symbol
+                            _is_last_trading_day = True
+                        _event = {'price': _data_item_price, 'product':_product, 'type':'ENDOFDAY', 'dt':_data_item_datetime, 'table':_table_name, 'is_last_trading_day':_is_last_trading_day}
+                        heapq.heappush ( self.heap, ( _data_item_datetime, _event ) )
+                else:
+                    _table_name = _product
+                    _query = "SELECT Date," + _product + " FROM " + _table_name + " WHERE Date >= '" + str(self.sim_start_dt.date())+"' AND Date <= '" + str( ( self.end_dt_sim ).date() ) + "' ORDER BY Date";
+                    self.db_cursor.execute(_query)
+                    _data_list = self.db_cursor.fetchall() #should check if data exists or not
+                    for _data_list_index in xrange ( 0, len(_data_list) ) :
+                        _data_item = _data_list [ _data_list_index ]
+                        _data_item_datetime = datetime.combine ( _data_item[0], datetime.max.time() )
+                        _data_item_price = float(_data_item[1])
+                        _is_last_trading_day = False
+                        _event = {'price': _data_item_price, 'product':_product, 'type':'ENDOFDAY', 'dt':_data_item_datetime, 'table':_table_name, 'is_last_trading_day':_is_last_trading_day}
+                        heapq.heappush ( self.heap, ( _data_item_datetime, _event ) )
+                
             except MySQLdb.Error, e:
                 try:
                     print "MySQL Error [%d]: %s" % (e.args[0], e.args[1])
