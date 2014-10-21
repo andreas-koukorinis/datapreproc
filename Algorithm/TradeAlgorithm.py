@@ -20,6 +20,7 @@ class TradeAlgorithm(EventsListener):
         self.daily_indicators={}
         self.conversion_factor=conv_factor(products)
         self.listeners=[]
+
         for indicator in self.Daily_Indicators:                                                    #Initialize daily indicators
             module = import_module('Indicators.'+indicator)
             Indicatorclass = getattr(module,indicator)
@@ -63,21 +64,25 @@ class TradeAlgorithm(EventsListener):
     # Place an order to make the total number of shares of 'product' = 'target'
     # It can be a buy or a sell order depending on the current number of shares in the portfolio and the value of the target
     def place_order_target(self,dt,product,target):
-        current_num = self.portfolio.get_portfolio()['num_shares'][product]
+        #current_num = self.portfolio.get_portfolio()['num_shares'][product] # Did not include orders placed but not filled
+        to_be_filled = 0
+        for order in self.order_manager.backtesters[product].pending_orders:
+            to_be_filled = to_be_filled + order['amount']
+        current_num = self.portfolio.get_portfolio()['num_shares'][product] + to_be_filled
         to_place = target-current_num
         if(to_place!=0):
             self.place_order(dt,product,to_place)
 
     # Shift the positions from first futures contract to second futures contract on the settlement day
-    def adjust_positions_for_settlements(self,events,current_price,positions_to_take):
+    def adjust_positions_for_settlements(self,current_price,positions_to_take):
         settlement_products=[]
-        for event in events:
-            if(event['is_last_trading_day'] and event['product'][-1]=='1'): settlement_products.append(event['product'])
-        for product in settlement_products:
-            p1 = product  # Example: 'ES1'
-            p2 = product.rstrip('1')+'2'  # Example: 'ES2'
-            positions_to_take[p2] = (positions_to_take[p1]*current_price[p1]*self.conversion_factor[p1])/(current_price[p2]*self.conversion_factor[p2])
-            positions_to_take[p1] = 0
+        for product in self.products:
+            is_last_trading_day = self.bb_objects[product].dailybook[-1][2]
+            if(is_last_trading_day and product[-1]=='1' ):
+                p1 = product  # Example: 'ES1'
+                p2 = product.rstrip('1')+'2'  # Example: 'ES2'
+                positions_to_take[p2] = (positions_to_take[p1]*current_price[p1]*self.conversion_factor[p1])/(current_price[p2]*self.conversion_factor[p2])
+                positions_to_take[p1] = 0
         return positions_to_take
 
     #TODO
