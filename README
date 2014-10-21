@@ -2,10 +2,18 @@ COMMAND TO RUN:
 ---------------
 #Command to run : python -W ignore Simulator.py config_file
 #Example        : python -W ignore Simulator.py test/config_UnleveredRP.cfg
-   
-SYMBOL LIST
------------
-fAD1,fBA1,fBP1,fCD1,fCF1,fDM1,fDU1,fED1,fER1,fES1,fFV1,fGX1,fJY1,fNQ1,fNV1,fNX1,fPE1,fRX1,fSF1,fTU1,fTY1,fUS1,fVG1,fWN1
+
+To run LeveredRP with futures,credits and currency forwards:
+------------------------------------------------------------
+    python -W ignore Simulator.py test/config_TargetRiskRP_AQRIX.py
+
+To run AQRIX,change the symbols list in config_TargetRiskRP_AQRIX.py to contain only AQRIX(symbols=AQRIX) and run the above command again
+
+For correlation calculation
+---------------------------------------
+    The return series for the config being run will be stored in returns_TargetRiskRP.txt
+    COMMAND: python Performance/compute_correlation.py returns1.txt returns2.txt
+
 
 ASSUMPTIONS/PENDING
 -----------

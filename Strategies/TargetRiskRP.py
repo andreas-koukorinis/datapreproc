@@ -43,7 +43,9 @@ class TargetRiskRP(TradeAlgorithm):
 
             # Calculate weights to assign to each product using indicators
             weight = {}
+            sum_wts=0
             num_trade_products = get_num_trade_products(self.products) # Since only first futures contract is traded,all other futures contracts should not be counted
+            #print num_trade_products,events[0]['dt']
             for product in self.products:
                 if(product[0]=='f' and product[-1]!='1'):  # Dont trade futures contracts other than the first futures contract
                     weight[product] = 0
@@ -52,7 +54,10 @@ class TargetRiskRP(TradeAlgorithm):
                     risk = self.daily_indicators['StdDev']._StdDev[product][0]                                  
                     annualized_risk_of_product = (exp(sqrt(252.0)*risk)-1)*100.0
                     weight[product] = target_risk_per_product/annualized_risk_of_product
-
+                    sum_wts=sum_wts+weight[product]
+            #print 'WEIGHTS:'
+            #print weight
+            #print 'Net Leverage: %0.10f'%sum_wts   
             # Calculate positions from weights
             positions_to_take = get_positions_from_weights(weight,current_worth,current_price,self.conversion_factor)   
            
@@ -62,7 +67,7 @@ class TargetRiskRP(TradeAlgorithm):
                 positions_to_take[product] = current_portfolio['num_shares'][product]
  
         # Adjust positions for settlement day
-        positions_to_take = self.adjust_positions_for_settlements(events,current_price,positions_to_take)
+        positions_to_take = self.adjust_positions_for_settlements(current_price,positions_to_take)
 
         # Place orders.Since all events are concurrent, the datetime attribute of all the events will be same
         for product in self.products:

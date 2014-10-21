@@ -33,7 +33,8 @@ class DailyLogReturns(DailyBookListener):
         return DailyLogReturns.instance[0]
 
     # Update the daily log returns on each ENDOFDAY event
-    def on_dailybook_update(self,product,dailybook,is_last_trading_day):
+    def on_dailybook_update(self,product,dailybook):
+        is_last_trading_day=dailybook[-1][2]
         self.dt[product]=dailybook[-1][0]
         self.prices[product][1]=self.prices[product][0]
         self.prices[product][0]=dailybook[-1][1]

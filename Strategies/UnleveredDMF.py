@@ -63,7 +63,7 @@ class UnleveredDMF(TradeAlgorithm):
                 positions_to_take[product] = current_portfolio['num_shares'][product]
  
         # Adjust positions for settlement day
-        positions_to_take = self.adjust_positions_for_settlements(events,current_price,positions_to_take)
+        positions_to_take = self.adjust_positions_for_settlements(current_price,positions_to_take)
 
         # Place orders.Since all events are concurrent, the datetime attribute of all the events will be same
         for product in self.products:
