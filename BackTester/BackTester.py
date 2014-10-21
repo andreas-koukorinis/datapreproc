@@ -41,8 +41,10 @@ class BackTester(DailyBookListener):
 
     # Check which of the pending orders have been filled
     # ASSUMPTION: all the pending orders are filled #SHOULD BE CHANGED
-    def on_dailybook_update(self,product,dailybook,is_last_trading_day):
+    def on_dailybook_update(self,product,dailybook):
+        is_last_trading_day=dailybook[-1][2]
         filled_orders = []
+        updated_pending_orders=[]
         for order in self.pending_orders:
             if(True):  # Should check if order can be filled based on current book,if yes remove from pending_list and add to filled_list
                 cost = self.commission_manager.getcommission(order,dailybook)
@@ -53,7 +55,9 @@ class BackTester(DailyBookListener):
                     #fill_price = dailybook[-2][1]
                 value = fill_price*order['amount']*self.conversion_factor  #Assuming that book is of the format [(dt,prices)]     # +ve for buy,-ve for sell
                 filled_orders.append({'dt':order['dt'],'product':order['product'],'amount':order['amount'],'cost':cost,'value':value,'fill_price':fill_price})
-                self.pending_orders.remove(order)  # Should see what happens for duplicates/iteration
+            else:
+                updated_pending_orders.append(order)
+        self.pending_orders = updated_pending_orders
         current_dt = dailybook[-1][0]
 
         # Here the listeners will be portfolio and performance tracker
@@ -63,7 +67,7 @@ class BackTester(DailyBookListener):
         # The assumption here is that we only trade in the first futures contract
         # TODO : we need to change that
         # This seems to be something that needs to be moved to book.
-        if(self.yesterday_settlement_day and self.product[-1]=='1'):  # Only switch once for each product
+        if(self.yesterday_settlement_day):  # Only switch once for each product
             for listener in self.listeners:
                 listener.after_settlement_day(self.product)
         self.yesterday_settlement_day=is_last_trading_day

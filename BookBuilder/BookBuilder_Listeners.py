@@ -4,7 +4,7 @@ class DailyBookListener:
     __metaclass__=ABCMeta
 
     @abstractmethod
-    def on_dailybook_update(self,product,dailybook,is_last_trading_day): pass
+    def on_dailybook_update(self,product,dailybook): pass
 
 class IntradayBookListener:
     __metaclass__=ABCMeta
