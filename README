@@ -5,14 +5,16 @@ COMMAND TO RUN:
 
 To run LeveredRP with futures,credits and currency forwards:
 ------------------------------------------------------------
-    python -W ignore Simulator.py test/config_TargetRiskRP_AQRIX.py
-
-To run AQRIX,change the symbols list in config_TargetRiskRP_AQRIX.py to contain only AQRIX(symbols=AQRIX) and run the above command again
+    python -W ignore Simulator.py test/config_AQRIX.cfg
 
 For correlation calculation
 ---------------------------------------
     The return series for the config being run will be stored in returns_TargetRiskRP.txt
     COMMAND: python Performance/compute_correlation.py returns1.txt returns2.txt
+
+For Time Profiling
+---------------------------------------
+    COMMAND: python -m cProfile Simulator.py test/config_AQRIX.cfg
 
 
 ASSUMPTIONS/PENDING
