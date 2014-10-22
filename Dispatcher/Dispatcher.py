@@ -57,11 +57,11 @@ class Dispatcher (object):
     # ASSUMPTION:All ENDOFDAY events have same time
     def run(self):
         self.heap_initialize(self.products)  # Add all events for all the products to the heap
-        current_dt = heapq.nsmallest(1,self.heap)[0][0]  # Get the lowest timestamp which has not been handled
+        current_dt = self.heap[0][0] # Get the lowest timestamp which has not been handled
         while(current_dt<=self.end_dt_sim ):   # Run simulation till one day after end date,so that end date orders can be filled
             last = self.end_dt.date()<current_dt.date()
             concurrent_events=[]
-            while( ( len(self.heap)>0 ) and ( heapq.nsmallest(1,self.heap)[0][0]==current_dt ) ) : # Add all the concurrent events for the current_dt to the list concurrent_events
+            while( ( len(self.heap)>0 ) and ( self.heap[0][0]==current_dt ) ) : # Add all the concurrent events for the current_dt to the list concurrent_events
                 tup = heapq.heappop(self.heap)
                 event = tup[1]
                 concurrent_events.append(event)
@@ -84,7 +84,7 @@ class Dispatcher (object):
                 if(current_dt.date() <= self.end_dt.date()):  self.trading_days=self.trading_days+1
 
             if(len(self.heap)>0):
-                current_dt = heapq.nsmallest(1,self.heap)[0][0]  # If the are still elements in the heap,update the timestamp to next timestamp
+                current_dt = self.heap[0][0] # If the are still elements in the heap,update the timestamp to next timestamp
             else : break # If sufficient data is not available,break out of loop
                 # TODO { } probably need to see if we need to fetch events here
                 # Push the next daily event for this product
