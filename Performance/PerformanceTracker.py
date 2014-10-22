@@ -174,7 +174,7 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
 
     def drawdown(self,returns):
         cum_returns = returns.cumsum()
-        return max(maximum.accumulate(cum_returns) - cum_returns)
+        return -1.0*max(maximum.accumulate(cum_returns) - cum_returns) # Will return a negative value
 
     def rollsum(self,series,period):
         n = series.shape[0]
@@ -228,8 +228,8 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
         self.skewness = ss.skew(self.daily_log_returns)
         self.kurtosis = ss.kurtosis(self.daily_log_returns)
         max_dd_log = self.drawdown(self.daily_log_returns)
-        self.max_drawdown_percent = (exp(max_dd_log)-1)*100
-        self.max_drawdown_dollar = self.drawdown(self.PnLvector)
+        self.max_drawdown_percent = abs((exp(max_dd_log)-1)*100)
+        self.max_drawdown_dollar = abs(self.drawdown(self.PnLvector))
         self.return_by_maxdrawdown = self.annualized_returns/self.max_drawdown_percent
         self.annualizedPnLbydrawdown = self.annualized_PnL/self.max_drawdown_dollar
 
