@@ -45,7 +45,8 @@ class TargetRiskRP(TradeAlgorithm):
             weight = {}
             sum_wts=0
             num_trade_products = get_num_trade_products(self.products) # Since only first futures contract is traded,all other futures contracts should not be counted
-            #print num_trade_products,events[0]['dt']
+            text_file = open('debug.txt', "a")
+            text_file.write('NUMBER OF TRADEPRODUCTS: %s DT: %s\n'%(num_trade_products,events[0]['dt']))
             for product in self.products:
                 if(product[0]=='f' and product[-1]!='1'):  # Dont trade futures contracts other than the first futures contract
                     weight[product] = 0
@@ -54,7 +55,9 @@ class TargetRiskRP(TradeAlgorithm):
                     risk = self.daily_indicators['StdDev']._StdDev[product][0]                                  
                     annualized_risk_of_product = (exp(sqrt(252.0)*risk)-1)*100.0
                     weight[product] = target_risk_per_product/annualized_risk_of_product
-                    sum_wts=sum_wts+weight[product]
+                    text_file.write('Product: %s Annualized_risk_of_product:%0.10f Weight: %0.10f\n'%(product,annualized_risk_of_product,weight[product]))
+                    sum_wts=sum_wts+weight[product]        
+            text_file.close()
             #print 'WEIGHTS:'
             #print weight
             #print 'Net Leverage: %0.10f'%sum_wts   

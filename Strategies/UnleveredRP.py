@@ -54,10 +54,10 @@ class UnleveredRP(TradeAlgorithm):
                 sum_weights = sum_weights+abs(weight[product])
             for product in self.products:
                 weight[product]=weight[product]/sum_weights
-            print weight,current_worth,current_price,self.conversion_factor
+            #print weight,current_worth,current_price,self.conversion_factor
             # Calculate positions from weights
             positions_to_take = get_positions_from_weights(weight,current_worth,current_price,self.conversion_factor)
-            print positions_to_take
+            #print positions_to_take
         # Otherwise positions_to_take is same as current portfolio composition
         else:
             for product in self.products:

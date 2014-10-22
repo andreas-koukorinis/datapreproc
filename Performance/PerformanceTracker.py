@@ -98,22 +98,44 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
         self.compute_daily_stats(date)
         self.print_snapshot(date)
 
+    #Find the latest price prior to 'date'
+    def find_most_recent_price(self,book,date):
+        if(len(book)<1):
+            sys.exit('ERROR: warmupdays not sufficient')
+        elif(book[-1][0].date()<=date):
+            return book[-1][1]
+        else:
+            return self.find_most_recent_price(book[:-1],date)
+
+    #Find the latest price prior to 'date' for futures product
+    def find_most_recent_price_future(self,book1,book2,date):
+        if(len(book1)<1):
+            sys.exit('ERROR: warmupdays not sufficient')
+        elif(book1[-1][0].date()<=date and book1[-1][2]): #If the day was settlement day,then use second futures contract price
+            return book2[-1][1]
+        elif(book1[-1][0].date()<=date and not book1[-1][2]): #If the day was not settlement day,then use first futures contract price
+            return book1[-1][1]
+        else:
+            return self.find_most_recent_price_future(book1[:-1],book2[:-1],date)
+            
     # Computes the portfolio value at ENDOFDAY on 'date'
     def get_portfolio_value(self,date):
         s = ''
         netValue = self.cash
         for product in self.products:
             if(self.num_shares[product]!=0):
-                book = self.bb_objects[product].dailybook
-                if(len(book)>=2 and date==book[-2][0].date()):
-                    current_price = book[-2][1]  # If the date matches use the price
-                elif(len(book) >= 1):
-                    current_price = book[-1][1]  # Else use the latest price(date may not be the same)
+                if(product[0]=='f'):
+                    product1 = product
+                    product2 = product.rstrip('1')+'2'
+                    book1 = self.bb_objects[product1].dailybook
+                    book2 = self.bb_objects[product2].dailybook
+                    current_price = self.find_most_recent_price_future(book1,book2,date)
                 else:
-                   sys.exit('DailyBook length 0')  # Should not reach here
+                    book = self.bb_objects[product].dailybook
+                    current_price = self.find_most_recent_price(book,date)
                 s = s + product + ' ' + str(current_price)
                 netValue = netValue + current_price*self.num_shares[product]*self.conversion_factor[product]
-        #self.print_prices(date,s)  
+        self.print_prices(date,s)  
         return netValue
 
     def print_prices(self,date,s):
