@@ -8,8 +8,6 @@ from Utils.Calculate import get_worth,get_positions_from_weights
 class TargetRiskRP(TradeAlgorithm):
 
     def init(self,config_file):
-        self.Daily_Indicators = ['StdDev']  # Indicators will be updated in the same order as they are specified in the list
-        self.Intraday_Indicators = []
         self.day=-1
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
@@ -52,7 +50,7 @@ class TargetRiskRP(TradeAlgorithm):
                     weight[product] = 0
                 else:
                     target_risk_per_product = self.target_risk/num_trade_products
-                    risk = self.daily_indicators['StdDev']._StdDev[product][0]                                  
+                    risk = self.daily_indicators['StdDev.'+product+'.21'].values[1] # Index 0 contains the date and 1 contains the value of indicator                                 
                     annualized_risk_of_product = (exp(sqrt(252.0)*risk)-1)*100.0
                     weight[product] = target_risk_per_product/annualized_risk_of_product
                     text_file.write('Product: %s Annualized_risk_of_product:%0.10f Weight: %0.10f\n'%(product,annualized_risk_of_product,weight[product]))

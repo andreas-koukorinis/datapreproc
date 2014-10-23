@@ -8,8 +8,6 @@ from Utils.Calculate import get_worth,get_positions_from_weights
 class UnleveredRP(TradeAlgorithm):
 
     def init(self,config_file):
-        self.Daily_Indicators = ['StdDev']  # Indicators will be updated in the same order as they are specified in the list
-        self.Intraday_Indicators = []
         self.day=-1
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
@@ -21,7 +19,7 @@ class UnleveredRP(TradeAlgorithm):
          'events' is a list of concurrent events
          event = {'price': 100, 'product': 'ES1', 'type':'ENDOFDAY', 'dt': datetime(2005,1,2,23,59,99999), 'table': 'ES','is_last_trading_day':False}
          access conversion_factor using : self.conversion_factor['ES1']
-         To access the daily indicators.EG:StdDev : self.daily_indicators['StdDev']._StdDev[product] will contain the list of updated daily log return standard deviations
+         To access the daily indicators.EG:StdDev of ES1: self.daily_indicators['StdDev.ES1.21'].values[1] will contain list of updated daily log return standard deviations for 21 days
          for each period specified in the config file in the same order'''
 
     def on_events_update(self,events):
@@ -49,15 +47,15 @@ class UnleveredRP(TradeAlgorithm):
                 if(product[0]=='f' and product[-1]!='1'):  # Dont trade futures contracts other than the first futures contract
                     weight[product] = 0
                 else:
-                    risk = (self.daily_indicators['StdDev']._StdDev[product][0]+self.daily_indicators['StdDev']._StdDev[product][1])/2  # Average of 1 month and 2month Std
+                    risk = (self.daily_indicators['StdDev.'+product+'.21'].values[1]+self.daily_indicators['StdDev.'+product+'.252'].values[1])/2  # Average of 1 month and 2month Std
                     weight[product] = 1/risk
                 sum_weights = sum_weights+abs(weight[product])
             for product in self.products:
                 weight[product]=weight[product]/sum_weights
-            #print weight,current_worth,current_price,self.conversion_factor
+
             # Calculate positions from weights
             positions_to_take = get_positions_from_weights(weight,current_worth,current_price,self.conversion_factor)
-            #print positions_to_take
+          
         # Otherwise positions_to_take is same as current portfolio composition
         else:
             for product in self.products:

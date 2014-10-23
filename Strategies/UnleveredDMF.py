@@ -8,8 +8,6 @@ from Utils.Calculate import get_worth,get_positions_from_weights
 class UnleveredDMF(TradeAlgorithm):
 
     def init(self,config_file):
-        self.Daily_Indicators = ['StdDev','Trend']  # Indicators will be updated in the same order as they are specified in the list
-        self.Intraday_Indicators = []
         self.day=-1
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
@@ -47,8 +45,8 @@ class UnleveredDMF(TradeAlgorithm):
                 if(product[0]=='f' and product[-1]!='1'):  # Dont trade futures contracts other than the first futures contract
                     weight[product] = 0
                 else:
-                    risk = self.daily_indicators['StdDev']._StdDev[product][0]  # 1 month Std
-                    trend = self.daily_indicators['Trend']._Trend[product][0]
+                    risk = self.daily_indicators['StdDev.'+product+'.21'].values[1]  # Index 0 contains the date and 1 contains the value of indicator
+                    trend = self.daily_indicators['Trend.'+product+'.21'].values[1]
                     weight[product] = trend/risk
                 sum_weights = sum_weights+abs(weight[product])
             for product in self.products: 
