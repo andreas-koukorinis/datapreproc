@@ -1,4 +1,4 @@
-import ConfigParser
+import os
 from importlib import import_module
 from BackTester.BackTester import BackTester
 
@@ -12,10 +12,8 @@ class OrderManager(object):
     instance=[]
 
     def __init__(self,products,config_file):
-        _config = ConfigParser.ConfigParser()
-        _config.readfp(open(config_file,'r'))
         self.products = products
-        self.positions_file = _config.get('Files', 'positions_file')
+        self.positions_file = 'positions_'+ os.path.splitext(config_file)[0].split('/')[-1] +'.txt'
         open(self.positions_file, 'w').close()  # Empty the positions_file,if not present create it
         self.all_orders=[]  # List of all orders placed till now
         self.count = 0	#Count of all orders placed till now

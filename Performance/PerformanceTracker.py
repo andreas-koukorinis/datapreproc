@@ -1,3 +1,4 @@
+import os
 import datetime
 import ConfigParser
 from numpy import *
@@ -29,8 +30,9 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
         self.date = get_dt_from_date(config.get('Dates', 'start_date')).date()  #The earliest date for which daily stats still need to be computed
-        self.positions_file = config.get('Files','positions_file')
-        self.returns_file = config.get('Files','returns_file')
+        self.positions_file = 'positions_' + os.path.splitext(config_file)[0].split('/')[-1] +'.txt'
+        self.returns_file = 'returns_' + os.path.splitext(config_file)[0].split('/')[-1] +'.txt'
+        open(self.returns_file,'w').close()
         self.initial_capital = config.getfloat('Parameters', 'initial_capital')
         self.cash = self.initial_capital
         self.products = products
