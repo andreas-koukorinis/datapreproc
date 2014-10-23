@@ -33,11 +33,11 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
     def __init__(self,products,config_file):
         _config = ConfigParser.ConfigParser() # TODO {design} Uneasy with the config file being passed directly. Shouldn't we pass a struct with values ?
         _config.readfp(open(config_file,'r'))
-        self.date = get_dt_from_date(config.get('Dates', 'start_date')).date()  #The earliest date for which daily stats still need to be computed
+        self.date = get_dt_from_date(_config.get('Dates', 'start_date')).date()  #The earliest date for which daily stats still need to be computed
         self.positions_file = 'positions_' + os.path.splitext(config_file)[0].split('/')[-1] +'.txt'
         self.returns_file = 'returns_' + os.path.splitext(config_file)[0].split('/')[-1] +'.txt'
         open(self.returns_file,'w').close()
-        self.initial_capital = config.getfloat('Parameters', 'initial_capital')
+        self.initial_capital = _config.getfloat('Parameters', 'initial_capital')
         self.cash = self.initial_capital
         self.products = products
         self.conversion_factor = conv_factor(products)
