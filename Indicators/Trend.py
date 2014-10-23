@@ -10,16 +10,16 @@ class Trend(DailyLogReturnsListener):
     instance=[]
 
     def __init__(self,products,config_file):
-        self._Trend={}                        
+        self._Trend={}
         for product in products:
             self._Trend[product] = empty(shape=(0))
-        config = ConfigParser.ConfigParser()          
-        config.readfp(open(config_file,'r')) 
+        config = ConfigParser.ConfigParser()
+        config.readfp(open(config_file,'r'))
         self.periods = config.get('Trend', 'periods').strip().split(",")
-        self.periods = [int(i) for i in self.periods] 
+        self.periods = [int(i) for i in self.periods]
         self.listeners=[]
         daily_log_ret = DailyLogReturns.get_unique_instance(products,config_file)
-        daily_log_ret.add_listener(self)              
+        daily_log_ret.add_listener(self)
 
     def add_listener(self,listener):
         self.listeners.append(listener)
@@ -30,7 +30,7 @@ class Trend(DailyLogReturnsListener):
             new_instance = Trend(products,config_file)
             Trend.instance.append(new_instance)
         return Trend.instance[0]
-    
+
     # Udate the trend indicators on each ENDOFDAY event
     def on_daily_log_returns_update(self,product,daily_log_returns):
         self._Trend[product] = empty(shape=(0))  # Way to initialize numpy array of 0 size

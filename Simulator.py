@@ -51,6 +51,6 @@ def __main__() :
     print '\nTotal Trading Days = %d'%( _dispatcher.trading_days )
 
     # Call the performance tracker to display the results and plot the graph of cumulative PnL
-    _tradelogic_instance.performance_tracker.showResults()
+    _tradelogic_instance.performance_tracker.show_results()
 
 __main__();
