@@ -15,8 +15,6 @@ class BookBuilder(DailyEventListener):
         self.product=product
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
-        self.maxentries_dailybook = config.getint('Parameters', 'maxentries_dailybook')
-        self.maxentries_intradaybook = config.getint('Parameters', 'maxentries_intradaybook')
         self.dailybook=[]  # List of tuples (datetime,price,is_last_trading_day)
         self.intradaybook=[]  # List of tuples (type,size,price) # Type = 0 -> bid, type = 1 -> ask
         self.dailybook_listeners = []
@@ -40,10 +38,7 @@ class BookBuilder(DailyEventListener):
 
     # Update the daily book with closing price and timestamp
     def on_daily_event_update(self,event):
-        # Should we store is_last_trading_day also?
-        self.dailybook.append((event['dt'],event['price'],event['is_last_trading_day']))  # Add entry to the book.If max entries are reached pop first entry
-        if(len(self.dailybook)>self.maxentries_dailybook):                               
-            self.dailybook.pop(0)                                                                                  
+        self.dailybook.append((event['dt'],event['price'],event['is_last_trading_day']))  # Add entry to the book.If max entries are reached pop first entry                                               
         for listener in self.dailybook_listeners:
             listener.on_dailybook_update(self.product,self.dailybook)  # Pass the full dailybook to its listeners
 
