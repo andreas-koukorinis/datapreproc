@@ -36,40 +36,45 @@ class DailyLogReturns(DailyBookListener):
 
     # Update the daily log returns on each ENDOFDAY event
     def on_dailybook_update(self,product,dailybook):
-        if((product[0]=='f' and product[-1]=='1') or product[0]!='f'): # For first futures contract and non-futures,update 0 index of dt 
+        updated=False
+        if(self.product[0]=='f' and self.product[-1]=='1'):
+            if(product[-1]=='1'): # For first futures contract update 0 index of dt 
+                self.dt[0]=dailybook[-1][0]
+                self.prices[1]=self.prices[0]
+                self.prices[0]=dailybook[-1][1]
+            else:
+                self.dt[1]=dailybook[-1][0] # For non-first(second) future contracts,update 1st index of dt
+                self.price2=dailybook[-1][1] 
+
+            if(len(dailybook)>1):
+                _yesterday_settlement = dailybook[-2][2]
+            else:
+                _yesterday_settlement = False
+
+            if(_yesterday_settlement and self.dt[0]==self.dt[1]):  
+            # If yesterday was the settlement day and price for both 1st and 2nd contract has been updated
+                product1 = product.rstrip('12')+'1'  # Example : product1 = fES1
+                product2 = product.rstrip('12')+'2'  # Example : product2 = fES2
+                p1 = self.prices[0]
+                p2 = self.price2
+                updated=True
+            elif(not _yesterday_settlement and product[-1]=='1'):
+                p1 = self.prices[0]
+                p2 = self.prices[1]
+                updated=True
+ 
+        elif(self.product==product):
             self.dt[0]=dailybook[-1][0]
             self.prices[1]=self.prices[0]
             self.prices[0]=dailybook[-1][1]
-        else:
-            self.dt[1]=dailybook[-1][0] # For non-first(second) future contracts,update 1st index of dt
-            self.price2=dailybook[-1][1] 
-
-        updated=False
-        if(len(dailybook)>1):
-            _yesterday_settlement = dailybook[-2][2]
-        else:
-            _yesterday_settlement = False
-
-        if(product[0]=='f' and _yesterday_settlement and self.dt[0]==self.dt[1]):  
-            # If its the futures contract,yesterday was the settlement day and price for both 1st and 2nd contract has been updated
-            product1 = product.rstrip('1')+'1'  # Example : product1 = fES1
-            product2 = product.rstrip('1')+'2'  # Example : product2 = fES2
-            p1 = self.prices[0]
-            p2 = self.price2
-            if(p2!=0):
-                logret = log(p1/p2)
-            else:
-                logret = 0  # If last two prices not available for a product,let logreturn = 0
-            updated=True
-        elif(product[0]!='f' or (product[0]=='f' and product[-1]=='1')):
-            # If its non-future contract or a first futures contract
             p1 = self.prices[0]
             p2 = self.prices[1]
+            updated=True
+
+        if(updated):
             if(p2!=0):
                 logret = log(p1/p2)
             else:
                 logret = 0  # If last two prices not available for a product,let logreturn = 0
-            updated=True
-        if(updated):
             self.values.append((self.dt[0].date(),logret))
             for listener in self.listeners: listener.on_indicator_update(self.identifier,self.values)
