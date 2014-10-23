@@ -36,7 +36,7 @@ class StdDev(IndicatorListener):
         n=daily_log_returns.shape[0]
         _start_index = max( 0, n - self.period )  # If sufficient lookback not available,use the available data only to compute indicator
         val = std(daily_log_returns[_start_index:n])
-        if(n < 2): 
+        if(n < 2 or val==0): 
             val=0.001  # Dummy value for insufficient lookback period(case where only 1 log return)
         self.values=(daily_log_returns_dt[-1][0],val)
         for listener in self.listeners: listener.on_indicator_update(self.identifier,self.values)

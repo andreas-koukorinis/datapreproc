@@ -7,6 +7,10 @@ To run LeveredRP with futures,credits and currency forwards:
 ------------------------------------------------------------
     python -W ignore Simulator.py test/config_AQRIX.cfg
 
+To Print Indicators:
+--------------------
+    python GenData.py test/config_PrintIndicators.cfg
+
 For correlation calculation
 ---------------------------------------
     The return series for the config being run will be stored in returns_TargetRiskRP.txt
