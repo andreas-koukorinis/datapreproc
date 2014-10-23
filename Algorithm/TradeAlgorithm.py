@@ -1,4 +1,5 @@
 import sys
+import ConfigParser
 from importlib import import_module
 from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import EventsListener
@@ -21,10 +22,18 @@ class TradeAlgorithm(EventsListener):
         self.conversion_factor=conv_factor(products)
         self.listeners=[]
 
-        for indicator in self.Daily_Indicators:                                                    #Initialize daily indicators
-            module = import_module('Indicators.'+indicator)
-            Indicatorclass = getattr(module,indicator)
-            self.daily_indicators[indicator] = Indicatorclass.get_unique_instance(products,config_file)                  #Instantiate indicator objects
+        config = ConfigParser.ConfigParser()
+        config.readfp(open(config_file,'r'))
+
+        # Read indicator list from config file
+        indicators = config.get( 'DailyIndicators', 'names' ).strip().split(" ")
+
+        #Instantiate daily indicator objects
+        for indicator in indicators:
+            indicator_name = indicator.strip().split('.')[0]                                                  
+            module = import_module('DailyIndicators.'+indicator_name)
+            Indicatorclass = getattr(module,indicator_name)
+            self.daily_indicators[indicator] = Indicatorclass.get_unique_instance(indicator,config_file) 
 
         # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects={}
