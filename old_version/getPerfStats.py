@@ -1,4 +1,4 @@
-from numpy import sum,exp,mean,std,sqrt,maximum
+from numpy import sum,exp,mean,std,sqrt,maximum,abs
 
 class PerformanceStats(object):
   """A collection of performance statistics of a strategy"""
@@ -21,12 +21,12 @@ def getPerfStats(_returns):
     _performance_stats.net_percent_returns = ( exp ( _performance_stats.net_log_returns ) -1 )*100
     _performance_stats.annualized_percent_returns = ( exp((252)*mean(_returns))-1)*100 #brought 252 inside the exp
     _performance_stats.annualized_percent_std = ( exp( sqrt(252.0)*std(_returns)) - 1 )*100
-    if _performance_stats.annualized_percent_std > 0 :
+    if _performance_stats.annualized_percent_std <= 0 :
         _performance_stats.sharpe_percent = 0
     else :
         _performance_stats.sharpe_percent = (_performance_stats.annualized_percent_returns/_performance_stats.annualized_percent_std)
     _performance_stats.cum_returns = _returns.cumsum()
-    _performance_stats.max_dd_log = max(maximum.accumulate(_performance_stats.cum_returns) - _performance_stats.cum_returns)
-    _performance_stats.max_dd_percent = (exp(_performance_stats.max_dd_log)-1)*100
+    _performance_stats.max_dd_log = -1.0*max(maximum.accumulate(_performance_stats.cum_returns) - _performance_stats.cum_returns)
+    _performance_stats.max_dd_percent = abs(exp(_performance_stats.max_dd_log)-1)*100
     _performance_stats.return_dd_ratio_percent = _performance_stats.annualized_percent_returns / _performance_stats.max_dd_percent
     return ( _performance_stats )
