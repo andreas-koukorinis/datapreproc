@@ -4,7 +4,7 @@ import pickle
 import ConfigParser
 from numpy import *
 from sklearn import linear_model
-from ProcessData import load_data_for_regression
+from Utils.ProcessData import load_data_for_regression
 
 def __main__():
 
@@ -13,15 +13,15 @@ def __main__():
     config.readfp(open(config_file,'r'))
 
     # Read config file
-    target = config.get( 'Data', 'target' )   
-    inputs = config.get( 'Data', 'inputs' ).strip().split(",")
+    target = config.get( 'Data', 'target' )  
+    inputs = config.get( 'Data', 'inputs' )
+
     train_percent = config.getfloat('Parameters','train_percent') # The percentage of data to be used for training
 
     # Y is a 1D numpy array of targets
     # X is a kD numpy array of inputs(k is the number of inputs per target)
-    (Y,X) = load_data_for_regression(target,inputs)
-    print Y
-    print X
+    (Y,X,Y_label,X_labels) = load_data_for_regression(target,inputs)
+
     # Split the data into training/testing sets
     n = X.shape[0]
     n1 = int(n*(train_percent/100.0))
@@ -33,16 +33,22 @@ def __main__():
     Y_test = Y[n1+1:n]
 
     # Create linear regression object
-    regr = linear_model.LinearRegression()
+    regr = linear_model.LinearRegression(fit_intercept=False)
 
     # Train the model using the training sets
     regr.fit(X_train,Y_train)
 
+    print 'Regression: %s ~ %s'%(Y_label,' + '.join(X_labels))
+
     # The coefficients
-    print 'Coefficients: %0.10f %0.10f\n'%(regr.coef_[0],regr.coef_[1])
+    s = 'Coefficients:  '
+    for i in xrange(0,len(regr.coef_)):
+        s = s + X_labels[i]+' : '+ '%0.10f '%regr.coef_[i]+ '  '
+    print s
+
     # The mean square error
-    print ("Residual sum of squares: %.2f" %mean((regr.predict(X_test) - Y_test) ** 2))
+    print ("MSE: %0.10f" %mean((regr.predict(X_test) - Y_test) ** 2))
     # Explained variance score: 1 is perfect prediction
-    print ('Variance score: %.2f' % regr.score(X_test, Y_test))
+    print ('Variance score: %0.10f' % regr.score(X_test, Y_test))
 
 __main__()
