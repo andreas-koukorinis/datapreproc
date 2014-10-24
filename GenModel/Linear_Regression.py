@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import sys
-import pickle
 import ConfigParser
 from numpy import *
 from sklearn import linear_model
@@ -35,7 +34,7 @@ def __main__():
     # Create linear regression object
     regr = linear_model.LinearRegression(fit_intercept=False)
 
-    # Train the model using the training sets
+    # Train the model using the training set
     regr.fit(X_train,Y_train)
 
     print 'Regression: %s ~ %s'%(Y_label,' + '.join(X_labels))
