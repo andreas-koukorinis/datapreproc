@@ -11,7 +11,7 @@ class PrintIndicators(IndicatorListener):
 
     def __init__(self,products,config_file):
         self.directory = 'Data/'
-        self.indicators_file = self.directory+'print_indicators_'+os.path.splitext(config_file)[0].split('/')[-1]+'.txt'
+        self.indicators_file = self.directory+'print_indicators_'+os.path.splitext(config_file)[0].split('/')[-1]+'.csv'
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
         self.start_date = get_dt_from_date(config.get( 'Dates', 'start_date' )).date()
@@ -35,7 +35,7 @@ class PrintIndicators(IndicatorListener):
             indicator_instance.add_listener(self)
             self.indicator_values[indicator]=0 # Default value for each indicator
 
-        s='Date\t' + '\t'.join(self.identifiers)
+        s='Date,' + ','.join(self.identifiers)
         self.write_data(self.indicators_file,s,'w') # Write the header to the file
 
     @staticmethod
@@ -48,7 +48,7 @@ class PrintIndicators(IndicatorListener):
     def print_indicators_readable_format(self):
         s = str(self.date) 
         for identifier in self.identifiers:
-            s = s + '\t' + str(self.indicator_values[identifier])
+            s = s + ',' + str(self.indicator_values[identifier])
         self.write_data(self.indicators_file,s,'a') # Write one line of indicator values for a particular date
 
     #Save list of Date,IndicatorValues to a file in 'directory' for direct loading later
@@ -66,6 +66,8 @@ class PrintIndicators(IndicatorListener):
         f.close()
 
     def on_indicator_update(self,identifier,indicator_value):        
+        if(type(indicator_value) is list):
+            indicator_value=indicator_value[-1] # Some indicators return full history of values as list,others return only the most recent value
         current_date = indicator_value[0]
         if(self.date < current_date):
             self.print_indicators_readable_format() 
