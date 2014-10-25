@@ -11,7 +11,7 @@ class OrderManager(object):
 
     instance=[]
 
-    def __init__(self,products,config_file):
+    def __init__(self, products, _startdate, _enddate, config_file):
         self.products = products
         self.positions_file = 'positions_'+ os.path.splitext(config_file)[0].split('/')[-1] +'.txt'
         open(self.positions_file, 'w').close()  # Empty the positions_file,if not present create it
@@ -20,12 +20,12 @@ class OrderManager(object):
         self.listeners=[]
         self.backtesters={}
         for product in self.products:
-            self.backtesters[product] = BackTester.get_unique_instance(product,config_file)
+            self.backtesters[product] = BackTester.get_unique_instance(product, _startdate, _enddate, config_file)
 
     @staticmethod
-    def get_unique_instance(products,config_file):
+    def get_unique_instance(products, _startdate, _enddate, config_file):
         if(len(OrderManager.instance)==0):
-            new_instance = OrderManager(products,config_file)
+            new_instance = OrderManager(products, _startdate, _enddate, config_file)
             OrderManager.instance.append(new_instance)
         return OrderManager.instance[0]
 

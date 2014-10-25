@@ -11,23 +11,23 @@ class BackTester(DailyBookListener):
 
     instances={}
 
-    def __init__(self,product,config_file):
+    def __init__(self, product, _startdate, _enddate, config_file):
         self.product=product
         self.pending_orders = []
         self.conversion_factor = conv_factor([product])[product]
         self.commission_manager = CommissionManager()
         self.listeners = []
         self.yesterday_settlement_day=False
-        bookbuilder = BookBuilder.get_unique_instance(product,config_file)
+        bookbuilder = BookBuilder.get_unique_instance( product, _startdate, _enddate, config_file)
         bookbuilder.add_dailybook_listener(self)
 
     def add_listener(self,listener):
         self.listeners.append(listener)
 
     @staticmethod
-    def get_unique_instance(product,positions_file):
+    def get_unique_instance(product, _startdate, _enddate, positions_file):
         if(product not in BackTester.instances.keys()):
-            new_instance = BackTester(product,positions_file)
+            new_instance = BackTester(product, _startdate, _enddate, positions_file)
             BackTester.instances[product]=new_instance
         return BackTester.instances[product]
 

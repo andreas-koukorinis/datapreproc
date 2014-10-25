@@ -10,23 +10,23 @@ class Trend(IndicatorListener):
 
     instances = {}
 
-    def __init__(self,identifier,config_file):
+    def __init__(self,identifier, _startdate, _enddate, config_file):
         self.values=() # Tuple of the form (dt,value)
         self.identifier=identifier
         params = identifier.strip().split('.')
         self.product= params[1]
         self.period = float(params[2])
         self.listeners=[]
-        daily_log_ret = DailyLogReturns.get_unique_instance('DailyLogReturns.'+self.product,config_file)
-        daily_log_ret.add_listener(self)  
+        daily_log_ret = DailyLogReturns.get_unique_instance('DailyLogReturns.'+self.product, _startdate, _enddate, config_file)
+        daily_log_ret.add_listener(self)
 
     def add_listener(self,listener):
         self.listeners.append(listener)
 
     @staticmethod
-    def get_unique_instance(identifier,config_file):
+    def get_unique_instance( identifier, _startdate, _enddate, config_file ):
         if(identifier not in Trend.instances.keys()):
-            new_instance = Trend(identifier,config_file)
+            new_instance = Trend ( identifier, _startdate, _enddate, config_file )
             Trend.instances[identifier]=new_instance
         return Trend.instances[identifier]
 
@@ -39,4 +39,3 @@ class Trend(IndicatorListener):
         if(n<1): val = 0
         self.values=(daily_log_returns_dt[-1][0],val)
         for listener in self.listeners: listener.on_indicator_update(self.identifier,self.values)
-        

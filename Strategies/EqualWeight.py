@@ -25,19 +25,19 @@ class EqualWeight(TradeAlgorithm):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
         if(all_eod): self.day += 1  # Track the current day number
 
-        current_portfolio = self.get_portfolio()  # Current_portfolio consists of : 'cash','num_shares','products'   
+        current_portfolio = self.get_portfolio()  # Current_portfolio consists of : 'cash','num_shares','products'
         positions_to_take = {}
 
         # Get the current price for each product
         current_price = {}
         for product in self.products:
             current_price[product] = self.bb_objects[product].dailybook[-1][1]
-           
+
         # If today is the rebalancing day,then use indicators to calculate new positions to take
         if(all_eod and self.day%self.rebalance_frequency==0):
 
             # Calculate current worth
-            current_worth = get_worth(current_price,self.conversion_factor,current_portfolio)  
+            current_worth = get_worth(current_price,self.conversion_factor,current_portfolio)
 
             # Calculate weights to assign to each product using indicators
             weight = {}
@@ -49,13 +49,13 @@ class EqualWeight(TradeAlgorithm):
                 else:
                     weight[product] = 1.0/num_trade_products
 
-            positions_to_take = get_positions_from_weights(weight,current_worth,current_price,self.conversion_factor)   
-           
+            positions_to_take = get_positions_from_weights(weight,current_worth,current_price,self.conversion_factor)
+
         # Otherwise positions_to_take is same as current portfolio composition
         else:
             for product in self.products:
                 positions_to_take[product] = current_portfolio['num_shares'][product]
- 
+
         # Adjust positions for settlement day
         positions_to_take = self.adjust_positions_for_settlements(current_price,positions_to_take)
 

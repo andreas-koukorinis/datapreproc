@@ -8,29 +8,29 @@ class DailyLogReturns(DailyBookListener):
 
     instances = {}
 
-    def __init__(self,identifier,config_file):
+    def __init__(self,identifier, _startdate, _enddate, config_file):
         self.listeners=[]
         self.values = []
         self.prices=[0,0]  # Remember last two prices for the product #prices[0] is latest
-        self.dt=[datetime.datetime.fromtimestamp(1),datetime.datetime.fromtimestamp(1)] # Last update dt for futures pair      
+        self.dt=[datetime.datetime.fromtimestamp(1),datetime.datetime.fromtimestamp(1)] # Last update dt for futures pair
         self.identifier=identifier
         params=identifier.strip().split('.')
         self.product=params[1]
-        bookbuilder = BookBuilder.get_unique_instance(self.product,config_file)
+        bookbuilder = BookBuilder.get_unique_instance ( self.product, _startdate, _enddate, config_file )
         bookbuilder.add_dailybook_listener(self)
         if(self.product[0]=='f' and self.product[-1]=='1'):
             self.price2=0 # Remember the last price for the 2nd future contract if this is the first futures contract
             product2 = self.product.rstrip('1')+'2'
-            bookbuilder = BookBuilder.get_unique_instance(product2,config_file)
+            bookbuilder = BookBuilder.get_unique_instance(product2, _startdate, _enddate, config_file)
             bookbuilder.add_dailybook_listener(self)
 
     def add_listener(self,listener):
         self.listeners.append(listener)
 
     @staticmethod
-    def get_unique_instance(identifier,config_file):
+    def get_unique_instance(identifier, _startdate, _enddate, config_file):
         if(identifier not in DailyLogReturns.instances.keys()):
-            new_instance = DailyLogReturns(identifier,config_file)
+            new_instance = DailyLogReturns ( identifier, _startdate, _enddate, config_file )
             DailyLogReturns.instances[identifier] = new_instance
         return DailyLogReturns.instances[identifier]
 
@@ -38,20 +38,20 @@ class DailyLogReturns(DailyBookListener):
     def on_dailybook_update(self,product,dailybook):
         updated=False
         if(self.product[0]=='f' and self.product[-1]=='1'):
-            if(product[-1]=='1'): # For first futures contract update 0 index of dt 
+            if(product[-1]=='1'): # For first futures contract update 0 index of dt
                 self.dt[0]=dailybook[-1][0]
                 self.prices[1]=self.prices[0]
                 self.prices[0]=dailybook[-1][1]
             else:
                 self.dt[1]=dailybook[-1][0] # For non-first(second) future contracts,update 1st index of dt
-                self.price2=dailybook[-1][1] 
+                self.price2=dailybook[-1][1]
 
             if(len(dailybook)>1):
                 _yesterday_settlement = dailybook[-2][2]
             else:
                 _yesterday_settlement = False
 
-            if(_yesterday_settlement and self.dt[0]==self.dt[1]):  
+            if(_yesterday_settlement and self.dt[0]==self.dt[1]):
             # If yesterday was the settlement day and price for both 1st and 2nd contract has been updated
                 product1 = product.rstrip('12')+'1'  # Example : product1 = fES1
                 product2 = product.rstrip('12')+'2'  # Example : product2 = fES2
@@ -62,7 +62,7 @@ class DailyLogReturns(DailyBookListener):
                 p1 = self.prices[0]
                 p2 = self.prices[1]
                 updated=True
- 
+
         elif(self.product==product):
             self.dt[0]=dailybook[-1][0]
             self.prices[1]=self.prices[0]

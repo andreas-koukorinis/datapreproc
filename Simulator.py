@@ -15,12 +15,18 @@ def __main__() :
     # Example        : python -W ignore Simulator.py config.txt
 
     if len ( sys.argv ) < 2 :
-        print "arguments <trading-startdate trading-enddate>"
+        print "config_file <trading-startdate trading-enddate>"
         sys.exit(0)
     # Get handle of config file
     config_file = sys.argv[1]
     config = ConfigParser.ConfigParser()
     config.readfp(open(config_file,'r'))
+    if ( len ( sys.argv ) >= 4 ) :
+        startdate = sys.argv[2]
+        enddate = sys.argv[3]
+    else :
+        startdate=config.get( 'Dates', 'start_date' )
+        enddate=config.get( 'Dates', 'end_date' )
 
     # Read product list from config file
     products = config.get( 'Products', 'symbols' ).strip().split(",")

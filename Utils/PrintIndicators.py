@@ -1,22 +1,24 @@
+import sys
 import ConfigParser
 import pickle
 import os
-from Utils.Regular import get_dt_from_date
 from importlib import import_module
+
+from Utils.Regular import get_dt_from_date
 from DailyIndicators.Indicator_Listeners import IndicatorListener
 
 class PrintIndicators(IndicatorListener):
 
     instance=[]
 
-    def __init__(self,products,config_file):
+    def __init__(self, products, _startdate, _enddate, _indicator_file, config_file):
         self.directory = 'Data/'
-        self.indicators_file = self.directory+'print_indicators_'+os.path.splitext(config_file)[0].split('/')[-1]+'.csv'
+        self.indicators_file = _indicator_file
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
-        self.start_date = get_dt_from_date(config.get( 'Dates', 'start_date' )).date()
-        self.end_date = get_dt_from_date(config.get( 'Dates', 'end_date' )).date()
-        self.date = self.start_date    
+        self.start_date = get_dt_from_date(_startdate).date()
+        self.end_date = get_dt_from_date(_enddate).date()
+        self.date = self.start_date
         self.products=products
         self.indicator_values={}
         if not os.path.exists(self.directory):
@@ -28,10 +30,10 @@ class PrintIndicators(IndicatorListener):
 
         #Instantiate daily indicator objects
         for indicator in indicators:
-            indicator_name = indicator.strip().split('.')[0]    
+            indicator_name = indicator.strip().split('.')[0]
             module = import_module('DailyIndicators.'+indicator_name)
             Indicatorclass = getattr(module,indicator_name)
-            indicator_instance = Indicatorclass.get_unique_instance(indicator,config_file) 
+            indicator_instance = Indicatorclass.get_unique_instance(indicator, _startdate, _enddate, config_file)
             indicator_instance.add_listener(self)
             self.indicator_values[indicator]=0 # Default value for each indicator
 
@@ -39,14 +41,14 @@ class PrintIndicators(IndicatorListener):
         self.write_data(self.indicators_file,s,'w') # Write the header to the file
 
     @staticmethod
-    def get_unique_instance(products,config_file):
+    def get_unique_instance(products, _startdate, _enddate, _indicator_file, config_file):
         if(len(PrintIndicators.instance)==0):
-            new_instance = PrintIndicators(products,config_file)
+            new_instance = PrintIndicators(products, _startdate, _enddate, _indicator_file, config_file)
             PrintIndicators.instance.append(new_instance)
         return PrintIndicators.instance[0]
 
     def print_indicators_readable_format(self):
-        s = str(self.date) 
+        s = str(self.date)
         for identifier in self.identifiers:
             s = s + ',' + str(self.indicator_values[identifier])
         self.write_data(self.indicators_file,s,'a') # Write one line of indicator values for a particular date
@@ -65,12 +67,12 @@ class PrintIndicators(IndicatorListener):
         f.write(data+'\n')
         f.close()
 
-    def on_indicator_update(self,identifier,indicator_value):        
+    def on_indicator_update(self,identifier,indicator_value):
         if(type(indicator_value) is list):
             indicator_value=indicator_value[-1] # Some indicators return full history of values as list,others return only the most recent value
         current_date = indicator_value[0]
         if(self.date < current_date):
-            self.print_indicators_readable_format() 
+            self.print_indicators_readable_format()
             #print_indicators_pickle_format()
-            self.date = current_date 
+            self.date = current_date
         self.indicator_values[identifier]=indicator_value[1]

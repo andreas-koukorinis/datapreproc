@@ -18,11 +18,11 @@ class Dispatcher (object):
 
     instance=[]
 
-    def __init__(self,products,config_file):
+    def __init__(self,products,_startdate,_enddate,config_file):
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
-        start_date = config.get('Dates','start_date')
-        end_date = config.get('Dates','end_date')
+        start_date = _startdate
+        end_date = _enddate
         self.start_dt = get_dt_from_date(start_date)  # Convert date to datetime object with time hardcoded as 23:59:59:999999
         self.end_dt = get_dt_from_date(end_date)
         self.end_dt_sim = self.end_dt + timedelta (days=10) #Since filled price depends on the next day,we need to run simluation till the trading day next to end_date
@@ -36,11 +36,11 @@ class Dispatcher (object):
         self.event_listeners = []  # These are the listeners which receive 1 daily event for their product.Here bookbuilders
         self.events_listeners = []  # These are the listeners which receive all the concurrent events at once.Here Strategy only
         self.end_of_day_listeners = []  # These are the listeners called on eand of each trading day.Here Performance Tracker
- 
+
     @staticmethod
-    def get_unique_instance(products,config_file):
+    def get_unique_instance(products,_startdate,_enddate,config_file):
         if(len(Dispatcher.instance)==0):
-            new_instance = Dispatcher(products,config_file)
+            new_instance = Dispatcher(products,_startdate,_enddate,config_file)
             Dispatcher.instance.append(new_instance)
         return Dispatcher.instance[0]
 
@@ -130,7 +130,7 @@ class Dispatcher (object):
                         _is_last_trading_day = False
                         _event = {'price': _data_item_price, 'product':_product, 'type':'ENDOFDAY', 'dt':_data_item_datetime, 'table':_table_name, 'is_last_trading_day':_is_last_trading_day}
                         heapq.heappush ( self.heap, ( _data_item_datetime, _event ) )
-                
+
             except MySQLdb.Error, e:
                 try:
                     print "MySQL Error [%d]: %s" % (e.args[0], e.args[1])

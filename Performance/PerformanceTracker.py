@@ -30,10 +30,10 @@ from BookBuilder.BookBuilder import BookBuilder
 '''
 class PerformanceTracker(BackTesterListener,EndOfDayListener):
 
-    def __init__(self,products,config_file):
+    def __init__(self, products, _startdate, _enddate, config_file):
         _config = ConfigParser.ConfigParser() # TODO {design} Uneasy with the config file being passed directly. Shouldn't we pass a struct with values ?
         _config.readfp(open(config_file,'r'))
-        self.date = get_dt_from_date(_config.get('Dates', 'start_date')).date()  #The earliest date for which daily stats still need to be computed
+        self.date = get_dt_from_date(_startdate).date()  #The earliest date for which daily stats still need to be computed
         self.positions_file = 'positions_' + os.path.splitext(config_file)[0].split('/')[-1] +'.txt'
         self.returns_file = 'returns_' + os.path.splitext(config_file)[0].split('/')[-1] +'.txt'
         open(self.returns_file,'w').close()
@@ -78,17 +78,17 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
         self.total_orders = 0
 
         # Listens to end of day combined event to be able to compute the market ovement based effect on PNL
-        dispatcher = Dispatcher.get_unique_instance(products,config_file)
+        dispatcher = Dispatcher.get_unique_instance(products, _startdate, _enddate, config_file)
         dispatcher.add_end_of_day_listener(self)
 
         # Currently listens to replies from backtester directly
         for product in products:
-            backtester = BackTester.get_unique_instance(product,config_file)
+            backtester = BackTester.get_unique_instance(product, _startdate, _enddate, config_file)
             backtester.add_listener(self)
 
         self.bb_objects={}
         for product in products:
-            self.bb_objects[product] = BookBuilder.get_unique_instance(product,config_file)
+            self.bb_objects[product] = BookBuilder.get_unique_instance(product, _startdate, _enddate, config_file)
 
     def on_order_update(self,filled_orders,current_date):
         for order in filled_orders:
@@ -231,7 +231,7 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
             _retval=mean(sorted_series[0:_index_of_worst_k_percent])
         return _retval
 
-    # TODO {sanchit} move plotting outside to seaprate utilities or charting modules.
+    # TODO {sanchit} move plotting outside to separate utilities or charting modules.
     # Print data in separate files to be amenable to easy plotting.
     # This will allow us to use more customized solutions.
     # We might want to write separate files for dailyPnL or daily_log_returns

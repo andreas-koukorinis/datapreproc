@@ -15,7 +15,7 @@ class TradeAlgorithm(EventsListener):
     Base class for strategy development
     User should inherit this class and override init and OnEventListener functions
     '''
-    def __init__(self,products,config_file):
+    def __init__(self, products, _startdate, _enddate, config_file):
         self.products=products
         self.init(config_file)
         self.daily_indicators={}
@@ -30,31 +30,31 @@ class TradeAlgorithm(EventsListener):
 
         #Instantiate daily indicator objects
         for indicator in indicators:
-            indicator_name = indicator.strip().split('.')[0]                                                  
+            indicator_name = indicator.strip().split('.')[0]
             module = import_module('DailyIndicators.'+indicator_name)
             Indicatorclass = getattr(module,indicator_name)
-            self.daily_indicators[indicator] = Indicatorclass.get_unique_instance(indicator,config_file) 
+            self.daily_indicators[indicator] = Indicatorclass.get_unique_instance(indicator, _startdate, _enddate, config_file)
 
         # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects={}
         for product in products:
-            self.bb_objects[product] = BookBuilder.get_unique_instance(product,config_file)
+            self.bb_objects[product] = BookBuilder.get_unique_instance ( product, _startdate, _enddate, config_file )
 
         # TradeAlgorithm will be notified once all indicators have been updated.
         # Currently it is implemented as an EventsListener
-        dispatcher = Dispatcher.get_unique_instance(products,config_file)
+        dispatcher = Dispatcher.get_unique_instance ( products, _startdate, _enddate, config_file )
         dispatcher.add_events_listener(self)
 
-        self.order_manager = OrderManager.get_unique_instance(products,config_file)
+        self.order_manager = OrderManager.get_unique_instance ( products, _startdate, _enddate, config_file )
 
         # Give strategy the access to the portfolio instance,
         # so that it can calculate its current worth and decide positions based on it.
-        self.portfolio = Portfolio(products,config_file)
+        self.portfolio = Portfolio ( products, config_file )
 
         # TODO { gchak } : we only want performance_tracker for the products we are trading and not all the ones we have data for.
         # we probably should align the performance_tracker object to one instance of the TradeLogic
         # Initialize performance tracker with list of products
-        self.performance_tracker = PerformanceTracker( products, config_file )
+        self.performance_tracker = PerformanceTracker( products, _startdate, _enddate, config_file )
 
     # User is expected to write the function
     def on_events_update(self,concurrent_events):
