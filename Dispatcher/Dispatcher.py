@@ -25,10 +25,14 @@ class Dispatcher (object):
         end_date = _enddate
         self.start_dt = get_dt_from_date(start_date)  # Convert date to datetime object with time hardcoded as 23:59:59:999999
         self.end_dt = get_dt_from_date(end_date)
-        self.end_dt_sim = self.end_dt + timedelta (days=10) #Since filled price depends on the next day,we need to run simluation till the trading day next to end_date
-                                                             #Assumption is that after the end_date there will be a trading day within the next 10 days
+        self.end_dt_sim = self.end_dt + timedelta (days=10)  # Since filled price depends on the next day,we need to run simluation till the trading day next to end_date
+                                                             # Assumption is that after the end_date there will be a trading day within the next 10 days
         self.trading_days=0
-        warmupdays = config.getint('Parameters','warmupdays')
+        if config.has_option('Parameters', 'warmupdays'):
+            warmupdays = config.getint('Parameters','warmupdays')
+        else:
+            warmupdays = 60  # Default value of warmupdays,in case not specified in config file
+
         self.sim_start_dt = self.start_dt + timedelta (days=-warmupdays)
         self.products = products
         self.heap = []	# Initialize the heap, heap will contain tuples of the form (timestamp,event)
