@@ -47,7 +47,8 @@ class UnleveredRP(TradeAlgorithm):
                 if(product[0]=='f' and product[-1]!='1'):  # Dont trade futures contracts other than the first futures contract
                     weight[product] = 0
                 else:
-                    risk = (self.daily_indicators['StdDev.'+product+'.21'].values[1]+self.daily_indicators['StdDev.'+product+'.252'].values[1])/2  # Average of 1 month and 2month Std
+                    #risk = (self.daily_indicators['StdDev.'+product+'.21'].values[1]+self.daily_indicators['StdDev.'+product+'.252'].values[1])/2  # Average of 1 month and 2month Std
+                    risk = self.daily_indicators['StdDev.'+product+'.252'].values[1]
                     weight[product] = 1/risk
                 sum_weights = sum_weights+abs(weight[product])
             for product in self.products:

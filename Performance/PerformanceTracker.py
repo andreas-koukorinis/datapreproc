@@ -36,6 +36,7 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
         self.date = get_dt_from_date(_startdate).date()  #The earliest date for which daily stats still need to be computed
         self.positions_file = 'positions_' + os.path.splitext(config_file)[0].split('/')[-1] +'.txt'
         self.returns_file = 'returns_' + os.path.splitext(config_file)[0].split('/')[-1] +'.txt'
+        self.pnl_graph_file = 'pnl_' + os.path.splitext(config_file)[0].split('/')[-1] +'.png'
         open(self.returns_file,'w').close()
         self.initial_capital = _config.getfloat('Parameters', 'initial_capital')
         self.cash = self.initial_capital
@@ -248,7 +249,7 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
         plt.xticks(range(len(dailyPnL)),dates)
         plt.xlabel('Date')
         plt.ylabel('Cumulative PnL')
-        plt.savefig('Cumulative_PnL_'+self.strategy_name.split('.')[0]+".png", bbox_inches='tight')
+        plt.savefig(self.pnl_graph_file, bbox_inches='tight')
 
     # non public function to save results to a file
     def _save_results(self):

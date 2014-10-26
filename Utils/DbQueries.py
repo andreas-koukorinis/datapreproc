@@ -36,7 +36,6 @@ def conv_factor(products):
         db_cursor.execute(query)
         data = db_cursor.fetchall()                                                                                      #should check if data exists or not
         (tick_factor_product,currency_product) = (float(data[0][0]),str(data[0][1]))
-
         query = "SELECT factor from currency_conversion WHERE currency='"+currency_product+"'"
         db_cursor.execute(query)
         currency_factor_product = float(db_cursor.fetchall()[0][0])                                                      #should check if data exists or not
