@@ -18,24 +18,24 @@ def __main__() :
         print "config_file <trading-startdate trading-enddate>"
         sys.exit(0)
     # Get handle of config file
-    config_file = sys.argv[1]
-    config = ConfigParser.ConfigParser()
-    config.readfp(open(config_file,'r'))
+    _config_file = sys.argv[1]
+    _config = ConfigParser.ConfigParser()
+    _config.readfp(open(_config_file,'r'))
     if ( len ( sys.argv ) >= 4 ) :
-        startdate = sys.argv[2]
-        enddate = sys.argv[3]
+        _start_date = sys.argv[2]
+        _end_date = sys.argv[3]
     else :
-        startdate=config.get( 'Dates', 'start_date' )
-        enddate=config.get( 'Dates', 'end_date' )
+        _start_date = _config.get( 'Dates', 'start_date' )
+        _end_date = _config.get( 'Dates', 'end_date' )
 
     # Read product list from config file
-    products = config.get( 'Products', 'symbols' ).strip().split(",")
+    _products = _config.get( 'Products', 'symbols' ).strip().split(",")
     # If there is fES1 ... make sure fES2 is also there, if not add it
 
     # Import the strategy class using 'Strategy'->'name' in config file
-    stratfile = config.get ( 'Strategy', 'name' )  # Remove .py from filename
-    module = import_module ( 'Strategies.' + stratfile )  # Import the module corresponding to the filename
-    TradeLogic = getattr ( module, stratfile )  # Get the strategy class from the imported module
+    _stratfile = _config.get ( 'Strategy', 'name' )  # Remove .py from filename
+    _module = import_module ( 'Strategies.' + _stratfile )  # Import the module corresponding to the filename
+    TradeLogic = getattr ( _module, _stratfile )  # Get the strategy class from the imported module
 
     # Initialize the strategy
     # Strategy is written by the user and it inherits from TradeAlgorithm,
@@ -45,10 +45,10 @@ def __main__() :
     #     line in the stratfile. This is used for optimization. But even without optimization, we probably
     #     don't foresee any other class creating a strategy instance. Hence this get_unique_instance will only
     #     be called once.
-    _tradelogic_instance = TradeLogic( products, config_file )
+    _tradelogic_instance = TradeLogic( _products, _start_date, _end_date, _config_file )
 
     # Initialize Dispatcher using products list
-    _dispatcher = Dispatcher.get_unique_instance( products, config_file )
+    _dispatcher = Dispatcher.get_unique_instance( _products, _start_date, _end_date, _config_file )
 
     # Run the dispatcher to start the backtesting process
     _dispatcher.run()
