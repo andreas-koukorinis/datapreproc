@@ -218,17 +218,18 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
             return array([]) #empty array
         return array([sum(series[i:i+period]) for i in xrange(0,n-period+1)]).astype(float)
 
-    def meanlowestkpercent(self,series,k):
+    def mean_lowest_k_percent(self,series,k):
         sorted_series = sort(series)
         n = sorted_series.shape[0]
         _retval=0
         if n <= 0 :
             _retval=0
-        _index_of_worst_k_percent = int((k/100.0)*n)
-        if _index_of_worst_k_percent <= 0:
-            _retval=sorted_series[0]
         else:
-            _retval=mean(sorted_series[0:_index_of_worst_k_percent])
+            _index_of_worst_k_percent = int((k/100.0)*n)
+            if _index_of_worst_k_percent <= 0:
+                _retval=sorted_series[0]
+            else:
+                _retval=mean(sorted_series[0:_index_of_worst_k_percent])
         return _retval
 
     # TODO {sanchit} move plotting outside to separate utilities or charting modules.
@@ -266,10 +267,10 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
         self._monthly_nominal_returns_percent = (exp(monthly_log_returns)-1)*100
         self._quarterly_nominal_returns_percent = (exp(quarterly_log_returns)-1)*100
         self._yearly_nominal_returns_percent = (exp(yearly_log_returns)-1)*100
-        self.dml = (exp(self.meanlowestkpercent(self.daily_log_returns,10))-1)*100.0
-        self.mml = (exp(self.meanlowestkpercent(monthly_log_returns,10))-1)*100.0
-        self._worst_10pc_quarterly_returns = (exp(self.meanlowestkpercent(quarterly_log_returns,10))-1)*100.0
-        self._worst_10pc_yearly_returns = (exp(self.meanlowestkpercent(yearly_log_returns,10))-1)*100.0
+        self.dml = (exp(self.mean_lowest_k_percent(self.daily_log_returns,10))-1)*100.0
+        self.mml = (exp(self.mean_lowest_k_percent(monthly_log_returns,10))-1)*100.0
+        self._worst_10pc_quarterly_returns = (exp(self.mean_lowest_k_percent(quarterly_log_returns,10))-1)*100.0
+        self._worst_10pc_yearly_returns = (exp(self.mean_lowest_k_percent(yearly_log_returns,10))-1)*100.0
         self._annualized_returns_percent = (exp(252.0*mean(self.daily_log_returns))-1)*100.0
         self.annualized_stddev_returns = (exp(sqrt(252.0)*std(self.daily_log_returns))-1)*100.0
         self.sharpe = self._annualized_returns_percent/self.annualized_stddev_returns

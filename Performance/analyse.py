@@ -15,11 +15,20 @@ def rollsum(series,period):
         return array([])                                                                             #empty array
     return array([sum(series[i:i+period]) for i in xrange(0,n-period+1)]).astype(float)
 
-def meanlowestkpercent(series,k):
+def mean_lowest_k_percent(series,k):
     sorted_series = sort(series)
     n = sorted_series.shape[0]
-    num = int((k/100.0)*n)
-    return mean(sorted_series[0:num])
+    _retval=0
+    if n <= 0 :
+        _retval=0
+    else:
+        _index_of_worst_k_percent = int((k/100.0)*n)
+        if _index_of_worst_k_percent <= 0:
+            _retval=sorted_series[0]
+        else:
+            _retval=mean(sorted_series[0:_index_of_worst_k_percent])
+    return _retval
+
 
 def PlotPnLVersusDates(dates,log_returns,name):
     num = int(len(dates)/5.0)
@@ -49,10 +58,10 @@ def analyse():
         _monthly_nominal_returns_percent = (exp(monthly_log_returns)-1)*100.0
         _quarterly_nominal_returns_percent = (exp(quarterly_log_returns)-1)*100.0
         _yearly_nominal_returns_percent = (exp(yearly_log_returns)-1)*100.0
-        dml = (exp(meanlowestkpercent(daily_log_returns,10))-1)*100.0
-        mml = (exp(meanlowestkpercent(monthly_log_returns,10))-1)*100.0
-        qml = (exp(meanlowestkpercent(quarterly_log_returns,10))-1)*100.0
-        yml = (exp(meanlowestkpercent(yearly_log_returns,10))-1)*100.0
+        dml = (exp(mean_lowest_k_percent(daily_log_returns,10))-1)*100.0
+        mml = (exp(mean_lowest_k_percent(monthly_log_returns,10))-1)*100.0
+        qml = (exp(mean_lowest_k_percent(quarterly_log_returns,10))-1)*100.0
+        yml = (exp(mean_lowest_k_percent(yearly_log_returns,10))-1)*100.0
         _annualized_returns_percent = (exp(252.0*mean(daily_log_returns))-1)*100.0
         annualized_stddev_returns = (exp(sqrt(252.0)*std(daily_log_returns))-1)*100.0
         sharpe = _annualized_returns_percent/annualized_stddev_returns
