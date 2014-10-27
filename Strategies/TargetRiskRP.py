@@ -9,6 +9,7 @@ class TargetRiskRP(TradeAlgorithm):
 
     def init(self,config_file):
         self.day=-1
+        open('debug.txt', "w").close()
         config = ConfigParser.ConfigParser()
         config.readfp(open(config_file,'r'))
         self.target_risk = config.getfloat('Strategy', 'target_risk')
@@ -50,11 +51,14 @@ class TargetRiskRP(TradeAlgorithm):
                     weight[product] = 0
                 else:
                     target_risk_per_product = self.target_risk/num_trade_products
-                    risk = self.daily_indicators['StdDev.'+product+'.21'].values[1] # Index 0 contains the date and 1 contains the value of indicator                                 
+                    risk = self.daily_indicators['StdDev.'+product+'.42'].values[1] # Index 0 contains the date and 1 contains the value of indicator                               
+                    #risk = (self.daily_indicators['StdDev.'+product+'.21'].values[1] + self.daily_indicators['StdDev.'+product+'.42'].values[1])/2
                     annualized_risk_of_product = (exp(sqrt(252.0)*risk)-1)*100.0
                     weight[product] = target_risk_per_product/annualized_risk_of_product
                     text_file.write('Product: %s Annualized_risk_of_product:%0.10f Weight: %0.10f\n'%(product,annualized_risk_of_product,weight[product]))
-                    sum_wts=sum_wts+weight[product]        
+                    sum_wts=sum_wts+abs(weight[product])      
+            text_file.write('LEVERAGE: %0.10f\n'%(sum_wts))
+            for product in self.products: text_file.write('Product: %s Exposure: %0.10f%%\n'%(product,weight[product]*100.0/sum_wts))  
             text_file.close()
             #print 'WEIGHTS:'
             #print weight

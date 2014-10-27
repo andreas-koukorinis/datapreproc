@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import os
 import sys
 import ast
 import datetime
@@ -22,6 +22,7 @@ def __main__() :
     config_file = sys.argv[1]
     config = ConfigParser.ConfigParser()
     config.readfp(open(config_file,'r'))
+    directory = 'Data/'
     if ( len ( sys.argv ) >= 4 ) :
         _startdate = sys.argv[2]
         _enddate = sys.argv[3]
@@ -32,7 +33,7 @@ def __main__() :
     if ( len ( sys.argv ) >= 5 ) :
         _indicator_file = sys.argv[4]
     else :
-        _indicator_file = self.directory+'print_indicators_'+os.path.splitext(config_file)[0].split('/')[-1]+'.csv'
+        _indicator_file = directory+'print_indicators_'+os.path.splitext(config_file)[0].split('/')[-1]+'.csv'
 
     # Read product list from config file
     products = config.get( 'Products', 'symbols' ).strip().split(",")
