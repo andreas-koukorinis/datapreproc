@@ -1,6 +1,5 @@
 import os
 import datetime
-import ConfigParser
 from numpy import *
 import scipy.stats as ss
 import datetime
@@ -28,9 +27,9 @@ from BookBuilder.BookBuilder import BookBuilder
  It outputs the list of [dates,dailyreturns] to returns_file for later analysis
  It outputs the portfolio snapshots and orders in the positions_file for debugging
 '''
-class PerformanceTracker(BackTesterListener,EndOfDayListener):
+class PerformanceTracker( BackTesterListener, EndOfDayListener ):
 
-    def __init__(self, products, _startdate, _enddate, config_file):
+    def __init__( self, products, _startdate, _enddate, _config ):
         _config = ConfigParser.ConfigParser() # TODO {design} Uneasy with the config file being passed directly. Shouldn't we pass a struct with values ?
         _config.readfp(open(config_file,'r'))
         self.date = get_dt_from_date(_startdate).date()  #The earliest date for which daily stats still need to be computed
@@ -38,17 +37,9 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
         self.returns_file = 'returns_' + os.path.splitext(config_file)[0].split('/')[-1] +'.txt'
         self.pnl_graph_file = 'pnl_' + os.path.splitext(config_file)[0].split('/')[-1] +'.png'
         open(self.returns_file,'w').close()
-        self.initial_capital = _config.getfloat('Parameters', 'initial_capital')
-        self.cash = self.initial_capital
         self.products = products
         self.conversion_factor = conv_factor(products)
-        self.strategy_name = _config.get('Strategy','name')
-        self.num_shares = {}
-        for product in products:
-            self.num_shares[product] = 0
-        self.num_shares_traded = {}
-        for product in products:
-            self.num_shares_traded[product] = 0
+        self.num_shares_traded = dict([(product,0) for product in self.products])
         self.dates = []
         self.PnL = 0
         self.net_returns = 0
@@ -79,70 +70,52 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
         self.total_orders = 0
 
         # Listens to end of day combined event to be able to compute the market ovement based effect on PNL
-        dispatcher = Dispatcher.get_unique_instance(products, _startdate, _enddate, config_file)
-        dispatcher.add_end_of_day_listener(self)
-
-        # Currently listens to replies from backtester directly
-        for product in products:
-            backtester = BackTester.get_unique_instance(product, _startdate, _enddate, config_file)
-            backtester.add_listener(self)
+        dispatcher = Dispatcher.get_unique_instance( products, _startdate, _enddate, config_file )
+        dispatcher.add_end_of_day_listener( self )
 
         self.bb_objects={}
         for product in products:
-            self.bb_objects[product] = BookBuilder.get_unique_instance(product, _startdate, _enddate, config_file)
+            backtester = BackTester.get_unique_instance( product, _startdate, _enddate, config_file ) 
+            backtester.add_listener( self ) # Listen to Backtester for filled orders
+            self.bb_objects[product] = BookBuilder.get_unique_instance( product, _startdate, _enddate, config_file )
 
-    def on_order_update(self,filled_orders,current_date):
+    def on_order_update( self, filled_orders, current_date ):
         for order in filled_orders:
-            # TODO {gchak} change the framework for futures. We have currently assumed futures to be fully cash settled I believe.
-            # i.e. We have to pay the full notional valu in cash
-            self.cash = self.cash - order['value'] - order['cost']
-
-            # TODO {gchak} Coming from a C++ world, I can't help but wonder about the time complexity of order['amount'] versus order.amount
-            self.num_shares[order['product']] = self.num_shares[order['product']] + order['amount']
             self.num_shares_traded[order['product']] = self.num_shares_traded[order['product']] + abs(order['amount'])
             self.trading_cost = self.trading_cost + order['cost']
-            self.total_orders = self.total_orders+1
-        self.print_filled_orders(filled_orders)
-
-    # TOASK {gchak} This function is not being called anywhere. So maybe this question isn't relevant any more, but I was wondering if we need this ?
-    # All we need to do after settlement day is to consider the impact of settlement of contratcs that we held to settlement.
-    def after_settlement_day(self,product):
-        p1 = product.rstrip('12')+'1'
-        p2 = product.rstrip('12')+'2'
-        if(self.num_shares[p1]==0 and self.num_shares[p2]!=0):
-            self.num_shares[p1] = self.num_shares[p2]
-            self.num_shares[p2] = 0
+            self.total_orders = self.total_orders + 1
+        self.print_filled_orders( filled_orders )
 
     # Called by Dispatcher
-    def on_end_of_day(self,date):
-        self.compute_daily_stats(date)
-        self.print_snapshot(date)
+    def on_end_of_day( self, date ):
+        self.compute_daily_stats( date )
+        self.print_snapshot( date )
 
     #Find the latest price prior to 'date'
-    def find_most_recent_price(self,book,date):
-        if(len(book)<1):
+    def find_most_recent_price( self, book, date ):
+        if len(book) < 1 :
             sys.exit('ERROR: warmupdays not sufficient')
-        elif(book[-1][0].date()<=date):
+        elif book[-1][0].date() <= date :
             return book[-1][1]
         else:
-            return self.find_most_recent_price(book[:-1],date)
+            return self.find_most_recent_price( book[:-1], date )
 
     #Find the latest price prior to 'date' for futures product
-    def find_most_recent_price_future(self,book1,book2,date):
-        if(len(book1)<1):
+    def find_most_recent_price_future( self, book1, book2, date ):
+        if len(book1) < 1 :
             sys.exit('ERROR: warmupdays not sufficient')
-        elif(book1[-1][0].date()<=date and book1[-1][2]): #If the day was settlement day,then use second futures contract price
+        elif book1[-1][0].date() <= date and book1[-1][2] : #If the day was settlement day,then use second futures contract price
             return book2[-1][1]
-        elif(book1[-1][0].date()<=date and not book1[-1][2]): #If the day was not settlement day,then use first futures contract price
+        elif book1[-1][0].date() <= date and not book1[-1][2] : #If the day was not settlement day,then use first futures contract price
             return book1[-1][1]
         else:
-            return self.find_most_recent_price_future(book1[:-1],book2[:-1],date)
+            return self.find_most_recent_price_future( book1[:-1], book2[:-1], date )
 
     # Computes the portfolio value at ENDOFDAY on 'date'
     def get_portfolio_value(self,date):
-        netValue = self.cash
+        netValue = self.portfolio.cash
         for product in self.products:
-            if(self.num_shares[product]!=0):
+            if(self.portfolio.num_shares[product]!=0):
                 if(product[0]=='f'):
                     product1 = product
                     product2 = product.rstrip('1')+'2'
@@ -152,7 +125,7 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
                 else:
                     book = self.bb_objects[product].dailybook
                     current_price = self.find_most_recent_price(book,date)
-                netValue = netValue + current_price*self.num_shares[product]*self.conversion_factor[product]
+                netValue = netValue + current_price*self.portfolio.num_shares[product]*self.conversion_factor[product]
         return netValue
 
     def print_prices(self,date):
@@ -203,9 +176,9 @@ class PerformanceTracker(BackTesterListener,EndOfDayListener):
     def print_snapshot(self,date):
         text_file = open(self.positions_file, "a")
         if(self.PnLvector.shape[0]>0):
-            s = ("\nPortfolio snapshot at StartOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f PnL for last trading day:%f \n\n" % (date,self.cash,str(self.num_shares),self.value[-1],self.PnLvector[-1]))
+            s = ("\nPortfolio snapshot at StartOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f PnL for last trading day:%f \n\n" % (date,self.portfolio.cash,str(self.portfolio.num_shares),self.value[-1],self.PnLvector[-1]))
         else:
-            s = ("\nPortfolio snapshot at StartOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f\n\n" % (date,self.cash,str(self.num_shares),self.value[-1]))
+            s = ("\nPortfolio snapshot at StartOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f\n\n" % (date,self.portfolio.cash,str(self.portfolio.num_shares),self.value[-1]))
         text_file.write(s)
         text_file.close()
 

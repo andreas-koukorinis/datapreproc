@@ -1,7 +1,6 @@
 import sys
 from datetime import datetime,timedelta
 import heapq
-import ConfigParser
 import MySQLdb
 from Utils.DbQueries import db_connect,db_close,check_settlement_day
 from Utils.Regular import get_dt_from_date,check_eod
@@ -18,9 +17,7 @@ class Dispatcher (object):
 
     instance=[]
 
-    def __init__(self,products,_startdate,_enddate,config_file):
-        config = ConfigParser.ConfigParser()
-        config.readfp(open(config_file,'r'))
+    def __init__( self, products, _startdate, _enddate, _config ):
         start_date = _startdate
         end_date = _enddate
         self.start_dt = get_dt_from_date(start_date)  # Convert date to datetime object with time hardcoded as 23:59:59:999999
@@ -28,8 +25,8 @@ class Dispatcher (object):
         self.end_dt_sim = self.end_dt + timedelta (days=10)  # Since filled price depends on the next day,we need to run simluation till the trading day next to end_date
                                                              # Assumption is that after the end_date there will be a trading day within the next 10 days
         self.trading_days=0
-        if config.has_option('Parameters', 'warmupdays'):
-            warmupdays = config.getint('Parameters','warmupdays')
+        if _config.has_option('Parameters', 'warmupdays'):
+            warmupdays = _config.getint('Parameters','warmupdays')
         else:
             warmupdays = 60  # Default value of warmupdays,in case not specified in config file
 
@@ -42,20 +39,20 @@ class Dispatcher (object):
         self.end_of_day_listeners = []  # These are the listeners called on eand of each trading day.Here Performance Tracker
 
     @staticmethod
-    def get_unique_instance(products,_startdate,_enddate,config_file):
-        if(len(Dispatcher.instance)==0):
-            new_instance = Dispatcher(products,_startdate,_enddate,config_file)
-            Dispatcher.instance.append(new_instance)
+    def get_unique_instance( products, _startdate, _enddate, _config ):
+        if len( Dispatcher.instance ) == 0 :
+            new_instance = Dispatcher( products, _startdate, _enddate, _config )
+            Dispatcher.instance.append( new_instance )
         return Dispatcher.instance[0]
 
-    def add_event_listener(self,listener,product):  # For Bookbuilders
-        self.event_listeners[product].append(listener)
+    def add_event_listener( self, listener, product ):  # For Bookbuilders
+        self.event_listeners[product].append( listener )
 
-    def add_events_listener(self,listener):  # For strategy
-        self.events_listeners.append(listener)
+    def add_events_listener( self, listener ):  # For strategy
+        self.events_listeners.append( listener )
 
-    def add_end_of_day_listener(self,listener):
-        self.end_of_day_listeners.append(listener)
+    def add_end_of_day_listener( self, listener ): # For Performance Tracker
+        self.end_of_day_listeners.append( listener )
 
     # Main function which loops over the events and makes appropriate calls
     # ASSUMPTION:All ENDOFDAY events have same time

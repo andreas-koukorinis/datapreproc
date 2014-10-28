@@ -1,27 +1,20 @@
 #!/usr/bin/env python
 
 import sys
-import ast
-import datetime
 from importlib import import_module
 import ConfigParser
-from OrderManager.OrderManager import OrderManager
 from Dispatcher.Dispatcher import Dispatcher
-from BackTester.BackTester import BackTester
-from BookBuilder.BookBuilder import BookBuilder
+from Utils.Regular import get_all_products
 
 def __main__() :
-    # Command to run : python -W ignore Simulator.py config_file
-    # Example        : python -W ignore Simulator.py config.txt
-
     if len ( sys.argv ) < 2 :
         print "config_file <trading-startdate trading-enddate>"
         sys.exit(0)
     # Get handle of config file
     _config_file = sys.argv[1]
     _config = ConfigParser.ConfigParser()
-    _config.readfp(open(_config_file,'r'))
-    if ( len ( sys.argv ) >= 4 ) :
+    _config.readfp( open( _config_file, 'r' ) )
+    if len ( sys.argv ) >= 4 :
         _start_date = sys.argv[2]
         _end_date = sys.argv[3]
     else :
@@ -29,26 +22,21 @@ def __main__() :
         _end_date = _config.get( 'Dates', 'end_date' )
 
     # Read product list from config file
-    _products = _config.get( 'Products', 'symbols' ).strip().split(",")
-    # If there is fES1 ... make sure fES2 is also there, if not add it
+    _trade_products = _config.get( 'Products', 'trade_products' ).strip().split(",")
+
+    _all_products = get_all_products( _config )
 
     # Import the strategy class using 'Strategy'->'name' in config file
     _stratfile = _config.get ( 'Strategy', 'name' )  # Remove .py from filename
-    _module = import_module ( 'Strategies.' + _stratfile )  # Import the module corresponding to the filename
-    TradeLogic = getattr ( _module, _stratfile )  # Get the strategy class from the imported module
+    TradeLogic = getattr ( import_module ( 'Strategies.' + _stratfile ) , _stratfile )  # Get the strategy class from the imported module
 
     # Initialize the strategy
     # Strategy is written by the user and it inherits from TradeAlgorithm,
     # TradeLogic here is the strategy class name converted to variable.Eg: UnleveredRP
-    # Doubt { gchak } : I think this is one class where we don't need get_unique_instance. For instance in
-    #     DVC::basetrade we have a for-loop over the stratfile that creates a strategy instance for each
-    #     line in the stratfile. This is used for optimization. But even without optimization, we probably
-    #     don't foresee any other class creating a strategy instance. Hence this get_unique_instance will only
-    #     be called once.
-    _tradelogic_instance = TradeLogic( _products, _start_date, _end_date, _config_file )
+    _tradelogic_instance = TradeLogic( _trade_products, _all_products, _start_date, _end_date, _config )
 
     # Initialize Dispatcher using products list
-    _dispatcher = Dispatcher.get_unique_instance( _products, _start_date, _end_date, _config_file )
+    _dispatcher = Dispatcher.get_unique_instance( _all_products, _start_date, _end_date, _config )
 
     # Run the dispatcher to start the backtesting process
     _dispatcher.run()
