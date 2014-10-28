@@ -18,7 +18,7 @@ def get_all_products( _config ):
 def get_real_traded_products( _traded_products ):
     _real_traded_products = []
     for product in _traded_products:
-        if product[0] == 'f' and product[-1] not in range(0,10):
+        if is_future_entity( product ):
             _real_traded_products.extend([product+'1',product+'2']) 
         else:
             _real_traded_products.append(product)
@@ -47,26 +47,6 @@ def check_eod(events):
         if(event['type']!='ENDOFDAY'): ret = False
     return ret
 
-# if there is fES1 ... make sure fES2 is also there, if not add it
-def add_complementary_future_pair(products):
-    add_products=[]
-    for product in products:
-        if(product[0]!='f'): continue #Only add pair for future contracts
-        sym = product.rstrip('0123456789') #Get the underlying symbol EG: fES for fES1
-        if(sym!=product):
-            num = int(next(re.finditer(r'\d+$', product)).group(0)) #num is the number at the end of a symbol.EG:1 for fES1
-            pair = sym + str(num+1) # pair : fES2 for fES1
-            add_products.append(pair) #append to a separate list to avoid infinite loop
-    return list(set(products) | set(add_products)) #Take union of two lists and return
-
-# Return the number of products in the product list counting only once for a future symbol.EG: ES1,ES2 counted as 1            
-def get_num_trade_products(products):
-    symbols=[]
-    for product in products:
-        if(product[0]=='f'):
-            symbols.append(product.lstrip('f').rstrip('0123456789'))    
-        else: 
-            symbols.append(product)
-    return float(len(list(set(symbols)))) # Remove duplicates from list 'symbols' and return its length
-
-print get_all_products(sys.argv[1])
+# Return true if product is a future entity like 'fES'
+def is_future_entity( product ):
+    return product[0] == 'f' and product[-1] not in range(0,10)

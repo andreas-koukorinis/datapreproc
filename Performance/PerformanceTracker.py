@@ -29,13 +29,11 @@ from BookBuilder.BookBuilder import BookBuilder
 '''
 class PerformanceTracker( BackTesterListener, EndOfDayListener ):
 
-    def __init__( self, products, _startdate, _enddate, _config ):
-        _config = ConfigParser.ConfigParser() # TODO {design} Uneasy with the config file being passed directly. Shouldn't we pass a struct with values ?
-        _config.readfp(open(config_file,'r'))
+    def __init__( self, products, _startdate, _enddate, _config, _log_filename ):
         self.date = get_dt_from_date(_startdate).date()  #The earliest date for which daily stats still need to be computed
-        self.positions_file = 'positions_' + os.path.splitext(config_file)[0].split('/')[-1] +'.txt'
-        self.returns_file = 'returns_' + os.path.splitext(config_file)[0].split('/')[-1] +'.txt'
-        self.pnl_graph_file = 'pnl_' + os.path.splitext(config_file)[0].split('/')[-1] +'.png'
+        self.positions_file = 'positions_' + _log_filename  +'.txt'
+        self.returns_file = 'returns_' + _log_filename +'.txt'
+        self.pnl_graph_file = 'pnl_' + _log_filename +'.png'
         open(self.returns_file,'w').close()
         self.products = products
         self.conversion_factor = conv_factor(products)
@@ -70,14 +68,14 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
         self.total_orders = 0
 
         # Listens to end of day combined event to be able to compute the market ovement based effect on PNL
-        dispatcher = Dispatcher.get_unique_instance( products, _startdate, _enddate, config_file )
+        dispatcher = Dispatcher.get_unique_instance( products, _startdate, _enddate, _config )
         dispatcher.add_end_of_day_listener( self )
 
         self.bb_objects={}
         for product in products:
-            backtester = BackTester.get_unique_instance( product, _startdate, _enddate, config_file ) 
+            backtester = BackTester.get_unique_instance( product, _startdate, _enddate, _config ) 
             backtester.add_listener( self ) # Listen to Backtester for filled orders
-            self.bb_objects[product] = BookBuilder.get_unique_instance( product, _startdate, _enddate, config_file )
+            self.bb_objects[product] = BookBuilder.get_unique_instance( product, _startdate, _enddate, _config )
 
     def on_order_update( self, filled_orders, current_date ):
         for order in filled_orders:

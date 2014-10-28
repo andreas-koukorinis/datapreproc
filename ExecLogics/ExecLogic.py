@@ -1,5 +1,6 @@
 from Utils.Calculate import get_current_prices,get_worth
 from Utils.DbQueries import conv_factor
+from Utils.Regular import is_future_entity
 
 class ExecLogic():
     def __init__( self, trade_products, all_products, order_manager, portfolio, bb_objects ):
@@ -21,7 +22,7 @@ class ExecLogic():
     def get_positions_from_weights( self, weights, current_worth, current_prices ):
         positions_to_take = dict( [ ( product, [] ) for product in self.all_products ] )
         for product in weights.keys():
-            if product[0] == 'f' and product[-1] not in range(0,9): #If it is a futures entity like fES
+            if is_future_entity( product ): #If it is a futures entity like fES
                     
             else:
                 position = ( weights[symbol] * current_worth )/( current_prices[product] * self.conversion_factor[product] )

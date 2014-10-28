@@ -4,38 +4,38 @@ from BookBuilder.BookBuilder_Listeners import DailyBookListener
 from BookBuilder.BookBuilder import BookBuilder
 
 # Track the daily log returns for the product
-class DailyLogReturns(DailyBookListener):
+class DailyLogReturns( DailyBookListener ):
 
     instances = {}
 
-    def __init__(self,identifier, _startdate, _enddate, config_file):
-        self.listeners=[]
+    def __init__( self, identifier, _startdate, _enddate, _config ):
+        self.listeners = []
         self.values = []
-        self.prices=[0,0]  # Remember last two prices for the product #prices[0] is latest
-        self.dt=[datetime.datetime.fromtimestamp(1),datetime.datetime.fromtimestamp(1)] # Last update dt for futures pair
-        self.identifier=identifier
-        params=identifier.strip().split('.')
-        self.product=params[1]
-        bookbuilder = BookBuilder.get_unique_instance ( self.product, _startdate, _enddate, config_file )
+        self.prices = [0,0]  # Remember last two prices for the product #prices[0] is latest
+        self.dt = [ datetime.datetime.fromtimestamp(1),datetime.datetime.fromtimestamp(1) ] # Last update dt for futures pair
+        self.identifier = identifier
+        params = identifier.strip().split('.')
+        self.product = params[1]
+        bookbuilder = BookBuilder.get_unique_instance ( self.product, _startdate, _enddate, _config )
         bookbuilder.add_dailybook_listener(self)
-        if(self.product[0]=='f' and self.product[-1]=='1'):
-            self.price2=0 # Remember the last price for the 2nd future contract if this is the first futures contract
+        if self.product[0] == 'f' and self.product[-1] == '1' :
+            self.price2 = 0 # Remember the last price for the 2nd future contract if this is the first futures contract
             product2 = self.product.rstrip('1')+'2'
-            bookbuilder = BookBuilder.get_unique_instance(product2, _startdate, _enddate, config_file)
-            bookbuilder.add_dailybook_listener(self)
+            bookbuilder = BookBuilder.get_unique_instance(product2, _startdate, _enddate, _config )
+            bookbuilder.add_dailybook_listener( self )
 
-    def add_listener(self,listener):
-        self.listeners.append(listener)
+    def add_listener( self, listener ):
+        self.listeners.append( listener )
 
     @staticmethod
-    def get_unique_instance(identifier, _startdate, _enddate, config_file):
-        if(identifier not in DailyLogReturns.instances.keys()):
-            new_instance = DailyLogReturns ( identifier, _startdate, _enddate, config_file )
+    def get_unique_instance( identifier, _startdate, _enddate, _config ):
+        if identifier not in DailyLogReturns.instances.keys() :
+            new_instance = DailyLogReturns ( identifier, _startdate, _enddate, _config )
             DailyLogReturns.instances[identifier] = new_instance
         return DailyLogReturns.instances[identifier]
 
     # Update the daily log returns on each ENDOFDAY event
-    def on_dailybook_update(self,product,dailybook):
+    def on_dailybook_update( self, product, dailybook ):
         updated=False
         if(self.product[0]=='f' and self.product[-1]=='1'):
             if(product[-1]=='1'): # For first futures contract update 0 index of dt

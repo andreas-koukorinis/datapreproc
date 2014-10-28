@@ -33,7 +33,7 @@ def __main__() :
     # Initialize the strategy
     # Strategy is written by the user and it inherits from TradeAlgorithm,
     # TradeLogic here is the strategy class name converted to variable.Eg: UnleveredRP
-    _tradelogic_instance = TradeLogic( _trade_products, _all_products, _start_date, _end_date, _config )
+    _tradelogic_instance = TradeLogic( _trade_products, _all_products, _start_date, _end_date, _config , os.path.splitext(_config_file)[0].split('/')[-1] ) # TODO Should take logfile as terminal arg
 
     # Initialize Dispatcher using products list
     _dispatcher = Dispatcher.get_unique_instance( _all_products, _start_date, _end_date, _config )

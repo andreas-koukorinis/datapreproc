@@ -14,7 +14,7 @@ class TradeAlgorithm( EventsListener ):
     Base class for strategy development
     User should inherit this class and override init and OnEventListener functions
     '''
-    def __init__( self, _trade_products, _all_products, _startdate, _enddate, _config ):
+    def __init__( self, _trade_products, _all_products, _startdate, _enddate, _config, _log_filename):
         self.products = _trade_products
         self.all_products = _all_products
         self.init( _config )
@@ -39,13 +39,13 @@ class TradeAlgorithm( EventsListener ):
         dispatcher = Dispatcher.get_unique_instance ( self.all_products, _startdate, _enddate, _config )
         dispatcher.add_events_listener( self )
 
-        self.order_manager = OrderManager.get_unique_instance ( self.all_products, _startdate, _enddate, _config )
+        self.order_manager = OrderManager.get_unique_instance ( self.all_products, _startdate, _enddate, _config, _log_filename )
 
         # Give strategy the access to the portfolio instance
         self.portfolio = Portfolio ( self.all_products, _startdate, _enddate, _config )
 
         # Initialize performance tracker with list of products
-        self.performance_tracker = PerformanceTracker( self.all_products, _startdate, _enddate, _config )
+        self.performance_tracker = PerformanceTracker( self.all_products, _startdate, _enddate, _config, _log_filename )
         self.performance_tracker.portfolio = self.portfolio # Give Performance Tracker access to the portfolio     
 
         #Instantiate ExecLogic
