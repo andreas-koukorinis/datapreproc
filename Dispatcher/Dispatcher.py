@@ -38,7 +38,6 @@ class Dispatcher (object):
         self.heap = []	# Initialize the heap, heap will contain tuples of the form (timestamp,event)
         (self.dbconn, self.db_cursor) = db_connect()  # Initialize the database cursor
         self.event_listeners = dict([(product,[]) for product in self.products])  # For each product,maintain a list of listeners
-        self.b = 0 
         self.events_listeners = []  # These are the listeners which receive all the concurrent events at once.Here Strategy only
         self.end_of_day_listeners = []  # These are the listeners called on eand of each trading day.Here Performance Tracker
 
@@ -61,7 +60,6 @@ class Dispatcher (object):
     # Main function which loops over the events and makes appropriate calls
     # ASSUMPTION:All ENDOFDAY events have same time
     def run(self):
-        #print self.event_listeners
         self.heap_initialize(self.products)  # Add all events for all the products to the heap
         current_dt = self.heap[0][0] # Get the lowest timestamp which has not been handled
         while(current_dt<=self.end_dt_sim ):   # Run simulation till one day after end date,so that end date orders can be filled
