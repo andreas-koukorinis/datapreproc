@@ -37,7 +37,8 @@ class Dispatcher (object):
         self.products = products
         self.heap = []	# Initialize the heap, heap will contain tuples of the form (timestamp,event)
         (self.dbconn, self.db_cursor) = db_connect()  # Initialize the database cursor
-        self.event_listeners = []  # These are the listeners which receive 1 daily event for their product.Here bookbuilders
+        self.event_listeners = dict([(product,[]) for product in self.products])  # For each product,maintain a list of listeners
+        self.b = 0 
         self.events_listeners = []  # These are the listeners which receive all the concurrent events at once.Here Strategy only
         self.end_of_day_listeners = []  # These are the listeners called on eand of each trading day.Here Performance Tracker
 
@@ -48,10 +49,10 @@ class Dispatcher (object):
             Dispatcher.instance.append(new_instance)
         return Dispatcher.instance[0]
 
-    def add_event_listener(self,listener):  # For Bookbuilders
-        self.event_listeners.append(listener)
+    def add_event_listener(self,listener,product):  # For Bookbuilders
+        self.event_listeners[product].append(listener)
 
-    def add_events_listener(self,listener):  # For strategy and Performance Tracker
+    def add_events_listener(self,listener):  # For strategy
         self.events_listeners.append(listener)
 
     def add_end_of_day_listener(self,listener):
@@ -60,6 +61,7 @@ class Dispatcher (object):
     # Main function which loops over the events and makes appropriate calls
     # ASSUMPTION:All ENDOFDAY events have same time
     def run(self):
+        #print self.event_listeners
         self.heap_initialize(self.products)  # Add all events for all the products to the heap
         current_dt = self.heap[0][0] # Get the lowest timestamp which has not been handled
         while(current_dt<=self.end_dt_sim ):   # Run simulation till one day after end date,so that end date orders can be filled
@@ -71,9 +73,8 @@ class Dispatcher (object):
                 concurrent_events.append(event)
             for event in concurrent_events:
                 if(event['type']=='ENDOFDAY'): # This is an endofday event
-                    for listener in self.event_listeners:
-                        if(listener.product==event['product']):
-                            listener.on_daily_event_update(event)  # Call dailybookbuilder to update the book
+                    for listener in self.event_listeners[event['product']]:
+                        listener.on_daily_event_update(event)  # Call dailybookbuilder to update the book
 
                 if(event['type']=='INTRADAY'):  # This is an intraday event
                     pass  # TODO:call intradaybookbuilder and push next

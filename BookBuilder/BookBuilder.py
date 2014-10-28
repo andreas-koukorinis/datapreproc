@@ -21,7 +21,7 @@ class BookBuilder(DailyEventListener):
         self.intradaybook_listeners = []
         products = config.get('Products', 'symbols').strip().split(",")
         dispatcher = Dispatcher.get_unique_instance( products, _startdate, _enddate, config_file)
-        dispatcher.add_event_listener(self)
+        dispatcher.add_event_listener(self,self.product)
 
     @staticmethod
     def get_unique_instance( product, _startdate, _enddate, config_file ):
