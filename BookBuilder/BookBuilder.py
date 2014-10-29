@@ -1,5 +1,6 @@
 from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import DailyEventListener
+from Utils.Regular import get_all_products
 
 '''BookBuilder listens to the dispatcher for daily update of its product
  Each product has a different bookbuilder
@@ -17,7 +18,6 @@ class BookBuilder( DailyEventListener ):
         self.dailybook_listeners = []
         self.intradaybook_listeners = []
         self.settlement_listeners = []
-        self.yesterday_settlement_day = False
         products = get_all_products( _config )
         dispatcher = Dispatcher.get_unique_instance( products, _startdate, _enddate, _config )
         dispatcher.add_event_listener( self, self.product )
@@ -43,10 +43,9 @@ class BookBuilder( DailyEventListener ):
         self.dailybook.append( ( event['dt'], event['price'], event['is_last_trading_day'] ) ) 
         for listener in self.dailybook_listeners:
             listener.on_dailybook_update( self.product, self.dailybook )
-        if self.yesterday_settlement_day:
-            for listener in self.settelement_listeners:
+        if len( self.dailybook ) > 1 and self.dailybook[-2][2] : # If the last trading day was a settlement day for this product
+            for listener in self.settlement_listeners:
                 listener.after_settlement_day( self.product )
-        self.yesterday_settlement_day = event['is_last_trading_day']
 
     # TODO {sanchit}
     def on_intraday_event_update(self,event):

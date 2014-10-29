@@ -22,6 +22,7 @@ class TradeAlgorithm( EventsListener ):
         # Read indicator list from config file
         indicators = _config.get( 'DailyIndicators', 'names' ).strip().split(" ")
 
+        self.daily_indicators = {}
         #Instantiate daily indicator objects
         for indicator in indicators:
             indicator_name = indicator.strip().split('.')[0]
@@ -52,7 +53,7 @@ class TradeAlgorithm( EventsListener ):
         exec_logic_name = _config.get( 'Parameters', 'exec_logic' )
         exec_logic_module = import_module( 'ExecLogics.' + exec_logic_name )
         ExecLogicClass = getattr( exec_logic_module, exec_logic_name )
-        self.exec_logic = ExecLogicClass( self.products, self.all_products, order_manager, portfolio, self.bb_objects )
+        self.exec_logic = ExecLogicClass( self.products, self.all_products, self.order_manager, self.portfolio, self.bb_objects, _startdate, _enddate, _config )
 
     # User is expected to write the function
     def on_events_update( self, concurrent_events ):
@@ -62,5 +63,5 @@ class TradeAlgorithm( EventsListener ):
     def get_portfolio( self ):
         return { 'cash' : self.portfolio.cash, 'num_shares' : self.portfolio.num_shares, 'products' : self.portfolio.products }
 
-    def update_positions( self, weights ):
-        self.exec_logic.update_positions( weights )
+    def update_positions( self, dt, weights ):
+        self.exec_logic.update_positions( dt, weights )

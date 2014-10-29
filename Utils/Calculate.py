@@ -1,6 +1,12 @@
 import sys
 import datetime
 
+def get_current_prices( bb_objects ):
+    current_prices = {}
+    for product in bb_objects.keys():
+        current_prices[product] = bb_objects[product].dailybook[-1][1]
+    return current_prices
+
 #Getthe current worth of the portfolio based on the most recent daily closing prices
 def get_worth(current_price,conversion_factor,current_portfolio):
     net_worth = current_portfolio['cash']

@@ -23,9 +23,9 @@ class OrderManager():
             self.backtesters[product] = BackTester.get_unique_instance( product, _startdate, _enddate, _config )
 
     @staticmethod
-    def get_unique_instance( products, _startdate, _enddate, _config ):
+    def get_unique_instance( products, _startdate, _enddate, _config, _log_filename ):
         if len( OrderManager.instance ) == 0 :
-            new_instance = OrderManager( products, _startdate, _enddate, config_file )
+            new_instance = OrderManager( products, _startdate, _enddate, _config, _log_filename )
             OrderManager.instance.append( new_instance )
         return OrderManager.instance[0]
 

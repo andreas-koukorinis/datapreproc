@@ -1,11 +1,9 @@
 from numpy import *
 from BackTester.BackTester_Listeners import BackTesterListener
 from BackTester.BackTester import BackTester
-from BookBuilder.Bookbuilder_Listeners import SettlementListener
-from BookBuilder.Bookbuilder import Bookbuilder
 from Utils.DbQueries import conv_factor
 
-class Portfolio( BackTesterListener, SettlementListener ):
+class Portfolio( BackTesterListener ):
 
     def __init__( self, products, _start_date, _end_date, _config ):
         self.cash = _config.getfloat( 'Parameters', 'initial_capital' )
@@ -17,9 +15,6 @@ class Portfolio( BackTesterListener, SettlementListener ):
             self.value[product]=0
             backtester = BackTester.get_unique_instance( product, _start_date, _end_date, _config )
             backtester.add_listener( self )
-            if(product[0]=='f'): # If it is a futures contract
-                bookbuilder = BookBuilder.get_unique_instance( product, _start_date, _end_date, _config )
-                bookbuilder.add_settlement_listener( self )       
 
     # Return the portfolio variables as a dictionary
     def get_portfolio( self ):
@@ -34,10 +29,3 @@ class Portfolio( BackTesterListener, SettlementListener ):
             # i.e. We have to pay the full notional value in cash
             self.cash = self.cash - order['value'] - order['cost']
             self.num_shares[order['product']] = self.num_shares[order['product']] + order['amount']
-
-    def after_settlement_day( self, product ):
-        p1 = product.rstrip('12')+'1'
-        p2 = product.rstrip('12')+'2'
-        if(self.num_shares[p1]==0 and self.num_shares[p2]!=0):
-            self.num_shares[p1] = self.num_shares[p2]
-            self.num_shares[p2] = 0

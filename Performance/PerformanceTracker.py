@@ -13,7 +13,7 @@ from BackTester.BackTester_Listeners import BackTesterListener
 from BackTester.BackTester import BackTester
 from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import EndOfDayListener
-from Utils.Regular import check_eod,get_dt_from_date
+from Utils.Regular import check_eod,get_dt_from_date,get_next_futures_contract,is_future
 from Utils.DbQueries import conv_factor
 from BookBuilder.BookBuilder import BookBuilder
 
@@ -34,14 +34,14 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
         self.positions_file = 'positions_' + _log_filename  +'.txt'
         self.returns_file = 'returns_' + _log_filename +'.txt'
         self.pnl_graph_file = 'pnl_' + _log_filename +'.png'
-        open(self.returns_file,'w').close()
         self.products = products
         self.conversion_factor = conv_factor(products)
         self.num_shares_traded = dict([(product,0) for product in self.products])
         self.dates = []
         self.PnL = 0
         self.net_returns = 0
-        self.value = array([self.initial_capital])  # Track end of day values of the portfolio
+        self.initial_capital = _config.getfloat( 'Parameters', 'initial_capital' )
+        self.value = array( [ self.initial_capital ] )  # Track end of day values of the portfolio
         self.PnLvector = empty(shape=(0))
         self.annualized_PnL = 0
         self.annualized_stdev_PnL = 0
@@ -111,45 +111,35 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
 
     # Computes the portfolio value at ENDOFDAY on 'date'
     def get_portfolio_value(self,date):
+        #self.print_prices(self.date) # TODO Only if needed. For instance in zero-logging mode or optimization mode, we will want to disable this.
         netValue = self.portfolio.cash
         for product in self.products:
-            if(self.portfolio.num_shares[product]!=0):
-                if(product[0]=='f'):
-                    product1 = product
-                    product2 = product.rstrip('1')+'2'
-                    book1 = self.bb_objects[product1].dailybook
-                    book2 = self.bb_objects[product2].dailybook
-                    current_price = self.find_most_recent_price_future(book1,book2,date)
+            if self.portfolio.num_shares[product] != 0:
+                if is_future( product ):
+                    current_price = self.find_most_recent_price_future( self.bb_objects[product].dailybook, self.bb_objects[ get_next_futures_contract(product) ].dailybook, date )
                 else:
-                    book = self.bb_objects[product].dailybook
-                    current_price = self.find_most_recent_price(book,date)
-                netValue = netValue + current_price*self.portfolio.num_shares[product]*self.conversion_factor[product]
+                    current_price = self.find_most_recent_price( self.bb_objects[product].dailybook, date )
+                netValue = netValue + current_price * self.portfolio.num_shares[product] * self.conversion_factor[product]
         return netValue
 
-    def print_prices(self,date):
+    def print_prices( self, date ):
         s = ''
         for product in self.products:
-            if(self.num_shares_traded[product]!=0):
-                if(product[0]=='f'):
-                    product1 = product
-                    product2 = product.rstrip('1')+'2' # TODO { gchak } not working
-                    book1 = self.bb_objects[product1].dailybook
-                    book2 = self.bb_objects[product2].dailybook
-                    current_price = self.find_most_recent_price_future(book1,book2,date)
+            if self.num_shares_traded[product] != 0:
+                if is_future( product ):
+                    current_price = self.find_most_recent_price_future( self.bb_objects[product].dailybook, self.bb_objects[ get_next_futures_contract(product) ].dailybook, date )
                 else:
-                    book = self.bb_objects[product].dailybook
-                    current_price = self.find_most_recent_price(book,date)
-                s = s + product + ' ' + str(current_price)
-        text_file = open(self.positions_file, "a") # TODO {gchak} consider opening file once, and sharing the same file pointer among all the PerformanceTracker objects
+                    current_price = self.find_most_recent_price( self.bb_objects[product].dailybook, date )
+                s = s + product + ' ' + str( current_price )
+        text_file = open( self.positions_file, "a" ) # TODO {gchak} consider opening file once, and sharing the same file pointer among all the PerformanceTracker objects
         text_file.write("Prices at end of day %s are: %s\n" % (date,s))
         text_file.close()
 
     # Computes the daily stats for the most recent trading day prior to 'date'
     # TOASK {gchak} Do we ever expect to run this function without current date ?
     def compute_daily_stats(self,date):
-        if(self.date < date and self.total_orders>0): #If no orders have been filled,it implies trading has not started yet
+        if(self.date < date and self.total_orders>0): #If no orders have been filled,it implies trading has not started yet       
             todaysValue = self.get_portfolio_value(self.date)
-            # self.print_prices(self.date) # TODO Only if needed. For instance in zero-logging mode or optimization mode, we will want to disable this.
             self.value = append ( self.value, todaysValue )
             self.PnLvector = append ( self.PnLvector, ( self.value[-1]-self.value[-2] ) )  # daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
 

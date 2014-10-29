@@ -17,7 +17,6 @@ class BackTester( DailyBookListener ):
         self.conversion_factor = conv_factor([product])[product]
         self.commission_manager = CommissionManager()
         self.listeners = []
-        self.yesterday_settlement_day = False
         bookbuilder = BookBuilder.get_unique_instance( product, _startdate, _enddate, _config )
         bookbuilder.add_dailybook_listener( self )
 
@@ -42,14 +41,13 @@ class BackTester( DailyBookListener ):
     # Check which of the pending orders have been filled
     # ASSUMPTION: all the pending orders are filled #SHOULD BE CHANGED
     def on_dailybook_update( self, product, dailybook ):
-        is_last_trading_day=dailybook[-1][2]
         filled_orders = []
         updated_pending_orders = []
         for order in self.pending_orders:
             if True :  # Should check if order can be filled based on current book,if yes remove from pending_list and add to filled_list
                 cost = self.commission_manager.getcommission( order, dailybook )
-                if self.yesterday_settlement_day :
-                    fill_price = dailybook[-2][1]  # For settlement orders,estimated fill_price = price at which order is placed
+                if dailybook[-2][2] : # If last trading day was a settlement day
+                    fill_price = dailybook[-2][1]  # Estimated fill_price = price at which order is placed
                 else:
                     #fill_price = dailybook[-1][1]*0.1 + dailybook[-2][1]*0.9  # Estimated fill_price = 0.9*(price at which order is placed) + 0.1*(price on next day)
                     fill_price = dailybook[-2][1]
@@ -63,4 +61,3 @@ class BackTester( DailyBookListener ):
         # Here the listeners will be portfolio and performance tracker
         for listener in self.listeners:
             listener.on_order_update( filled_orders, current_dt.date() )  # Pass control to the performance tracker,pass date to track the daily performance
-        self.yesterday_settlement_day = is_last_trading_day

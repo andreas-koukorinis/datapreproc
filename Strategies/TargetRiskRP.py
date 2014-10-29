@@ -8,6 +8,7 @@ class TargetRiskRP( TradeAlgorithm ):
     def init( self, _config ):
         self.day=-1
         open( 'debug.txt' , "w" ).close()
+        self.weights = dict( [ ( product, 0 ) for product in self.products ] )
         self.target_risk = _config.getfloat( 'Strategy', 'target_risk' )
         self.rebalance_frequency = _config.getint( 'Parameters', 'rebalance_frequency' )
 
@@ -25,10 +26,9 @@ class TargetRiskRP( TradeAlgorithm ):
         # If today is the rebalancing day,then use indicators to calculate new positions to take
         if all_eod and self.day % self.rebalance_frequency == 0 :
             # Calculate weights to assign to each product using indicators
-            weights = {}
             for product in self.products:
                 target_risk_per_product = self.target_risk/len(self.products)
                 risk = self.daily_indicators[ 'StdDev.' + product + '.21' ].values[1] # Index 0 contains the date and 1 contains the value of indicator                               
                 annualized_risk_of_product = ( exp( sqrt(252.0)*risk ) -1 )*100.0
-                weights[product] = target_risk_per_product/annualized_risk_of_product 
-            self.update_positions( event[0]['dt'], weights )
+                self.weights[product] = target_risk_per_product/annualized_risk_of_product 
+        self.update_positions( events[0]['dt'], self.weights )
