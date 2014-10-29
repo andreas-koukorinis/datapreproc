@@ -18,7 +18,14 @@ class ExecLogic( SettlementListener ):
         for product in all_products:
             if is_future( product ):
                 BookBuilder.get_unique_instance( product, _startdate, _enddate, _config ).add_settlement_listener( self )
-     
+
+    def rollover( self, dt ):
+        positions_to_take = dict( [ ( product, self.portfolio.num_shares[product] ) for product in self.all_products ] )
+        current_prices = get_current_prices( self.bb_objects )
+        new_positions_to_take = self.adjust_positions_for_settlements ( current_prices, positions_to_take )
+        for product in self.all_products:
+            self.place_order_target( dt, product, new_positions_to_take[product] )
+  
     def update_positions( self, dt, weights ):
         current_portfolio = self.portfolio.get_portfolio()
         current_prices = get_current_prices( self.bb_objects )

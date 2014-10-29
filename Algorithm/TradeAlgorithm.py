@@ -65,3 +65,6 @@ class TradeAlgorithm( EventsListener ):
 
     def update_positions( self, dt, weights ):
         self.exec_logic.update_positions( dt, weights )
+
+    def rollover( self, dt ):
+        self.exec_logic.rollover( dt )

@@ -8,7 +8,6 @@ class EqualWeight( TradeAlgorithm ):
     def init( self, _config ):
         self.day=-1
         self.rebalance_frequency = _config.getint( 'Parameters', 'rebalance_frequency' )
-        self.weights = dict( [ ( product, 0 ) for product in self.products ] )
 
     '''  Use self.bb_objects[product].dailybook to access the closing prices for the 'product'
          Use self.bb_objects[product].intradaybook to access the intraday prices for the 'product'
@@ -23,7 +22,10 @@ class EqualWeight( TradeAlgorithm ):
            
         # If today is the rebalancing day,then use indicators to calculate new positions to take
         if all_eod and self.day % self.rebalance_frequency == 0 :
-            # Calculate weights to assign to each product using indicators
+            # Calculate weights to assign to each product
+            weights = {}
             for product in self.products:
-                self.weights[product] = 1/len(self.products)     
-        self.update_positions( events[0]['dt'], self.weights )
+                weights[product] = 1/len(self.products)     
+            self.update_positions( events[0]['dt'], weights )
+        else:
+            self.rollover( events[0]['dt'] )

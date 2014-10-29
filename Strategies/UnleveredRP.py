@@ -8,7 +8,6 @@ class UnleveredRP( TradeAlgorithm ):
     def init( self, _config ):
         self.day=-1
         self.rebalance_frequency = _config.getint( 'Parameters', 'rebalance_frequency' )
-        self.weights = dict( [ ( product, 0 ) for product in self.products ] )
 
     '''  Use self.bb_objects[product].dailybook to access the closing prices for the 'product'
          Use self.bb_objects[product].intradaybook to access the intraday prices for the 'product'
@@ -24,12 +23,15 @@ class UnleveredRP( TradeAlgorithm ):
         # If today is the rebalancing day,then use indicators to calculate new positions to take
         if all_eod and self.day % self.rebalance_frequency == 0 :
             # Calculate weights to assign to each product using indicators
+            weights = {}
             sum_weights = 0.0
             for product in self.products:
                 risk = self.daily_indicators[ 'StdDev.' + product + '.21' ].values[1] # Index 0 contains the date and 1 contains the value of indicator                               
                 annualized_risk_of_product = ( exp( sqrt(252.0)*risk ) -1 )*100.0
-                self.weights[product] = 1/risk
-                sum_weights = sum_weights + abs(self.weights[product]) # Here abs does not make any difference,but in general should do
+                weights[product] = 1/risk
+                sum_weights = sum_weights + abs(weights[product]) # Here abs does not make any difference,but in general should do
             for product in self.products:
-                self.weights[product] = self.weights[product]/sum_weights                
-        self.update_positions( events[0]['dt'], self.weights )
+                weights[product] = weights[product]/sum_weights                
+            self.update_positions( events[0]['dt'], weights )
+        else:
+            self.rollover( events[0]['dt'] )
