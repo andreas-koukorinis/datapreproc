@@ -25,7 +25,7 @@ class DailyLogReturns( DailyBookListener ):
             _product2 = get_next_futures_contract( _product1 )        
             self.product1 = _product1
             self.product2 = _product2
-            self.price2 = 0 # Remember the last price for the next future contract
+            self.prices2 = [0,0] # Remember the last price for the next future contract
             BookBuilder.get_unique_instance( self.product1, _startdate, _enddate, _config ).add_dailybook_listener( self )
             BookBuilder.get_unique_instance( self.product2, _startdate, _enddate, _config ).add_dailybook_listener( self )
         else:
@@ -51,7 +51,8 @@ class DailyLogReturns( DailyBookListener ):
                 self.prices[0] = dailybook[-1][1]
             else:
                 self.dt[1] = dailybook[-1][0]
-                self.price2 = dailybook[-1][1]
+                self.prices2[1] = self.prices2[0]
+                self.prices2[0] = dailybook[-1][1]
 
             if(len(dailybook)>1):
                 _yesterday_settlement = dailybook[-2][2]
@@ -62,7 +63,7 @@ class DailyLogReturns( DailyBookListener ):
                 updated = True
                 if _yesterday_settlement: # If yesterday was the settlement day and price for both kth and k+1th contract has been updated
                     p1 = self.prices[0]
-                    p2 = self.price2
+                    p2 = self.prices2[1]
                 else:
                     p1 = self.prices[0]
                     p2 = self.prices[1]

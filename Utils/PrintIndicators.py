@@ -1,5 +1,4 @@
 import sys
-import ConfigParser
 import pickle
 import os
 from importlib import import_module
@@ -11,11 +10,9 @@ class PrintIndicators(IndicatorListener):
 
     instance=[]
 
-    def __init__(self, products, _startdate, _enddate, _indicator_file, config_file):
+    def __init__(self, products, _startdate, _enddate, _indicator_file, _config):
         self.directory = 'Data/'
         self.indicators_file = _indicator_file
-        config = ConfigParser.ConfigParser()
-        config.readfp(open(config_file,'r'))
         self.start_date = get_dt_from_date(_startdate).date()
         self.end_date = get_dt_from_date(_enddate).date()
         self.date = self.start_date
@@ -25,15 +22,15 @@ class PrintIndicators(IndicatorListener):
             os.makedirs(self.directory)
 
         # Read indicator list from config file
-        indicators = config.get( 'DailyIndicators', 'names' ).strip().split(" ")
+        indicators = _config.get( 'DailyIndicators', 'names' ).strip().split(" ")
         self.identifiers = sorted(indicators)
 
         #Instantiate daily indicator objects
         for indicator in indicators:
             indicator_name = indicator.strip().split('.')[0]
-            module = import_module('DailyIndicators.'+indicator_name)
-            Indicatorclass = getattr(module,indicator_name)
-            indicator_instance = Indicatorclass.get_unique_instance(indicator, _startdate, _enddate, config_file)
+            module = import_module( 'DailyIndicators.' + indicator_name )
+            Indicatorclass = getattr( module, indicator_name )
+            indicator_instance = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
             indicator_instance.add_listener(self)
             self.indicator_values[indicator]=0 # Default value for each indicator
 
@@ -41,9 +38,9 @@ class PrintIndicators(IndicatorListener):
         self.write_data(self.indicators_file,s,'w') # Write the header to the file
 
     @staticmethod
-    def get_unique_instance(products, _startdate, _enddate, _indicator_file, config_file):
+    def get_unique_instance( products, _startdate, _enddate, _indicator_file, _config):
         if(len(PrintIndicators.instance)==0):
-            new_instance = PrintIndicators(products, _startdate, _enddate, _indicator_file, config_file)
+            new_instance = PrintIndicators(products, _startdate, _enddate, _indicator_file, _config )
             PrintIndicators.instance.append(new_instance)
         return PrintIndicators.instance[0]
 
