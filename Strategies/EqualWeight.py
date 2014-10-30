@@ -25,7 +25,7 @@ class EqualWeight( TradeAlgorithm ):
             # Calculate weights to assign to each product
             weights = {}
             for product in self.products:
-                weights[product] = 1/len(self.products)     
+                weights[product] = 1.0/len(self.products)     
             self.update_positions( events[0]['dt'], weights )
         else:
             self.rollover( events[0]['dt'] )

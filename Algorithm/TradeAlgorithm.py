@@ -53,7 +53,7 @@ class TradeAlgorithm( EventsListener ):
         exec_logic_name = _config.get( 'Parameters', 'exec_logic' )
         exec_logic_module = import_module( 'ExecLogics.' + exec_logic_name )
         ExecLogicClass = getattr( exec_logic_module, exec_logic_name )
-        self.exec_logic = ExecLogicClass( self.products, self.all_products, self.order_manager, self.portfolio, self.bb_objects, _startdate, _enddate, _config )
+        self.exec_logic = ExecLogicClass( self.products, self.all_products, self.order_manager, self.portfolio, self.bb_objects, self.performance_tracker, _startdate, _enddate, _config )
 
     # User is expected to write the function
     def on_events_update( self, concurrent_events ):

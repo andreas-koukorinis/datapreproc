@@ -74,12 +74,13 @@ class Dispatcher (object):
                 if(event['type']=='INTRADAY'):  # This is an intraday event
                     pass  # TODO:call intradaybookbuilder and push next
 
-            if( current_dt.date() >= self.start_dt.date() and current_dt.date() <= self.end_dt.date() ):  # If there are some events and warmupdays are over
-                for listener in self.events_listeners:
-                    listener.on_events_update(concurrent_events)  # Make 1 call to OnEventsUpdate of the strategy for all the concurrent events
             if( current_dt >= self.start_dt and check_eod(concurrent_events)):
                 for listener in self.end_of_day_listeners:
                     listener.on_end_of_day(concurrent_events[0]['dt'].date())
+
+            if( current_dt.date() >= self.start_dt.date() and current_dt.date() <= self.end_dt.date() ):  # If there are some events and warmupdays are over
+                for listener in self.events_listeners:
+                    listener.on_events_update(concurrent_events)  # Make 1 call to OnEventsUpdate of the strategy for all the concurrent events
 
                 if(current_dt.date() <= self.end_dt.date()):  self.trading_days=self.trading_days+1
 

@@ -1,4 +1,5 @@
 import sys
+from RiskManagement.RiskManager import RiskManager
 from BookBuilder.BookBuilder_Listeners import SettlementListener
 from BookBuilder.BookBuilder import BookBuilder
 from Utils.Calculate import get_current_prices,get_worth
@@ -6,7 +7,7 @@ from Utils.DbQueries import conv_factor
 from Utils.Regular import is_future,is_future_entity,get_base_symbol,get_first_futures_contract,get_next_futures_contract,get_future_mappings,shift_future_symbols
 
 class ExecLogic( SettlementListener ):
-    def __init__( self, trade_products, all_products, order_manager, portfolio, bb_objects, _startdate, _enddate, _config ):
+    def __init__( self, trade_products, all_products, order_manager, portfolio, bb_objects, performance_tracker, _startdate, _enddate, _config ):
         self.trade_products = trade_products
         self.all_products = all_products
         self.future_mappings = get_future_mappings( all_products )
@@ -15,24 +16,46 @@ class ExecLogic( SettlementListener ):
         self.bb_objects = bb_objects
         self.conversion_factor = conv_factor( self.all_products )
         self.to_flip_settlement = dict( [ ( product, False ) for product in self.all_products ] )
+        self.capital_reduction = 1.0
+        self.risk_manager = RiskManager( performance_tracker, _config )
+        self.trading_status = True
         for product in all_products:
             if is_future( product ):
                 BookBuilder.get_unique_instance( product, _startdate, _enddate, _config ).add_settlement_listener( self )
 
     def rollover( self, dt ):
-        positions_to_take = dict( [ ( product, self.portfolio.num_shares[product] ) for product in self.all_products ] )
-        current_prices = get_current_prices( self.bb_objects )
-        new_positions_to_take = self.adjust_positions_for_settlements ( current_prices, positions_to_take )
-        for product in self.all_products:
-            self.place_order_target( dt, product, new_positions_to_take[product] )
-  
+        if not self.trading_status: return
+        self.update_risk_status( dt )
+        if self.trading_status:
+            positions_to_take = dict( [ ( product, self.portfolio.num_shares[product]* self.capital_reduction ) for product in self.all_products ] )
+            current_prices = get_current_prices( self.bb_objects )
+            new_positions_to_take = self.adjust_positions_for_settlements ( current_prices, positions_to_take )
+            for product in self.all_products:
+                self.place_order_target( dt, product, new_positions_to_take[product] )
+        else: # Liquidate the portfolio
+            for product in self.all_products:
+                self.place_order_target( dt, product, 0 )
+    
     def update_positions( self, dt, weights ):
-        current_portfolio = self.portfolio.get_portfolio()
-        current_prices = get_current_prices( self.bb_objects )
-        current_worth = get_worth( current_prices, self.conversion_factor, current_portfolio )
-        positions_to_take = self.get_positions_from_weights( weights, current_worth ,current_prices )
-        for product in self.all_products:
-            self.place_order_target( dt, product, positions_to_take[product] )
+        if not self.trading_status: return
+        self.update_risk_status( dt )
+        if self.trading_status:
+            current_portfolio = self.portfolio.get_portfolio()
+            current_prices = get_current_prices( self.bb_objects )
+            current_worth = get_worth( current_prices, self.conversion_factor, current_portfolio )
+            positions_to_take = self.get_positions_from_weights( weights, current_worth * self.capital_reduction,current_prices )
+            for product in self.all_products:
+                self.place_order_target( dt, product, positions_to_take[product] )
+        else: # Liquidate the portfolio
+            for product in self.all_products:
+                self.place_order_target( dt, product, 0 )
+
+    def update_risk_status( self, dt ):
+        status = self.risk_manager.check_status( dt )
+        if status['stop_trading']:
+            self.trading_status = False
+        elif status['reduce_capital'][0]:
+            self.capital_reduction = self.capital_reduction*(1.0 - status['reduce_capital'][1])
 
     def get_positions_from_weights( self, weights, current_worth, current_prices ):
         positions_to_take = dict( [ ( product, 0 ) for product in self.all_products ] )
@@ -60,6 +83,20 @@ class ExecLogic( SettlementListener ):
                 new_positions_to_take[product] = positions_to_take[product]
         return new_positions_to_take
 
+    def get_current_weights( self ):
+        net_portfolio = { 'cash' : self.portfolio.cash, 'num_shares' : dict( [ ( product, self.portfolio.get_portfolio()['num_shares'][product] ) for product in self.all_products ] ) }
+        weights = {}
+        for product in self.all_products:
+            to_be_filled = 0
+            for order in self.order_manager.backtesters[product].pending_orders:
+                to_be_filled = to_be_filled + order['amount']
+            net_portfolio['num_shares'][product] = net_portfolio['num_shares'][product] + to_be_filled
+        current_prices = get_current_prices( self.bb_objects )
+        current_worth = get_worth( current_prices, self.conversion_factor, net_portfolio )
+        for product in self.all_products:
+            weights[product] = current_worth/( current_prices[product] * self.conversion_factor[product] )
+        return weights
+        
     def after_settlement_day( self, product ):
         self.to_flip_settlement[product] = True
         _base_symbol = get_base_symbol( product )

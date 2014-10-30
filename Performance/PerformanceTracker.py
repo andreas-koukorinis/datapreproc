@@ -57,6 +57,7 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
         self.mml = 0
         self._worst_10pc_quarterly_returns = 0
         self._worst_10pc_yearly_returns = 0
+        self.current_max_drawdown = 0
         self.max_drawdown_percent = 0
         self.max_drawdown_dollar = 0
         self.return_by_maxdrawdown = 0
@@ -87,6 +88,9 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
     # Called by Dispatcher
     def on_end_of_day( self, date ):
         self.compute_daily_stats( date )
+        _current_max_dd_log = self.drawdown( self.daily_log_returns )
+        self.current_max_drawdown = abs( ( exp( _current_max_dd_log ) - 1 ) * 100 )
+        self.current_loss = self.initial_capital - self.value[-1]
         self.print_snapshot( date )
 
     #Find the latest price prior to 'date'
@@ -171,6 +175,8 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
         text_file.close()
 
     def drawdown(self,returns):
+        if returns.shape[0] < 2:
+            return 0.0
         cum_returns = returns.cumsum()
         return -1.0*max(maximum.accumulate(cum_returns) - cum_returns) # Will return a negative value
 
