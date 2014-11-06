@@ -7,6 +7,7 @@ from Utils.DbQueries import conv_factor
 from OrderManager.OrderManager import OrderManager
 from Portfolio import Portfolio
 from Performance.PerformanceTracker import PerformanceTracker
+from DailyIndicators.Indicator_List import is_valid_daily_indicator
 
 class TradeAlgorithm( EventsListener ):
 
@@ -19,16 +20,21 @@ class TradeAlgorithm( EventsListener ):
         self.all_products = _all_products
         self.init( _config )
 
+        # TODO{sanchit} We should check if the input DailyIndicators is given before we 
+        # do all this
         # Read indicator list from config file
         indicators = _config.get( 'DailyIndicators', 'names' ).strip().split(" ")
-
+        # TODO{sanchit} Even if we have no indicators, we just write names=, 
+        # this tries to load a module.
+        # I think before every load_module we should check if the module name is valid or not ?
         self.daily_indicators = {}
         #Instantiate daily indicator objects
         for indicator in indicators:
             indicator_name = indicator.strip().split('.')[0]
-            module = import_module( 'DailyIndicators.' + indicator_name )
-            Indicatorclass = getattr( module, indicator_name )
-            self.daily_indicators[indicator] = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
+            if ( is_valid_daily_indicator ( indicator_name ) ) :
+                module = import_module( 'DailyIndicators.' + indicator_name )
+                Indicatorclass = getattr( module, indicator_name )
+                self.daily_indicators[indicator] = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
 
         # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects = {}
