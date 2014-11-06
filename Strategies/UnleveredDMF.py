@@ -27,7 +27,7 @@ class UnleveredDMF( TradeAlgorithm ):
             sum_weights = 0.0
             for product in self.products:
                 risk = self.daily_indicators[ 'StdDev.' + product + '.21' ].values[1] # Index 0 contains the date and 1 contains the value of indicator                               
-                trend = self.daily_indicators[ 'Trend.' + product + '.21' ].values[1]
+                trend = self.daily_indicators[ 'Trend.' + product + '.5' ].values[1]
                 weights[product] = trend/risk
                 sum_weights = sum_weights + abs( weights[product] ) 
             for product in self.products:

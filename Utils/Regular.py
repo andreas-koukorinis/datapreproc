@@ -47,6 +47,14 @@ def check_eod( events ):
         if event['type']!='ENDOFDAY' : ret = False
     return ret
 
+def parse_weights( wts ):
+    weights = {}
+    for wt in wts.split(' '):
+        symbol = wt.split(',')[0]
+        weight = float( wt.split(',')[1] )
+        weights[symbol] = weight
+    return weights
+
 #Return true if the symbol is of a futures contract
 def is_future( product ):
     return product[0] == 'f'

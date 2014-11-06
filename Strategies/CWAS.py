@@ -9,7 +9,6 @@ class CWAS( TradeAlgorithm ):
         self.day=-1
         self.rebalance_frequency = _config.getint( 'Parameters', 'rebalance_frequency' )
         self.weights = parse_weights( _config.get( 'Strategy', 'weights' ) )
-        print self.weights        
 
     '''  Use self.bb_objects[product].dailybook to access the closing prices for the 'product'
          Use self.bb_objects[product].intradaybook to access the intraday prices for the 'product'
