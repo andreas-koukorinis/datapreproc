@@ -1,0 +1,101 @@
+import sys
+from datetime import datetime
+import re
+
+# Returns the full list of products  with fES1 and fES2 trated separately
+# Products which are not traded but have indicators based on them are also included 
+def get_all_products( _config ):
+    _trade_products = _config.get( 'Products', 'trade_products' ).split(',')
+    _real_traded_products = get_real_traded_products( _trade_products )
+    if _config.has_option('Products', 'mappings'):
+        _mappings = _config.get( 'Products', 'mappings' ).split(' ') 
+        _mapped_products = get_mapped_products( _mappings )
+    else: 
+        _mapped_products = []
+    return list( set( _real_traded_products ) | set( _mapped_products ) ) #Take union of two lists
+
+# Returns a list of products replacing each future contract by 1st and 2nd future contract in 'traded_products'
+def get_real_traded_products( _traded_products ):
+    _real_traded_products = []
+    for product in _traded_products:
+        if is_future_entity( product ):
+            _real_traded_products.extend([product+'1',product+'2']) 
+        else:
+            _real_traded_products.append(product)
+    return _real_traded_products
+
+# Returns a list of products generated using the mapping in the config file
+def get_mapped_products( _mappings ):
+    _mapped_products = []
+    for _mapping in _mappings:
+        _map = _mapping.split(',')
+        _base_name = _map[0]
+        _aux_names = _map[1:]
+        _mapped_products.extend( [ _base_name+_aux_name for _aux_name in _aux_names ] )    
+    return _mapped_products
+
+#Return a datetime object  given a date
+#This function is used to get timestamp for end of day events
+#ASSUMPTION : All end of day events for a particular date occur at the same time i.e. HH:MM:SS:MSMS -> 23:59:59:999999
+def get_dt_from_date( date ):
+    return datetime.combine( datetime.strptime( date, "%Y-%m-%d" ).date(), datetime.max.time() )
+
+#Check whether all events in the list are ENDOFDAY events
+def check_eod( events ):
+    ret = True
+    for event in events:
+        if event['type']!='ENDOFDAY' : ret = False
+    return ret
+
+def parse_weights( wts ):
+    weights = {}
+    for wt in wts.split(' '):
+        symbol = wt.split(',')[0]
+        weight = float( wt.split(',')[1] )
+        weights[symbol] = weight
+    return weights
+
+#Return true if the symbol is of a futures contract
+def is_future( product ):
+    return product[0] == 'f'
+
+# Return true if product is a future entity like 'fES'
+def is_future_entity( product ):
+    return is_future(product) and product[-1] not in map(str,range(0,10))
+
+def get_base_symbol( product ):
+    return product.rstrip( '0123456789' )
+
+#Given a future entity symbol like fES, returns the symbol of the first futures contract like fES1
+def get_first_futures_contract( _base_symbol ):
+    return _base_symbol + '1'
+
+# Given a futures contract symbol,return the symbol of the next futures contract
+def get_next_futures_contract( product ):
+    _base_symbol = product.rstrip( '0123456789' )
+    num = int( next( re.finditer( r'\d+$', product ) ).group( 0 ) ) #num is the number at the end of a symbol.EG:1 for fES1
+    _next_contract_symbol = _base_symbol + str( num + 1 )     
+    return _next_contract_symbol
+
+# Given a futures contract symbol,return the symbol of the previous futures contract
+def get_prev_futures_contract( product ):
+    _base_symbol = product.rstrip( '0123456789' )
+    num = int( next( re.finditer( r'\d+$', product ) ).group( 0 ) ) #num is the number at the end of a symbol.EG:1 for fES1
+    _prev_contract_symbol = _base_symbol + str( num - 1 )
+    return _prev_contract_symbol
+
+def get_future_mappings( all_products ):
+    _base_symbols = list( set ( [ get_base_symbol( product ) for product in all_products if is_future( product ) ] ) )
+    future_mappings = dict( [ ( symbol, [] ) for symbol in _base_symbols ] )
+    for product in all_products:
+        if is_future( product ):
+            future_mappings[ get_base_symbol( product ) ].append( product )
+    return future_mappings
+    
+def shift_future_symbols( portfolio, future_contracts ):
+    num_shares_updated = dict( [ ( product, 0 ) for product in future_contracts ] ) 
+    for product in future_contracts:
+        if portfolio.num_shares[product] != 0:
+            num_shares_updated[ get_prev_futures_contract( product ) ] = portfolio.num_shares[product]
+    for product in future_contracts:
+        portfolio.num_shares[product] = num_shares_updated[product]        
