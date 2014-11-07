@@ -32,7 +32,6 @@ def conv_factor(products):
     conv_factor = {}
     for product in products:
         symbol = product.rstrip('0123456789').lstrip('f')
-        print ( "DB symbol=%s" %(symbol) ) #TODO{gchak} remove after debugging EC
         query = "SELECT factor,currency FROM tick_conversion WHERE symbol='"+symbol+"'"
         db_cursor.execute(query)
         data = db_cursor.fetchall()                                                                                      
