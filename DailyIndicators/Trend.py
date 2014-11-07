@@ -33,6 +33,7 @@ class Trend( IndicatorListener ):
     def on_indicator_update( self, identifier, daily_log_returns_dt ):
         daily_log_returns = array( [ item[1] for item in daily_log_returns_dt ] ).astype( float )
         n = daily_log_returns.shape[0]
+        n = n-1 # To avoid using today's prices in calculation of indicators
         _start_index = max( 0, n - self.period )  # If sufficient lookback not available,use the available data only to compute indicator
         val = sign( sum( daily_log_returns[ _start_index : n ] ) )
         if n < 1 : val = 0
