@@ -18,7 +18,7 @@ def process_for_dump( products, product_type ):
         elif product_type == 'MF': # If the product type is MUTUAL FUND
             df = pd.read_csv(prices_files[i],parse_dates=['date'], date_parser=dateparse,names=['date','close','dividend','capital_gain','backward_adjusted_close','forward_adjusted_close']) # Load as dataframe and name columns 
             df['product'] = product #Add product column
-            df = df[[ 'date','product','close','backward_adjusted_close','forward_adjusted_close','dividend']]
+            df = df[[ 'date','product','close','backward_adjusted_close','forward_adjusted_close','dividend','capital_gain']]
         df.to_csv(product+'.csv',index=False) # Save result to csv 
 
 def __main__() :
