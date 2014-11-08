@@ -1,0 +1,8 @@
+CREATE TABLE `etfs` (`date` date NOT NULL,`product` varchar(20) DEFAULT NULL,`open` varchar(20) DEFAULT NULL,`high` varchar(20) DEFAULT NULL,`low` varchar(20) DEFAULT NULL,`close` varchar(20) DEFAULT NULL,`backward_adjusted_close` varchar(20) DEFAULT NULL,`forward_adjusted_close` varchar(20) DEFAULT NULL,`volume` varchar(20) DEFAULT NULL,`dividend` varchar(20) DEFAULT NULL,PRIMARY KEY (`date`,`product`))
+
+CREATE TABLE `mutual_funds` (`date` date NOT NULL,`product` varchar(20) DEFAULT NULL,`close` varchar(20) DEFAULT NULL,`backward_adjusted_close` varchar(20) DEFAULT NULL,`forward_adjusted_close` varchar(20) DEFAULT NULL,`dividend` varchar(20) DEFAULT NULL,`capital_gain` varchar(20) DEFAULT NULL,PRIMARY KEY (`date`,`product`))
+
+CREATE INDEX etfsIndex ON etfs (date, product)
+CREATE INDEX mutIndex ON mutual_funds (date, product)
+
+
