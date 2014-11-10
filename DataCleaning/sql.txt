@@ -56,5 +56,3 @@ insert into products values ('AQMIX','AQR Managed Futures Fund Class I','funds',
 insert into products values ('QGMIX','AQR Global Macro Fund Class I','funds','fund','','','','1','USD','FUND');
 insert into products values ('SRPFX','Salient Risk Parity Fund Class I','funds','fund','','','','1','USD','FUND');
 insert into products values ('ABRZX','Invesco Bal-Risk Alloc Fd Cl A','funds','fund','','','','1','USD','FUND');
-
-
