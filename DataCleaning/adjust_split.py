@@ -24,6 +24,7 @@ def adjust_for_splits( products, product_type ):
                 df1.loc[ (df1.date < row['date']) ,'low'] /=split_factor
                 df1.loc[ (df1.date < row['date']) ,'open'] /=split_factor
                 df1.loc[ (df1.date < row['date']) ,'volume'] *=split_factor
+                df1.loc[ (df1.date < row['date']) ,'dividend'] /=split_factor
             df1.to_csv(output_path+product+'_split_adjusted'+'.csv',index=False)
         elif product_type == 'fund':
             df1 = pd.read_csv(prices_file,names=['date','close','asking_price','close2','close3','dividend','capital_gain'])
@@ -37,6 +38,8 @@ def adjust_for_splits( products, product_type ):
                 split_factor = split_factor*(row['new']/row['old'])
                 df.loc[ (df.date < row['date']) ,'close'] /=split_factor
                 df.loc[ (df.date < row['date']) ,'asking_price'] /=split_factor
+                df.loc[ (df.date < row['date']) ,'dividend'] /=split_factor
+                df.loc[ (df.date < row['date']) ,'capital_gain'] /=split_factor
             df.to_csv(output_path+product+'_split_adjusted'+'.csv',index=False)
 
 def __main__() :
