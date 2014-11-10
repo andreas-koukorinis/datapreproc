@@ -1,8 +1,60 @@
-CREATE TABLE `etfs` (`date` date NOT NULL,`product` varchar(20) DEFAULT NULL,`open` varchar(20) DEFAULT NULL,`high` varchar(20) DEFAULT NULL,`low` varchar(20) DEFAULT NULL,`close` varchar(20) DEFAULT NULL,`backward_adjusted_close` varchar(20) DEFAULT NULL,`forward_adjusted_close` varchar(20) DEFAULT NULL,`volume` varchar(20) DEFAULT NULL,`dividend` varchar(20) DEFAULT NULL,PRIMARY KEY (`date`,`product`))
+#CREATE TABLES
+CREATE TABLE `etfs` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`backward_adjusted_close` varchar(20) NOT NULL,`forward_adjusted_close` varchar(20) NOT NULL,`volume` varchar(20) NOT NULL,`dividend` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
+CREATE TABLE `funds` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`asking_price` varchar(20) NOT NULL,`backward_adjusted_close` varchar(20) NOT NULL,`forward_adjusted_close` varchar(20) NOT NULL,`dividend` varchar(20) NOT NULL,`capital_gain` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
+CREATE TABLE `products` (`product` varchar(20) NOT NULL,`name` varchar(100) NOT NULL,`table` varchar(20) NOT NULL,`type` varchar(20) NOT NULL,`asset_class` varchar(40) DEFAULT NULL,`min_tick` varchar(20) DEFAULT NULL,`min_tick_value` varchar(20) DEFAULT NULL,`conversion_factor` varchar(20) NOT NULL,`currency` varchar(20) NOT NULL,PRIMARY KEY (`product`));
 
-CREATE TABLE `mutual_funds` (`date` date NOT NULL,`product` varchar(20) DEFAULT NULL,`close` varchar(20) DEFAULT NULL,`backward_adjusted_close` varchar(20) DEFAULT NULL,`forward_adjusted_close` varchar(20) DEFAULT NULL,`dividend` varchar(20) DEFAULT NULL,`capital_gain` varchar(20) DEFAULT NULL,PRIMARY KEY (`date`,`product`))
+#CREATE INDEXES
+CREATE INDEX etfsIndex ON etfs (`date`, `product`);
+CREATE INDEX fundsIndex ON funds (`date`, `product`);
+CREATE INDEX productsIndex ON products (`product`);
 
-CREATE INDEX etfsIndex ON etfs (date, product)
-CREATE INDEX mutIndex ON mutual_funds (date, product)
+#LOAD DATA TO TABLE
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VTI.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VTV.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VOE.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VBR.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VEA.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VWO.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VXUS.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VT.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/IEMG.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/TIP.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VTIP.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/BND.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/MUB.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/LQD.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/BNDX.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VWOB.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/SHV.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/AQRIX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/AQMIX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/QGMIX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/SRPFX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ABRZX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+
+#ADD ENTRIES TO 'products' TABLE
+insert into products values ('VTI','VANGUARD TOT STK MKT IDX VIPER','etfs','etf','','','','1','USD','AMEX');
+insert into products values ('VTV','VANGUARD VALUE ETF','etfs','etf','','','','1','USD','AMEX');
+insert into products values ('VOE','Vanguard Mid-Cap Value','etfs','etf','','','','1','USD','AMEX');
+insert into products values ('VBR','VANGUARD SM CAP VAL ETF','etfs','etf','','','','1','USD','AMEX');
+insert into products values ('VEA','Vngrd Msci Ease','etfs','etf','','','','1','USD','AMEX');
+insert into products values ('VWO','Vngrd Ftse Em Mk','etfs','etf','','','','1','USD','AMEX');
+insert into products values ('VXUS','Vanguard Total International Stock ETF','etfs','etf','','','','1','USD','OTC');
+insert into products values ('VT','Vanguard Total World Stock','etfs','etf','','','','1','USD','NYSE');
+insert into products values ('IEMG','iShares Core MSCI Emerging Markets','etfs','etf','','','','1','USD','NYSE');
+insert into products values ('TIP','ISHARES TR LEHMAN TIPS BD FD','etfs','etf','','','','1','USD','NYSE');
+insert into products values ('VTIP','VANGUARD SHORT-TERM INFLATION-P','etfs','etf','','','','1','USD','OTC');
+insert into products values ('BND','Vanguard Total Bond Market','etfs','etf','','','','1','USD','NYSE');
+insert into products values ('MUB','iShares S&P National Municipal Bond Fund','etfs','etf','','','','1','USD','AMEX');
+insert into products values ('LQD','ISHARES IBOXX CP BD','etfs','etf','','','','1','USD','AMEX');
+insert into products values ('BNDX','Total Interl Etf','etfs','etf','','','','1','USD','OTC');
+insert into products values ('VWOB','Emrg Mkt Gvt Etf','etfs','etf','','','','1','USD','OTC');
+insert into products values ('SHV','iShares Lehman Short Treasury Bond Fund','etfs','etf','','','','1','USD','NYSE');
+
+insert into products values ('AQRIX','AQR Risk Parity Fund Class I','funds','fund','','','','1','USD','FUND');
+insert into products values ('AQMIX','AQR Managed Futures Fund Class I','funds','fund','','','','1','USD','FUND');
+insert into products values ('QGMIX','AQR Global Macro Fund Class I','funds','fund','','','','1','USD','FUND');
+insert into products values ('SRPFX','Salient Risk Parity Fund Class I','funds','fund','','','','1','USD','FUND');
+insert into products values ('ABRZX','Invesco Bal-Risk Alloc Fd Cl A','funds','fund','','','','1','USD','FUND');
 
 

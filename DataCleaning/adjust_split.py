@@ -6,15 +6,16 @@ import pandas as pd
 
 def adjust_for_splits( products, product_type ):
     path = '/home/cvdev/data/csi/CVHISTORICAL_STOCKS/'
-    prices_files = [ path+product[0]+'/'+product+'.csv' for product in products ]
-    split_files = [ path+product[0]+'/'+product+'.SPT' for product in products ]
-    for i in range(len(products)):
+    output_path = '/home/cvdev/stratdev/DataCleaning/Data/'
+    for product in products:
+        prices_file = path+product[0]+'/'+product+'.csv'
+        split_file = path+product[0]+'/'+product+'.SPT'
         if product_type == 'ETF':
-            df1 = pd.read_csv(prices_files[i],names=['date','open','high','low','close','volume','dividends'])
-            if not os.path.isfile(split_files[i]):
-                df1.to_csv(product+'_split_adjusted'+'.csv',index=False,header=False)
+            df1 = pd.read_csv(prices_file,names=['date','open','high','low','close','volume','dividend'])
+            if not os.path.isfile(split_file):
+                df1.to_csv(output_path+product+'_split_adjusted'+'.csv',index=False)
                 continue
-            df2 = pd.read_csv(split_files[i],names=['date','new','old'])
+            df2 = pd.read_csv(split_file,names=['date','new','old'])
             split_factor = 1.0
             for index, row in df2.iterrows():
                 split_factor = split_factor*(row['new']/row['old'])
@@ -23,19 +24,20 @@ def adjust_for_splits( products, product_type ):
                 df1.loc[ (df1.date < row['date']) ,'low'] /=split_factor
                 df1.loc[ (df1.date < row['date']) ,'open'] /=split_factor
                 df1.loc[ (df1.date < row['date']) ,'volume'] *=split_factor
-            df1.to_csv(product+'_split_adjusted'+'.csv',index=False,header=False)
+            df1.to_csv(output_path+product+'_split_adjusted'+'.csv',index=False)
         elif product_type == 'MF':
-            df1 = pd.read_csv(prices_files[i],names=['date','close','close1','close2','close3','dividends','capitalgain'])
-            df = df1[['date','close','dividends','capitalgain']]
-            if not os.path.isfile(split_files[i]):
-                df.to_csv(product+'_split_adjusted'+'.csv',index=False,header=False)
+            df1 = pd.read_csv(prices_file,names=['date','close','asking_price','close2','close3','dividend','capital_gain'])
+            df = df1[['date','close','asking_price','dividend','capital_gain']]
+            if not os.path.isfile(split_file):
+                df.to_csv(output_path+product+'_split_adjusted'+'.csv',index=False)
                 continue
-            df2 = pd.read_csv(split_files[i],names=['date','new','old'])
+            df2 = pd.read_csv(split_file,names=['date','new','old'])
             split_factor = 1.0
             for index, row in df2.iterrows():
                 split_factor = split_factor*(row['new']/row['old'])
                 df.loc[ (df.date < row['date']) ,'close'] /=split_factor
-            df.to_csv(product+'_split_adjusted'+'.csv',index=False,header=False)
+                df.loc[ (df.date < row['date']) ,'asking_price'] /=split_factor
+            df.to_csv(output_path+product+'_split_adjusted'+'.csv',index=False)
 
 def __main__() :
     if len( sys.argv ) > 1:

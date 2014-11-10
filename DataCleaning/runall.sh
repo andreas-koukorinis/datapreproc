@@ -6,3 +6,5 @@ python backward_dividend_adjust.py ETF VTI VTV VOE VBR VEA VWO VXUS VT IEMG TIP 
 python backward_dividend_adjust.py MF AQRIX AQMIX QGMIX SRPFX ABRZX
 python forward_dividend_adjust.py ETF VTI VTV VOE VBR VEA VWO VXUS VT IEMG TIP VTIP BND MUB LQD BNDX VWOB SHV
 python forward_dividend_adjust.py MF AQRIX AQMIX QGMIX SRPFX ABRZX
+python process_db.py ETF VTI VTV VOE VBR VEA VWO VXUS VT IEMG TIP VTIP BND MUB LQD BNDX VWOB SHV
+python process_db.py MF AQRIX AQMIX QGMIX SRPFX ABRZX
