@@ -26,6 +26,11 @@ def convert_to_year_month(YYMM):
         year = 2000 + yy
     return year*100 + mm
 
+def get_exchange_specific(YYMM):
+    YY,MM = YYMM[0:2],YYMM[2:4]
+    month_codes = {'01':'F','02':'G','03':'H','04':'J','05':'K','06':'M','07':'N','08':'Q','09':'U','10':'V','11':'X','12':'Z'}
+    return month_codes[MM]+YY
+    
 def process_futures(num_contracts,product,to_name):
     path = '/home/cvdev/data/csi/historical_futures1/'
     output_path = '/home/cvdev/stratdev/DataCleaning/Data/'
@@ -39,7 +44,7 @@ def process_futures(num_contracts,product,to_name):
     file_handlers = []
     output_dfs = []
     for ticker in generic_tickers:
-        output_dfs.append(pd.DataFrame(columns=('date', 'product', 'base_product','specific_ticker', 'open', 'high', 'low', 'close', 'contract_volume','contract_oi','total_volume','total_oi')))
+        output_dfs.append(pd.DataFrame(columns=('date', 'product','specific_ticker', 'open', 'high', 'low', 'close', 'contract_volume','contract_oi','total_volume','total_oi')))
     input_dfs = {}
     for filename in os.listdir(directory):
         fullname = directory+filename
@@ -73,7 +78,8 @@ def process_futures(num_contracts,product,to_name):
             for j in range( len(generic_tickers) ):
                 YYMM = sorted_labels[current_idx + j] 
                 row = input_dfs[YYMM].loc[current_date]
-                output_dfs[j].loc[len(output_dfs[j])+1] = [ str(current_date), generic_to_name[j], generic_to_name[j].rstrip('0123456789'), generic_to_name[j].rstrip('0123456789')+'_'+YYMM,row['open'], row['high'], row['low'], row['close'], row['contract_volume'], row['contract_oi'], row['total_volume'], row['total_oi']]
+                get_exchange_specific(YYMM)                
+                output_dfs[j].loc[len(output_dfs[j])+1] = [ str(current_date), generic_to_name[j], generic_to_name[j].rstrip('0123456789')+'_'+get_exchange_specific(YYMM),row['open'], row['high'], row['low'], row['close'], row['contract_volume'], row['contract_oi'], row['total_volume'], row['total_oi']]
         elif not inall and insome:
             print 'skipping %s'%(str(current_date))
     for i in range(len(generic_tickers)):

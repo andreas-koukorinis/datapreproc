@@ -2,11 +2,16 @@
 CREATE TABLE `etfs` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`backward_adjusted_close` varchar(20) NOT NULL,`forward_adjusted_close` varchar(20) NOT NULL,`volume` varchar(20) NOT NULL,`dividend` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
 CREATE TABLE `funds` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`asking_price` varchar(20) NOT NULL,`backward_adjusted_close` varchar(20) NOT NULL,`forward_adjusted_close` varchar(20) NOT NULL,`dividend` varchar(20) NOT NULL,`capital_gain` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
 CREATE TABLE `products` (`product` varchar(20) NOT NULL,`name` varchar(100) NOT NULL,`table` varchar(20) NOT NULL,`type` varchar(20) NOT NULL,`asset_class` varchar(40) DEFAULT NULL,`min_tick` varchar(20) DEFAULT NULL,`min_tick_value` varchar(20) DEFAULT NULL,`conversion_factor` varchar(20) NOT NULL,`currency` varchar(20) NOT NULL,PRIMARY KEY (`product`));
+CREATE TABLE `currency_rates` (`currency` varchar(20) NOT NULL,`rate` varchar(20) NOT NULL,PRIMARY KEY (`currency`));
+CREATE TABLE `us_futures` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`specific_ticker` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`contract_volume` varchar(20) NOT NULL,`contract_oi` varchar(20) NOT NULL,`total_volume` varchar(20) NOT NULL,`total_oi` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
+CREATE TABLE `euro_futures` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`specific_ticker` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`contract_volume` varchar(20) NOT NULL,`contract_oi` varchar(20) NOT NULL,`total_volume` varchar(20) NOT NULL,`total_oi` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
 
 #CREATE INDEXES
 CREATE INDEX etfsIndex ON etfs (`date`, `product`);
 CREATE INDEX fundsIndex ON funds (`date`, `product`);
 CREATE INDEX productsIndex ON products (`product`);
+CREATE INDEX us_futuresIndex ON us_futures (`product`);
+CREATE INDEX euro_futuresIndex ON euro_futures (`product`);
 
 #LOAD DATA TO TABLE
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VTI.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
@@ -32,6 +37,13 @@ LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/QGMIX.csv' INTO T
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/SRPFX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ABRZX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ES1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ES2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ZN1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ZN2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FGBL1.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FGBL2.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+
 #ADD ENTRIES TO 'products' TABLE
 insert into products values ('VTI','VANGUARD TOT STK MKT IDX VIPER','etfs','etf','','','','1','USD','AMEX');
 insert into products values ('VTV','VANGUARD VALUE ETF','etfs','etf','','','','1','USD','AMEX');
@@ -56,3 +68,10 @@ insert into products values ('AQMIX','AQR Managed Futures Fund Class I','funds',
 insert into products values ('QGMIX','AQR Global Macro Fund Class I','funds','fund','','','','1','USD','FUND');
 insert into products values ('SRPFX','Salient Risk Parity Fund Class I','funds','fund','','','','1','USD','FUND');
 insert into products values ('ABRZX','Invesco Bal-Risk Alloc Fd Cl A','funds','fund','','','','1','USD','FUND');
+
+insert into products values ('ES1','E-mini S&P 500 Index future 1','us_futures','future','equity_index','1','50','50','USD','CME');
+insert into products values ('ES2','E-mini S&P 500 Index future 2','us_futures','future','equity_index','1','50','50','USD','CME');
+insert into products values ('ZN1','US 10 Yr Treasury Bond Future 1','us_futures','future','commodity','0.015625','15.625','50','USD','CBT');
+insert into products values ('ZN2','US 10 Yr Treasury Bond Future 2','us_futures','future','commodity','0.015625','15.625','50','USD','CBT');
+insert into products values ('FGBL1','Euro German Bund-EUREX','euro_futures','future','commodity','0.01','10','1000','EUR','CBT');
+insert into products values ('FGBL2','Euro German Bund-EUREX','euro_futures','future','commodity','0.01','10','1000','EUR','CBT');
