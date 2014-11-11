@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd /home/cvdev/data/csi/
+cd /home/cvdev/stratdev/DataCleaning/csi_scripts/
 
 for f in canada.`date +%Y%m%d -d "yesterday"`.gz f-indices.`date +%Y%m%d -d "yesterday"`.gz funds.`date +%Y%m%d -d "yesterday"`.gz futures.`date +%Y%m%d -d "yesterday"`.gz indices.`date +%Y%m%d -d "yesterday"`.gz uk-stocks.`date +%Y%m%d -d "yesterday"`.gz us-stocks.`date +%Y%m%d -d "yesterday"`.gz
 do

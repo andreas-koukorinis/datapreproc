@@ -44,7 +44,7 @@ def process_futures(num_contracts,product,to_name):
     file_handlers = []
     output_dfs = []
     for ticker in generic_tickers:
-        output_dfs.append(pd.DataFrame(columns=('date', 'product','specific_ticker', 'open', 'high', 'low', 'close', 'contract_volume','contract_oi','total_volume','total_oi')))
+        output_dfs.append(pd.DataFrame(columns=('date', 'product','specific_ticker', 'open', 'high', 'low', 'close', '_is_last_trading_day', 'contract_volume','contract_oi','total_volume','total_oi')))
     input_dfs = {}
     for filename in os.listdir(directory):
         fullname = directory+filename
@@ -75,11 +75,15 @@ def process_futures(num_contracts,product,to_name):
             else:
                 inall = False
         if inall:
+            if settlement_dates[current_idx]==current_date:
+                _is_last_trading_day = 1
+            else:
+                _is_last_trading_day = 0
             for j in range( len(generic_tickers) ):
                 YYMM = sorted_labels[current_idx + j] 
                 row = input_dfs[YYMM].loc[current_date]
                 get_exchange_specific(YYMM)                
-                output_dfs[j].loc[len(output_dfs[j])+1] = [ str(current_date), generic_to_name[j], generic_to_name[j].rstrip('0123456789')+'_'+get_exchange_specific(YYMM),row['open'], row['high'], row['low'], row['close'], row['contract_volume'], row['contract_oi'], row['total_volume'], row['total_oi']]
+                output_dfs[j].loc[len(output_dfs[j])+1] = [ str(current_date), generic_to_name[j], generic_to_name[j].rstrip('0123456789')+get_exchange_specific(YYMM),row['open'], row['high'], row['low'], row['close'], _is_last_trading_day, row['contract_volume'], row['contract_oi'], row['total_volume'], row['total_oi']]
         elif not inall and insome:
             print 'skipping %s'%(str(current_date))
     for i in range(len(generic_tickers)):
