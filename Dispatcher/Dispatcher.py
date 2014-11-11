@@ -2,7 +2,7 @@ import sys
 from datetime import datetime,timedelta
 import heapq
 import MySQLdb
-from Utils.DbQueries import db_connect,db_close,check_settlement_day
+from Utils.DbQueries import push_all_events
 from Utils.Regular import get_dt_from_date,check_eod
 
 '''The job of the dispatcher is :
@@ -33,7 +33,6 @@ class Dispatcher (object):
         self.sim_start_dt = self.start_dt + timedelta (days=-warmupdays)
         self.products = products
         self.heap = []	# Initialize the heap, heap will contain tuples of the form (timestamp,event)
-        (self.dbconn, self.db_cursor) = db_connect()  # Initialize the database cursor
         self.event_listeners = dict([(product,[]) for product in self.products])  # For each product,maintain a list of listeners
         self.events_listeners = []  # These are the listeners which receive all the concurrent events at once.Here Strategy only
         self.end_of_day_listeners = []  # These are the listeners called on eand of each trading day.Here Performance Tracker
@@ -92,76 +91,8 @@ class Dispatcher (object):
                 #for _product in self.products :
                 #    self.push_daily_event ( _product, current_dt + timedelta(days=1) )
             if(last): break # if we have surpassed end_date,stop the simulation
-        db_close(self.dbconn)
 
-    #Initialize the heap with 1 event for each source closest to startdate
+    #Initialize the heap with all end of day events
     #TODO:Add intraday events also to the heap
     def heap_initialize(self,products):
-        #Push DB EOD sources
-        for _product in self.products:
-            # Earlier we were pushing only the first event
-            # self.pushdailyevent(_product, start_dt)
-            # TODO { gchak } fetch all data for this product, not just first
-            # and make events
-            try:
-                if(_product[0]=='f'):
-                    _table_name = _product.rstrip('1234567890').lstrip('f')
-                    _query = "SELECT Date," + _product.lstrip('f') + ",Spec FROM " + _table_name + " WHERE Date >= '" + str(self.sim_start_dt.date())+"' AND Date <= '" + str( ( self.end_dt_sim ).date() ) + "' ORDER BY Date";
-                    self.db_cursor.execute(_query)
-                    _data_list = self.db_cursor.fetchall() #should check if data exists or not
-                    for _data_list_index in xrange ( 0, len(_data_list) ) :
-                        _data_item = _data_list [ _data_list_index ]
-                        _data_item_datetime = datetime.combine ( _data_item[0], datetime.max.time() )
-                        _data_item_price = float(_data_item[1])
-                        _data_item_symbol = _data_item[2]
-                        _is_last_trading_day = False
-                        if((_product[0] == 'f' ) and ( _data_list_index < ( len(_data_list) - 1 ) ) and ( _data_item_symbol != _data_list [ _data_list_index + 1 ][2] and _data_item_symbol != '#NA' and _data_list [ _data_list_index + 1 ][2] !='#NA' and len(_data_item_symbol)>0 and len(_data_list[_data_list_index+1][2])>0)): # To take care of '' and '#NA' present in Specific Symbol
-                            _is_last_trading_day = True
-                        _event = {'price': _data_item_price, 'product':_product, 'type':'ENDOFDAY', 'dt':_data_item_datetime, 'table':_table_name, 'is_last_trading_day':_is_last_trading_day}
-                        heapq.heappush ( self.heap, ( _data_item_datetime, _event ) )
-                else:
-                    _table_name = _product
-                    _query = "SELECT Date," + _product + " FROM " + _table_name + " WHERE Date >= '" + str(self.sim_start_dt.date())+"' AND Date <= '" + str( ( self.end_dt_sim ).date() ) + "' ORDER BY Date";
-                    self.db_cursor.execute(_query)
-                    _data_list = self.db_cursor.fetchall() #should check if data exists or not
-                    for _data_list_index in xrange ( 0, len(_data_list) ) :
-                        _data_item = _data_list [ _data_list_index ]
-                        _data_item_datetime = datetime.combine ( _data_item[0], datetime.max.time() )
-                        _data_item_price = float(_data_item[1])
-                        _is_last_trading_day = False
-                        _event = {'price': _data_item_price, 'product':_product, 'type':'ENDOFDAY', 'dt':_data_item_datetime, 'table':_table_name, 'is_last_trading_day':_is_last_trading_day}
-                        heapq.heappush ( self.heap, ( _data_item_datetime, _event ) )
-
-            except MySQLdb.Error, e:
-                try:
-                    print "MySQL Error [%d]: %s" % (e.args[0], e.args[1])
-                except IndexError:
-                    print "MySQL Error: %s" % str(e)
-                sys.exit("Error In DB.fetchall")
-                # TODO {} log error in logfile and gracefully exit
-
-        # TODO {} Push FLAT FILE sources
-
-
-    # Given a product name and a timestamp(dt),fetch the next eligible ENDOFDAY event from the database
-    # Settlement day for each future roduct is tracked,so that Daily log returns can be calculated properly and shifting on settlement day can be done
-    def push_daily_event(self,product,dt):
-        (date,price) = self.fetch_next_db ( product.rstrip('1234567890').lstrip('f'), product, dt)
-        if(product[0]=='f'):
-            is_last_trading_day = check_settlement_day ( self.db_cursor, product, date)
-        else:
-            is_last_trading_day = False
-        dt = get_dt_from_date(date)
-        event = {'price': price, 'product':product, 'type':'ENDOFDAY', 'dt':dt, 'table':product.rstrip('1234567890').lstrip('f'),'is_last_trading_day':is_last_trading_day}
-        heapq.heappush ( self.heap, (dt,event) )
-
-    # Given the tablename,product and datetime,fetch 1 record from the product's table with the least date greater than the given date
-    # ASSUMPTION :Since db contains only dates,therefore convert given datetime to date and compare
-    def fetch_next_db(self,table,product,dt):
-        try:
-            _query = "SELECT Date,"+product.lstrip('f')+" FROM "+table+" WHERE Date >= '"+str(dt.date())+"' ORDER BY Date LIMIT 1"
-            self.db_cursor.execute(_query)
-            data = self.db_cursor.fetchall() # Should check if data exists or not
-            return (str(data[0][0]),float(data[0][1]))
-        except:
-            sys.exit("Error In DB.fetchnext")
+        push_all_events(self.heap, products, self.sim_start_dt.date(), self.end_dt_sim.date())     
