@@ -172,7 +172,9 @@ def daily_update(filename,products):
                 split_quote(date,record)
 
         elif record[0]=='09': #Error Correction record
-            error_correction_quote(date,record)            
+            symbol = record[2]
+            if len(products)==0 or symbol in products:
+                error_correction_quote(date,record)            
 
         elif record[0]=='11': #Fact sheet modifications
             continue
