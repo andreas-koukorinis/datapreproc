@@ -2,7 +2,7 @@ import sys
 from datetime import datetime
 import re
 
-# Returns the full list of products  with fES1 and fES2 trated separately
+# Returns the full list of products  with fES_1 and fES_2 treated separately
 # Products which are not traded but have indicators based on them are also included 
 def get_all_products( _config ):
     _trade_products = _config.get( 'Products', 'trade_products' ).split(',')
@@ -19,7 +19,7 @@ def get_real_traded_products( _traded_products ):
     _real_traded_products = []
     for product in _traded_products:
         if is_future_entity( product ):
-            _real_traded_products.extend([product+'1',product+'2']) 
+            _real_traded_products.extend([get_first_futures_contract(product),get_second_futures_contract(product)]) 
         else:
             _real_traded_products.append(product)
     return _real_traded_products
@@ -64,24 +64,30 @@ def is_future_entity( product ):
     return is_future(product) and product[-1] not in map(str,range(0,10))
 
 def get_base_symbol( product ):
-    return product.rstrip( '0123456789' )
+    return product.rsplit('_',1)[0]
 
-#Given a future entity symbol like fES, returns the symbol of the first futures contract like fES1
+#Given a future entity symbol like fES, returns the symbol of the first futures contract like fES_1
 def get_first_futures_contract( _base_symbol ):
-    return _base_symbol + '1'
+    return _base_symbol + '_1'
+
+def get_second_futures_contract( _base_symbol ):
+    return _base_symbol + '_2'
+
+def get_future_contract_number(product):
+    return int(product.rsplit('_',1)[1])
 
 # Given a futures contract symbol,return the symbol of the next futures contract
 def get_next_futures_contract( product ):
-    _base_symbol = product.rstrip( '0123456789' )
-    num = int( next( re.finditer( r'\d+$', product ) ).group( 0 ) ) #num is the number at the end of a symbol.EG:1 for fES1
-    _next_contract_symbol = _base_symbol + str( num + 1 )     
+    _base_symbol = get_base_symbol(product)
+    num = get_future_contract_number(product) #num is the number at the end of a symbol.EG:1 for fES_1
+    _next_contract_symbol = _base_symbol + '_' + str( num + 1 )     
     return _next_contract_symbol
 
 # Given a futures contract symbol,return the symbol of the previous futures contract
 def get_prev_futures_contract( product ):
-    _base_symbol = product.rstrip( '0123456789' )
-    num = int( next( re.finditer( r'\d+$', product ) ).group( 0 ) ) #num is the number at the end of a symbol.EG:1 for fES1
-    _prev_contract_symbol = _base_symbol + str( num - 1 )
+    _base_symbol = get_base_symbol(product)
+    num = get_future_contract_number(product) #num is the number at the end of a symbol.EG:1 for fES_1
+    _prev_contract_symbol = _base_symbol + '_' + str( num - 1 )
     return _prev_contract_symbol
 
 def get_future_mappings( all_products ):

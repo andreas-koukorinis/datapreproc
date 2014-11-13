@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 import sys
+import datetime
 from calendar import monthrange
 
 month_codes = { '1' : 'F', '2' : 'G', '3' : 'H', '4' : 'J', '5' : 'K',  '6' : 'M', '7' : 'N', '8' : 'Q', '9' : 'U', '10' : 'V', '11' : 'X', '12' : 'Z' }
 day_codes = { 'SUNDAY': 6, 'MONDAY': 0, 'TUESDAY': 1, 'WEDNESDAY': 2, 'THURSDAY': 3, 'FRIDAY': 4, 'SATURDAY': 5 }
 
 def get_date_from_nth_day_of_month_year(n, day, month, year):
+    n -= 1
     day = day_codes[day]
     begining_of_month_day, num_days_in_month = monthrange(year, month)
     firstmatch = (day - begining_of_month_day) % 7 + 1
-    return xrange(firstmatch, num_days_in_month + 1, 7)[n]
-
+    day = xrange(firstmatch, num_days_in_month + 1, 7)[n]
+    return datetime.date(year=year,day=day,month=month)
 
 class ExchangeSymbolManager():
     def __init__( product, date ):
@@ -33,11 +35,12 @@ class ExchangeSymbolManager():
             return str(yy)
 
     def get_date_from_nth_day_of_month_year(n, day, month, year):
-        n += 1
+        n -= 1
         day = self.day_codes[day]
         begining_of_month_day, num_days_in_month = monthrange(year, month)
         firstmatch = (day - begining_of_month_day) % 7 + 1
         day = xrange(firstmatch, num_days_in_month + 1, 7)[n]
+        return datetime.date(year=year,day=day,month=month)
 
     def is_cme_month( _basename, _this_month ):
         if _basename == "CL" :

@@ -20,7 +20,7 @@ def __main__() :
         _end_date = sys.argv[3]
     else :
         _start_date = _config.get( 'Dates', 'start_date' )
-        _end_date = _config.get( 'Dates', 'end_date' )
+        _end_date = _confi_all_productsg.get( 'Dates', 'end_date' )
 
     # Read product list from config file
     _trade_products = _config.get( 'Products', 'trade_products' ).strip().split(",")

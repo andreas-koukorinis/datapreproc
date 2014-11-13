@@ -19,15 +19,22 @@ class ExecLogic( SettlementListener ):
         self.capital_reduction = 1.0
         self.risk_manager = RiskManager( performance_tracker, _config )
         self.trading_status = True
+        self.adjusted_for_settlement = {}
         for product in all_products:
             if is_future( product ):
                 BookBuilder.get_unique_instance( product, _startdate, _enddate, _config ).add_settlement_listener( self )
+                self.adjusted_for_settlement[product] = False
 
     def rollover( self, dt ):
         if not self.trading_status: return
         self.update_risk_status( dt )
+        positions_to_take = {}
         if self.trading_status:
-            positions_to_take = dict( [ ( product, self.portfolio.num_shares[product]* self.capital_reduction ) for product in self.all_products ] )
+            for product in self.all_products:
+                to_be_filled = 0
+                for order in self.order_manager.backtesters[product].pending_orders:
+                    to_be_filled = to_be_filled + order['amount']
+                positions_to_take[product] = self.portfolio.get_portfolio()['num_shares'][product] + to_be_filled
             current_prices = get_current_prices( self.bb_objects )
             new_positions_to_take = self.adjust_positions_for_settlements ( current_prices, positions_to_take )
             for product in self.all_products:
@@ -98,12 +105,15 @@ class ExecLogic( SettlementListener ):
         return weights
         
     def after_settlement_day( self, product ):
+        self.adjusted_for_settlement[product] = False
         self.to_flip_settlement[product] = True
         _base_symbol = get_base_symbol( product )
         all_done = True
         for product in self.future_mappings[_base_symbol]:
             all_done = self.to_flip_settlement[product] and all_done
         if all_done:
+            if self.portfolio.num_shares[get_first_futures_contract(_base_symbol)] != 0:
+                sys.exit( 'ERROR : exec_logic -> after_settlement_day -> orders not placed properly -> first futures contract of %s has non zero shares after settlement day' % _base_symbol )
             shift_future_symbols( self.portfolio, self.future_mappings[_base_symbol] )
             for product in self.future_mappings[_base_symbol]:
                 self.to_flip_settlement[product] = False

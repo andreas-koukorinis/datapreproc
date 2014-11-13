@@ -1,7 +1,7 @@
 #CREATE TABLES
 CREATE TABLE `etfs` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`backward_adjusted_close` varchar(20) NOT NULL,`forward_adjusted_close` varchar(20) NOT NULL,`volume` varchar(20) NOT NULL,`dividend` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
 CREATE TABLE `funds` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`asking_price` varchar(20) NOT NULL,`backward_adjusted_close` varchar(20) NOT NULL,`forward_adjusted_close` varchar(20) NOT NULL,`dividend` varchar(20) NOT NULL,`capital_gain` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
-CREATE TABLE `products` (`product` varchar(20) NOT NULL,`name` varchar(100) NOT NULL,`table` varchar(20) NOT NULL,`type` varchar(20) NOT NULL,`asset_class` varchar(40) DEFAULT NULL,`min_tick` varchar(20) DEFAULT NULL,`min_tick_value` varchar(20) DEFAULT NULL,`conversion_factor` varchar(20) NOT NULL,`currency` varchar(20) NOT NULL,PRIMARY KEY (`product`));
+CREATE TABLE `products` (`product` varchar(20) NOT NULL,`csi_number` varchar(20),`csi_symbol` varchar(20),`name` varchar(100) NOT NULL,`table` varchar(20) NOT NULL,`type` varchar(20) NOT NULL,`asset_class` varchar(40) DEFAULT NULL,`min_tick` varchar(20) DEFAULT NULL,`min_tick_value` varchar(20) DEFAULT NULL,`conversion_factor` varchar(20) NOT NULL,`currency` varchar(20) NOT NULL,`exchange` varchar(20),PRIMARY KEY (`product`));
 CREATE TABLE `currency_rates` (`currency` varchar(20) NOT NULL,`rate` varchar(20) NOT NULL,PRIMARY KEY (`currency`));
 CREATE TABLE `us_futures` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`specific_ticker` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`is_last_trading_day` varchar(5) NOT NULL, `contract_volume` varchar(20) NOT NULL,`contract_oi` varchar(20) NOT NULL,`total_volume` varchar(20) NOT NULL,`total_oi` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
 CREATE TABLE `euro_futures` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`specific_ticker` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`is_last_trading_day` varchar(5) NOT NULL,`contract_volume` varchar(20) NOT NULL,`contract_oi` varchar(20) NOT NULL,`total_volume` varchar(20) NOT NULL,`total_oi` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
@@ -37,41 +37,72 @@ LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/QGMIX.csv' INTO T
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/SRPFX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ABRZX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 
-LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ES1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
-LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ES2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
-LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ZN1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
-LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ZN2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
-LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FGBL1.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
-LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FGBL2.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ES_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ES_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ZN_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ZN_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FGBL_1.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FGBL_2.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6E_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/E7_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6J_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/J7_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6A_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6B_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6C_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6E_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/E7_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6J_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/J7_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6A_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6B_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6C_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+
 
 #ADD ENTRIES TO 'products' TABLE
-insert into products values ('VTI','VANGUARD TOT STK MKT IDX VIPER','etfs','etf','','','','1','USD','AMEX');
-insert into products values ('VTV','VANGUARD VALUE ETF','etfs','etf','','','','1','USD','AMEX');
-insert into products values ('VOE','Vanguard Mid-Cap Value','etfs','etf','','','','1','USD','AMEX');
-insert into products values ('VBR','VANGUARD SM CAP VAL ETF','etfs','etf','','','','1','USD','AMEX');
-insert into products values ('VEA','Vngrd Msci Ease','etfs','etf','','','','1','USD','AMEX');
-insert into products values ('VWO','Vngrd Ftse Em Mk','etfs','etf','','','','1','USD','AMEX');
-insert into products values ('VXUS','Vanguard Total International Stock ETF','etfs','etf','','','','1','USD','OTC');
-insert into products values ('VT','Vanguard Total World Stock','etfs','etf','','','','1','USD','NYSE');
-insert into products values ('IEMG','iShares Core MSCI Emerging Markets','etfs','etf','','','','1','USD','NYSE');
-insert into products values ('TIP','ISHARES TR LEHMAN TIPS BD FD','etfs','etf','','','','1','USD','NYSE');
-insert into products values ('VTIP','VANGUARD SHORT-TERM INFLATION-P','etfs','etf','','','','1','USD','OTC');
-insert into products values ('BND','Vanguard Total Bond Market','etfs','etf','','','','1','USD','NYSE');
-insert into products values ('MUB','iShares S&P National Municipal Bond Fund','etfs','etf','','','','1','USD','AMEX');
-insert into products values ('LQD','ISHARES IBOXX CP BD','etfs','etf','','','','1','USD','AMEX');
-insert into products values ('BNDX','Total Interl Etf','etfs','etf','','','','1','USD','OTC');
-insert into products values ('VWOB','Emrg Mkt Gvt Etf','etfs','etf','','','','1','USD','OTC');
-insert into products values ('SHV','iShares Lehman Short Treasury Bond Fund','etfs','etf','','','','1','USD','NYSE');
+insert into products values ('VTI','13541','VTI','VANGUARD TOT STK MKT IDX VIPER','etfs','etf','equity','1','1','1','USD','AMEX');
+insert into products values ('VTV','56229','VTV','VANGUARD VALUE ETF','etfs','etf','equity','1','1','1','USD','AMEX');
+insert into products values ('VOE','56595','VOE','Vanguard Mid-Cap Value','etfs','etf','equity','1','1','1','USD','AMEX');
+insert into products values ('VBR','56233','VBR','VANGUARD SM CAP VAL ETF','etfs','etf','equity','1','1','1','USD','AMEX');
+insert into products values ('VEA','56883','VEA','Vngrd Msci Eafe','etfs','etf','equity','1','1','1','USD','AMEX');
+insert into products values ('VWO','56417','VWO','Vngrd Ftse Em Mk','etfs','etf','equity','1','1','1','USD','AMEX');
+insert into products values ('VXUS','97745','VXUS','Vanguard Total International Stock ETF','etfs','etf','equity','1','1','1','USD','OTC');
+insert into products values ('VT','86470','VT','Vanguard Total World Stock','etfs','etf','equity','1','1','1','USD','NYSE');
+insert into products values ('IEMG','112121','IEMG','Ishares Core MSCI Emerging Markets','etfs','etf','equity','1','1','1','USD','NYSE');
+insert into products values ('TIP','61556','TIP','ISHARES TR LEHMAN TIPS BD FD','etfs','etf','equity','1','1','1','USD','NYSE');
+insert into products values ('VTIP','112061','VTIP','VANGUARD SHORT-TERM INFLATION-P','etfs','etf','equity','1','1','1','USD','OTC');
+insert into products values ('BND','69391','BND','Vanguard Total Bond Market','etfs','etf','equity','1','1','1','USD','NYSE');
+insert into products values ('MUB','56899','MUB','Ishares S&P National Municipal Bond Fund','etfs','etf','equity','1','1','1','USD','AMEX');
+insert into products values ('LQD','13965','LQD','ISHARES IBOXX CP BD','etfs','etf','equity','1','1','1','USD','AMEX');
+insert into products values ('BNDX','116214','BNDX','Total Interl Etf','etfs','etf','equity','1','1','1','USD','OTC');
+insert into products values ('VWOB','116213','VWOB','Emrg Mkt Gvt Etf','etfs','etf','equity','1','1','1','USD','OTC');
+insert into products values ('SHV','69343','SHV','Ishares Lehman Short Treasury Bond Fund','etfs','etf','equity','1','1','1','USD','NYSE');
 
-insert into products values ('AQRIX','AQR Risk Parity Fund Class I','funds','fund','','','','1','USD','FUND');
-insert into products values ('AQMIX','AQR Managed Futures Fund Class I','funds','fund','','','','1','USD','FUND');
-insert into products values ('QGMIX','AQR Global Macro Fund Class I','funds','fund','','','','1','USD','FUND');
-insert into products values ('SRPFX','Salient Risk Parity Fund Class I','funds','fund','','','','1','USD','FUND');
-insert into products values ('ABRZX','Invesco Bal-Risk Alloc Fd Cl A','funds','fund','','','','1','USD','FUND');
+insert into products values ('AQRIX','95772','AQRIX','AQR Risk Parity Fund Class I','funds','fund','fund','1','1','1','USD','MUTUAL');
+insert into products values ('AQMIX','91380','AQMIX','AQR Managed Futures Fund Class I','funds','fund','fund','1','1','1','USD','MUTUAL');
+insert into products values ('QGMIX','119349','QGMIX','AQR Global Macro Fund Class I','funds','fund','fund','1','1','1','USD','MUTUAL');
+insert into products values ('SRPFX','102939','SRPFX','Salient Risk Parity Fund Class I','funds','fund','fund','1','1','1','USD','MUTUAL');
+insert into products values ('ABRZX','89437','ABRZX','Invesco Bal-Risk Alloc Fd Cl A','funds','fund','fund','1','1','1','USD','MUTUAL');
 
-insert into products values ('ES1','E-mini S&P 500 Index future 1','us_futures','future','equity_index','1','50','50','USD','CME');
-insert into products values ('ES2','E-mini S&P 500 Index future 2','us_futures','future','equity_index','1','50','50','USD','CME');
-insert into products values ('ZN1','US 10 Yr Treasury Bond Future 1','us_futures','future','commodity','0.015625','15.625','50','USD','CBT');
-insert into products values ('ZN2','US 10 Yr Treasury Bond Future 2','us_futures','future','commodity','0.015625','15.625','50','USD','CBT');
-insert into products values ('FGBL1','Euro German Bund-EUREX','euro_futures','future','commodity','0.01','10','1000','EUR','CBT');
-insert into products values ('FGBL2','Euro German Bund-EUREX','euro_futures','future','commodity','0.01','10','1000','EUR','CBT');
+insert into products values ('FGBL_1','552','EBL','Euro German Bund-EUREX Future 1','euro_futures','future','commodity','0.010000','10.000000','1000.000000','EUR','EUREX');
+insert into products values ('FGBL_2','552','EBL','Euro German Bund-EUREX Future 1','euro_futures','future','commodity','0.010000','10.000000','1000.000000','EUR','EUREX');
+insert into products values ('ES_1','487','ES','E-mini S&P 500 Future 1','us_futures','future','equity_index','0.250000','12.500000','50.000000','USD','CME');
+insert into products values ('ES_2','487','ES','E-mini S&P 500 Future 1','us_futures','future','equity_index','0.250000','12.500000','50.000000','USD','CME');
+insert into products values ('ZN_1','802','ZN','T-Note-US 10 Yr-GLOBEX Future 1','us_futures','future','commodity','0.015625','15.625000','1000.000000','USD','GLBX');
+insert into products values ('ZN_2','802','ZN','T-Note-US 10 Yr-GLOBEX Future 1','us_futures','future','commodity','0.015625','15.625000','1000.000000','USD','GLBX');
+
+insert into products values ('6E_1','876','CU1','Euro Future 1','us_futures','future','currency','0.000100','12.500000','125000.000000','USD','GLBX');
+insert into products values ('6E_2','876','CU1','Euro Future 1','us_futures','future','currency','0.000100','12.500000','125000.000000','USD','GLBX');
+insert into products values ('E7_1','499','EX','Euro E-mini -CME Future 1','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','CME');
+insert into products values ('E7_2','499','EX','Euro E-mini -CME Future 1','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','CME');
+insert into products values ('6J_1','877','JY1','Japanese Yen Future 1','us_futures','future','currency','0.000100','12.500000','125000.000000','USD','GLBX');
+insert into products values ('6J_2','877','JY1','Japanese Yen Future 1','us_futures','future','currency','0.000100','12.500000','125000.000000','USD','GLBX');
+insert into products values ('J7_1','498','JT','Japanese Yen E-mini -CME Future 1','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','CME');
+insert into products values ('J7_2','498','JT','Japanese Yen E-mini -CME Future 1','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','CME');
+insert into products values ('6A_1','884','AD1','Australian Dollar-GLOBEX Future 1','us_futures','future','currency','0.000100','10.000000','100000.000000','USD','GLBX');
+insert into products values ('6A_2','884','AD1','Australian Dollar-GLOBEX Future 1','us_futures','future','currency','0.000100','10.000000','100000.000000','USD','GLBX');
+insert into products values ('6B_1','879','BP1','British Pound Future 1','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','GLBX');
+insert into products values ('6B_2','879','BP1','British Pound Future 1','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','GLBX');
+insert into products values ('6C_1','880','CD1','Canadian Dollar Future 1','us_futures','future','currency','0.000100','10.000000','100000.000000','USD','GLBX');
+insert into products values ('6C_2','880','CD1','Canadian Dollar Future 1','us_futures','future','currency','0.000100','10.000000','100000.000000','USD','GLBX');
