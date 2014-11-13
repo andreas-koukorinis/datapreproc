@@ -104,6 +104,8 @@ class ExecLogic( SettlementListener ):
         for product in self.future_mappings[_base_symbol]:
             all_done = self.to_flip_settlement[product] and all_done
         if all_done:
+            if self.portfolio.num_shares[get_first_futures_contract(_base_symbol)] != 0:
+                sys.exit( 'ERROR : exec_logic -> after_settlement_day -> orders not placed properly -> first futures contract of %s has non zero shares after settlement day' % _base_symbol )
             shift_future_symbols( self.portfolio, self.future_mappings[_base_symbol] )
             for product in self.future_mappings[_base_symbol]:
                 self.to_flip_settlement[product] = False
