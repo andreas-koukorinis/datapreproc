@@ -23,10 +23,14 @@ class TradeAlgorithm( EventsListener ):
         # TODO{sanchit} We should check if the input DailyIndicators is given before we 
         # do all this
         # Read indicator list from config file
-        indicators = _config.get( 'DailyIndicators', 'names' ).strip().split(" ")
-        # TODO{sanchit} Even if we have no indicators, we just write names=, 
-        # this tries to load a module.
-        # I think before every load_module we should check if the module name is valid or not ?
+        if _config.has_option('DailyIndicators', 'names'):
+            indicators = _config.get( 'DailyIndicators', 'names' )
+            if indicators:
+                indicators = indicators.strip().split(" ")
+            else:
+                indicators = []
+        else: 
+            indicators=[]
         self.daily_indicators = {}
         #Instantiate daily indicator objects
         for indicator in indicators:
