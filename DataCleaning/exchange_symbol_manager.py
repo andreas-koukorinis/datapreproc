@@ -230,7 +230,7 @@ class ExchangeSymbolManager():
         print 'UnHandled case: Using default'
         # Default day is 10th of month
         date = datetime.date(year=_next_cme_year,day=10,month=_next_cme_month)
-        date = date + datetime.timedalta( days=-1 )
+        date = date + datetime.timedelta( days=-1 )
         return date
 
     def get_eurex_last_trading_date( self, _basename, _next_eurex_month, _next_eurex_year ):
@@ -265,9 +265,112 @@ class ExchangeSymbolManager():
                 date += datetime.timedelta(days=-1)
                 while not self.is_eurex_exchange_date(_basename, date):
                     date += datetime.timedelta(days=-1)
-            return date        
+            return date       
+        print 'UnHandled case: Using default' 
         #Default case
         return datetime.date(year=_next_eurex_year,day=10,month=_next_eurex_month) # TODO check default day can be a holiday
+
+    def get_liffe_last_trading_date( self, _basename, _next_liffe_month, _next_liffe_year ):
+        if _basename in ['JFFCE','KFFTI','LFZ']:
+            date = self.get_date_from_nth_day_of_month_year(3, 'FRIDAY', _next_liffe_month, _next_liffe_year) # 3rd friday of that month of that year
+            date = date + datetime.timedelta(days=-1)
+            return date
+        if _basename == 'LFL':
+            date = self.get_date_from_nth_day_of_month_year(3, 'WEDNESDAY', _next_liffe_month, _next_liffe_year) # 3rd wednesday of that month of that year
+            date = date + datetime.timedelta(days=-1)
+            return date
+        if _basename == 'LFI':
+            date = self.get_date_from_nth_day_of_month_year(3, 'WEDNESDAY', _next_liffe_month, _next_liffe_year) # 3rd wednesday of that month of that year
+            date = date + datetime.timedelta(days=-3)
+            return date
+        if _basename == 'LFR':
+            date = datetime.date(day=1, month=_next_liffe_month, year=_next_liffe_year)
+            date = date + datetime.timedelta(days=-1)
+            weekday = date.weekday()
+            if weekday == 5: #If saturday
+                date = date + datetime.timedelta( days=-1)
+            if weekday == 6: #If sunday
+                date = date + datetime.timedelta( days=-2)
+            date = date + datetime.timedelta( days=-2) # TODO check -> can end up being saturday or sunday
+            return date
+        if _basename == 'XFC':
+            date = datetime.date(day=monthrange(_next_liffe_year,_next_liffe_month)[1], month=_next_liffe_month, year=_next_liffe_year)
+            skip_day = 0
+            while skip_day < 11:
+                weekday = date.weekday()
+                if weekday == 5: #If saturday
+                    date = date + datetime.timedelta( days=-1)
+                if weekday == 6: #If sunday
+                    date = date + datetime.timedelta( days=-2)
+                date = date + datetime.timedelta( days=-1)
+                skip_day += 1
+            date += datetime.timedelta(days=-40) # Based on volume shift pattern
+            weekday = date.weekday()
+            if weekday == 5: #If saturday
+                date = date + datetime.timedelta( days=-1)
+            if weekday == 6: #If sunday
+                date = date + datetime.timedelta( days=-2)
+            return date
+        if _basename == 'XFW':
+            date = datetime.date(day=1, month=_next_liffe_month, year=_next_liffe_year)
+            date = date + datetime.timedelta(days=-16) # Actual
+            date = date + datetime.timedelta(days=-40) # Based on volume shift pattern
+            weekday = date.weekday()
+            if weekday == 5: #If saturday
+                date = date + datetime.timedelta( days=-1)
+            if weekday == 6: #If sunday
+                date = date + datetime.timedelta( days=-2)
+            return date
+        if _basename == 'XFRC':
+            date = datetime.date(day=monthrange(_next_liffe_year,_next_liffe_month)[1], month=_next_liffe_month, year=_next_liffe_year) # Actual
+            date = date + datetime.timedelta(days=-40) # Based on volume shift pattern
+            weekday = date.weekday()
+            if weekday == 5: #If saturday
+                date = date + datetime.timedelta( days=-1)
+            if weekday == 6: #If sunday
+                date = date + datetime.timedelta( days=-2)
+            return date
+        if _basename == 'YFEBM':
+            date = datetime.date(day=10, month=_next_liffe_month, year=_next_liffe_year) # Actual
+            date = date + datetime.timedelta(days=-3) # Based on volume shift pattern
+            weekday = date.weekday()
+            if weekday == 5: #If saturday
+                date = date + datetime.timedelta( days=-1)
+            if weekday == 6: #If sunday
+                date = date + datetime.timedelta( days=-2)
+            return date
+        print 'UnHandled case: Using default'
+        #Default
+        return datetime.date(day=10, month=_next_liffe_month, year=_next_liffe_year)
+
+    def get_tmx_last_trading_date( self, _basename, _next_tmx_month, _next_tmx_year ):
+        if _basename == 'SXF':
+            date = self.get_date_from_nth_day_of_month_year(3, 'FRIDAY', _next_tmx_month, _next_tmx_year) # 3rd friday of that month of that year
+            while not self.is_tmx_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            date = date + datetime.timedelta( days=-1) # last trading day is one day prior
+            date = date + datetime.timedelta( days=-1) # Roll two more days before the last trading date based on observation
+            return date
+        if _basename in ['CGB','CGF','CGZ']:
+            date = datetime.date(day=1, month=_next_tmx_month, year=_next_tmx_year)
+            while not self.is_tmx_exchange_date( _basename, date ): # First Business day of month
+                date = date + datetime.timedelta( days=1 )
+            for i in range(0,5):
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_tmx_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+        if _basename == 'BAX':
+            date = self.get_date_from_nth_day_of_month_year(3, 'WEDNESDAY', _next_tmx_month, _next_tmx_year) # 3rd wednesday of that month of that year
+            for i in range(0,2): # Second london banking day prior
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_tmx_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            date = date + datetime.timedelta( days=-1)
+            return date
+        print 'UnHandled case: Using default'
+        # Default
+        return datetime.date(day=5, month=_next_tmx_month, year=_next_tmx_year)
 
     def get_next_cme_month( self, _basename, _next_cme_month, _next_cme_year ):
         if _basename == 'IBV':
@@ -335,15 +438,6 @@ class ExchangeSymbolManager():
                     _next_eurex_month += 1
         return ( _next_eurex_month, _next_eurex_year )
 
-    def get_next_tmx_month( self, _basename, _next_tmx_month, _next_tmx_year ):
-        if _next_tmx_month == 12:
-            _next_tmx_month = 3
-            _next_tmx_year += 1
-        else:
-            _next_tmx_month += 1
-            while not self.is_tmx_month( _basename, _next_tmx_month ):
-                _next_tmx_month += 1
-
     def get_next_liffe_month( self, _basename, _next_liffe_month, _next_liffe_year ):
         if _basename in ['LFR','LFZ','LFI','LFL']:
             if _next_liffe_month == 12:
@@ -371,6 +465,17 @@ class ExchangeSymbolManager():
                 _next_liffe_year += 1
             else:
                 _next_liffe_month += 1
+        return ( _next_liffe_month, _next_liffe_year )
+
+    def get_next_tmx_month( self, _basename, _next_tmx_month, _next_tmx_year ):
+        if _next_tmx_month == 12:
+            _next_tmx_month = 3
+            _next_tmx_year += 1
+        else:
+            _next_tmx_month += 1
+            while not self.is_tmx_month( _basename, _next_tmx_month ):
+                _next_tmx_month += 1
+        return ( _next_tmx_month, _next_tmx_year )
 
     def get_cme_symbol_from_last_trading_date ( self, _basename, _current_min_last_trading_date ): #TODO check why is this required
         _current_min_last_trading_date_mm = _current_min_last_trading_date.month
@@ -395,6 +500,22 @@ class ExchangeSymbolManager():
         _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
         return _basename + self.month_codes[str(_current_min_last_trading_date_mm)] + self.get_yy(_current_min_last_trading_date_yyyy)
 
+    def get_liffe_symbol_from_last_trading_date ( self, _basename, _current_min_last_trading_date ):
+        _this_local_trade_date = _current_min_last_trading_date
+        _current_month = _current_min_last_trading_date.month
+        _current_year = _current_min_last_trading_date.year
+        if _basename in ['LFR','XFC','XFRC']:
+            # Incrementing the Year is not required here, since the expiry based last trading date function will always return the correct Date from which we extract this expiry
+            _current_month += 1
+            if _current_month == 13:
+                _current_month = 1
+                _current_year += 1
+            _this_local_trade_date = datetime.date(day=1, year=_current_year, month=_current_month)
+        if _basename == 'XFW':
+            # Incrementing the Year is not required here, since the expiry based last trading date function will always return the correct Date from which we extract this expiry
+            _current_month += 2
+            _this_local_trade_date = datetime.date(day=1, year=_current_year, month=_current_month)
+        return _basename + self.month_codes[str(_current_month)] + self.get_yy(_current_year) # TODO liffe has a different convention for exchange symbol,need to change it: use _this_local_trade_date        
     def get_tmx_symbol_from_last_trading_date ( self, _basename, _current_min_last_trading_date ):
         _current_min_last_trading_date_mm = _current_min_last_trading_date.month
         _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
