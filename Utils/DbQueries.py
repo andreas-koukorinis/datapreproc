@@ -2,6 +2,7 @@ import sys
 import datetime
 import MySQLdb
 import heapq
+from Regular import is_future,get_base_symbol
 
 #Connect to the database and return the db cursor if the connection is successful
 def db_connect():
@@ -15,7 +16,40 @@ def db_close(db):
     cursor = db.cursor()
     cursor.close()
     del cursor
-    db.close()
+    db.close()    
+
+def get_last_trading_dates( products, _startdate, _enddate ):
+    products = [ product.lstrip('f') for product in products if is_future(product)] # Consider only the futures
+    (db,db_cursor) = db_connect()
+    _format_strings = ','.join(['%s'] * len(products))
+    query = "SELECT * FROM products WHERE product IN (" +_format_strings + ")" 
+    db_cursor.execute(query,tuple(products))
+    rows = db_cursor.fetchall()
+    tables = {}
+    types = {}
+    _last_trading_days = {}
+    _basenames = list( set ([ 'f'+get_base_symbol(product) for product in products ]) )
+    for _basename in _basenames:
+        _last_trading_days[_basename] = []
+    for row in rows:
+        tables[row['table']] = []
+        types[row['product']] = row['type']
+    for row in rows:
+        tables[row['table']].append(row['product'])
+    for table in tables.keys():
+        _format_strings = ','.join(['%s'] * len(tables[table]))
+        query = "SELECT * FROM %s WHERE product IN (%s) AND date >= '%s' AND date <= '%s' AND is_last_trading_day= '1.0'" % (table,_format_strings,_startdate, _enddate)
+        db_cursor.execute(query ,tuple(tables[table]))
+        rows = db_cursor.fetchall()
+        for row in rows:
+            product = row['product']
+            _product_type = types[product]
+            if _product_type == 'future': # Do not need to check
+                _last_trading_days['f'+get_base_symbol(product)].append(row['date']) 
+        for _basename in _basenames:
+            _last_trading_days[_basename] = sorted( list( set( _last_trading_days[_basename] ) ) )    
+    db_close(db)
+    return _last_trading_days
 
 def push_all_events( heap, products, _startdate, _enddate ):
     products = [ product.lstrip('f') for product in products ]
@@ -54,6 +88,7 @@ def push_all_events( heap, products, _startdate, _enddate ):
                     _is_last_trading_day = False
                 else:
                     _is_last_trading_day = True
+               
                 _event = {'product': 'f' + row['product'],'price': _price, 'type':'ENDOFDAY', 'dt':_dt,'product_type': types[row['product']], 'is_last_trading_day': _is_last_trading_day}                
             heapq.heappush ( heap, ( _dt, _event ) ) 
     db_close(db)
@@ -74,3 +109,5 @@ def conv_factor( products ):
             symbol = row['product']
         conv_factor[symbol] = float(row['conversion_factor'])*float(row['rate'])
     return conv_factor
+
+#print get_last_trading_dates(['fES_1','fES_2','fFGBL_1','fFGBL_2','fZN_1','fZN_2'],'2014-01-01','2014-09-30')
