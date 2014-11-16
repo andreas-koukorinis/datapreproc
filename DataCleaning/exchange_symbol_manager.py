@@ -4,9 +4,7 @@ import datetime
 from calendar import monthrange
 
 class ExchangeSymbolManager():
-    def __init__( self, date, product ):
-        self.product = product
-        self.date = date
+    def __init__( self ):
         self.month_codes = { '1' : 'F', '2' : 'G', '3' : 'H', '4' : 'J', '5' : 'K',  '6' : 'M', '7' : 'N', '8' : 'Q', '9' : 'U', '10' : 'V', '11' : 'X', '12' : 'Z' }
         self.day_codes = { 'SUNDAY': 6, 'MONDAY': 0, 'TUESDAY': 1, 'WEDNESDAY': 2, 'THURSDAY': 3, 'FRIDAY': 4, 'SATURDAY': 5 }
 
@@ -516,7 +514,7 @@ def __main__() :
     if len( sys.argv ) > 1:
         product = sys.argv[1]
         date = datetime.datetime.strptime(sys.argv[2], "%Y-%m-%d").date()
-        exchange_symbol_manager = ExchangeSymbolManager( date, product )
+        exchange_symbol_manager = ExchangeSymbolManager()
         print 'Exchange Symbol: ',exchange_symbol_manager.get_exchange_symbol( date, product )
         print 'Last Trading Date: ',exchange_symbol_manager.get_last_trading_date( date, product )
         print 'Last day to have overnight positions: ',exchange_symbol_manager.get_last_date_for_overnight_positions( date, product )
