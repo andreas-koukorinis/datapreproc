@@ -78,6 +78,6 @@ class DailyLogReturns( DailyBookListener ):
             if p2 != 0:
                 logret = log(p1/p2)
             else:
-                logret = 0  # If last two prices not available for a product,let logreturn = 0
+                logret = 0.0  # If last two prices not available for a product,let logreturn = 0
             self.values.append( ( self.dt[0].date(), logret ) )
             for listener in self.listeners: listener.on_indicator_update( self.identifier, self.values )
