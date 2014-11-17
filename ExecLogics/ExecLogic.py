@@ -1,12 +1,11 @@
 import sys
+from datetime import datetime
 from RiskManagement.RiskManager import RiskManager
-from BookBuilder.BookBuilder_Listeners import SettlementListener
-from BookBuilder.BookBuilder import BookBuilder
 from Utils.Calculate import get_current_prices,get_worth
 from Utils.DbQueries import conv_factor
 from Utils.Regular import is_future,is_future_entity,get_base_symbol,get_first_futures_contract,get_next_futures_contract,get_future_mappings,shift_future_symbols
 
-class ExecLogic( SettlementListener ):
+class ExecLogic():
     def __init__( self, trade_products, all_products, order_manager, portfolio, bb_objects, performance_tracker, _startdate, _enddate, _config ):
         self.trade_products = trade_products
         self.all_products = all_products
@@ -15,35 +14,62 @@ class ExecLogic( SettlementListener ):
         self.portfolio = portfolio
         self.bb_objects = bb_objects
         self.conversion_factor = conv_factor( self.all_products )
-        self.to_flip_settlement = dict( [ ( product, False ) for product in self.all_products ] )
         self.capital_reduction = 1.0
         self.risk_manager = RiskManager( performance_tracker, _config )
         self.trading_status = True
-        self.adjusted_for_settlement = {}
+        self.current_date = datetime.strptime(_startdate, "%Y-%m-%d").date()
+        self.orders_to_place = {} # The net order amount(in number of shares) which are to be placed on the next trading day
         for product in all_products:
-            if is_future( product ):
-                BookBuilder.get_unique_instance( product, _startdate, _enddate, _config ).add_settlement_listener( self )
-                self.adjusted_for_settlement[product] = False
+            self.orders_to_place[product] = 0 # Initially there is no pending order for any product
 
+    # Place pending (self.orders_to_place) and rollover orders
     def rollover( self, dt ):
+        self.current_date = dt.date()
         if not self.trading_status: return
         self.update_risk_status( dt )
         positions_to_take = {}
         if self.trading_status:
-            for product in self.all_products:
-                to_be_filled = 0
-                for order in self.order_manager.backtesters[product].pending_orders:
-                    to_be_filled = to_be_filled + order['amount']
-                positions_to_take[product] = self.portfolio.get_portfolio()['num_shares'][product] + to_be_filled
             current_prices = get_current_prices( self.bb_objects )
-            new_positions_to_take = self.adjust_positions_for_settlements ( current_prices, positions_to_take )
+            _orders_to_place = dict( [ ( product, 0 ) for product in self.all_products ] )
+
+            #Adjust positions for settlements and pending orders
             for product in self.all_products:
-                self.place_order_target( dt, product, new_positions_to_take[product] )
+                if self.is_trading_day( dt, product ): # If today is a trading day for the product
+                    _is_last_trading_day = self.bb_objects[product].dailybook[-1][2] and ( self.current_date == self.bb_objects[product].dailybook[-1][0].date() )
+                    if is_future( product ) and _is_last_trading_day:
+                        p1 = product  # Example: 'fES_1'
+                        p2 = get_next_futures_contract(p1)  # Example: 'fES_2'
+                        positions_to_take_p1 = self.portfolio.num_shares[p1] + self.order_manager.to_be_filled[p1] + self.orders_to_place[p1]
+                        if p2 not in self.all_products and positions_to_take_p1 > 0:
+                            sys.exit( 'exec_logic -> adjust_positions_for_settlements : Product %s not present' %p2 )
+                        elif positions_to_take_p1 > 0:
+                            positions_to_take_p2 = (positions_to_take_p1*current_prices[p1]*self.conversion_factor[p1])/(current_prices[p2]*self.conversion_factor[p2])
+                            _orders_to_place[p2] += positions_to_take_p2 # TODO check if = will do # TODO check why should this be different
+                            _orders_to_place[p1] += - ( self.order_manager.to_be_filled[p1] + self.portfolio.num_shares[p1] )
+                    else:
+                        _orders_to_place[product] += self.orders_to_place[product] # TODO check if = will do
+                else: # Dont do anything if today is not a trading day for the product
+                    pass
+            for product in self.all_products:
+                if self.is_trading_day( dt, product ): # If today is a trading day for the product,then place order      
+                    _is_last_trading_day = self.bb_objects[product].dailybook[-1][2] and ( self.current_date == self.bb_objects[product].dailybook[-1][0].date() )
+                    if is_future( product ) and _is_last_trading_day:
+                        self.place_order_agg( dt, product, _orders_to_place[product] ) # If today is the settlement day,then fill order immediately
+                    else:
+                        self.place_order( dt, product, _orders_to_place[product] )
+                    self.orders_to_place[product] = 0 # Since today is a trading day for this product,so we should have no pending orders left
+
         else: # Liquidate the portfolio
             for product in self.all_products:
-                self.place_order_target( dt, product, 0 )
-    
+                if self.is_trading_day( dt, product ): # If today is a trading day for the product,then place order 
+                    self.place_order_target( dt, product, 0 )
+                    self.orders_to_place[product] = 0 # no pending orders left for this product
+                else: # Remember this order,should be placed on the next trading day for the product
+                    self.orders_to_place[product] = - ( self.order_manager.to_be_filled[product] + self.portfolio.num_shares[product] ) # TODO should cancel to_be_filled_orders instead of placing orders on the opposite side
+        self.notify_last_trading_day()    
+
     def update_positions( self, dt, weights ):
+        self.current_date = dt.date()
         if not self.trading_status: return
         self.update_risk_status( dt )
         if self.trading_status:
@@ -51,11 +77,42 @@ class ExecLogic( SettlementListener ):
             current_prices = get_current_prices( self.bb_objects )
             current_worth = get_worth( current_prices, self.conversion_factor, current_portfolio )
             positions_to_take = self.get_positions_from_weights( weights, current_worth * self.capital_reduction,current_prices )
+
+            _orders_to_place = dict( [ ( product, 0 ) for product in self.all_products ] )  
+            #Adjust positions for settlements
             for product in self.all_products:
-                self.place_order_target( dt, product, positions_to_take[product] )
+                if self.is_trading_day( dt, product ): # If today is a trading day for the product
+                    _is_last_trading_day = self.bb_objects[product].dailybook[-1][2] and ( self.current_date == self.bb_objects[product].dailybook[-1][0].date() )
+                    if is_future( product ) and _is_last_trading_day:
+                        p1 = product  # Example: 'fES_1'
+                        p2 = get_next_futures_contract(p1)  # Example: 'fES_2'
+                        if p2 not in self.all_products and positions_to_take[p1] > 0:
+                            sys.exit( 'exec_logic -> adjust_positions_for_settlements : Product %s not present' %p2 )
+                        elif positions_to_take[p1] > 0:
+                            positions_to_take_p2 = ( positions_to_take[p1] * current_prices[p1] * self.conversion_factor[p1] ) / ( current_prices[p2] * self.conversion_factor[p2] )
+                            _orders_to_place[p2] +=  positions_to_take_p2  # TODO check if = will do
+                            _orders_to_place[p1] += - ( self.order_manager.to_be_filled[p1] + self.portfolio.num_shares[p1] )
+                    else:
+                        _orders_to_place[product] = positions_to_take[product] - ( self.order_manager.to_be_filled[product] + self.portfolio.num_shares[product] ) 
+                    self.orders_to_place[product] = 0 # Since today is a trading day for this product,so we should have no pending orders left
+                else:
+                    self.orders_to_place[product] = positions_to_take[product] - ( self.order_manager.to_be_filled[product] + self.portfolio.num_shares[product] )
+            for product in self.all_products:
+                if self.is_trading_day( dt, product ): # If today is a trading day for the product,then place order
+                    _is_last_trading_day = self.bb_objects[product].dailybook[-1][2] and ( self.current_date == self.bb_objects[product].dailybook[-1][0].date() )      
+                    if is_future( product ) and _is_last_trading_day:   
+                        self.place_order_agg( dt, product, _orders_to_place[product] ) # If today is the settlement day,then fill order immediately
+                    else:
+                        self.place_order( dt, product, _orders_to_place[product] )
+
         else: # Liquidate the portfolio
             for product in self.all_products:
-                self.place_order_target( dt, product, 0 )
+                if self.is_trading_day( dt, product ): # If today is a trading day for the product,then place order 
+                    self.place_order_target( dt, product, 0 ) # Make target position as 0
+                    self.orders_to_place[product] = 0 # no pending orders left for this product
+                else: # Remember this order,should be placed on the next trading day for the product
+                    self.orders_to_place[product] = - ( self.order_manager.to_be_filled[product] + self.portfolio.num_shares[product] ) # TODO should cancel to_be_filled_orders instead of placing orders on the opposite side
+        self.notify_last_trading_day()
 
     def update_risk_status( self, dt ):
         status = self.risk_manager.check_status( dt )
@@ -72,65 +129,43 @@ class ExecLogic( SettlementListener ):
                 positions_to_take[first_contract] = positions_to_take[first_contract] + ( weights[product] * current_worth )/( current_prices[first_contract] * self.conversion_factor[first_contract] ) # This execlogic invests in the first futures contract for a future entity
             else:
                 positions_to_take[product] = positions_to_take[product] + ( weights[product] * current_worth )/( current_prices[product] * self.conversion_factor[product] )
-        return self.adjust_positions_for_settlements ( current_prices, positions_to_take ) 
+        return positions_to_take
 
-    # Shift the positions from 'k'th futures contract to 'k+1'th futures contract on the settlement day
-    def adjust_positions_for_settlements( self, current_price, positions_to_take ):
-        new_positions_to_take = dict( [ ( product, 0 ) for product in self.all_products ] )
+    def notify_last_trading_day( self ):
+        _last_trading_day_base_symbols = []
         for product in self.all_products:
-            is_last_trading_day = self.bb_objects[product].dailybook[-1][2]
-            if( is_future( product ) and is_last_trading_day ):
-                p1 = product  # Example: 'ES1'
-                p2 = get_next_futures_contract(p1)  # Example: 'ES2'
-                if p2 not in self.all_products and positions_to_take[p1] > 0:
-                    sys.exit( 'exec_logic -> adjust_positions_for_settlements : Product %s not present' %p2 )
-                elif positions_to_take[p1] > 0: 
-                    new_positions_to_take[p2] = (positions_to_take[p1]*current_price[p1]*self.conversion_factor[p1])/(current_price[p2]*self.conversion_factor[p2])
-            else:
-                new_positions_to_take[product] = positions_to_take[product]
-        return new_positions_to_take
+            _is_last_trading_day = self.bb_objects[product].dailybook[-1][2] and ( self.current_date == self.bb_objects[product].dailybook[-1][0].date() )
+            if is_future( product ) and _is_last_trading_day:
+                _last_trading_day_base_symbols.append(get_base_symbol(product))
+        _last_trading_day_base_symbols = list( set ( _last_trading_day_base_symbols ) ) # Give unique base symbols
+        for _base_symbol in _last_trading_day_base_symbols:
+            self.on_last_trading_day(_base_symbol)
 
-    def get_current_weights( self ):
-        net_portfolio = { 'cash' : self.portfolio.cash, 'num_shares' : dict( [ ( product, self.portfolio.get_portfolio()['num_shares'][product] ) for product in self.all_products ] ) }
-        weights = {}
-        for product in self.all_products:
-            to_be_filled = 0
-            for order in self.order_manager.backtesters[product].pending_orders:
-                to_be_filled = to_be_filled + order['amount']
-            net_portfolio['num_shares'][product] = net_portfolio['num_shares'][product] + to_be_filled
-        current_prices = get_current_prices( self.bb_objects )
-        current_worth = get_worth( current_prices, self.conversion_factor, net_portfolio )
-        for product in self.all_products:
-            weights[product] = current_worth/( current_prices[product] * self.conversion_factor[product] )
-        return weights
-        
-    def after_settlement_day( self, product ):
-        self.adjusted_for_settlement[product] = False
-        self.to_flip_settlement[product] = True
-        _base_symbol = get_base_symbol( product )
-        all_done = True
-        for product in self.future_mappings[_base_symbol]:
-            all_done = self.to_flip_settlement[product] and all_done
-        if all_done:
-            if self.portfolio.num_shares[get_first_futures_contract(_base_symbol)] != 0:
-                sys.exit( 'ERROR : exec_logic -> after_settlement_day -> orders not placed properly -> first futures contract of %s has non zero shares after settlement day' % _base_symbol )
+    # Shift symbols on last trading day of a future product
+    def on_last_trading_day( self, _base_symbol ):
+        if get_first_futures_contract(_base_symbol) in self.all_products and self.portfolio.num_shares[get_first_futures_contract(_base_symbol)] != 0:
+            sys.exit( 'ERROR : exec_logic -> after_settlement_day -> orders not placed properly -> first futures contract of %s has non zero shares after settlement day' % _base_symbol )
+        else:
             shift_future_symbols( self.portfolio, self.future_mappings[_base_symbol] )
-            for product in self.future_mappings[_base_symbol]:
-                self.to_flip_settlement[product] = False
+
+    def is_trading_day( self, dt, product ):
+        return self.bb_objects[product].dailybook[-1][0].date() == dt.date() # If the closing price for a product is available for a date,then the product is tradable on that date
 
     # Place an order to buy/sell 'num_shares' shares of 'product'
     # If num_shares is +ve -> it is a buy trade
     # If num_shares is -ve -> it is a sell trade
     def place_order( self, dt, product, num_shares ):
-        self.order_manager.send_order( dt, product, num_shares )
+        if num_shares != 0:
+            self.order_manager.send_order( dt, product, num_shares )
+   
+    # These order are sent directly yo the backtester by the order manager
+    def place_order_agg( self, dt, product, num_shares ):
+        if num_shares != 0:
+            self.order_manager.send_order_agg( dt, product, num_shares )
 
     # Place an order to make the total number of shares of 'product' = 'target'
     # It can be a buy or a sell order depending on the current number of shares in the portfolio and the value of the target
     def place_order_target( self, dt, product, target ):
-        to_be_filled = 0
-        for order in self.order_manager.backtesters[product].pending_orders:
-            to_be_filled = to_be_filled + order['amount']
-        current_num = self.portfolio.get_portfolio()['num_shares'][product] + to_be_filled
+        current_num = self.portfolio.get_portfolio()['num_shares'][product] + self.order_manager.to_be_filled[product]
         to_place = target-current_num
-        if(to_place!=0):
-            self.place_order( dt, product, to_place )
+        self.place_order( dt, product, to_place )
