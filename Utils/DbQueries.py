@@ -110,4 +110,3 @@ def conv_factor( products ):
         conv_factor[symbol] = float(row['conversion_factor'])*float(row['rate'])
     return conv_factor
 
-#print get_last_trading_dates(['fES_1','fES_2','fFGBL_1','fFGBL_2','fZN_1','fZN_2'],'2014-01-01','2014-09-30')

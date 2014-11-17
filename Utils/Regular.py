@@ -61,7 +61,7 @@ def is_future( product ):
 
 # Return true if product is a future entity like 'fES'
 def is_future_entity( product ):
-    return is_future(product) and product[-1] not in map(str,range(0,10))
+    return is_future(product) and '_' not in product # If prefixed by 'f' and '_' is not present in symbol,then it is a future entity
 
 def get_base_symbol( product ):
     return product.rsplit('_',1)[0]

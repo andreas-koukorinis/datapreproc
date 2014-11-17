@@ -39,9 +39,6 @@ class BookBuilder( DailyEventListener ):
         self.dailybook.append( ( event['dt'], event['price'], event['is_last_trading_day'] ) ) 
         for listener in self.dailybook_listeners:
             listener.on_dailybook_update( self.product, self.dailybook )
-        if len( self.dailybook ) > 1 and self.dailybook[-2][2] : # If the last trading day was a settlement day for this product
-            for listener in self.settlement_listeners:
-                listener.after_settlement_day( self.product )
 
     # TODO {sanchit}
     def on_intraday_event_update(self,event):
