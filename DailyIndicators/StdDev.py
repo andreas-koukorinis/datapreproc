@@ -37,7 +37,6 @@ class StdDev( IndicatorListener ):
     # Efficient version
     def on_indicator_update( self, identifier, daily_log_returns_dt ):
         n = len(daily_log_returns_dt)
-        n = n-1 #TODO check if can use if date is different
         if n > self.period:
             _new_sum =  self.current_sum - daily_log_returns_dt[n-self.period-1][1] + daily_log_returns_dt[n-1][1] 
             _new_pow_sum =  self.current_pow_sum - pow(daily_log_returns_dt[n-self.period-1][1],2) + pow(daily_log_returns_dt[n-1][1],2)

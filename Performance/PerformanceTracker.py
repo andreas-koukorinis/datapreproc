@@ -57,6 +57,7 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
         self.mml = 0
         self._worst_10pc_quarterly_returns = 0
         self._worst_10pc_yearly_returns = 0
+        self.current_loss = 0
         self.current_max_drawdown = 0
         self.max_drawdown_percent = 0
         self.max_drawdown_dollar = 0
@@ -142,11 +143,12 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
     # Computes the daily stats for the most recent trading day prior to 'date'
     # TOASK {gchak} Do we ever expect to run this function without current date ?
     def compute_daily_stats(self,date):
-        if(self.date < date and self.total_orders>0): #If no orders have been filled,it implies trading has not started yet       
+        self.date=date
+        if(self.total_orders>0): #If no orders have been filled,it implies trading has not started yet       
             todaysValue = self.get_portfolio_value(self.date)
+            #print date,todaysValue
             self.value = append ( self.value, todaysValue )
             self.PnLvector = append ( self.PnLvector, ( self.value[-1]-self.value[-2] ) )  # daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
-
             if ( self.value[-1] <= 0 ) :
                 _logret_today = -1000; # real value is -inf
             else :
@@ -154,7 +156,6 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
             self.daily_log_returns = append ( self.daily_log_returns, _logret_today )
 
             self.dates.append(self.date)
-        self.date=date
 
     def print_filled_orders(self,filled_orders):
         if(len(filled_orders)==0): return
@@ -168,9 +169,9 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
     def print_snapshot(self,date):
         text_file = open(self.positions_file, "a")
         if(self.PnLvector.shape[0]>0):
-            s = ("\nPortfolio snapshot at StartOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f PnL for last trading day:%f \n\n" % (date,self.portfolio.cash,str(self.portfolio.num_shares),self.value[-1],self.PnLvector[-1]))
+            s = ("\nPortfolio snapshot at EndOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f PnL for today: %f \n\n" % (date,self.portfolio.cash,str(self.portfolio.num_shares),self.value[-1],self.PnLvector[-1]))
         else:
-            s = ("\nPortfolio snapshot at StartOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f\n\n" % (date,self.portfolio.cash,str(self.portfolio.num_shares),self.value[-1]))
+            s = ("\nPortfolio snapshot at EndOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f Trading has not yet started\n\n" % (date,self.portfolio.cash,str(self.portfolio.num_shares),self.value[-1]))
         text_file.write(s)
         text_file.close()
 

@@ -20,8 +20,6 @@ class Dispatcher (object):
     def __init__( self, products, _startdate, _enddate, _config ):
         self.start_dt = get_dt_from_date(_startdate)  # Convert date to datetime object with time hardcoded as 23:59:59:999999
         self.end_dt = get_dt_from_date(_enddate)
-        self.sim_end_dt = self.end_dt + timedelta (days=10)  # Since filled price depends on the next day,we need to run simluation till the trading day next to end_date
-                                                             # Assumption is that after the end_date there will be a trading day within the next 10 days
         self.trading_days=0
         if _config.has_option('Parameters', 'warmupdays'):
             warmupdays = _config.getint('Parameters','warmupdays')
@@ -56,8 +54,7 @@ class Dispatcher (object):
     def run(self):
         self.heap_initialize(self.products)  # Add all events for all the products to the heap
         current_dt = self.heap[0][0] # Get the lowest timestamp which has not been handled
-        while(current_dt<=self.sim_end_dt ):   # Run simulation till one day after end date,so that end date orders can be filled
-            last = self.end_dt.date()<current_dt.date()
+        while(current_dt<=self.end_dt ): 
             concurrent_events=[]
             while( ( len(self.heap)>0 ) and ( self.heap[0][0]==current_dt ) ) : # Add all the concurrent events for the current_dt to the list concurrent_events
                 tup = heapq.heappop(self.heap)
@@ -71,25 +68,20 @@ class Dispatcher (object):
                 if(event['type']=='INTRADAY'):  # This is an intraday event
                     pass  # TODO:call intradaybookbuilder and push next
 
-            if( current_dt >= self.start_dt and check_eod(concurrent_events)):
-                for listener in self.end_of_day_listeners:
-                    listener.on_end_of_day(concurrent_events[0]['dt'].date())
-
-            if( current_dt.date() >= self.start_dt.date() and current_dt.date() <= self.end_dt.date() ):  # If there are some events and warmupdays are over
+            if( current_dt.date() >= self.start_dt.date() ):  # If there are some events and warmupdays are over
                 for listener in self.events_listeners:
                     listener.on_events_update(concurrent_events)  # Make 1 call to OnEventsUpdate of the strategy for all the concurrent events
                 self.trading_days=self.trading_days+1
 
+            if( current_dt >= self.start_dt and check_eod(concurrent_events)):
+                for listener in self.end_of_day_listeners:
+                    listener.on_end_of_day(concurrent_events[0]['dt'].date())
+
             if(len(self.heap)>0):
                 current_dt = self.heap[0][0] # If the are still elements in the heap,update the timestamp to next timestamp
             else : break # If sufficient data is not available,break out of loop
-                # TODO { } probably need to see if we need to fetch events here
-                # Push the next daily event for this product
-                #for _product in self.products :
-                #    self.push_daily_event ( _product, current_dt + timedelta(days=1) )
-            if(last): break # if we have surpassed end_date,stop the simulation
 
     #Initialize the heap with all end of day events
     #TODO:Add intraday events also to the heap
     def heap_initialize(self,products):
-        push_all_events(self.heap, products, self.sim_start_dt.date(), self.sim_end_dt.date())     
+        push_all_events(self.heap, products, self.sim_start_dt.date(), self.end_dt.date())     

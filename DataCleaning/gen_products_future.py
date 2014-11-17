@@ -16,7 +16,7 @@ def gen_products( asset_class, table_name, products ):
         min_tick_value = float(row['TickValue'])
         min_tick = min_tick_value/conversion_factor
         print "insert into products values ('%s','%s','%s','%s','%s','future','%s','%f','%f','%f','%s','%s');" % (product+'_1',row['CommercialCsiNumber'],row['SymbolCommercial'],row['Name']+' Future 1',table_name,asset_class,min_tick,min_tick_value,conversion_factor,row['Currency'],row['Exchange'])
-        print "insert into products values ('%s','%s','%s','%s','%s','future','%s','%f','%f','%f','%s','%s');" % (product+'_2',row['CommercialCsiNumber'],row['SymbolCommercial'],row['Name']+' Future 1',table_name,asset_class,min_tick,min_tick_value,conversion_factor,row['Currency'],row['Exchange'])
+        print "insert into products values ('%s','%s','%s','%s','%s','future','%s','%f','%f','%f','%s','%s');" % (product+'_2',row['CommercialCsiNumber'],row['SymbolCommercial'],row['Name']+' Future 2',table_name,asset_class,min_tick,min_tick_value,conversion_factor,row['Currency'],row['Exchange'])
 
 
 def __main__() :

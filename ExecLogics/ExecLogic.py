@@ -58,6 +58,7 @@ class ExecLogic():
                     else:
                         self.place_order( dt, product, _orders_to_place[product] )
                     self.orders_to_place[product] = 0 # Since today is a trading day for this product,so we should have no pending orders left
+            print 'rollover',dt,self.orders_to_place
 
         else: # Liquidate the portfolio
             for product in self.all_products:
@@ -104,7 +105,7 @@ class ExecLogic():
                         self.place_order_agg( dt, product, _orders_to_place[product] ) # If today is the settlement day,then fill order immediately
                     else:
                         self.place_order( dt, product, _orders_to_place[product] )
-
+            print 'update_positions',dt,self.orders_to_place
         else: # Liquidate the portfolio
             for product in self.all_products:
                 if self.is_trading_day( dt, product ): # If today is a trading day for the product,then place order 

@@ -33,7 +33,6 @@ class Trend( IndicatorListener ):
     # Update the standard deviation indicators on each ENDOFDAY event
     def on_indicator_update( self, identifier, daily_log_returns_dt ):
         n = len(daily_log_returns_dt)
-        n = n-1 # To avoid using today's prices in calculation of indicators
         if n > self.period:
             _new_sum =  self.current_sum - daily_log_returns_dt[n-self.period-1][1] + daily_log_returns_dt[n-1][1]
             val = sign( _new_sum )

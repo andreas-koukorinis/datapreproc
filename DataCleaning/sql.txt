@@ -59,6 +59,9 @@ LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6A_2.csv' INTO TA
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6B_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6C_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FESX_1.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FESX_2.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+
 
 #ADD ENTRIES TO 'products' TABLE
 insert into products values ('VTI','13541','VTI','VANGUARD TOT STK MKT IDX VIPER','etfs','etf','equity','1','1','1','USD','AMEX');
@@ -86,23 +89,26 @@ insert into products values ('SRPFX','102939','SRPFX','Salient Risk Parity Fund 
 insert into products values ('ABRZX','89437','ABRZX','Invesco Bal-Risk Alloc Fd Cl A','funds','fund','fund','1','1','1','USD','MUTUAL');
 
 insert into products values ('FGBL_1','552','EBL','Euro German Bund-EUREX Future 1','euro_futures','future','commodity','0.010000','10.000000','1000.000000','EUR','EUREX');
-insert into products values ('FGBL_2','552','EBL','Euro German Bund-EUREX Future 1','euro_futures','future','commodity','0.010000','10.000000','1000.000000','EUR','EUREX');
+insert into products values ('FGBL_2','552','EBL','Euro German Bund-EUREX Future 2','euro_futures','future','commodity','0.010000','10.000000','1000.000000','EUR','EUREX');
 insert into products values ('ES_1','487','ES','E-mini S&P 500 Future 1','us_futures','future','equity_index','0.250000','12.500000','50.000000','USD','CME');
-insert into products values ('ES_2','487','ES','E-mini S&P 500 Future 1','us_futures','future','equity_index','0.250000','12.500000','50.000000','USD','CME');
+insert into products values ('ES_2','487','ES','E-mini S&P 500 Future 2','us_futures','future','equity_index','0.250000','12.500000','50.000000','USD','CME');
 insert into products values ('ZN_1','802','ZN','T-Note-US 10 Yr-GLOBEX Future 1','us_futures','future','commodity','0.015625','15.625000','1000.000000','USD','GLBX');
-insert into products values ('ZN_2','802','ZN','T-Note-US 10 Yr-GLOBEX Future 1','us_futures','future','commodity','0.015625','15.625000','1000.000000','USD','GLBX');
+insert into products values ('ZN_2','802','ZN','T-Note-US 10 Yr-GLOBEX Future 2','us_futures','future','commodity','0.015625','15.625000','1000.000000','USD','GLBX');
 
 insert into products values ('6E_1','876','CU1','Euro Future 1','us_futures','future','currency','0.000100','12.500000','125000.000000','USD','GLBX');
-insert into products values ('6E_2','876','CU1','Euro Future 1','us_futures','future','currency','0.000100','12.500000','125000.000000','USD','GLBX');
+insert into products values ('6E_2','876','CU1','Euro Future 2','us_futures','future','currency','0.000100','12.500000','125000.000000','USD','GLBX');
 insert into products values ('E7_1','499','EX','Euro E-mini -CME Future 1','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','CME');
-insert into products values ('E7_2','499','EX','Euro E-mini -CME Future 1','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','CME');
-insert into products values ('6J_1','877','JY1','Japanese Yen Future 1','us_futures','future','currency','0.000100','12.500000','125000.000000','USD','GLBX');
-insert into products values ('6J_2','877','JY1','Japanese Yen Future 1','us_futures','future','currency','0.000100','12.500000','125000.000000','USD','GLBX');
-insert into products values ('J7_1','498','JT','Japanese Yen E-mini -CME Future 1','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','CME');
-insert into products values ('J7_2','498','JT','Japanese Yen E-mini -CME Future 1','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','CME');
+insert into products values ('E7_2','499','EX','Euro E-mini -CME Future 2','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','CME');
+insert into products values ('6J_1','877','JY1','Japanese Yen Future 1','us_futures','future','currency','0.00000100','12.500000','125000000.000000','USD','GLBX');
+insert into products values ('6J_2','877','JY1','Japanese Yen Future 2','us_futures','future','currency','0.00000100','12.500000','125000000.000000','USD','GLBX');
+insert into products values ('J7_1','498','JT','Japanese Yen E-mini -CME Future 1','us_futures','future','currency','0.00000100','6.250000','6250000.000000','USD','CME');
+insert into products values ('J7_2','498','JT','Japanese Yen E-mini -CME Future 2','us_futures','future','currency','0.00000100','6.250000','6250000.000000','USD','CME');
 insert into products values ('6A_1','884','AD1','Australian Dollar-GLOBEX Future 1','us_futures','future','currency','0.000100','10.000000','100000.000000','USD','GLBX');
-insert into products values ('6A_2','884','AD1','Australian Dollar-GLOBEX Future 1','us_futures','future','currency','0.000100','10.000000','100000.000000','USD','GLBX');
+insert into products values ('6A_2','884','AD1','Australian Dollar-GLOBEX Future 2','us_futures','future','currency','0.000100','10.000000','100000.000000','USD','GLBX');
 insert into products values ('6B_1','879','BP1','British Pound Future 1','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','GLBX');
-insert into products values ('6B_2','879','BP1','British Pound Future 1','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','GLBX');
+insert into products values ('6B_2','879','BP1','British Pound Future 2','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','GLBX');
 insert into products values ('6C_1','880','CD1','Canadian Dollar Future 1','us_futures','future','currency','0.000100','10.000000','100000.000000','USD','GLBX');
-insert into products values ('6C_2','880','CD1','Canadian Dollar Future 1','us_futures','future','currency','0.000100','10.000000','100000.000000','USD','GLBX');
+insert into products values ('6C_2','880','CD1','Canadian Dollar Future 2','us_futures','future','currency','0.000100','10.000000','100000.000000','USD','GLBX');
+insert into products values ('FESX_1','530','SXE','Euro STOXX 50 Index-EUREX Future 1','euro_futures','future','index','1.0','10.0','10.0','EUR','EUREX');
+insert into products values ('FESX_2','530','SXE','Euro STOXX 50 Index-EUREX Future 2','euro_futures','future','index','1.0','10.0','10.0','EUR','EUREX');
+
