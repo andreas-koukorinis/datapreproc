@@ -30,8 +30,9 @@ def product_to_table_map():
         table[row['product']] = row['table']
         product_type = row['type']      
 
-def get_file( filename ):
-    filename = filename +'.' + (datetime.now() - timedelta(days=1)).strftime('%Y%m%d')
+def get_file( filename,k ):
+    filename = filename +'.' + (datetime.now() - timedelta(days=k)).strftime('%Y%m%d')
+    print filename
     path = '/home/cvdev/stratdev/DataCleaning/'
     if not os.path.isfile(path+filename): #If the file is not present,download it
         _file = filename+'.gz'
@@ -84,24 +85,51 @@ def add_fund_quote(date,record):
 
 # ASSUMPTION: dividend quote will be sequenced after price quote
 def dividend_quote(date,record):
-    product, csi_num, ex_date, dividend, capital_gain = record[1], int(record[2]), datetime.strptime(record[3], '%Y%m%d').strftime('%Y-%m-%d'), float(record[4]), float(record[5])
+    if len(record) > 5: # ASSUME CAPITAL GAIN ONLY IF RECORD LEN > 5
+        product, csi_num, ex_date, dividend, capital_gain = record[1], int(record[2]), datetime.strptime(record[3], '%Y%m%d').strftime('%Y-%m-%d'), float(record[4]), float(record[5])
+    else:
+        product, csi_num, ex_date, dividend, capital_gain = record[1], int(record[2]), datetime.strptime(record[3], '%Y%m%d').strftime('%Y-%m-%d'), float(record[4]),0.0
     try:
-        query = "UPDATE %s SET dividend='%f',capital_gain='%f' WHERE product='%s' AND date='%s'" % ( table[product], dividend, capital_gain, product, ex_date)
-        print query
-        db_cursor.execute(query)
-        db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date='%s'"%(table[product],product,date))
-        rows = db_cursor.fetchall()
-        if len(rows) < 1:
-            sys.exit('Price quote did not preceed dividend quote')
+        if table[product] == 'funds':
+            query = "UPDATE %s SET dividend='%f',capital_gain='%f' WHERE product='%s' AND date='%s'" % ( table[product], dividend, capital_gain, product, ex_date)
+            print query
+            db_cursor.execute(query)
+            query = "SELECT * FROM %s WHERE product='%s' AND date='%s'"%(table[product],product,ex_date)
+            print query
+            db_cursor.execute(query)
+            rows = db_cursor.fetchall()
+            print rows  
+            if len(rows) < 1:
+                sys.exit('Price quote did not preceed dividend quote')
+            else:
+                ex_close = float(rows[0]['close'])
+            dividend_factor = 1 + (dividend+capital_gain)/ex_close
+            query = "UPDATE %s SET backward_adjusted_close = backward_adjusted_close/%f WHERE product='%s' AND date < '%s'" % ( table[product], dividend_factor, product, ex_date)
+            print query
+            db_cursor.execute(query)
+            query = "UPDATE %s SET forward_adjusted_close = forward_adjusted_close*%f WHERE product='%s' AND date >= '%s'" % ( table[product], dividend_factor, product, ex_date)
+            print query
+            db_cursor.execute(query)
         else:
-            ex_close = rows[0]['close']
-        dividend_factor = 1 + (dividend+capital_gain)/ex_close
-        query = "UPDATE %s SET backward_adjusted_close = backward_adjusted_close/%f WHERE product='%s' AND date < '%s'" % ( table[product], dividend_factor, product, ex_date)
-        print query
-        db_cursor.execute(query)
-        query = "UPDATE %s SET forward_adjusted_close = forward_adjusted_close*%f WHERE product='%s' AND date >= '%s'" % ( table[product], dividend_factor, product, ex_date)
-        print query
-        db_cursor.execute(query)
+            query = "UPDATE %s SET dividend='%f' WHERE product='%s' AND date='%s'" % ( table[product], dividend,  product, ex_date)
+            print query
+            db_cursor.execute(query)
+            query = "SELECT * FROM %s WHERE product='%s' AND date='%s'"%(table[product],product,ex_date)
+            print query
+            db_cursor.execute(query)
+            rows = db_cursor.fetchall()
+            print rows
+            if len(rows) < 1:
+                sys.exit('Price quote did not preceed dividend quote')
+            else:
+                ex_close = float(rows[0]['close'])
+            dividend_factor = 1 + (dividend)/ex_close
+            query = "UPDATE %s SET backward_adjusted_close = backward_adjusted_close/%f WHERE product='%s' AND date < '%s'" % ( table[product], dividend_factor, product, ex_date)
+            print query
+            db_cursor.execute(query)
+            query = "UPDATE %s SET forward_adjusted_close = forward_adjusted_close*%f WHERE product='%s' AND date >= '%s'" % ( table[product], dividend_factor, product, ex_date)
+            print query
+            db_cursor.execute(query)
         db.commit()
     except:
         db.rollback()
@@ -136,8 +164,8 @@ def delete_quote(date,record):
         db.rollback()
         sys.exit('EXCEPTION in delete_quote %s'%record)
 
-def daily_update(filename,products):
-    filename = get_file( filename )
+def daily_update(filename,products,k):
+    filename = get_file( filename ,k)
     db_connect()
     product_to_table_map()
     f = open(filename)
@@ -202,12 +230,12 @@ def __main__() :
     if len( sys.argv ) > 1:
         filename = sys.argv[1]
         products = []
-        for i in range(2,len(sys.argv)):
+        for i in range(3,len(sys.argv)):
             products.append(sys.argv[i])
     else:
         print 'python daily_update.py file:canada/f-indices/funds/futures/indices/uk-stocks/us-stocks product1 product2 ... productn'
         sys.exit(0)
-    daily_update( filename, products )
+    daily_update( filename, products ,int(sys.argv[2]))
 
 if __name__ == '__main__':
     __main__();
