@@ -19,6 +19,7 @@ class BackTester( DailyBookListener ):
         self.listeners = []
         bookbuilder = BookBuilder.get_unique_instance( product, _startdate, _enddate, _config )
         bookbuilder.add_dailybook_listener( self )
+        self.bb = bookbuilder # For filling aggressive order
 
     def add_listener( self, listener ):
         self.listeners.append( listener )
@@ -35,8 +36,20 @@ class BackTester( DailyBookListener ):
     def send_order( self, order ):
         self.pending_orders.append( order )
 
-    def cancel_order( self, order ):
-        pass
+    # TODO handle the case that order can be rejected
+    def send_order_agg( self, order ):
+        dailybook = self.bb.dailybook
+        cost = self.commission_manager.getcommission( order, dailybook ) # TODO should pass param for high commission
+        fill_price = dailybook[-1][1] # Use the most recent price for agg order
+        value = fill_price*order['amount']*self.conversion_factor  #Assuming that book is of the format [(dt,prices)]     # +ve for buy,-ve for sell
+        filled_order = { 'id': order['id'], 'dt' : order['dt'], 'product' : order['product'], 'amount' : order['amount'], 'cost' : cost, 'value' : value, 'fill_price' : fill_price }
+        current_dt = dailybook[-1][0]
+        # Here the listeners will be portfolio, performance tracker and order manager
+        for listener in self.listeners:
+            listener.on_order_update( [filled_order], current_dt.date() )  # Pass control to the performance tracker,pass date to track the daily performance
+
+    def cancel_order( self, order_id ):
+        self.pending_orders[:] = [ order for order in self.pending_orders if order['id'] != order_id ] # TODO should use BST for pending order,currently this is O(n) for 1 cancel
 
     # Check which of the pending orders have been filled
     # ASSUMPTION: all the pending orders are filled #SHOULD BE CHANGED
@@ -52,12 +65,12 @@ class BackTester( DailyBookListener ):
                     #fill_price = dailybook[-1][1]*0.1 + dailybook[-2][1]*0.9  # Estimated fill_price = 0.9*(price at which order is placed) + 0.1*(price on next day)
                     fill_price = dailybook[-2][1]
                 value = fill_price*order['amount']*self.conversion_factor  #Assuming that book is of the format [(dt,prices)]     # +ve for buy,-ve for sell
-                filled_orders.append( { 'dt' : order['dt'], 'product' : order['product'], 'amount' : order['amount'], 'cost' : cost, 'value' : value, 'fill_price' : fill_price } )
+                filled_orders.append( { 'id': order['id'], 'dt' : order['dt'], 'product' : order['product'], 'amount' : order['amount'], 'cost' : cost, 'value' : value, 'fill_price' : fill_price } )
             else:
                 updated_pending_orders.append( order )
         self.pending_orders = updated_pending_orders
         current_dt = dailybook[-1][0]
 
-        # Here the listeners will be portfolio and performance tracker
+        # Here the listeners will be portfolio, performance tracker and order manager
         for listener in self.listeners:
             listener.on_order_update( filled_orders, current_dt.date() )  # Pass control to the performance tracker,pass date to track the daily performance
