@@ -31,7 +31,7 @@ class ExchangeSymbolManager():
 
     def get_exchange_for_product( self, product ):
         _basename = self.get_basename( product )
-        if _basename in ['ZT','ZF','ZN','ZB','UB','NKD','NIY','GE','ES','NQ','YM','6A','6B','6C','6E','6J','6M','6N','6S','6R','GC','CL','IBV','ZW','ZC','ZS','XW']:
+        if _basename in ['ZT','ZF','ZN','ZB','UB','NKD','NIY','GE','ES','NQ','YM','E7','J7','6A','6B','6C','6E','6J','6M','6N','6S','6R','GC','CL','IBV','ZW','ZC','ZS','XW']:
             return "cme"
         elif _basename in ['FGBS','FGBM','FGBL','FGBX','FBTS','FBTP','FBTM','FOAT','FOAM','CONF','FESX','FDAX','FSMI','FEXF','FESB','FSTB','FSTS','FSTO','FSTG','FSTI','FSTM','FXXP','OKS2','FEXD','FRDX','FVS','FEU3']:
             return "eurex"
@@ -191,7 +191,7 @@ class ExchangeSymbolManager():
             return date
         # Instead of Monday (Third Wednesday -2 business day ), the volume starts shifting on the previous Friday itself
         # We should make one day before (Thursday) as the last trading date
-        if _basename in ['6A', '6B', '6E', '6J', '6M', '6N', '6S', '6C']:
+        if _basename in ['6A', '6B', '6E', '6J', '6M', '6N', '6S', '6C','E7','J7']:
             date = self.get_date_from_nth_day_of_month_year(3, 'WEDNESDAY', _next_cme_month, _next_cme_year) # 3rd wednesday of that month of that year       
             date = date + datetime.timedelta( days=-6) #should skip exchange holidays
             return date
