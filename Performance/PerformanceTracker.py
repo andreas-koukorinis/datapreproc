@@ -160,7 +160,7 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
         if(len(filled_orders)==0): return
         s = 'ORDER FILLED : '
         for order in filled_orders:
-            s = s + 'product:%s amount:%f cost:%f value:%f fill_price:%f'%(order['product'],order['amount'],order['cost'],order['value'],order['fill_price'])
+            s = s + 'id: %d  product: %s  amount: %f  cost: %f  value: %f  fill_price: %f'%(order['id'],order['product'],order['amount'],order['cost'],order['value'],order['fill_price'])
         text_file = open(self.positions_file, "a")
         text_file.write("%s\n" % s)
         text_file.close()
