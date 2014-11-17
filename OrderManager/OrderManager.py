@@ -1,5 +1,6 @@
 import os
 from importlib import import_module
+from BackTester.BackTester_Listeners import BackTesterListener
 from BackTester.BackTester import BackTester
 
 ''' OrderManager listens to the Strategy for any send/cancel orders
@@ -16,11 +17,15 @@ class OrderManager():
         self.positions_file = 'positions_' + _log_filename + '.txt'
         open( self.positions_file, 'w' ).close()  # Empty the positions_file,if not present create it
         self.all_orders = []  # List of all orders placed till now
-        self.count = 0	#Count of all orders placed till now
+        self.order_status = {} # Dict mapping an order id to its status : 0:placed but not filled, 1:placed and filled, 2:placed but cancelled
+        self.order_id = 0	# The unique id that will be assigned to the next order
         self.listeners = []
         self.backtesters = {}
+        self.to_be_filled = {} # The net amount(in number of shares) of orders for each product which have been placed but not yet filled
         for product in self.products:
+            self.to_be_filled[product] = 0
             self.backtesters[product] = BackTester.get_unique_instance( product, _startdate, _enddate, _config )
+            self.backtesters[product].add_listener( self ) # Listen for filled orders
 
     @staticmethod
     def get_unique_instance( products, _startdate, _enddate, _config, _log_filename ):
@@ -33,20 +38,53 @@ class OrderManager():
         self.listeners.append( listener )
 
     def send_order( self, dt, product, amount ):
-        order = { 'dt' : dt, 'product' : product, 'amount' : amount }
-        self.print_order( order ) 
-        # Send the order to the relevant BackTester
-        self.backtesters[order['product']].send_order( order )
+        order = { 'id': self.order_id, 'dt' : dt, 'product' : product, 'amount' : amount }
+        self.backtesters[order['product']].send_order( order ) # Send the order to the corresponding BackTester
+        self.print_placed_order( order )
+        self.all_orders.append( order ) 
+        self.order_status[self.order_id] = 0 # Order placed but not filled 
+        self.to_be_filled[product] += amount
+        self.order_id += 1
+
+    #
+    def send_order_agg(self, dt, product, amount ):
+        order = { 'id': self.order_id, 'dt' : dt, 'product' : product, 'amount' : amount }
+        self.print_placed_order( order )        
+        self.backtesters[order['product']].send_order_agg( order ) # Send the order to the corresponding BackTester
         self.all_orders.append( order )
-        self.count = self.count+1
+        self.order_status[self.order_id] = 0 # Order placed but not filled 
+        self.to_be_filled[product] += amount
+        self.order_id += 1
 
-    # TODO:
-    def cancel_order( self ):
-        pass
+    def cancel_order( self, current_dt, order_id ):
+        order = get_order_by_id( order_id )
+        self.backtesters[order['product']].cancel_order( order_id )
+        self.print_cancelled_order( current_dt, order )
+        self.order_status[order_id] = 2 # Order cancelled
+        self.to_be_filled[order['product']] -= order['amount']
 
-    # Print orders to positions_file
-    def print_order( self, order ):
-        s = 'ORDER PLACED : datetime:%s product:%s amount:%f'%(order['dt'],order['product'],order['amount'])
+    # TODO should print filled orders here instead of performance tracker
+    def on_order_update( self, filled_orders, date ):
+        for order in filled_orders:
+            self.order_status[order['id']] = 1 # Order filled 
+            self.to_be_filled[order['product']] -= order['amount']
+
+    def get_order_by_id( self, order_id ):
+        for order in self.all_orders: # TODO should use BST,this is very inefficient
+            if order['id'] == order_id:
+                return order
+
+    # Print placed orders to positions_file
+    def print_placed_order( self, order ):
+        s = 'ORDER PLACED : datetime:%s id: %d product:%s amount:%f' % ( order['dt'], order['id'], order['product'], order['amount'] )
         text_file = open( self.positions_file, "a" )
         text_file.write("%s\n" % s)
         text_file.close()
+
+    # Print orders to positions_file
+    def print_cancelled_order( self, current_dt, order ):
+        s = 'ORDER CANCELLED on %s : datetime:%s id: %d product:%s amount:%f' % ( current_dt, order['dt'], order['id'], order['product'], order['amount'] )
+        text_file = open( self.positions_file, "a" )
+        text_file.write("%s\n" % s)
+        text_file.close()
+
