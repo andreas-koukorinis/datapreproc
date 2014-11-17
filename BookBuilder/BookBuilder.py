@@ -17,7 +17,6 @@ class BookBuilder( DailyEventListener ):
         self.intradaybook=[]  # List of tuples (type,size,price) # Type = 0 -> bid, type = 1 -> ask
         self.dailybook_listeners = []
         self.intradaybook_listeners = []
-        self.settlement_listeners = []
         products = get_all_products( _config )
         dispatcher = Dispatcher.get_unique_instance( products, _startdate, _enddate, _config )
         dispatcher.add_event_listener( self, self.product )
@@ -34,9 +33,6 @@ class BookBuilder( DailyEventListener ):
 
     def add_intradaybook_listener( self, listener ):
         self.intradaybook_listeners.append( listener )
-
-    def add_settlement_listener( self, listener ):
-        self.settlement_listeners.append( listener )
 
     # Update the daily book with closing price and timestamp
     def on_daily_event_update( self, event ):

@@ -11,9 +11,3 @@ class IntradayBookListener:
 
     @abstractmethod
     def on_intraday_book_update( self, product, intradaybook ): pass
-
-class SettlementListener:
-    __metaclass__=ABCMeta
-
-    @abstractmethod
-    def after_settlement_day( self ): pass
