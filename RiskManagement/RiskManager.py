@@ -24,7 +24,7 @@ class RiskManager():
             elif _current_loss > self.stoploss_levels[0]:
                 self.issue_warning( dt, 'Stoploss', self.stoploss_levels[0], _current_loss )
         #Drawdown
-        _current_drawdown = self.performance_tracker.current_max_drawdown
+        _current_drawdown = self.performance_tracker.current_drawdown
         if _current_drawdown > 0:
             if _current_drawdown > self.drawdown_levels[2]:
                 status['stop_trading'] = True

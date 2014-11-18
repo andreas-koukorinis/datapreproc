@@ -27,7 +27,6 @@ class ExecLogic():
         self.current_date = dt.date()
         if not self.trading_status: return
         self.update_risk_status( dt )
-        positions_to_take = {}
         if self.trading_status:
             current_prices = get_current_prices( self.bb_objects )
             _orders_to_place = dict( [ ( product, 0 ) for product in self.all_products ] )
