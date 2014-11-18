@@ -58,7 +58,7 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
         self._worst_10pc_quarterly_returns = 0
         self._worst_10pc_yearly_returns = 0
         self.current_loss = 0
-        self.current_max_drawdown = 0
+        self.current_drawdown = 0
         self.max_drawdown_percent = 0
         self.max_drawdown_dollar = 0
         self.return_by_maxdrawdown = 0
@@ -89,8 +89,8 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
     # Called by Dispatcher
     def on_end_of_day( self, date ):
         self.compute_daily_stats( date )
-        _current_max_dd_log = self.drawdown( self.daily_log_returns )
-        self.current_max_drawdown = abs( ( exp( _current_max_dd_log ) - 1 ) * 100 )
+        _current_dd_log = self.current_dd( self.daily_log_returns )
+        self.current_drawdown = abs( ( exp( _current_dd_log ) - 1 ) * 100 )
         self.current_loss = self.initial_capital - self.value[-1]
         self.print_snapshot( date )
 
@@ -175,6 +175,14 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
         text_file.write(s)
         text_file.close()
 
+    # Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value 
+    def current_dd( self, returns ):
+        if returns.shape[0] < 2:
+            return 0.0
+        cum_returns = returns.cumsum()
+        return -1.0*(max(cum_returns) - cum_returns[-1]) 
+
+    # Calculates the global maximum drawdown i.e. the maximum drawdown till now
     def drawdown(self,returns):
         if returns.shape[0] < 2:
             return 0.0
