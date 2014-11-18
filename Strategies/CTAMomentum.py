@@ -26,8 +26,8 @@ class CTAMomentum( TradeAlgorithm ):
             weights = {}
             sum_weights = 0.0
             for product in self.products:
-                ma_short = self.daily_indicators[ 'MovingAverage.' + product + '.50' ].values[1] # Index 0 contains the date and 1 contains the value of indicator                               
-                ma_long = self.daily_indicators[ 'MovingAverage.' + product + '.200' ].values[1] # Index 0 contains the date and 1 contains the value of indicator                               
+                ma_short = self.daily_indicators[ 'MovingAverage1.' + product + '.50' ].values[1] # Index 0 contains the date and 1 contains the value of indicator                               
+                ma_long = self.daily_indicators[ 'MovingAverage1.' + product + '.200' ].values[1] # Index 0 contains the date and 1 contains the value of indicator                               
 #                annualized_risk_of_product = ( exp( sqrt(252.0)*risk ) -1 )*100.0
                 if ma_short >=ma_long:           
                     weights[product] = 1
