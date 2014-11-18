@@ -21,7 +21,7 @@ class MovingAverage( IndicatorListener ):
         self.identifier = identifier
         params = identifier.strip().split('.')
         self.product = params[1]
-        self.period = float( params[2] )
+        self.period = int( params[2] )
         self.listeners = []
         daily_price = DailyPrice.get_unique_instance( 'DailyPrice.' + self.product, _startdate, _enddate, _config )
         daily_price.add_listener( self )
