@@ -233,7 +233,7 @@ def __main__() :
         for i in range(3,len(sys.argv)):
             products.append(sys.argv[i])
     else:
-        print 'python daily_update.py file:canada/f-indices/funds/futures/indices/uk-stocks/us-stocks product1 product2 ... productn'
+        print 'python daily_update.py file:canada/f-indices/funds/futures/indices/uk-stocks/us-stocks lookback product1 product2 ... productn'
         sys.exit(0)
     daily_update( filename, products ,int(sys.argv[2]))
 
