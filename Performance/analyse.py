@@ -44,7 +44,6 @@ def PlotPnLVersusDates(dates,log_returns,name):
     plt.ylabel('Cumulative Returns')
     plt.savefig('Cumulative_Returns_'+name+".png", bbox_inches='tight')
 
-
 def analyse():
     with open(sys.argv[1], 'rb') as f:
         dates_returns = pickle.load(f)

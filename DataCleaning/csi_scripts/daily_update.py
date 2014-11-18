@@ -7,11 +7,14 @@ import MySQLdb
 import subprocess
 import pandas as pd
 from datetime import datetime,timedelta
+from exchange_symbol_manager import ExchangeSymbolManager 
 
 table = {}
 product_type = {}
 db_cursor = None
 db = None
+mappings = { 'EBL':'FGBL', 'CU1': '6E', 'EX':'E7', 'JY1':'6J', 'JT':'J7', 'AD1': '6A', 'BP1':'6B','CD1':'6C','SXE':'FESX' }
+exchange_symbol_mamager = None
 
 def db_connect():
     global db,db_cursor
@@ -29,6 +32,19 @@ def product_to_table_map():
     for row in rows:
         table[row['product']] = row['table']
         product_type = row['type']      
+
+def get_exchange_specific(YYMM):
+    YY,MM = YYMM[0:2],YYMM[2:4]
+    month_codes = {'01':'F','02':'G','03':'H','04':'J','05':'K','06':'M','07':'N','08':'Q','09':'U','10':'V','11':'X','12':'Z'}
+    return month_codes[MM]+YY
+
+# TODO Check if it is a past contract: should not be
+def get_contract_number(date, _base_symbol, YYMM ):
+    _exchange_symbol = _base_symbol + get_exchange_specific(YYMM)
+    num=1
+    while not exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_' + str(num) ):
+        num+=1
+    return num
 
 def get_file( filename,k ):
     filename = filename +'.' + (datetime.now() - timedelta(days=k)).strftime('%Y%m%d')
@@ -82,6 +98,27 @@ def add_fund_quote(date,record):
     except:
         db.rollback()
         sys.exit('EXCEPTION in add_fund_quote %s'%record)
+
+def add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date):
+    product, csi_num, YYMM, open1, open2, high, low, close, prev_close, volume, oi = record[1], int(record[2]), record[3], float(record[4]), float(record[5]), float(record[6]), float(record[7]), float(record[8]), float(record[9]), int(record[10]), int(record[11])   
+    if product in mappings.keys():
+        _base_symbol = mappings[product]
+    else:
+        _base_symbol = product
+    _last_trading_date = exchange_symbol_manager.get_last_trading_date( date, _base_symbol + '_1' )
+    is_last_trading_day = str(_last_trading_date) == date
+    contract_number = get_contract_number( date, _base_symbol, YYMM )
+    specific_ticker = _base_symbol + get_exchange_specific( YYMM )
+    generic_ticker = _base_symbol + '_' + str( contract_number )
+    if contract_number in [1,2]: # TODO Should change to mapping per product 
+        try:
+            query = "INSERT INTO %s ( date, product, specific_ticker, open, high, low, close, is_last_trading_day, contract_volume, contract_oi, total_volume, total_oi ) VALUES('%s','%s','%s','%f','%f','%f','%f','%0.1f','%d','%d','%d','%d')" % ( table[generic_ticker], date, generic_ticker, specific_ticker, open1, high, low, close, is_last_trading_day, volume, oi, future_total_volume, future_total_oi)
+            print query
+            #db_cursor.execute(query)
+            #db.commit()
+        except:
+            #db.rollback()
+            sys.exit('EXCEPTION in add_future_quote %s'%record)
 
 # ASSUMPTION: dividend quote will be sequenced after price quote
 def dividend_quote(date,record):
@@ -183,6 +220,21 @@ def daily_update(filename,products,k):
             volume_date = record[6]
             oi_date = record[7]
 
+        elif record[0]=='01': # Future header
+            future_symbol, future_csi_num, option_flag, future_total_volume,future_total_oi, future_total_est_volume = record[1], int(record[2]), int(record[3]), int(record[4]), int(record[5]), int(record[6])
+            if len(record) > 8:
+                future_volume_date = record[8]
+            else:
+                future_volume_date = volume_date
+            if len(record) > 9:
+                future_oi_date = record[9]
+            else:
+                future_oi_date = oi_date
+
+        elif record[0]=='02': # Future price record
+            if len(products)==0 or symbol in products:
+                add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date)
+
         elif record[0]=='03': #Stock Price record
             if len(products)==0 or symbol in products:
                 add_stock_quote(date,record)
@@ -214,6 +266,10 @@ def daily_update(filename,products,k):
         elif record[0]=='15': #Fact table entry
             continue
 
+        elif record[0]=='32': # Future price record
+            if len(products)==0 or symbol in products:
+                add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date)
+
         elif record[0]=='33': #Type '03' with prices in decimal
             if len(products)==0 or symbol in products:
                 add_stock_quote(date,record)
@@ -233,8 +289,10 @@ def __main__() :
         for i in range(3,len(sys.argv)):
             products.append(sys.argv[i])
     else:
-        print 'python daily_update.py file:canada/f-indices/funds/futures/indices/uk-stocks/us-stocks lookback product1 product2 ... productn'
+        print 'python daily_update.py file:canada/f-indices/funds/futures/indices/uk-stocks/us-stocks delay product1 product2 ... productn'
         sys.exit(0)
+    global exchange_symbol_manager
+    exchange_symbol_manager = ExchangeSymbolManager()
     daily_update( filename, products ,int(sys.argv[2]))
 
 if __name__ == '__main__':

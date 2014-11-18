@@ -11,3 +11,5 @@ cp futures.`date +%Y%m%d -d "yesterday"`.gz /apps/data/csi/
 cp indices.`date +%Y%m%d -d "yesterday"`.gz /apps/data/csi/
 cp uk-stocks.`date +%Y%m%d -d "yesterday"`.gz /apps/data/csi/
 cp us-stocks.`date +%Y%m%d -d "yesterday"`.gz /apps/data/csi/
+
+python csi_aux_files.py

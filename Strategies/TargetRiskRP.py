@@ -7,7 +7,6 @@ class TargetRiskRP( TradeAlgorithm ):
 
     def init( self, _config ):
         self.day=-1
-        open( 'debug.txt' , "w" ).close()
         self.target_risk = _config.getfloat( 'Strategy', 'target_risk' )
         self.rebalance_frequency = _config.getint( 'Parameters', 'rebalance_frequency' )
 
