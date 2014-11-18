@@ -14,7 +14,7 @@ class OrderManager():
 
     def __init__( self, products, _startdate, _enddate, _config, _log_filename ):
         self.products = products
-        self.positions_file = 'positions_' + _log_filename + '.txt'
+        self.positions_file = 'logs/'+_log_filename+'/positions.txt'
         open( self.positions_file, 'w' ).close()  # Empty the positions_file,if not present create it
         self.all_orders = []  # List of all orders placed till now
         self.order_status = {} # Dict mapping an order id to its status : 0:placed but not filled, 1:placed and filled, 2:placed but cancelled

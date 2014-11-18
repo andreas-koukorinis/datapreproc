@@ -13,6 +13,9 @@ def __main__() :
         sys.exit(0)
     # Get handle of config file
     _config_file = sys.argv[1]
+    _directory = 'logs/'+os.path.splitext(os.path.basename(_config_file))[0]+'/' # directory to store positions,returns files
+    if not os.path.exists(_directory):
+        os.makedirs(_directory)
     _config = ConfigParser.ConfigParser()
     _config.readfp( open( _config_file, 'r' ) )
     if len ( sys.argv ) >= 4 :
