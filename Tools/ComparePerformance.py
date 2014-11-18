@@ -2,8 +2,6 @@ import pickle
 import sys
 from numpy import *
 import scipy.stats as ss
-import datetime
-import matplotlib.pyplot as plt
 
 def drawdown(returns):
     cum_returns = returns.cumsum()
@@ -32,9 +30,7 @@ def mean_lowest_k_percent(series,k):
 def analyse(_returns_file):
     with open(_returns_file, 'rb') as f:
         dates_returns = pickle.load(f)
-        daily_log_returns = [i[1] for i in dates_returns]
-        daily_log_returns = array(daily_log_returns).astype(float)
-        dates = [i[0] for i in dates_returns]
+        daily_log_returns = array([i[1] for i in dates_returns]).astype(float)
         net_returns = 100.0*(exp(sum(daily_log_returns))-1)
         monthly_log_returns = rollsum(daily_log_returns,21)
         quarterly_log_returns = rollsum(daily_log_returns,63)

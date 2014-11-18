@@ -7,7 +7,7 @@ import MySQLdb
 import subprocess
 import pandas as pd
 from datetime import datetime,timedelta
-from exchange_symbol_manager import ExchangeSymbolManager 
+#from exchange_symbol_manager import ExchangeSymbolManager 
 
 table = {}
 product_type = {}
@@ -42,7 +42,7 @@ def get_exchange_specific(YYMM):
 def get_contract_number(date, _base_symbol, YYMM ):
     _exchange_symbol = _base_symbol + get_exchange_specific(YYMM)
     num=1
-    while not exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_' + str(num) ):
+    while _exchange_symbol != exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_' + str(num) ):
         num+=1
     return num
 
@@ -291,8 +291,8 @@ def __main__() :
     else:
         print 'python daily_update.py file:canada/f-indices/funds/futures/indices/uk-stocks/us-stocks delay product1 product2 ... productn'
         sys.exit(0)
-    global exchange_symbol_manager
-    exchange_symbol_manager = ExchangeSymbolManager()
+    #global exchange_symbol_manager
+    #exchange_symbol_manager = ExchangeSymbolManager()
     daily_update( filename, products ,int(sys.argv[2]))
 
 if __name__ == '__main__':
