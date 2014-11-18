@@ -31,9 +31,9 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
 
     def __init__( self, products, _startdate, _enddate, _config, _log_filename ):
         self.date = get_dt_from_date(_startdate).date()  #The earliest date for which daily stats still need to be computed
-        self.positions_file = 'positions_' + _log_filename  +'.txt'
-        self.returns_file = 'returns_' + _log_filename +'.txt'
-        self.pnl_graph_file = 'pnl_' + _log_filename +'.png'
+        self.positions_file = 'logs/'+_log_filename+'/positions.txt'
+        self.returns_file = 'logs/'+_log_filename+'/returns.txt'
+        self.pnl_graph_file = 'logs/'+_log_filename+'/pnl_graph.png'
         self.products = products
         self.conversion_factor = conv_factor(products)
         self.num_shares_traded = dict([(product,0) for product in self.products])
@@ -209,24 +209,6 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
                 _retval=mean(sorted_series[0:_index_of_worst_k_percent])
         return _retval
 
-    # TODO {sanchit} move plotting outside to separate utilities or charting modules.
-    # Print data in separate files to be amenable to easy plotting.
-    # This will allow us to use more customized solutions.
-    # We might want to write separate files for dailyPnL or daily_log_returns
-    def PlotPnLVersusDates(self,dates,dailyPnL):
-        num = int(len(dates)/5.0)
-        if(num==0): num=1
-        for i in xrange(0,len(dates)):
-            if(i%num!=0 and i!= len(dates)-1):
-                dates[i]=''
-            else:
-                dates[i] = dates[i].strftime('%d/%m/%Y')
-        plt.plot(dailyPnL.cumsum())
-        plt.xticks(range(len(dailyPnL)),dates)
-        plt.xlabel('Date')
-        plt.ylabel('Cumulative PnL')
-        plt.savefig(self.pnl_graph_file, bbox_inches='tight')
-
     # non public function to save results to a file
     def _save_results(self):
         with open(self.returns_file, 'wb') as f:
@@ -262,5 +244,3 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
         self._save_results()
 
         print "\nInitial Capital = %.10f\nNet PNL = %.10f \nTrading Cost = %.10f\nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Std_PnL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f \n" %(self.initial_capital,self.PnL,self.trading_cost,self.net_returns,self.annualized_PnL,self.annualized_stdev_PnL,self._annualized_returns_percent,self.annualized_stddev_returns,self.sharpe,self.skewness,self.kurtosis,self.dml,self.mml,self._worst_10pc_quarterly_returns,self._worst_10pc_yearly_returns,self.max_drawdown_percent,self.max_drawdown_dollar,self._annualized_pnl_by_max_drawdown_dollar,self.return_by_maxdrawdown)
-
-        #self.PlotPnLVersusDates(self.dates,array(self.PnLvector).astype(float))
