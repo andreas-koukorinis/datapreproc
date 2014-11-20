@@ -9,7 +9,7 @@ from mpldatacursor import datacursor
 import numpy as np
 
 def plot_returns(_returns_files):
-    _out_file = '/home/cvdev/stratdev/logs/pngs/'
+    _out_file = 'logs/pngs/'
     for _file in _returns_files:
         _out_file += _file.split('/')[-2] + '_'
         with open(_file, 'rb') as f:
@@ -27,7 +27,7 @@ def plot_returns(_returns_files):
     plt.savefig(_out_file+'.png') #bbox_inches='tight'
 
 def plot_series_pickle(_files):
-    _out_file = '/home/cvdev/stratdev/logs/pngs/'
+    _out_file = 'logs/pngs/'
     for _file in _files:
         _out_file += _file.split('/')[-2] + '_' + _file.split('/')[-1].split('.')[0] + '_'
         with open(_file, 'rb') as f:
@@ -42,7 +42,7 @@ def plot_series_pickle(_files):
     plt.savefig(_out_file+'.png') #bbox_inches='tight'
 
 def plot_series_csv(_files):
-    _out_file = '/home/cvdev/stratdev/logs/pngs/'
+    _out_file = 'logs/pngs/'
     dateparse = lambda x: datetime.datetime.strptime(x, '%Y-%m-%d').date()
     ax_defined = False
     for _file in _files:
@@ -70,7 +70,7 @@ def plot_series_csv(_files):
 
 def main():
     if len( sys.argv ) > 1:
-        _directory = '/home/cvdev/stratdev/logs/pngs/'
+        _directory = 'logs/pngs/'
         if not os.path.exists(_directory):
             os.makedirs(_directory)
  

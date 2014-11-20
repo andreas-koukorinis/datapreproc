@@ -22,8 +22,8 @@ class ExecLogic():
         self.leverage = []
         self.end_date = _enddate
         self.current_date = datetime.strptime(_startdate, "%Y-%m-%d").date()
-        self.leverage_file = open('/home/cvdev/stratdev/logs/'+self.order_manager.log_filename+'/leverage.txt','w')
-        self.weights_file = open('/home/cvdev/stratdev/logs/'+self.order_manager.log_filename+'/weights.txt','w')
+        self.leverage_file = open('logs/'+self.order_manager.log_filename+'/leverage.txt','w')
+        self.weights_file = open('logs/'+self.order_manager.log_filename+'/weights.txt','w')
         self.leverage_file.write('date,leverage\n')
         self.weights_file.write( 'date,%s\n' % ( ','.join( self.trade_products ) ) )
         self.orders_to_place = {} # The net order amount(in number of shares) which are to be placed on the next trading day

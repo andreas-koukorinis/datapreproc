@@ -22,7 +22,9 @@ def __main__() :
     _config = ConfigParser.ConfigParser()
     _config.readfp( open( _config_file, 'r' ) )
 
-    directory = 'Data/'
+    _directory = 'Data/'
+    if not os.path.exists(_directory):
+        os.makedirs(_directory)
     if ( len ( sys.argv ) >= 4 ) :
         _startdate = sys.argv[2]
         _enddate = sys.argv[3]

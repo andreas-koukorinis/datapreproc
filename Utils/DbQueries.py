@@ -79,6 +79,7 @@ def push_all_events( heap, products, _startdate, _enddate ):
                 _event = {'product':row['product'],'price': _price, 'dividend': _dividend, 'type':'ENDOFDAY', 'dt':_dt,'product_type': types[row['product']], 'is_last_trading_day': False}
             elif _product_type == 'fund':
                 _price = float(row['backward_adjusted_close'])
+                #_price = float(row['close'])
                 _dividend = float(row['dividend'])
                 _capital_gain = float(row['capital_gain'])
                 _event = {'product':row['product'],'price': _price, 'dividend': _dividend, 'capital_gain':_capital_gain, 'type':'ENDOFDAY', 'dt':_dt,'product_type': types[row['product']], 'is_last_trading_day': False}
