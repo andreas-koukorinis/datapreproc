@@ -1,4 +1,6 @@
 import sys
+import pickle
+import numpy as np
 from datetime import datetime
 from RiskManagement.RiskManager import RiskManager
 from Utils.Calculate import get_current_prices,get_worth
@@ -17,6 +19,8 @@ class ExecLogic():
         self.capital_reduction = 1.0
         self.risk_manager = RiskManager( performance_tracker, _config )
         self.trading_status = True
+        self.leverage = []
+        self.end_date = _enddate
         self.current_date = datetime.strptime(_startdate, "%Y-%m-%d").date()
         self.orders_to_place = {} # The net order amount(in number of shares) which are to be placed on the next trading day
         for product in all_products:
@@ -73,6 +77,7 @@ class ExecLogic():
         if not self.trading_status: return
         self.update_risk_status( dt )
         if self.trading_status:
+            self.print_leverage(weights)
             current_portfolio = self.portfolio.get_portfolio()
             current_prices = get_current_prices( self.bb_objects )
             current_worth = get_worth( current_prices, self.conversion_factor, current_portfolio )
@@ -150,6 +155,15 @@ class ExecLogic():
 
     def is_trading_day( self, dt, product ):
         return self.bb_objects[product].dailybook[-1][0].date() == dt.date() # If the closing price for a product is available for a date,then the product is tradable on that date
+
+    def print_leverage( self, weights ):
+        sum_wts = 0.0
+        for key in weights.keys():
+            sum_wts += abs(weights[key])
+        self.leverage.append((self.current_date,sum_wts))
+        if self.end_date == str(self.current_date):
+            with open('logs/'+self.order_manager.log_filename+'/leverage.txt', 'wb') as f:
+                pickle.dump(self.leverage, f)
 
     # Place an order to buy/sell 'num_shares' shares of 'product'
     # If num_shares is +ve -> it is a buy trade
