@@ -22,6 +22,10 @@ class ExecLogic():
         self.leverage = []
         self.end_date = _enddate
         self.current_date = datetime.strptime(_startdate, "%Y-%m-%d").date()
+        self.leverage_file = open('/home/cvdev/stratdev/logs/'+self.order_manager.log_filename+'/leverage.txt','w')
+        self.weights_file = open('/home/cvdev/stratdev/logs/'+self.order_manager.log_filename+'/weights.txt','w')
+        self.leverage_file.write('date,leverage\n')
+        self.weights_file.write( 'date,%s\n' % ( ','.join( self.trade_products ) ) )
         self.orders_to_place = {} # The net order amount(in number of shares) which are to be placed on the next trading day
         for product in all_products:
             self.orders_to_place[product] = 0 # Initially there is no pending order for any product
@@ -77,7 +81,7 @@ class ExecLogic():
         if not self.trading_status: return
         self.update_risk_status( dt )
         if self.trading_status:
-            self.print_leverage(weights)
+            self.print_weights_info(weights)
             current_portfolio = self.portfolio.get_portfolio()
             current_prices = get_current_prices( self.bb_objects )
             current_worth = get_worth( current_prices, self.conversion_factor, current_portfolio )
@@ -156,14 +160,18 @@ class ExecLogic():
     def is_trading_day( self, dt, product ):
         return self.bb_objects[product].dailybook[-1][0].date() == dt.date() # If the closing price for a product is available for a date,then the product is tradable on that date
 
-    def print_leverage( self, weights ):
+    def print_weights_info( self, weights ):
         sum_wts = 0.0
+        s=str(self.current_date)
         for key in weights.keys():
             sum_wts += abs(weights[key])
-        self.leverage.append((self.current_date,sum_wts))
-        if self.end_date == str(self.current_date):
-            with open('logs/'+self.order_manager.log_filename+'/leverage.txt', 'wb') as f:
-                pickle.dump(self.leverage, f)
+            s = s + ',%f'%weights[key]
+        self.weights_file.write(s+'\n')
+        self.leverage_file.write('%s,%f\n' % (str(self.current_date),sum_wts))
+        #self.leverage.append((self.current_date,sum_wts))
+        #if self.end_date == str(self.current_date):
+        #    with open('logs/'+self.order_manager.log_filename+'/leverage.txt', 'wb') as f:
+        #        pickle.dump(self.leverage, f)
 
     # Place an order to buy/sell 'num_shares' shares of 'product'
     # If num_shares is +ve -> it is a buy trade
