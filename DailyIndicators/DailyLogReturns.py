@@ -13,7 +13,6 @@ class DailyLogReturns( DailyBookListener ):
         self.listeners = []
         self.values = []
         self.prices = [0,0]  # Remember last two prices for the product #prices[0] is latest
-        self.dt = [ datetime.datetime.fromtimestamp(1),datetime.datetime.fromtimestamp(1) ] # Last update dt for futures pair
         self.identifier = _identifier
         params = self.identifier.strip().split('.')
         self.product = params[1]
@@ -25,7 +24,7 @@ class DailyLogReturns( DailyBookListener ):
             _product2 = get_next_futures_contract( _product1 )        
             self.product1 = _product1
             self.product2 = _product2
-            self.prices2 = [0,0] # Remember the last price for the next future contract
+            self.prices2 = 0.0 # Remember the last trading day price for the next future contract
             BookBuilder.get_unique_instance( self.product1, _startdate, _enddate, _config ).add_dailybook_listener( self )
             BookBuilder.get_unique_instance( self.product2, _startdate, _enddate, _config ).add_dailybook_listener( self )
         else:
@@ -43,41 +42,35 @@ class DailyLogReturns( DailyBookListener ):
 
     # Update the daily log returns on each ENDOFDAY event
     def on_dailybook_update( self, product, dailybook ):
-        updated = False
+        _updated = False
         if is_future( self.product ):
             if product == self.product1 : 
-                self.dt[0] = dailybook[-1][0]
                 self.prices[1] = self.prices[0]
                 self.prices[0] = dailybook[-1][1]
-            else:
-                self.dt[1] = dailybook[-1][0]
-                self.prices2[1] = self.prices2[0]
-                self.prices2[0] = dailybook[-1][1]
-
-            if(len(dailybook)>1):
-                _yesterday_settlement = dailybook[-2][2]
-            else:
-                _yesterday_settlement = False
-
-            if self.dt[0] == self.dt[1]:
-                updated = True
-                if _yesterday_settlement: # If yesterday was the settlement day and price for both kth and k+1th contract has been updated
+                if(len(dailybook)>1):
+                    _yesterday_last_trading_day = dailybook[-2][2]
+                else:
+                    _yesterday_last_trading_day = False
+                if _yesterday_last_trading_day: # If yesterday was the last trading day and price for both kth and k+1th contract has been updated
                     p1 = self.prices[0]
-                    p2 = self.prices2[1]
+                    p2 = self.prices2
                 else:
                     p1 = self.prices[0]
                     p2 = self.prices[1]
+                _updated=True
+            else:
+                if dailybook[-1][2]: 
+                    self.prices2 = dailybook[-1][1] # The assumption is that prices of both contracts are avaliable on last trading day
         else:    
-            self.dt[0] = dailybook[-1][0]
+            _updated = True
             self.prices[1] = self.prices[0]
             self.prices[0] = dailybook[-1][1]
             p1 = self.prices[0]
             p2 = self.prices[1]
-            updated=True
-        if updated:
+        if _updated:
             if p2 != 0:
                 logret = log(p1/p2)
             else:
                 logret = 0.0  # If last two prices not available for a product,let logreturn = 0
-            self.values.append( ( self.dt[0].date(), logret ) )
+            self.values.append( ( dailybook[-1][0].date(), logret ) )
             for listener in self.listeners: listener.on_indicator_update( self.identifier, self.values )
