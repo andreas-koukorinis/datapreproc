@@ -18,6 +18,7 @@ class PrintIndicators(IndicatorListener):
         self.date = self.start_date
         self.products=products
         self.indicator_values={}
+        self.update_flag = {}
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 
@@ -27,6 +28,7 @@ class PrintIndicators(IndicatorListener):
 
         #Instantiate daily indicator objects
         for indicator in indicators:
+            self.update_flag[indicator] = False
             indicator_name = indicator.strip().split('.')[0]
             module = import_module( 'DailyIndicators.' + indicator_name )
             Indicatorclass = getattr( module, indicator_name )
@@ -47,7 +49,10 @@ class PrintIndicators(IndicatorListener):
     def print_indicators_readable_format(self):
         s = str(self.date)
         for identifier in self.identifiers:
-            s = s + ',' + str(self.indicator_values[identifier])
+            if not self.update_flag[identifier] and identifier.split('.')[0]=='DailyLogReturns': # If DailyLogReturns indicaqtor is not updated,then use 0 as dummy value
+                s = s + ',0.0'
+            else: # For other indicators use previous value
+                s = s + ',' + str(self.indicator_values[identifier])
         self.write_data(self.indicators_file,s,'a') # Write one line of indicator values for a particular date
 
     #Save list of Date,IndicatorValues to a file in 'directory' for direct loading later
@@ -72,4 +77,7 @@ class PrintIndicators(IndicatorListener):
             self.print_indicators_readable_format()
             #print_indicators_pickle_format()
             self.date = current_date
+            for _identifier in self.identifiers:
+                self.update_flag[_identifier] = False
+        self.update_flag[identifier] = True
         self.indicator_values[identifier]=indicator_value[1]

@@ -35,7 +35,7 @@ def __main__() :
     if ( len ( sys.argv ) >= 5 ) :
         _indicator_file = sys.argv[4]
     else :
-        _indicator_file = directory+'print_indicators_'+os.path.splitext(_config_file)[0].split('/')[-1]+'.csv'
+        _indicator_file = _directory+'print_indicators_'+os.path.splitext(_config_file)[0].split('/')[-1]+'.csv'
 
     # Read product list from config file
     _trade_products = _config.get( 'Products', 'trade_products' ).strip().split(",")

@@ -46,7 +46,7 @@ def process_futures(num_contracts,product,to_name,folder):
     file_handlers = []
     output_dfs = []
     for ticker in generic_tickers:
-        output_dfs.append(pd.DataFrame(columns=('date', 'product','specific_ticker', 'open', 'high', 'low', 'close', '_is_last_trading_day', 'contract_volume','contract_oi','total_volume','total_oi')))
+        output_dfs.append(pd.DataFrame(columns=('date', 'product','specific_ticker', 'open', 'high', 'low', 'close', 'is_last_trading_day', 'contract_volume','contract_oi','total_volume','total_oi')))
     input_dfs = {}
     for filename in os.listdir(directory):
         fullname = directory+filename
@@ -63,23 +63,24 @@ def process_futures(num_contracts,product,to_name,folder):
     print start_date
     end_date = datetime.strptime('2014-10-31', "%Y-%m-%d").date()
     delta = end_date-start_date
+    _last_trading_date = exchange_symbol_manager.get_last_trading_date( start_date, generic_to_name[0] )
     for i in range(delta.days + 1):
         current_date = start_date + timedelta(days=i)
         first_contract_YYMM = get_YYMM_from_exchange_code(exchange_symbol_manager.get_exchange_symbol(current_date,generic_to_name[0])[-3:])  
         current_idx = sorted_labels.index(first_contract_YYMM)
-        _is_last_trading_day = 0
-        _last_trading_date = exchange_symbol_manager.get_last_trading_date( current_date, generic_to_name[0] )
-        if current_date == _last_trading_date:
-            _is_last_trading_day = 1    
+        #print current_date,_last_trading_date
+        if current_date > _last_trading_date:
+            for j in range( len(generic_tickers) ):
+                output_dfs[j].loc[len(output_dfs[j]),'is_last_trading_day'] = 1.0
+
         for j in range( len(generic_tickers) ):
             YYMM = sorted_labels[current_idx + j] 
             if current_date in input_dfs[YYMM].index:
                 #print current_date,YYMM
                 row = input_dfs[YYMM].loc[current_date]            
-                output_dfs[j].loc[len(output_dfs[j])+1] = [ str(current_date), generic_to_name[j], to_name+get_exchange_specific(YYMM),row['open'], row['high'], row['low'], row['close'], _is_last_trading_day, row['contract_volume'], row['contract_oi'], row['total_volume'], row['total_oi']]
-        if current_date == _last_trading_date:
-            current_idx = current_idx+1
-
+                output_dfs[j].loc[len(output_dfs[j])+1] = [ str(current_date), generic_to_name[j], to_name+get_exchange_specific(YYMM),row['open'], row['high'], row['low'], row['close'], '0.0', row['contract_volume'], row['contract_oi'], row['total_volume'], row['total_oi']]
+        _last_trading_date = exchange_symbol_manager.get_last_trading_date( current_date, generic_to_name[0] )
+ 
     for i in range(len(generic_tickers)):
         output_dfs[i].to_csv(output_path+generic_to_name[i]+'.csv',index=False) # Save result to csv 
 
