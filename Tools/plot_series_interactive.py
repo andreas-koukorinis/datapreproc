@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 
 def plot_returns(_files):
-    '''This module plots the interactive graphs(hover and display values)
+    '''This function plots the interactive graphs(hover and display values)
     for multiple return series in a single graph
     The files for return series are expected to be in pickle format i.e.
     pickle dump of list(date,return)'''
