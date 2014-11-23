@@ -209,6 +209,22 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
                 _retval=mean(sorted_series[0:_index_of_worst_k_percent])
         return _retval
 
+    # Prints the returns for k worst and k best days
+    def print_extreme_days(self, k):
+        _dates_returns = zip(self.dates,self.daily_log_returns)
+        _sorted_returns = sorted(_dates_returns, key = lambda x: x[1]) # Sort by returns
+        _end_index_worst_days = min(len(_sorted_returns), k)
+        _start_index_best_days = max(0, len(_sorted_returns) - k)
+        if len(_sorted_returns) > 0:
+            _worst_days = _sorted_returns[0:_end_index_worst_days]
+            _best_days = _sorted_returns[_start_index_best_days:len(_sorted_returns)]
+            print '\nWorst %d Days:'%k
+            for item in _worst_days:
+                print item[0],' : ',(exp(item[1])-1)*100.0,'%'
+            print '\nBest %d Days:'%k
+            for item in reversed(_best_days):
+                print item[0],' : ',(exp(item[1])-1)*100.0,'%'
+
     # non public function to save results to a file
     def _save_results(self):
         with open(self.returns_file, 'wb') as f:
@@ -240,7 +256,7 @@ class PerformanceTracker( BackTesterListener, EndOfDayListener ):
         self.max_drawdown_dollar = abs(self.drawdown(self.PnLvector))
         self.return_by_maxdrawdown = self._annualized_returns_percent/self.max_drawdown_percent
         self._annualized_pnl_by_max_drawdown_dollar = self.annualized_PnL/self.max_drawdown_dollar
-
+        self.print_extreme_days(10)
         self._save_results()
 
         print "\nInitial Capital = %.10f\nNet PNL = %.10f \nTrading Cost = %.10f\nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Std_PnL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f \n" %(self.initial_capital,self.PnL,self.trading_cost,self.net_returns,self.annualized_PnL,self.annualized_stdev_PnL,self._annualized_returns_percent,self.annualized_stddev_returns,self.sharpe,self.skewness,self.kurtosis,self.dml,self.mml,self._worst_10pc_quarterly_returns,self._worst_10pc_yearly_returns,self.max_drawdown_percent,self.max_drawdown_dollar,self._annualized_pnl_by_max_drawdown_dollar,self.return_by_maxdrawdown)
