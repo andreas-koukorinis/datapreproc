@@ -11,6 +11,7 @@ from BackTester.BackTester import BackTester
 from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import EndOfDayListener
 from Utils.Regular import check_eod, get_dt_from_date, get_next_futures_contract, is_future
+from Utils.Calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts
 from Utils.DbQueries import conv_factor
 from BookBuilder.BookBuilder import BookBuilder
 
@@ -73,12 +74,12 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             BackTester.get_unique_instance(product, _startdate, _enddate, _config).add_listener(self) # Listen to Backtester for filled orders
             self.bb_objects[product] = BookBuilder.get_unique_instance(product, _startdate, _enddate, _config)
 
-    def on_order_update(self, filled_orders, current_date):
+    def on_order_update(self, filled_orders, dt):
         for order in filled_orders:
             self.num_shares_traded[order['product']] = self.num_shares_traded[order['product']] + abs(order['amount'])
             self.trading_cost = self.trading_cost + order['cost']
             self.total_orders = self.total_orders + 1
-        self.print_filled_orders(filled_orders)
+        #self.print_filled_orders(filled_orders)
 
     # Called by Dispatcher
     def on_end_of_day(self, date):
@@ -88,48 +89,15 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.current_loss = self.initial_capital - self.value[-1]
         self.print_snapshot(date)
 
-    #Find the latest price prior to 'date'
-    def find_most_recent_price(self, book, date):
-        if len(book) < 1:
-            sys.exit('ERROR: warmupdays not sufficient')
-        elif book[-1][0].date() <= date:
-            return book[-1][1]
-        else:
-            return self.find_most_recent_price(book[:-1], date)
-
-    #Find the latest price prior to 'date' for futures product
-    def find_most_recent_price_future(self, book1, book2, date):
-        if len(book1) < 1:
-            sys.exit('ERROR: warmupdays not sufficient')
-        elif book1[-1][0].date() <= date and book1[-1][2]: #If the day was settlement day,then use second futures contract price
-            return book2[-1][1]
-        elif book1[-1][0].date() <= date and not book1[-1][2]: #If the day was not settlement day,then use first futures contract price
-            return book1[-1][1]
-        else:
-            return self.find_most_recent_price_future(book1[:-1], book2[:-1], date)
-
-    def get_current_notional_amounts(self, date):
-        notional_amount = {}
-        for product in self.products:
-            if self.portfolio.num_shares[product] != 0:
-                if is_future(product):
-                    _price = self.find_most_recent_price_future(self.bb_objects[product].dailybook, self.bb_objects[get_next_futures_contract(product)].dailybook, date)
-                else:
-                    _price = self.find_most_recent_price(self.bb_objects[product].dailybook, date)
-                notional_amount[product] = _price * self.portfolio.num_shares[product] * self.conversion_factor[product]
-            else:
-                notional_amount[product] = 0.0 
-        return notional_amount
-
     # Computes the portfolio value at ENDOFDAY on 'date'
     def get_portfolio_value(self, date):
         netValue = self.portfolio.cash
         for product in self.products:
             if self.portfolio.num_shares[product] != 0:
                 if is_future(product):
-                    current_price = self.find_most_recent_price_future(self.bb_objects[product].dailybook, self.bb_objects[get_next_futures_contract(product)].dailybook, date)
+                    current_price = find_most_recent_price_future(self.bb_objects[product].dailybook, self.bb_objects[get_next_futures_contract(product)].dailybook, date)
                 else:
-                    current_price = self.find_most_recent_price(self.bb_objects[product].dailybook, date)
+                    current_price = find_most_recent_price(self.bb_objects[product].dailybook, date)
                 netValue = netValue + current_price * self.portfolio.num_shares[product] * self.conversion_factor[product]
         return netValue
 
@@ -163,7 +131,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             s = "\nPortfolio snapshot at EndOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f PnL for today: %f \n" % (date, self.portfolio.cash, str(self.portfolio.num_shares), self.value[-1], self.PnLvector[-1])
         else:      
             s = "\nPortfolio snapshot at EndOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f Trading has not yet started\n" % (date, self.portfolio.cash, str(self.portfolio.num_shares), self.value[-1]) 
-        s = s + 'Money Allocation: %s\n\n' % self.get_current_notional_amounts(date)
+        (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, date)
+        s = s + 'Money Allocation: %s\n\n' % notional_amounts
         text_file.write(s)
         text_file.close()
 

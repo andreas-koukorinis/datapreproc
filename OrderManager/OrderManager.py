@@ -57,7 +57,7 @@ class OrderManager():
         self.to_be_filled[product] += amount
         self.order_id += 1
 
-    def cancel_order( self, current_dt, order_id ):
+    def cancel_order(self, current_dt, order_id):
         order = get_order_by_id( order_id )
         self.backtesters[order['product']].cancel_order( order_id )
         self.print_cancelled_order( current_dt, order )
@@ -65,27 +65,37 @@ class OrderManager():
         self.to_be_filled[order['product']] -= order['amount']
 
     # TODO should print filled orders here instead of performance tracker
-    def on_order_update( self, filled_orders, date ):
+    def on_order_update(self, filled_orders, dt):
         for order in filled_orders:
             self.order_status[order['id']] = 1 # Order filled 
             self.to_be_filled[order['product']] -= order['amount']
+        self.print_filled_orders(filled_orders, dt)
 
     def get_order_by_id( self, order_id ):
         for order in self.all_orders: # TODO should use BST,this is very inefficient
             if order['id'] == order_id:
                 return order
 
+    def print_filled_orders(self, filled_orders, dt):
+        if len(filled_orders) == 0: return
+        s = ''
+        for order in filled_orders:
+            s = s+ 'ORDER FILLED ON %s: '%dt
+            s = s + 'id: %d  product: %s  amount: %f  cost: %f  value: %f  fill_price: %f\n'%(order['id'], order['product'], order['amount'], order['cost'], order['value'], order['fill_price'])
+        text_file = open(self.positions_file, "a")
+        text_file.write("%s\n" % s)
+        text_file.close()
+
     # Print placed orders to positions_file
-    def print_placed_order( self, order ):
-        s = 'ORDER PLACED : datetime:%s id: %d product:%s amount:%f' % ( order['dt'], order['id'], order['product'], order['amount'] )
+    def print_placed_order(self, order):
+        s = 'ORDER PLACED ON %s : id: %d product:%s amount:%f' % ( order['dt'], order['id'], order['product'], order['amount'] )
         text_file = open( self.positions_file, "a" )
         text_file.write("%s\n" % s)
         text_file.close()
 
     # Print orders to positions_file
-    def print_cancelled_order( self, current_dt, order ):
-        s = 'ORDER CANCELLED on %s : datetime:%s id: %d product:%s amount:%f' % ( current_dt, order['dt'], order['id'], order['product'], order['amount'] )
+    def print_cancelled_order(self, current_dt, order):
+        s = 'ORDER CANCELLED ON %s : datetime:%s id: %d product:%s amount:%f' % ( current_dt, order['dt'], order['id'], order['product'], order['amount'] )
         text_file = open( self.positions_file, "a" )
         text_file.write("%s\n" % s)
         text_file.close()
-
