@@ -13,6 +13,7 @@ from Dispatcher.Dispatcher_Listeners import EndOfDayListener
 from Utils.Regular import check_eod, get_dt_from_date, get_next_futures_contract, is_future
 from Utils.Calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts
 from Utils.DbQueries import conv_factor
+from Utils import defaults
 from BookBuilder.BookBuilder import BookBuilder
 
 # TODO {gchak} PerformanceTracker is probably a class that just pertains to the performance of one strategy
@@ -29,9 +30,13 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
 
     def __init__(self, products, _startdate, _enddate, _config, _log_filename):
         self.date = get_dt_from_date(_startdate).date()  #The earliest date for which daily stats still need to be computed
-        self.positions_file = 'logs/'+_log_filename+'/positions.txt'
+        if _config.has_option('Parameters', 'debug_level'):
+            self.debug_level = _config.getint('Parameters','debug_level')
+        else:
+            self.debug_level = defaults.DEBUG_LEVEL  # Default value of debug level,in case not specified in config file
+        if self.debug_level > 0:
+            self.positions_file = 'logs/'+_log_filename+'/positions.txt'
         self.returns_file = 'logs/'+_log_filename+'/returns.txt'
-        self.pnl_graph_file = 'logs/'+_log_filename+'/pnl_graph.png'
         self.products = products
         self.conversion_factor = conv_factor(products)
         self.num_shares_traded = dict([(product, 0) for product in self.products])
@@ -79,7 +84,6 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             self.num_shares_traded[order['product']] = self.num_shares_traded[order['product']] + abs(order['amount'])
             self.trading_cost = self.trading_cost + order['cost']
             self.total_orders = self.total_orders + 1
-        #self.print_filled_orders(filled_orders)
 
     # Called by Dispatcher
     def on_end_of_day(self, date):
@@ -87,7 +91,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         _current_dd_log = self.current_dd(self.daily_log_returns)
         self.current_drawdown = abs((exp(_current_dd_log) - 1)* 100)
         self.current_loss = self.initial_capital - self.value[-1]
-        self.print_snapshot(date)
+        if self.debug_level > 0:
+            self.print_snapshot(date)
 
     # Computes the portfolio value at ENDOFDAY on 'date'
     def get_portfolio_value(self, date):

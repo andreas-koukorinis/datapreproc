@@ -6,43 +6,50 @@ from RiskManagement.RiskManager import RiskManager
 from Utils.Calculate import get_current_prices, get_worth, get_current_notional_amounts
 from Utils.DbQueries import conv_factor
 from Utils.Regular import is_future, is_future_entity, get_base_symbol, get_first_futures_contract, get_next_futures_contract, get_future_mappings, shift_future_symbols
+from Utils import defaults
 
 class ExecLogic():
-    def __init__( self, trade_products, all_products, order_manager, portfolio, bb_objects, performance_tracker, _startdate, _enddate, _config ):
+    def __init__(self, trade_products, all_products, order_manager, portfolio, bb_objects, performance_tracker, _startdate, _enddate, _config):
         self.trade_products = trade_products
         self.all_products = all_products
-        self.future_mappings = get_future_mappings( all_products )
+        self.future_mappings = get_future_mappings(all_products)
         self.order_manager = order_manager
         self.portfolio = portfolio
         self.bb_objects = bb_objects
-        self.conversion_factor = conv_factor( self.all_products )
+        self.conversion_factor = conv_factor(self.all_products)
         self.capital_reduction = 1.0
-        self.risk_manager = RiskManager( performance_tracker, _config )
+        self.risk_manager = RiskManager(performance_tracker, _config)
         self.trading_status = True
         self.leverage = []
         self.end_date = _enddate
         self.current_date = datetime.strptime(_startdate, "%Y-%m-%d").date()
-        self.leverage_file = open('logs/'+self.order_manager.log_filename+'/leverage.txt','w')
-        self.weights_file = open('logs/'+self.order_manager.log_filename+'/weights.txt','w')
-        self.leverage_file.write('date,leverage\n')
-        self.weights_file.write( 'date,%s\n' % ( ','.join( self.all_products ) ) )
+        if _config.has_option('Parameters', 'debug_level'):
+            self.debug_level = _config.getint('Parameters','debug_level')
+        else:
+            self.debug_level = defaults.DEBUG_LEVEL  # Default value of debug level,in case not specified in config file
+        if self.debug_level > 1:
+            self.leverage_file = open('logs/'+self.order_manager.log_filename+'/leverage.txt','w')
+            self.weights_file = open('logs/'+self.order_manager.log_filename+'/weights.txt','w')
+            self.leverage_file.write('date,leverage\n')
+            self.weights_file.write('date,%s\n' % ( ','.join(self.all_products)))
         self.orders_to_place = {} # The net order amount(in number of shares) which are to be placed on the next trading day
         for product in all_products:
             self.orders_to_place[product] = 0 # Initially there is no pending order for any product
 
     # Place pending (self.orders_to_place) and rollover orders
-    def rollover( self, dt ):
+    def rollover(self, dt):
         self.current_date = dt.date()
-        self.print_weights_info(dt)
+        if self.debug_level > 1:
+            self.print_weights_info(dt)
         if not self.trading_status: return
         self.update_risk_status(dt)
         if self.trading_status:
-            current_prices = get_current_prices( self.bb_objects )
+            current_prices = get_current_prices(self.bb_objects)
             _orders_to_place = dict( [ ( product, 0 ) for product in self.all_products ] )
 
             #Adjust positions for settlements and pending orders
             for product in self.all_products:
-                if self.is_trading_day( dt, product ): # If today is a trading day for the product
+                if self.is_trading_day(dt, product): # If today is a trading day for the product
                     _is_last_trading_day = self.bb_objects[product].dailybook[-1][2] and ( self.current_date == self.bb_objects[product].dailybook[-1][0].date() )
                     if is_future( product ) and _is_last_trading_day:
                         p1 = product  # Example: 'fES_1'
@@ -79,7 +86,8 @@ class ExecLogic():
 
     def update_positions( self, dt, weights ):
         self.current_date = dt.date()
-        self.print_weights_info(dt)
+        if self.debug_level > 1:
+            self.print_weights_info(dt)
         if not self.trading_status: return
         self.update_risk_status(dt)
         if self.trading_status:
