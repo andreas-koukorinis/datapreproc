@@ -1,5 +1,6 @@
 import sys
 import datetime
+from Regular import is_future, get_next_futures_contract
 
 def get_current_prices( bb_objects ):
     current_prices = {}
@@ -23,3 +24,37 @@ def get_positions_from_weights(weight,current_worth,current_price,conversion_fac
         positions_to_take[product] = money_allocated/(current_price[product]*conversion_factor[product])
     return positions_to_take
 
+def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, date):
+    notional_amount = {}
+    net_value = portfolio.cash
+    for product in portfolio.num_shares.keys():
+        if portfolio.num_shares[product] != 0:
+            if is_future(product):
+                _price = find_most_recent_price_future(bb_objects[product].dailybook, bb_objects[get_next_futures_contract(product)].dailybook, date)
+            else:
+                _price = find_most_recent_price(bb_objects[product].dailybook, date)
+            notional_amount[product] = _price * portfolio.num_shares[product] * conversion_factor[product]
+        else:
+            notional_amount[product] = 0.0
+        net_value += notional_amount[product]
+    return (notional_amount, net_value)
+
+#Find the latest price prior to 'date'
+def find_most_recent_price(book, date):
+    if len(book) < 1:
+        sys.exit('ERROR: warmupdays not sufficient')
+    elif book[-1][0].date() <= date:
+        return book[-1][1]
+    else:
+        return find_most_recent_price(book[:-1], date)
+
+#Find the latest price prior to 'date' for futures product
+def find_most_recent_price_future(book1, book2, date):
+    if len(book1) < 1:
+        sys.exit('ERROR: warmupdays not sufficient')
+    elif book1[-1][0].date() <= date and book1[-1][2]: #If the day was settlement day,then use second futures contract price
+        return book2[-1][1]
+    elif book1[-1][0].date() <= date and not book1[-1][2]: #If the day was not settlement day,then use first futures contract price
+        return book1[-1][1]
+    else:
+        return find_most_recent_price_future(book1[:-1], book2[:-1], date)

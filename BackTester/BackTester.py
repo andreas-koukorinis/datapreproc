@@ -46,7 +46,7 @@ class BackTester( DailyBookListener ):
         current_dt = dailybook[-1][0]
         # Here the listeners will be portfolio, performance tracker and order manager
         for listener in self.listeners:
-            listener.on_order_update( [filled_order], current_dt.date() )  # Pass control to the performance tracker,pass date to track the daily performance
+            listener.on_order_update( [filled_order], current_dt )  # Pass control to the performance tracker,pass date to track the daily performance
 
     def cancel_order( self, order_id ):
         self.pending_orders[:] = [ order for order in self.pending_orders if order['id'] != order_id ] # TODO should use BST for pending order,currently this is O(n) for 1 cancel
@@ -73,4 +73,4 @@ class BackTester( DailyBookListener ):
 
         # Here the listeners will be portfolio, performance tracker and order manager
         for listener in self.listeners:
-            listener.on_order_update( filled_orders, current_dt.date() )  # Pass control to the performance tracker,pass date to track the daily performance
+            listener.on_order_update( filled_orders, current_dt )  # Pass control to the performance tracker,pass date to track the daily performance
