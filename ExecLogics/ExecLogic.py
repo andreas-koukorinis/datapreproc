@@ -3,9 +3,9 @@ import pickle
 import numpy as np
 from datetime import datetime
 from RiskManagement.RiskManager import RiskManager
-from Utils.Calculate import get_current_prices,get_worth
+from Utils.Calculate import get_current_prices, get_worth, get_current_notional_amounts
 from Utils.DbQueries import conv_factor
-from Utils.Regular import is_future,is_future_entity,get_base_symbol,get_first_futures_contract,get_next_futures_contract,get_future_mappings,shift_future_symbols
+from Utils.Regular import is_future, is_future_entity, get_base_symbol, get_first_futures_contract, get_next_futures_contract, get_future_mappings, shift_future_symbols
 
 class ExecLogic():
     def __init__( self, trade_products, all_products, order_manager, portfolio, bb_objects, performance_tracker, _startdate, _enddate, _config ):
@@ -33,8 +33,9 @@ class ExecLogic():
     # Place pending (self.orders_to_place) and rollover orders
     def rollover( self, dt ):
         self.current_date = dt.date()
+        self.print_weights_info(dt)
         if not self.trading_status: return
-        self.update_risk_status( dt )
+        self.update_risk_status(dt)
         if self.trading_status:
             current_prices = get_current_prices( self.bb_objects )
             _orders_to_place = dict( [ ( product, 0 ) for product in self.all_products ] )
@@ -78,10 +79,10 @@ class ExecLogic():
 
     def update_positions( self, dt, weights ):
         self.current_date = dt.date()
+        self.print_weights_info(dt)
         if not self.trading_status: return
-        self.update_risk_status( dt )
+        self.update_risk_status(dt)
         if self.trading_status:
-            self.print_weights_info(weights)
             current_portfolio = self.portfolio.get_portfolio()
             current_prices = get_current_prices( self.bb_objects )
             current_worth = get_worth( current_prices, self.conversion_factor, current_portfolio )
@@ -160,18 +161,16 @@ class ExecLogic():
     def is_trading_day( self, dt, product ):
         return self.bb_objects[product].dailybook[-1][0].date() == dt.date() # If the closing price for a product is available for a date,then the product is tradable on that date
 
-    def print_weights_info( self, weights ):
+    def print_weights_info(self, dt):
         sum_wts = 0.0
-        s=str(self.current_date)
-        for key in weights.keys():
-            sum_wts += abs(weights[key])
-            s = s + ',%f'%weights[key]
-        self.weights_file.write(s+'\n')
-        self.leverage_file.write('%s,%f\n' % (str(self.current_date),sum_wts))
-        #self.leverage.append((self.current_date,sum_wts))
-        #if self.end_date == str(self.current_date):
-        #    with open('logs/'+self.order_manager.log_filename+'/leverage.txt', 'wb') as f:
-        #        pickle.dump(self.leverage, f)
+        s = str(dt.date())
+        (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, dt.date())
+        for product in self.portfolio.num_shares.keys():
+            _weight = notional_amounts[product]/net_value
+            sum_wts += abs(_weight)
+            s = s + ',%f'% (_weight)
+        self.weights_file.write(s + '\n')
+        self.leverage_file.write('%s,%f\n' % (str(dt.date()), sum_wts))
 
     # Place an order to buy/sell 'num_shares' shares of 'product'
     # If num_shares is +ve -> it is a buy trade
