@@ -6,7 +6,7 @@ COMMAND TO RUN:
 
 To run LeveredRP with futures,credits and currency forwards:
 ------------------------------------------------------------
-    python -W ignore Simulator.py test/config_AQRIX.cfg
+    python Simulator.py test/config_AQRIX.cfg
 
 To Print Indicators:
 --------------------
@@ -15,12 +15,21 @@ To Print Indicators:
 For correlation calculation
 ---------------------------------------
     The return series for the config being run will be stored in returns_TargetRiskRP.txt
-    COMMAND: python Performance/compute_correlation.py returns1.txt returns2.txt
+    COMMAND: python Tools/compute_correlation.py returns1.txt returns2.txt
 
 For Time Profiling
 ---------------------------------------
-    COMMAND: python -m cProfile Simulator.py test/config_AQRIX.cfg
+    COMMAND: python -m cProfile -s cumulative Simulator.py test/config_AQRIX.cfg
 
+To calculate performance stats from returns file
+------------------------------------------------
+    COMMAND: python Tools/compute_stats.py logs/config_name/returns.txt
+
+To plot graphs(svg file for graph will be stored in logs/svgs/)
+--------------
+    COMMAND: python Tools/plot_series_interactive.py 0 logs/config_name_1/returns.txt logs/config_name_2/returns.txt logs/config_name_n/returns.txt
+    COMMAND: python Tools/plot_series_interactive.py 1 logs/config_name_1/weights.txt logs/config_name_2/weights.txt logs/config_name_n/weights.txt
+    COMMAND: python Tools/plot_series_interactive.py 1 logs/config_name_1/leverage.txt logs/config_name_2/leverage.txt logs/config_name_n/leverage.txt
 
 ASSUMPTIONS/PENDING
 -----------
@@ -29,8 +38,6 @@ ASSUMPTIONS/PENDING
 3) Symbol of futures contract (only) should be prefixed by 'f' and suffixed by its number '1','2'etc
 4) We only trade first futures contract or non futures
 5) Cash can be -ve due to cost of trade,levered portfolio and order price being different from fill price
-6) If there is a futures contract in the symbol list on which the simulation is run,then both first and second futures contract symbols should be specified.
-   EG: If 'ES1' is specified then ES2 should also be specified
-7) All end of day events for a particular date occur simultaneously at 23:59:59:999999
-8) Intraday events need to be handled
+6) All end of day events for a particular date occur simultaneously at 23:59:59:999999
+7) Intraday events need to be handled
 
