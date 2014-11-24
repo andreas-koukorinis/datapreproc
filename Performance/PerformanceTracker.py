@@ -108,9 +108,21 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         else:
             return self.find_most_recent_price_future(book1[:-1], book2[:-1], date)
 
+    def get_current_notional_amounts(self, date):
+        notional_amount = {}
+        for product in self.products:
+            if self.portfolio.num_shares[product] != 0:
+                if is_future(product):
+                    _price = self.find_most_recent_price_future(self.bb_objects[product].dailybook, self.bb_objects[get_next_futures_contract(product)].dailybook, date)
+                else:
+                    _price = self.find_most_recent_price(self.bb_objects[product].dailybook, date)
+                notional_amount[product] = _price * self.portfolio.num_shares[product] * self.conversion_factor[product]
+            else:
+                notional_amount[product] = 0.0 
+        return notional_amount
+
     # Computes the portfolio value at ENDOFDAY on 'date'
     def get_portfolio_value(self, date):
-        #self.print_prices(self.date) # TODO Only if needed. For instance in zero-logging mode or optimization mode, we will want to disable this.
         netValue = self.portfolio.cash
         for product in self.products:
             if self.portfolio.num_shares[product] != 0:
@@ -121,26 +133,12 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 netValue = netValue + current_price * self.portfolio.num_shares[product] * self.conversion_factor[product]
         return netValue
 
-    def print_prices(self, date):
-        s = ''
-        for product in self.products:
-            if self.num_shares_traded[product] != 0:
-                if is_future(product):
-                    current_price = self.find_most_recent_price_future(self.bb_objects[product].dailybook, self.bb_objects[get_next_futures_contract(product)].dailybook, date)
-                else:
-                    current_price = self.find_most_recent_price(self.bb_objects[product].dailybook, date)
-                s = s + product + ' ' + str(current_price)
-        text_file = open(self.positions_file, "a") # TODO {gchak} consider opening file once, and sharing the same file pointer among all the PerformanceTracker objects
-        text_file.write("Prices at end of day %s are: %s\n" % (date, s))
-        text_file.close()
-
     # Computes the daily stats for the most recent trading day prior to 'date'
     # TOASK {gchak} Do we ever expect to run this function without current date ?
     def compute_daily_stats(self, date):
         self.date = date
         if self.total_orders > 0: # If no orders have been filled,it implies trading has not started yet
             todaysValue = self.get_portfolio_value(self.date)
-            #print date,todaysValue
             self.value = append(self.value, todaysValue)
             self.PnLvector = append(self.PnLvector, (self.value[-1] - self.value[-2]))  # daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
             if self.value[-1] <= 0:
@@ -162,9 +160,10 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
     def print_snapshot(self, date):
         text_file = open(self.positions_file, "a")
         if self.PnLvector.shape[0] > 0:
-            s = ("\nPortfolio snapshot at EndOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f PnL for today: %f \n\n" % (date, self.portfolio.cash, str(self.portfolio.num_shares), self.value[-1], self.PnLvector[-1]))
-        else:
-            s = ("\nPortfolio snapshot at EndOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f Trading has not yet started\n\n" % (date, self.portfolio.cash, str(self.portfolio.num_shares), self.value[-1]))
+            s = "\nPortfolio snapshot at EndOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f PnL for today: %f \n" % (date, self.portfolio.cash, str(self.portfolio.num_shares), self.value[-1], self.PnLvector[-1])
+        else:      
+            s = "\nPortfolio snapshot at EndOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f Trading has not yet started\n" % (date, self.portfolio.cash, str(self.portfolio.num_shares), self.value[-1]) 
+        s = s + 'Money Allocation: %s\n\n' % self.get_current_notional_amounts(date)
         text_file.write(s)
         text_file.close()
 
