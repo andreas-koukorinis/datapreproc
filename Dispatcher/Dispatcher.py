@@ -4,6 +4,7 @@ import heapq
 import MySQLdb
 from Utils.DbQueries import push_all_events
 from Utils.Regular import get_dt_from_date,check_eod
+from Utils import defaults
 
 '''The job of the dispatcher is :
  1)To maintain a heap of all the event sources keyed by the timestamp(datetime object in python)
@@ -24,7 +25,7 @@ class Dispatcher (object):
         if _config.has_option('Parameters', 'warmupdays'):
             warmupdays = _config.getint('Parameters','warmupdays')
         else:
-            warmupdays = 60  # Default value of warmupdays,in case not specified in config file
+            warmupdays = defaults.WARMUP_DAYS  # Default value of warmupdays,in case not specified in config file
 
         self.sim_start_dt = self.start_dt + timedelta (days=-warmupdays)
         self.products = products
