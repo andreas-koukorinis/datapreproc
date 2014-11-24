@@ -25,7 +25,7 @@ class ExecLogic():
         self.leverage_file = open('logs/'+self.order_manager.log_filename+'/leverage.txt','w')
         self.weights_file = open('logs/'+self.order_manager.log_filename+'/weights.txt','w')
         self.leverage_file.write('date,leverage\n')
-        self.weights_file.write( 'date,%s\n' % ( ','.join( self.trade_products ) ) )
+        self.weights_file.write( 'date,%s\n' % ( ','.join( self.all_products ) ) )
         self.orders_to_place = {} # The net order amount(in number of shares) which are to be placed on the next trading day
         for product in all_products:
             self.orders_to_place[product] = 0 # Initially there is no pending order for any product
@@ -165,7 +165,7 @@ class ExecLogic():
         sum_wts = 0.0
         s = str(dt.date())
         (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, dt.date())
-        for product in self.portfolio.num_shares.keys():
+        for product in self.all_products:
             _weight = notional_amounts[product]/net_value
             sum_wts += abs(_weight)
             s = s + ',%f'% (_weight)
