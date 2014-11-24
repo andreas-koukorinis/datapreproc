@@ -21,6 +21,18 @@ For Time Profiling
 ---------------------------------------
     COMMAND: python -m cProfile -s cumulative Simulator.py test/config_AQRIX.cfg
 
+For Debugging(using breakpoints)
+--------------------------------
+1) python -m pdb Simulator.py path_to_config
+2) To add a specific line of a file as breakpoint : b DailyIndicators/StdDev.py:39
+3) To move control to next breakpoint : continue
+4) To move control to next line : n
+5) To show code around the current line : l OR l 5,20
+6) To list all breakpoints: b
+7) To remove a breakpoint : clear 1          (removes the breakpoint number 1)
+8) To start program again : run
+9) To print a variable: print var
+
 To calculate performance stats from returns file
 ------------------------------------------------
     COMMAND: python Tools/compute_stats.py logs/config_name/returns.txt
