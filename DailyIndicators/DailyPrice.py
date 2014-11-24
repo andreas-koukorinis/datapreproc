@@ -12,7 +12,6 @@ class DailyPrice(DailyBookListener):
     def __init__(self, _identifier, _startdate, _enddate, _config):
         self.listeners = []
         self.values = []
-        self.prices = [0,0]  # Remember last two prices for the product #prices[0] is latest
         self.identifier = _identifier
         params = self.identifier.strip().split('.')
         self.product = params[1]
