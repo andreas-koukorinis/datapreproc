@@ -3,7 +3,7 @@ from numpy import *
 from Algorithm.TradeAlgorithm import TradeAlgorithm
 from Utils.Regular import check_eod
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
-from DailyIndicators.correlation_log_returns import CorrelationLogReturns
+from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 form DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 
 class TargetRiskEqualRiskContribution(TradeAlgorithm):

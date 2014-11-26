@@ -16,7 +16,7 @@ class TradeAlgorithm( EventsListener ):
     User should inherit this class and override init and OnEventListener functions
     '''
     def __init__( self, _trade_products, _all_products, _startdate, _enddate, _config, _log_filename):
-        self.products = _trade_products
+        self.products = sorted(_trade_products) # we are doing this here so that 
         self.all_products = _all_products
         self.daily_indicators = {}
         self.start_date = _startdate
@@ -32,8 +32,8 @@ class TradeAlgorithm( EventsListener ):
                     if is_valid_daily_indicator(indicator_name):
                         module = import_module( 'DailyIndicators.' + indicator_name )
                         Indicatorclass = getattr( module, indicator_name )
-                        self.daily_indicators[indicator] = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
-
+                        _instance = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
+                        self.daily_indicators[_instance.identifier] = _instance
         # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects = {}
         for product in self.all_products:

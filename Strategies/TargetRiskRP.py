@@ -20,7 +20,9 @@ class TargetRiskRP( TradeAlgorithm ):
     def on_events_update(self,events):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
         if all_eod: self.day += 1  # Track the current day number
-           
+        if self.day < 40:
+            print self.daily_indicators['CorrelationLogReturns.fES,fZN.21'].values   
+            print self.daily_indicators['CorrelationLogReturns.fES,fZN.21'].values.shape
         # If today is the rebalancing day,then use indicators to calculate new positions to take
         if all_eod and self.day % self.rebalance_frequency == 0 :
             # Calculate weights to assign to each product using indicators
