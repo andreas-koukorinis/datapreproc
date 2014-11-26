@@ -28,7 +28,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                 self.stddev_computation_indicator[product] = self.daily_indicators[_orig_indicator_name]
 
         _portfolio_string = make_portfolio_string_from_products ( self.products )
-        self.correlation_computation_indicator = CorrelationLogReturns.get_unique_instance( _portfolio_string+'.'+str(self.correlation_computation_history) )
+        self.correlation_computation_indicator = CorrelationLogReturns.get_unique_instance( "CorrelationLogReturns" + '.' + _portfolio_string + '.' + str(self.correlation_computation_history), self.start_date, self.end_date, _config )
 
     '''  Use self.bb_objects[product].dailybook to access the closing prices for the 'product'
          Use self.bb_objects[product].intradaybook to access the intraday prices for the 'product'
@@ -45,10 +45,35 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
         if all_eod and self.day % self.rebalance_frequency == 0:
             if self.day > ( self.last_date_correlation_matrix_computed + self.correlation_computation_interval ):
                 # we need to recompute the correlation matrix
-                
+                self.correlation_computation_indicator.recompute() # this command will not do anything if the values have been already computed. else it will 
+                # Get correlation matrix
+
+            # Get the stdev values from the stddev indicators
+            #   e.g. _risk = std(_logret_matrix,axis=0,ddof=1)
+
             # Calculate weights to assign to each product using indicators
             weights = {}
-            # TODO
-            self.update_positions( events[0]['dt'], weights )
+            # compute covariance matrix from correlation matrix and 
+            _cov_mat = _correlation_matrix * np.outer(_risk, _risk) 
+            _annualized_risk = 100.0*(exp(sqrt(252.0)*_risk)-1)
+            zero_corr_risk_parity_weights = 1.0/(_annualized_risk)
+            zero_corr_risk_parity_weights = zero_corr_risk_parity_weights/sum(abs(zero_corr_risk_parity_weights))
+            
+            prc = 100.0*(zero_corr_risk_parity_weights * array(asmatrix( _cov_mat )*asmatrix( zero_corr_risk_parity_weights ).T)[:,0])/((asmatrix( zero_corr_risk_parity_weights )*asmatrix( _cov_mat )*asmatrix( zero_corr_risk_parity_weights ).T))
+            # prc is the INITIAL PERCENTAGE RISK CONTRIBUTIONS before optimization
+            
+            # Function to return the L1 norm of the series of { risk_contrib - man ( risk_contrib ) }, or sum of absolute values of the series
+            def rosen(_w):
+                _cov_vec = array(asmatrix( _cov_mat )*asmatrix( _w ).T)[:,0]
+                _trc = _w*_cov_vec
+                return sum( abs( _trc - mean(_trc)) )
+
+            cons =  {'type':'eq', 'fun': lambda x: sum(abs(x)) - 1} 
+            erc_weights = minimize ( rosen, zero_corr_risk_parity_weights, method='SLSQP',constraints=cons,options={'ftol': 0.0000000000000000000000000001,'disp': True,'maxiter':10000 } ).x
+            
+            _annualized_stddev_of_portfolio = 100.0*(exp(sqrt(252.0*(asmatrix( erc_weights )*asmatrix( _cov_mat )*asmatrix( erc_weights ).T))[0,0])-1)
+            erc_weights = erc_weights*(_target_risk/_annualized_stddev_of_portfolio) 
+
+            self.update_positions( events[0]['dt'], erc_weights )
         else:
             self.rollover( events[0]['dt'] )
