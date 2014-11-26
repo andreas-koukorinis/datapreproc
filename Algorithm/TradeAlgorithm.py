@@ -32,8 +32,8 @@ class TradeAlgorithm( EventsListener ):
                     if is_valid_daily_indicator(indicator_name):
                         module = import_module( 'DailyIndicators.' + indicator_name )
                         Indicatorclass = getattr( module, indicator_name )
-                        self.daily_indicators[indicator] = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
-
+                        _instance = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
+                        self.daily_indicators[_instance.identifier] = _instance
         # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects = {}
         for product in self.all_products:
