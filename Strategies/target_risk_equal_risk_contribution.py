@@ -3,6 +3,8 @@ from numpy import *
 from Algorithm.TradeAlgorithm import TradeAlgorithm
 from Utils.Regular import check_eod
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
+from DailyIndicators.correlation_log_returns import CorrelationLogReturns
+form DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 
 class TargetRiskEqualRiskContribution(TradeAlgorithm):
 
@@ -24,7 +26,9 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                 Indicatorclass = getattr( module, stddev_computation_indicator )
                 self.daily_indicators[_orig_indicator_name] = Indicatorclass.get_unique_instance( _orig_indicator_name, self.start_date, self.end_date, _config )
                 self.stddev_computation_indicator[product] = self.daily_indicators[_orig_indicator_name]
-        self.correlation_computation_indicator = 
+
+        _portfolio_string = make_portfolio_string_from_products ( self.products )
+        self.correlation_computation_indicator = CorrelationLogReturns.get_unique_instance( _portfolio_string+'.'+str(self.correlation_computation_history) )
 
     '''  Use self.bb_objects[product].dailybook to access the closing prices for the 'product'
          Use self.bb_objects[product].intradaybook to access the intraday prices for the 'product'
