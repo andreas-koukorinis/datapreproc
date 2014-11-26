@@ -333,7 +333,7 @@ class ExchangeSymbolManager():
                 date = date + datetime.timedelta( days=-1)
             if weekday == 6: #If sunday
                 date = date + datetime.timedelta( days=-2)
-            for i in range(0,3): # Go two business days back # TODO ###
+            for i in range(0,2): # Go two business days back # TODO ###
                 date += datetime.timedelta(days=-1)
                 while not self.is_liffe_exchange_date(_basename, date):
                     date += datetime.timedelta(days=-1)
