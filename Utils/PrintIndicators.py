@@ -40,7 +40,7 @@ class PrintIndicators(IndicatorListener):
         if not os.path.exists(os.path.dirname(self.indicators_file)):
             os.makedirs(os.path.dirname(self.indicators_file))
         _file = open(self.indicators_file, 'w')
-        _header = 'Date,' + ','.join(self.identifiers)
+        _header = 'date,' + ','.join(self.identifiers)
         _out = _header + '\n'
         _dates = sorted(self.all_indicator_values.keys())
         for _date in _dates:
