@@ -1,0 +1,859 @@
+ORDER PLACED ON 2014-01-02 23:59:59.999999 : id: 0 product:AQRIX amount:9354536.950421
+
+Portfolio snapshot at EndOfDay 2014-01-02
+Cash:100000000.000000	Positions:{'AQRIX': 0} Portfolio Value:100000000.000000 Trading has not yet started
+Money Allocation: {'AQRIX': 0.0}
+
+ORDER FILLED ON 2014-01-03 23:59:59.999999: id: 0  product: AQRIX  amount: 9354536.950421  cost: 0.000000  value: 99812909.260992  fill_price: 10.670000
+
+ORDER PLACED ON 2014-01-03 23:59:59.999999 : id: 1 product:AQRIX amount:17534.277320
+
+Portfolio snapshot at EndOfDay 2014-01-03
+Cash:187090.739008	Positions:{'AQRIX': 9354536.9504209552} Portfolio Value:100000000.000000 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 99812909.260991588}
+
+ORDER FILLED ON 2014-01-06 23:59:59.999999: id: 1  product: AQRIX  amount: 17534.277320  cost: 0.000000  value: 187266.081782  fill_price: 10.680000
+
+ORDER PLACED ON 2014-01-06 23:59:59.999999 : id: 2 product:AQRIX amount:-16.417863
+
+Portfolio snapshot at EndOfDay 2014-01-06
+Cash:-175.342773	Positions:{'AQRIX': 9372071.2277413309} Portfolio Value:100093545.369504 PnL for today: 93545.369504 
+Money Allocation: {'AQRIX': 100093720.71227741}
+
+ORDER FILLED ON 2014-01-07 23:59:59.999999: id: 2  product: AQRIX  amount: -16.417863  cost: 0.000000  value: -175.999488  fill_price: 10.720000
+
+ORDER PLACED ON 2014-01-07 23:59:59.999999 : id: 3 product:AQRIX amount:0.061261
+
+Portfolio snapshot at EndOfDay 2014-01-07
+Cash:0.656715	Positions:{'AQRIX': 9372054.8098786715} Portfolio Value:100468428.218614 PnL for today: 374882.849110 
+Money Allocation: {'AQRIX': 100468427.56189936}
+
+ORDER FILLED ON 2014-01-08 23:59:59.999999: id: 3  product: AQRIX  amount: 0.061261  cost: 0.000000  value: 0.654264  fill_price: 10.680000
+
+ORDER PLACED ON 2014-01-08 23:59:59.999999 : id: 4 product:AQRIX amount:0.000229
+
+Portfolio snapshot at EndOfDay 2014-01-08
+Cash:0.002450	Positions:{'AQRIX': 9372054.8711393531} Portfolio Value:100093546.026219 PnL for today: -374882.192395 
+Money Allocation: {'AQRIX': 100093546.02376829}
+
+ORDER FILLED ON 2014-01-09 23:59:59.999999: id: 4  product: AQRIX  amount: 0.000229  cost: 0.000000  value: 0.002446  fill_price: 10.660000
+
+ORDER PLACED ON 2014-01-09 23:59:59.999999 : id: 5 product:AQRIX amount:0.000000
+
+Portfolio snapshot at EndOfDay 2014-01-09
+Cash:0.000005	Positions:{'AQRIX': 9372054.8713687938} Portfolio Value:99906104.928796 PnL for today: -187441.097423 
+Money Allocation: {'AQRIX': 99906104.928791344}
+
+ORDER FILLED ON 2014-01-10 23:59:59.999999: id: 5  product: AQRIX  amount: 0.000000  cost: 0.000000  value: 0.000005  fill_price: 10.770000
+
+ORDER PLACED ON 2014-01-10 23:59:59.999999 : id: 6 product:AQRIX amount:-0.000000
+
+Portfolio snapshot at EndOfDay 2014-01-10
+Cash:-0.000000	Positions:{'AQRIX': 9372054.871369224} Portfolio Value:100937030.964646 PnL for today: 1030926.035851 
+Money Allocation: {'AQRIX': 100937030.96464653}
+
+ORDER FILLED ON 2014-01-13 23:59:59.999999: id: 6  product: AQRIX  amount: -0.000000  cost: 0.000000  value: -0.000000  fill_price: 10.760000
+
+ORDER PLACED ON 2014-01-13 23:59:59.999999 : id: 7 product:AQRIX amount:0.000000
+
+Portfolio snapshot at EndOfDay 2014-01-13
+Cash:0.000000	Positions:{'AQRIX': 9372054.8713692185} Portfolio Value:100843310.415933 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 100843310.41593279}
+
+ORDER FILLED ON 2014-01-14 23:59:59.999999: id: 7  product: AQRIX  amount: 0.000000  cost: 0.000000  value: 0.000000  fill_price: 10.750000
+
+
+Portfolio snapshot at EndOfDay 2014-01-14
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:100749589.867219 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 100749589.86721912}
+
+
+Portfolio snapshot at EndOfDay 2014-01-15
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:101218192.610788 PnL for today: 468602.743568 
+Money Allocation: {'AQRIX': 101218192.61078759}
+
+
+Portfolio snapshot at EndOfDay 2014-01-16
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:101218192.610788 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 101218192.61078759}
+
+
+Portfolio snapshot at EndOfDay 2014-01-17
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:101499354.256929 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 101499354.25692865}
+
+
+Portfolio snapshot at EndOfDay 2014-01-21
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:101405633.708215 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 101405633.70821497}
+
+
+Portfolio snapshot at EndOfDay 2014-01-22
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:101218192.610788 PnL for today: -187441.097427 
+Money Allocation: {'AQRIX': 101218192.61078759}
+
+
+Portfolio snapshot at EndOfDay 2014-01-23
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:100843310.415933 PnL for today: -374882.194855 
+Money Allocation: {'AQRIX': 100843310.4159328}
+
+
+Portfolio snapshot at EndOfDay 2014-01-24
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:99624943.282655 PnL for today: -1218367.133278 
+Money Allocation: {'AQRIX': 99624943.282654822}
+
+
+Portfolio snapshot at EndOfDay 2014-01-27
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:99062619.990373 PnL for today: -562323.292282 
+Money Allocation: {'AQRIX': 99062619.990372658}
+
+
+Portfolio snapshot at EndOfDay 2014-01-28
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:99718663.831369 PnL for today: 656043.840996 
+Money Allocation: {'AQRIX': 99718663.831368506}
+
+
+Portfolio snapshot at EndOfDay 2014-01-29
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:99624943.282655 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 99624943.282654822}
+
+
+Portfolio snapshot at EndOfDay 2014-01-30
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:99812384.380082 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 99812384.380082205}
+
+
+Portfolio snapshot at EndOfDay 2014-01-31
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:99812384.380082 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 99812384.380082205}
+
+
+Portfolio snapshot at EndOfDay 2014-02-03
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:99156340.539086 PnL for today: -656043.840996 
+Money Allocation: {'AQRIX': 99156340.539086357}
+
+
+Portfolio snapshot at EndOfDay 2014-02-04
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:99437502.185227 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 99437502.185227424}
+
+
+Portfolio snapshot at EndOfDay 2014-02-05
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:99531222.733941 PnL for today: 93720.548714 
+Money Allocation: {'AQRIX': 99531222.733941108}
+
+
+Portfolio snapshot at EndOfDay 2014-02-06
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:99812384.380082 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 99812384.380082205}
+
+
+Portfolio snapshot at EndOfDay 2014-02-07
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:100937030.964647 PnL for today: 1124646.584564 
+Money Allocation: {'AQRIX': 100937030.9646465}
+
+
+Portfolio snapshot at EndOfDay 2014-02-10
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:100843310.415933 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 100843310.4159328}
+
+
+Portfolio snapshot at EndOfDay 2014-02-11
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:101218192.610788 PnL for today: 374882.194855 
+Money Allocation: {'AQRIX': 101218192.61078759}
+
+
+Portfolio snapshot at EndOfDay 2014-02-12
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:101218192.610788 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 101218192.61078759}
+
+
+Portfolio snapshot at EndOfDay 2014-02-13
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:101686795.354356 PnL for today: 468602.743568 
+Money Allocation: {'AQRIX': 101686795.35435604}
+
+
+Portfolio snapshot at EndOfDay 2014-02-14
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:101967957.000497 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 101967957.00049712}
+
+
+Portfolio snapshot at EndOfDay 2014-02-18
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102811441.938920 PnL for today: 843484.938423 
+Money Allocation: {'AQRIX': 102811441.93892035}
+
+
+Portfolio snapshot at EndOfDay 2014-02-19
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102624000.841493 PnL for today: -187441.097427 
+Money Allocation: {'AQRIX': 102624000.84149295}
+
+
+Portfolio snapshot at EndOfDay 2014-02-20
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102342839.195352 PnL for today: -281161.646141 
+Money Allocation: {'AQRIX': 102342839.19535188}
+
+
+Portfolio snapshot at EndOfDay 2014-02-21
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102717721.390207 PnL for today: 374882.194855 
+Money Allocation: {'AQRIX': 102717721.39020666}
+
+
+Portfolio snapshot at EndOfDay 2014-02-24
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102998883.036348 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 102998883.03634773}
+
+
+Portfolio snapshot at EndOfDay 2014-02-25
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:103186324.133775 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 103186324.13377512}
+
+
+Portfolio snapshot at EndOfDay 2014-02-26
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:103373765.231202 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 103373765.2312025}
+
+
+Portfolio snapshot at EndOfDay 2014-02-27
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:103842367.974771 PnL for today: 468602.743568 
+Money Allocation: {'AQRIX': 103842367.97477096}
+
+
+Portfolio snapshot at EndOfDay 2014-02-28
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:103748647.426057 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 103748647.42605726}
+
+
+Portfolio snapshot at EndOfDay 2014-03-03
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:103748647.426057 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 103748647.42605726}
+
+
+Portfolio snapshot at EndOfDay 2014-03-04
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:104123529.620912 PnL for today: 374882.194855 
+Money Allocation: {'AQRIX': 104123529.62091203}
+
+
+Portfolio snapshot at EndOfDay 2014-03-05
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:104123529.620912 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 104123529.62091203}
+
+
+Portfolio snapshot at EndOfDay 2014-03-06
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:104029809.072198 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 104029809.07219835}
+
+
+Portfolio snapshot at EndOfDay 2014-03-07
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:103561206.328630 PnL for today: -468602.743568 
+Money Allocation: {'AQRIX': 103561206.3286299}
+
+
+Portfolio snapshot at EndOfDay 2014-03-10
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:103092603.585061 PnL for today: -468602.743568 
+Money Allocation: {'AQRIX': 103092603.58506143}
+
+
+Portfolio snapshot at EndOfDay 2014-03-11
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102905162.487634 PnL for today: -187441.097427 
+Money Allocation: {'AQRIX': 102905162.48763405}
+
+
+Portfolio snapshot at EndOfDay 2014-03-12
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102717721.390207 PnL for today: -187441.097427 
+Money Allocation: {'AQRIX': 102717721.39020666}
+
+
+Portfolio snapshot at EndOfDay 2014-03-13
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102530280.292779 PnL for today: -187441.097427 
+Money Allocation: {'AQRIX': 102530280.29277927}
+
+
+Portfolio snapshot at EndOfDay 2014-03-14
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102530280.292779 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 102530280.29277927}
+
+
+Portfolio snapshot at EndOfDay 2014-03-17
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102624000.841493 PnL for today: 93720.548714 
+Money Allocation: {'AQRIX': 102624000.84149295}
+
+
+Portfolio snapshot at EndOfDay 2014-03-18
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:103280044.682489 PnL for today: 656043.840996 
+Money Allocation: {'AQRIX': 103280044.6824888}
+
+
+Portfolio snapshot at EndOfDay 2014-03-19
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102436559.744066 PnL for today: -843484.938423 
+Money Allocation: {'AQRIX': 102436559.74406558}
+
+
+Portfolio snapshot at EndOfDay 2014-03-20
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:101967957.000497 PnL for today: -468602.743568 
+Money Allocation: {'AQRIX': 101967957.00049712}
+
+
+Portfolio snapshot at EndOfDay 2014-03-21
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102155398.097925 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 102155398.0979245}
+
+
+Portfolio snapshot at EndOfDay 2014-03-24
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102061677.549211 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 102061677.54921082}
+
+
+Portfolio snapshot at EndOfDay 2014-03-25
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102530280.292779 PnL for today: 468602.743568 
+Money Allocation: {'AQRIX': 102530280.29277927}
+
+
+Portfolio snapshot at EndOfDay 2014-03-26
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:102905162.487634 PnL for today: 374882.194855 
+Money Allocation: {'AQRIX': 102905162.48763405}
+
+
+Portfolio snapshot at EndOfDay 2014-03-27
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:103373765.231202 PnL for today: 468602.743568 
+Money Allocation: {'AQRIX': 103373765.2312025}
+
+
+Portfolio snapshot at EndOfDay 2014-03-28
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:103654926.877344 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 103654926.87734358}
+
+
+Portfolio snapshot at EndOfDay 2014-03-31
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:103842367.974771 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 103842367.97477096}
+
+
+Portfolio snapshot at EndOfDay 2014-04-01
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:104029809.072198 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 104029809.07219835}
+
+
+Portfolio snapshot at EndOfDay 2014-04-02
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:103654926.877344 PnL for today: -374882.194855 
+Money Allocation: {'AQRIX': 103654926.87734358}
+
+
+Portfolio snapshot at EndOfDay 2014-04-03
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:104029809.072198 PnL for today: 374882.194855 
+Money Allocation: {'AQRIX': 104029809.07219835}
+
+
+Portfolio snapshot at EndOfDay 2014-04-04
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:104685852.913194 PnL for today: 656043.840996 
+Money Allocation: {'AQRIX': 104685852.91319419}
+
+
+Portfolio snapshot at EndOfDay 2014-04-07
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:104310970.718339 PnL for today: -374882.194855 
+Money Allocation: {'AQRIX': 104310970.71833943}
+
+
+Portfolio snapshot at EndOfDay 2014-04-08
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:104685852.913194 PnL for today: 374882.194855 
+Money Allocation: {'AQRIX': 104685852.91319419}
+
+
+Portfolio snapshot at EndOfDay 2014-04-09
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105248176.205476 PnL for today: 562323.292282 
+Money Allocation: {'AQRIX': 105248176.20547634}
+
+
+Portfolio snapshot at EndOfDay 2014-04-10
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105341896.754190 PnL for today: 93720.548714 
+Money Allocation: {'AQRIX': 105341896.75419004}
+
+
+Portfolio snapshot at EndOfDay 2014-04-11
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:104779573.461908 PnL for today: -562323.292282 
+Money Allocation: {'AQRIX': 104779573.46190788}
+
+
+Portfolio snapshot at EndOfDay 2014-04-14
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105060735.108049 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 105060735.10804896}
+
+
+Portfolio snapshot at EndOfDay 2014-04-15
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:104779573.461908 PnL for today: -281161.646141 
+Money Allocation: {'AQRIX': 104779573.46190788}
+
+
+Portfolio snapshot at EndOfDay 2014-04-16
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105248176.205476 PnL for today: 468602.743568 
+Money Allocation: {'AQRIX': 105248176.20547634}
+
+
+Portfolio snapshot at EndOfDay 2014-04-17
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105248176.205476 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 105248176.20547634}
+
+
+Portfolio snapshot at EndOfDay 2014-04-21
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105248176.205476 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 105248176.20547634}
+
+
+Portfolio snapshot at EndOfDay 2014-04-22
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105341896.754190 PnL for today: 93720.548714 
+Money Allocation: {'AQRIX': 105341896.75419004}
+
+
+Portfolio snapshot at EndOfDay 2014-04-23
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105435617.302904 PnL for today: 93720.548714 
+Money Allocation: {'AQRIX': 105435617.30290373}
+
+
+Portfolio snapshot at EndOfDay 2014-04-24
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105623058.400331 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 105623058.40033111}
+
+
+Portfolio snapshot at EndOfDay 2014-04-25
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105154455.656763 PnL for today: -468602.743568 
+Money Allocation: {'AQRIX': 105154455.65676266}
+
+
+Portfolio snapshot at EndOfDay 2014-04-28
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105154455.656763 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 105154455.65676266}
+
+
+Portfolio snapshot at EndOfDay 2014-04-29
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105716778.949045 PnL for today: 562323.292282 
+Money Allocation: {'AQRIX': 105716778.94904479}
+
+
+Portfolio snapshot at EndOfDay 2014-04-30
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105904220.046472 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 105904220.04647219}
+
+
+Portfolio snapshot at EndOfDay 2014-05-01
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105997940.595186 PnL for today: 93720.548714 
+Money Allocation: {'AQRIX': 105997940.59518589}
+
+
+Portfolio snapshot at EndOfDay 2014-05-02
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:106279102.241327 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 106279102.24132696}
+
+
+Portfolio snapshot at EndOfDay 2014-05-05
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:106091661.143900 PnL for today: -187441.097427 
+Money Allocation: {'AQRIX': 106091661.14389957}
+
+
+Portfolio snapshot at EndOfDay 2014-05-06
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:105997940.595186 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 105997940.59518589}
+
+
+Portfolio snapshot at EndOfDay 2014-05-07
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:106372822.790041 PnL for today: 374882.194855 
+Money Allocation: {'AQRIX': 106372822.79004064}
+
+
+Portfolio snapshot at EndOfDay 2014-05-08
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:107028866.631036 PnL for today: 656043.840996 
+Money Allocation: {'AQRIX': 107028866.63103649}
+
+
+Portfolio snapshot at EndOfDay 2014-05-09
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:106841425.533609 PnL for today: -187441.097427 
+Money Allocation: {'AQRIX': 106841425.53360912}
+
+
+Portfolio snapshot at EndOfDay 2014-05-12
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:107122587.179750 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 107122587.17975019}
+
+
+Portfolio snapshot at EndOfDay 2014-05-13
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:107778631.020746 PnL for today: 656043.840996 
+Money Allocation: {'AQRIX': 107778631.02074604}
+
+
+Portfolio snapshot at EndOfDay 2014-05-14
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:108622115.959169 PnL for today: 843484.938423 
+Money Allocation: {'AQRIX': 108622115.95916927}
+
+
+Portfolio snapshot at EndOfDay 2014-05-15
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:108153513.215601 PnL for today: -468602.743568 
+Money Allocation: {'AQRIX': 108153513.21560079}
+
+
+Portfolio snapshot at EndOfDay 2014-05-16
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:108247233.764315 PnL for today: 93720.548714 
+Money Allocation: {'AQRIX': 108247233.7643145}
+
+
+Portfolio snapshot at EndOfDay 2014-05-19
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:108340954.313028 PnL for today: 93720.548714 
+Money Allocation: {'AQRIX': 108340954.31302819}
+
+
+Portfolio snapshot at EndOfDay 2014-05-20
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:107966072.118173 PnL for today: -374882.194855 
+Money Allocation: {'AQRIX': 107966072.11817342}
+
+
+Portfolio snapshot at EndOfDay 2014-05-21
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:108340954.313028 PnL for today: 374882.194855 
+Money Allocation: {'AQRIX': 108340954.31302819}
+
+
+Portfolio snapshot at EndOfDay 2014-05-22
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:108715836.507883 PnL for today: 374882.194855 
+Money Allocation: {'AQRIX': 108715836.50788295}
+
+
+Portfolio snapshot at EndOfDay 2014-05-23
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109090718.702738 PnL for today: 374882.194855 
+Money Allocation: {'AQRIX': 109090718.70273773}
+
+
+Portfolio snapshot at EndOfDay 2014-05-27
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109278159.800165 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 109278159.80016512}
+
+
+Portfolio snapshot at EndOfDay 2014-05-28
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109934203.641161 PnL for today: 656043.840996 
+Money Allocation: {'AQRIX': 109934203.64116096}
+
+
+Portfolio snapshot at EndOfDay 2014-05-29
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:110402806.384729 PnL for today: 468602.743568 
+Money Allocation: {'AQRIX': 110402806.38472942}
+
+
+Portfolio snapshot at EndOfDay 2014-05-30
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109746762.543734 PnL for today: -656043.840996 
+Money Allocation: {'AQRIX': 109746762.54373358}
+
+
+Portfolio snapshot at EndOfDay 2014-06-02
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109278159.800165 PnL for today: -468602.743568 
+Money Allocation: {'AQRIX': 109278159.80016512}
+
+
+Portfolio snapshot at EndOfDay 2014-06-03
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:108622115.959169 PnL for today: -656043.840996 
+Money Allocation: {'AQRIX': 108622115.95916927}
+
+
+Portfolio snapshot at EndOfDay 2014-06-04
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:108340954.313028 PnL for today: -281161.646141 
+Money Allocation: {'AQRIX': 108340954.31302819}
+
+
+Portfolio snapshot at EndOfDay 2014-06-05
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109184439.251451 PnL for today: 843484.938423 
+Money Allocation: {'AQRIX': 109184439.25145142}
+
+
+Portfolio snapshot at EndOfDay 2014-06-06
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109184439.251451 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 109184439.25145142}
+
+
+Portfolio snapshot at EndOfDay 2014-06-09
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:110309085.836016 PnL for today: 1124646.584564 
+Money Allocation: {'AQRIX': 110309085.83601572}
+
+
+Portfolio snapshot at EndOfDay 2014-06-10
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:110027924.189875 PnL for today: -281161.646141 
+Money Allocation: {'AQRIX': 110027924.18987465}
+
+
+Portfolio snapshot at EndOfDay 2014-06-11
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109653041.995020 PnL for today: -374882.194855 
+Money Allocation: {'AQRIX': 109653041.99501987}
+
+
+Portfolio snapshot at EndOfDay 2014-06-12
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:110215365.287302 PnL for today: 562323.292282 
+Money Allocation: {'AQRIX': 110215365.28730203}
+
+
+Portfolio snapshot at EndOfDay 2014-06-13
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:110215365.287302 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 110215365.28730203}
+
+
+Portfolio snapshot at EndOfDay 2014-06-16
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:110121644.738588 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 110121644.73858833}
+
+
+Portfolio snapshot at EndOfDay 2014-06-17
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109840483.092447 PnL for today: -281161.646141 
+Money Allocation: {'AQRIX': 109840483.09244727}
+
+
+Portfolio snapshot at EndOfDay 2014-06-18
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:110777688.579584 PnL for today: 937205.487137 
+Money Allocation: {'AQRIX': 110777688.57958418}
+
+
+Portfolio snapshot at EndOfDay 2014-06-19
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111621173.518007 PnL for today: 843484.938423 
+Money Allocation: {'AQRIX': 111621173.51800741}
+
+
+Portfolio snapshot at EndOfDay 2014-06-20
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111621173.518007 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 111621173.51800741}
+
+
+Portfolio snapshot at EndOfDay 2014-06-23
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111527452.969294 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 111527452.96929373}
+
+
+Portfolio snapshot at EndOfDay 2014-06-24
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111714894.066721 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 111714894.06672111}
+
+
+Portfolio snapshot at EndOfDay 2014-06-25
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111902335.164148 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 111902335.16414848}
+
+
+Portfolio snapshot at EndOfDay 2014-06-26
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:112183496.810290 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 112183496.81028958}
+
+
+Portfolio snapshot at EndOfDay 2014-06-27
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:112183496.810290 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 112183496.81028958}
+
+
+Portfolio snapshot at EndOfDay 2014-06-30
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111902335.164148 PnL for today: -281161.646141 
+Money Allocation: {'AQRIX': 111902335.16414848}
+
+
+Portfolio snapshot at EndOfDay 2014-07-01
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:112089776.261576 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 112089776.26157588}
+
+
+Portfolio snapshot at EndOfDay 2014-07-02
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111714894.066721 PnL for today: -374882.194855 
+Money Allocation: {'AQRIX': 111714894.06672111}
+
+
+Portfolio snapshot at EndOfDay 2014-07-03
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:112089776.261576 PnL for today: 374882.194855 
+Money Allocation: {'AQRIX': 112089776.26157588}
+
+
+Portfolio snapshot at EndOfDay 2014-07-07
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111527452.969294 PnL for today: -562323.292282 
+Money Allocation: {'AQRIX': 111527452.96929373}
+
+
+Portfolio snapshot at EndOfDay 2014-07-08
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111433732.420580 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 111433732.42058003}
+
+
+Portfolio snapshot at EndOfDay 2014-07-09
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111433732.420580 PnL for today: 0.000000 
+Money Allocation: {'AQRIX': 111433732.42058003}
+
+
+Portfolio snapshot at EndOfDay 2014-07-10
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111340011.871866 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 111340011.87186635}
+
+
+Portfolio snapshot at EndOfDay 2014-07-11
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111246291.323153 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 111246291.32315263}
+
+
+Portfolio snapshot at EndOfDay 2014-07-14
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111433732.420580 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 111433732.42058003}
+
+
+Portfolio snapshot at EndOfDay 2014-07-15
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:110965129.677012 PnL for today: -468602.743568 
+Money Allocation: {'AQRIX': 110965129.67701156}
+
+
+Portfolio snapshot at EndOfDay 2014-07-16
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111433732.420580 PnL for today: 468602.743568 
+Money Allocation: {'AQRIX': 111433732.42058003}
+
+
+Portfolio snapshot at EndOfDay 2014-07-17
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111340011.871866 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 111340011.87186635}
+
+
+Portfolio snapshot at EndOfDay 2014-07-18
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111621173.518007 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 111621173.51800741}
+
+
+Portfolio snapshot at EndOfDay 2014-07-21
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111527452.969294 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 111527452.96929373}
+
+
+Portfolio snapshot at EndOfDay 2014-07-22
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:112183496.810290 PnL for today: 656043.840996 
+Money Allocation: {'AQRIX': 112183496.81028958}
+
+
+Portfolio snapshot at EndOfDay 2014-07-23
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:112652099.553858 PnL for today: 468602.743568 
+Money Allocation: {'AQRIX': 112652099.55385803}
+
+
+Portfolio snapshot at EndOfDay 2014-07-24
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:112277217.359003 PnL for today: -374882.194855 
+Money Allocation: {'AQRIX': 112277217.35900326}
+
+
+Portfolio snapshot at EndOfDay 2014-07-25
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:112370937.907717 PnL for today: 93720.548714 
+Money Allocation: {'AQRIX': 112370937.90771696}
+
+
+Portfolio snapshot at EndOfDay 2014-07-28
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:112089776.261576 PnL for today: -281161.646141 
+Money Allocation: {'AQRIX': 112089776.26157588}
+
+
+Portfolio snapshot at EndOfDay 2014-07-29
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:112183496.810290 PnL for today: 93720.548714 
+Money Allocation: {'AQRIX': 112183496.81028958}
+
+
+Portfolio snapshot at EndOfDay 2014-07-30
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111246291.323153 PnL for today: -937205.487137 
+Money Allocation: {'AQRIX': 111246291.32315263}
+
+
+Portfolio snapshot at EndOfDay 2014-07-31
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109653041.995020 PnL for today: -1593249.328133 
+Money Allocation: {'AQRIX': 109653041.99501987}
+
+
+Portfolio snapshot at EndOfDay 2014-08-01
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109371880.348879 PnL for today: -281161.646141 
+Money Allocation: {'AQRIX': 109371880.3488788}
+
+
+Portfolio snapshot at EndOfDay 2014-08-04
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:110027924.189875 PnL for today: 656043.840996 
+Money Allocation: {'AQRIX': 110027924.18987465}
+
+
+Portfolio snapshot at EndOfDay 2014-08-05
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109278159.800165 PnL for today: -749764.389710 
+Money Allocation: {'AQRIX': 109278159.80016512}
+
+
+Portfolio snapshot at EndOfDay 2014-08-06
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109371880.348879 PnL for today: 93720.548714 
+Money Allocation: {'AQRIX': 109371880.3488788}
+
+
+Portfolio snapshot at EndOfDay 2014-08-07
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109184439.251451 PnL for today: -187441.097427 
+Money Allocation: {'AQRIX': 109184439.25145142}
+
+
+Portfolio snapshot at EndOfDay 2014-08-08
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109465600.897592 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 109465600.89759248}
+
+
+Portfolio snapshot at EndOfDay 2014-08-11
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:110215365.287302 PnL for today: 749764.389710 
+Money Allocation: {'AQRIX': 110215365.28730203}
+
+
+Portfolio snapshot at EndOfDay 2014-08-12
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:109840483.092447 PnL for today: -374882.194855 
+Money Allocation: {'AQRIX': 109840483.09244727}
+
+
+Portfolio snapshot at EndOfDay 2014-08-13
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:110777688.579584 PnL for today: 937205.487137 
+Money Allocation: {'AQRIX': 110777688.57958418}
+
+
+Portfolio snapshot at EndOfDay 2014-08-14
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111058850.225725 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 111058850.22572526}
+
+
+Portfolio snapshot at EndOfDay 2014-08-15
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111246291.323153 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 111246291.32315263}
+
+
+Portfolio snapshot at EndOfDay 2014-08-18
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111340011.871866 PnL for today: 93720.548714 
+Money Allocation: {'AQRIX': 111340011.87186635}
+
+
+Portfolio snapshot at EndOfDay 2014-08-19
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111621173.518007 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 111621173.51800741}
+
+
+Portfolio snapshot at EndOfDay 2014-08-20
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111433732.420580 PnL for today: -187441.097427 
+Money Allocation: {'AQRIX': 111433732.42058003}
+
+
+Portfolio snapshot at EndOfDay 2014-08-21
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111621173.518007 PnL for today: 187441.097427 
+Money Allocation: {'AQRIX': 111621173.51800741}
+
+
+Portfolio snapshot at EndOfDay 2014-08-22
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111527452.969294 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 111527452.96929373}
+
+
+Portfolio snapshot at EndOfDay 2014-08-25
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:111996055.712862 PnL for today: 468602.743568 
+Money Allocation: {'AQRIX': 111996055.71286218}
+
+
+Portfolio snapshot at EndOfDay 2014-08-26
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:112745820.102572 PnL for today: 749764.389710 
+Money Allocation: {'AQRIX': 112745820.10257171}
+
+
+Portfolio snapshot at EndOfDay 2014-08-27
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:113214422.846140 PnL for today: 468602.743568 
+Money Allocation: {'AQRIX': 113214422.84614018}
+
+
+Portfolio snapshot at EndOfDay 2014-08-28
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:113120702.297426 PnL for today: -93720.548714 
+Money Allocation: {'AQRIX': 113120702.29742649}
+
+
+Portfolio snapshot at EndOfDay 2014-08-29
+Cash:-0.000000	Positions:{'AQRIX': 9372054.8713692203} Portfolio Value:113401863.943568 PnL for today: 281161.646141 
+Money Allocation: {'AQRIX': 113401863.94356756}
+
