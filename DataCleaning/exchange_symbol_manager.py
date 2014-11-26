@@ -179,6 +179,11 @@ class ExchangeSymbolManager():
             date = self.get_date_from_nth_day_of_month_year(2, 'FRIDAY', _next_cme_month, _next_cme_year) # 2nd friday of that month of that year       
             date = date + datetime.timedelta( days=-1 ) # Subtract one day since last trading day is the day when we have decent volume in 1st contract
             return date
+        if _basename == 'NKD': # based on volume observation
+            date = self.get_date_from_nth_day_of_month_year(2, 'FRIDAY', _next_cme_month, _next_cme_year) # 2nd friday of that month of that year       
+            date = date + datetime.timedelta( days=-2 ) # Subtract two days since last trading day is the day when we have decent volume in 1st contract
+            return date
+
         # ZT, ZF, ZN, ZB, UB : first notice date is the last day of the previous month
         # We expect to stop trading a day before
         if _basename in ['ZT', 'ZF', 'ZN', 'ZB', 'UB', 'ZW', 'ZC', 'ZS', 'XW']: 
