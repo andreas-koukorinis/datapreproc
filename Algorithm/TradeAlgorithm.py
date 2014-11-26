@@ -18,23 +18,21 @@ class TradeAlgorithm( EventsListener ):
     def __init__( self, _trade_products, _all_products, _startdate, _enddate, _config, _log_filename):
         self.products = _trade_products
         self.all_products = _all_products
+        self.daily_indicators = {}
+        self.start_date = _startdate
+        self.end_date = _enddate
         self.init( _config )
 
-        # TODO{sanchit} We should check if the input DailyIndicators is given before we 
-        # do all this
         # Read indicator list from config file
-        indicators = _config.get( 'DailyIndicators', 'names' ).strip().split(" ")
-        # TODO{sanchit} Even if we have no indicators, we just write names=, 
-        # this tries to load a module.
-        # I think before every load_module we should check if the module name is valid or not ?
-        self.daily_indicators = {}
-        #Instantiate daily indicator objects
-        for indicator in indicators:
-            indicator_name = indicator.strip().split('.')[0]
-            if ( is_valid_daily_indicator ( indicator_name ) ) :
-                module = import_module( 'DailyIndicators.' + indicator_name )
-                Indicatorclass = getattr( module, indicator_name )
-                self.daily_indicators[indicator] = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
+        if _config.has_option('DailyIndicators','names'):
+            indicators = _config.get( 'DailyIndicators', 'names' ).strip().split(" ")
+            if indicators: # To handle names= case
+                for indicator in indicators:
+                    indicator_name = indicator.strip().split('.')[0]
+                    if is_valid_daily_indicator(indicator_name):
+                        module = import_module( 'DailyIndicators.' + indicator_name )
+                        Indicatorclass = getattr( module, indicator_name )
+                        self.daily_indicators[indicator] = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
 
         # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects = {}
