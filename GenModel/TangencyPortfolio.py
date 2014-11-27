@@ -10,8 +10,8 @@ def main():
     if len ( sys.argv ) <= 1  :
         sys.exit("python TangencyPortfolio.py returns-file")
     dateparse = lambda x: datetime.datetime.strptime(x, '%Y-%m-%d').date()
-    df = pd.read_csv(sys.argv[1],header=0,parse_dates =['Date'],date_parser=dateparse)
-    df = df.set_index('Date')
+    df = pd.read_csv(sys.argv[1],header=0,parse_dates =['date'],date_parser=dateparse)
+    df = df.set_index('date')
     cov_mat = np.asmatrix(df.cov()) # covariance matrix
     mu = np.asmatrix(df.mean()).T # expected returns
     unit = np.asmatrix( np.ones( mu.shape[0] ) ) # unit vector
