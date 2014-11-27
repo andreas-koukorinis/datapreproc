@@ -2,7 +2,7 @@ import numpy as np
 from Utils.Regular import get_dt_from_date
 from Indicator_Listeners import IndicatorListener
 from DailyLogReturns import DailyLogReturns
-from portfolio_utils import get_products_from_portfolio_string
+from portfolio_utils import get_products_from_portfolio_string,make_portfolio_string_from_products
 
 class CorrelationLogReturns(IndicatorListener):
     """Compute the correlation of log returns of a number of product for the specified number of days

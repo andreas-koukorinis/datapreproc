@@ -50,7 +50,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
 
         if is_valid_daily_indicator(self.stddev_computation_indicator):
             for product in self.products:
-                _orig_indicator_name = self.stddev_computation_indicator + '.' + product + '.' + str(self.stddev_computation_history) #this would be something like StdDev.fTY.252
+                _orig_indicator_name = self.stddev_computation_indicator + '.' + product + '.' + str(self.stddev_computation_history) # this would be something like StdDev.fTY.252
                 module = import_module('DailyIndicators.' + self.stddev_computation_indicator)
                 Indicatorclass = getattr(module, self.stddev_computation_indicator)
                 self.daily_indicators[_orig_indicator_name] = Indicatorclass.get_unique_instance(_orig_indicator_name, self.start_date, self.end_date, _config)
