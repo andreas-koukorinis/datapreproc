@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 from importlib import import_module
+from scipy.optimize import minimize
 from Algorithm.TradeAlgorithm import TradeAlgorithm
 from Utils.Regular import check_eod
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
@@ -74,7 +75,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
             _need_to_recompute_erc_weights = False # By default we don't need to change weights unless some input has changed
             if self.day >= (self.last_date_correlation_matrix_computed + self.correlation_computation_interval):
                 # we need to recompute the correlation matrix
-                self.logret_correlation_matrix = self.correlation_computation_indicator.recompute() # this command will not do anything if the values have been already computed. else it will
+                self.logret_correlation_matrix = self.correlation_computation_indicator.get_correlation_matrix() # this command will not do anything if the values have been already computed. else it will
                 # TODO Add tests here for the correlation matrix to make sense.
                 # If it fails, do not overwrite previous values, or throw an error
                 _need_to_recompute_erc_weights = True
@@ -83,7 +84,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
             if self.day >= (self.last_date_stdev_computed + self.stddev_computation_interval):
                 # Get the stdev values from the stddev indicators
                 for _product in self.products:
-                    self.stddev_logret[self.map_product_to_index[_product]] = self.daily_indicators[self.stddev_computation_indicator + '.' + product + '.' + str(self.stddev_computation_history)].values[1] # earlier this was self.stddev_computation_indicator[_product] but due to error in line 57, switched to this
+                    self.stddev_logret[self.map_product_to_index[_product]] = self.daily_indicators[self.stddev_computation_indicator + '.' + _product + '.' + str(self.stddev_computation_history)].values[1] # earlier this was self.stddev_computation_indicator[_product] but due to error in line 57, switched to this
                     # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.
                     # TODO we can make tests here that the module needs to pass.
