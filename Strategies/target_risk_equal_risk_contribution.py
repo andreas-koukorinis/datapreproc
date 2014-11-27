@@ -4,13 +4,24 @@ from Algorithm.TradeAlgorithm import TradeAlgorithm
 from Utils.Regular import check_eod
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
-form DailyIndicators.portfolio_utils import make_portfolio_string_from_products
+from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 
 class TargetRiskEqualRiskContribution(TradeAlgorithm):
+    """Implementation of the ERC risk balanced strategy
 
+    Items read from config :
+    target_risk : this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
+    rebalance_frequency : This is the number of days after which we rebalance to the assigned weights
+    stddev_computation_history :
+    stddev_computation_interval :
+    stddev_computation_indicator : The indicator to use to compute the estimate of ex-ante standard deviation.
+    correlation_computation_history :
+    correlation_computation_interval :
+
+    """
     def init( self, _config ):
-        self.day=-1 # TODO move this to "watch" or aglobal time manager
-        self.target_risk = _config.getfloat( 'Strategy', 'target_risk' )
+        self.day=-1 # TODO move this to "watch" or a global time manager
+        self.target_risk = _config.getfloat( 'Strategy', 'target_risk' ) # this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
         self.rebalance_frequency = _config.getint( 'Parameters', 'rebalance_frequency' )
         self.stddev_computation_history = _config.getint( 'Strategy', 'stddev_computation_history' )
         self.stddev_computation_indicator = _config.get( 'Strategy', 'stddev_computation_indicator' )
@@ -59,7 +70,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
             zero_corr_risk_parity_weights = 1.0/(_annualized_risk)
             zero_corr_risk_parity_weights = zero_corr_risk_parity_weights/sum(abs(zero_corr_risk_parity_weights))
             
-            prc = 100.0*(zero_corr_risk_parity_weights * array(asmatrix( _cov_mat )*asmatrix( zero_corr_risk_parity_weights ).T)[:,0])/((asmatrix( zero_corr_risk_parity_weights )*asmatrix( _cov_mat )*asmatrix( zero_corr_risk_parity_weights ).T))
+            # prc = 100.0*(zero_corr_risk_parity_weights * array(asmatrix( _cov_mat )*asmatrix( zero_corr_risk_parity_weights ).T)[:,0])/((asmatrix( zero_corr_risk_parity_weights )*asmatrix( _cov_mat )*asmatrix( zero_corr_risk_parity_weights ).T))
             # prc is the INITIAL PERCENTAGE RISK CONTRIBUTIONS before optimization
             
             # Function to return the L1 norm of the series of { risk_contrib - man ( risk_contrib ) }, or sum of absolute values of the series
