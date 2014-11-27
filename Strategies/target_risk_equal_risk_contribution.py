@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+from importlib import import_module
 from Algorithm.TradeAlgorithm import TradeAlgorithm
 from Utils.Regular import check_eod
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
@@ -23,11 +24,11 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
         self.day = -1 # TODO move this to "watch" or a global time manager
         self.target_risk = _config.getfloat('Strategy', 'target_risk') # this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
         self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
-        self.stddev_computation_history = np.max(2, _config.getint('Strategy', 'stddev_computation_history'))
-        self.stddev_computation_interval = np.max(1, _config.getint('Strategy', 'stddev_computation_interval'))
+        self.stddev_computation_history = max(2, _config.getint('Strategy', 'stddev_computation_history'))
+        self.stddev_computation_interval = max(1, _config.getint('Strategy', 'stddev_computation_interval'))
         self.stddev_computation_indicator = _config.get('Strategy', 'stddev_computation_indicator')
-        self.correlation_computation_history = np.max(2, _config.getint('Strategy', 'correlation_computation_history'))
-        self.correlation_computation_interval = np.max(1, _config.getint('Strategy', 'correlation_computation_interval'))
+        self.correlation_computation_history = max(2, _config.getint('Strategy', 'correlation_computation_history'))
+        self.correlation_computation_interval = max(1, _config.getint('Strategy', 'correlation_computation_interval'))
         # Some computational variables
         self.last_date_correlation_computed = 0 # TODO change these to actual dates
         self.last_date_stdev_computed = 0 # TODO change thse to actual dates
@@ -38,7 +39,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
         # create a diagonal matrix of 1s for correlation matrix
         self.logret_correlation_matrix = np.zeros(shape=(len(self.products), len(self.products)))
         for i in xrange(len(self.products)):
-            self.correlation_matrix[i,i] = 1.0
+            self.logret_correlation_matrix[i,i] = 1.0
 
         
         self.map_product_to_index = {} # this might be needed, dunno for sure
@@ -49,12 +50,12 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
 
         if is_valid_daily_indicator(self.stddev_computation_indicator):
             for product in self.products:
-                _orig_indicator_name = self.stddev_computation_indicator + product + str(self.stddev_computation_history) #this would be something like StdDev.fTY.252
-                module = import_module('DailyIndicators.' + stddev_computation_indicator)
-                Indicatorclass = getattr(module, stddev_computation_indicator)
+                _orig_indicator_name = self.stddev_computation_indicator + '.' + product + '.' + str(self.stddev_computation_history) #this would be something like StdDev.fTY.252
+                module = import_module('DailyIndicators.' + self.stddev_computation_indicator)
+                Indicatorclass = getattr(module, self.stddev_computation_indicator)
                 self.daily_indicators[_orig_indicator_name] = Indicatorclass.get_unique_instance(_orig_indicator_name, self.start_date, self.end_date, _config)
-                self.stddev_computation_indicator[product] = self.daily_indicators[_orig_indicator_name]
-                # No need to attach ourselves as a listenr to the indicator for now. We are going to access the value directly
+                # self.stddev_computation_indicator[product] = self.daily_indicators[_orig_indicator_name]
+                # No need to attach ourselves as a listener to the indicator for now. We are going to access the value directly.
         else:
             print("Stdev computation indicator %s invalid!" %(self.stddev_computation_indicator))
             sys.exit(0)
@@ -82,7 +83,8 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
             if self.day >= (self.last_date_stdev_computed + self.stddev_computation_interval):
                 # Get the stdev values from the stddev indicators
                 for _product in self.products:
-                    self.stddev_logret[self.map_product_to_index[_product]] = self.stddev_computation_indicator[_product].values[1] # TODO should not accessing an array without checking the length!
+                    self.stddev_logret[self.map_product_to_index[_product]] = self.daily_indicators[self.stddev_computation_indicator + '.' + product + '.' + str(self.stddev_computation_history)].values[1] # earlier this was self.stddev_computation_indicator[_product] but due to error in line 57, switched to this
+                    # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.
                     # TODO we can make tests here that the module needs to pass.
                 _need_to_recompute_erc_weights = True
