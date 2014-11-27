@@ -102,6 +102,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                     zero_corr_risk_parity_weights = 1.0/(_annualized_risk)
                     self.erc_weights = zero_corr_risk_parity_weights/np.sum(np.abs(zero_corr_risk_parity_weights))
 
+                # Using L1 norm here. It does not optimize well if we use L2 norm.
                 def _get_l1_norm_risk_contributions(_given_weights):
                     """Function to return the L1 norm of the series of { risk_contrib - man(risk_contrib) }, or sum of absolute values of the series
                     """
@@ -112,7 +113,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                 _constraints = {'type':'eq', 'fun': lambda x: np.sum(np.abs(x)) - 1}
                 self.erc_weights = minimize(_get_l1_norm_risk_contributions, self.erc_weights, method='SLSQP', constraints=_constraints, options={'ftol': 0.0000000000000000000000000001, 'disp': True, 'maxiter':10000}).x
 
-                _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0*(np.asmatrix(self.erc_weights)*np.asmatrix(_cov_mat)*np.asmatrix(erc_weights).T))[0, 0])-1)
+                _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0*(np.asmatrix(self.erc_weights)*np.asmatrix(_cov_mat)*np.asmatrix(self.erc_weights).T))[0, 0])-1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.erc_weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
