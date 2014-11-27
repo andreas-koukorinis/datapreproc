@@ -55,11 +55,12 @@ class ExecLogic():
                         p1 = product  # Example: 'fES_1'
                         p2 = get_next_futures_contract(p1)  # Example: 'fES_2'
                         positions_to_take_p1 = self.portfolio.num_shares[p1] + self.order_manager.to_be_filled[p1] + self.orders_to_place[p1]
-                        if p2 not in self.all_products and positions_to_take_p1 > 0:
+                        if p2 not in self.all_products and positions_to_take_p1 != 0:
                             sys.exit( 'exec_logic -> adjust_positions_for_settlements : Product %s not present' %p2 )
-                        elif positions_to_take_p1 != 0:
-                            positions_to_take_p2 = (positions_to_take_p1*current_prices[p1]*self.conversion_factor[p1])/(current_prices[p2]*self.conversion_factor[p2])
-                            _orders_to_place[p2] += positions_to_take_p2 # TODO check if = will do # TODO check why should this be different
+                        else:
+                            if positions_to_take_p1 != 0:
+                                positions_to_take_p2 = (positions_to_take_p1*current_prices[p1]*self.conversion_factor[p1])/(current_prices[p2]*self.conversion_factor[p2])
+                                _orders_to_place[p2] += positions_to_take_p2 # TODO check if = will do # TODO check why should this be different
                             _orders_to_place[p1] += - ( self.order_manager.to_be_filled[p1] + self.portfolio.num_shares[p1] )
                     else:
                         _orders_to_place[product] += self.orders_to_place[product] # TODO check if = will do
@@ -104,11 +105,12 @@ class ExecLogic():
                     if is_future( product ) and _is_last_trading_day:
                         p1 = product  # Example: 'fES_1'
                         p2 = get_next_futures_contract(p1)  # Example: 'fES_2'
-                        if p2 not in self.all_products and positions_to_take[p1] > 0:
+                        if p2 not in self.all_products and positions_to_take[p1] != 0:
                             sys.exit( 'exec_logic -> adjust_positions_for_settlements : Product %s not present' %p2 )
-                        elif positions_to_take[p1] != 0:
-                            positions_to_take_p2 = ( positions_to_take[p1] * current_prices[p1] * self.conversion_factor[p1] ) / ( current_prices[p2] * self.conversion_factor[p2] )
-                            _orders_to_place[p2] +=  positions_to_take_p2  # TODO check if = will do
+                        else:
+                            if positions_to_take[p1] != 0:
+                                positions_to_take_p2 = (positions_to_take[p1] * current_prices[p1] * self.conversion_factor[p1] ) / ( current_prices[p2] * self.conversion_factor[p2] )
+                                _orders_to_place[p2] +=  positions_to_take_p2  # TODO check if = will do
                             _orders_to_place[p1] += - ( self.order_manager.to_be_filled[p1] + self.portfolio.num_shares[p1] )
                     else:
                         _orders_to_place[product] = positions_to_take[product] - ( self.order_manager.to_be_filled[product] + self.portfolio.num_shares[product] ) 
