@@ -3,6 +3,7 @@ from numpy import *
 from Indicator_Listeners import IndicatorListener
 from DailyLogReturns import DailyLogReturns
 from MovingAverage import MovingAverage
+from Utils.Regular import get_dt_from_date
 
 # In the config file this indicator will be specfied as StdDevCrossover.product.stddev_period.crossover_short_period.crossover_long_period
 class StdDevCrossover( IndicatorListener ):
