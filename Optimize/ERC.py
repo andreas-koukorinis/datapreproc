@@ -36,7 +36,7 @@ def main():
     ( _logret_matrix, products_order ) = get_logreturns( _config_file, _trade_products, _start_date, _end_date, 'Data/returns.csv' )
 
     _cov_mat = cov( _logret_matrix.T )
-    _risk = std(_logret_matrix,axis=0)
+    _risk = std(_logret_matrix,axis=0,ddof=1) # added ddof to match the assumptions of cov
     _annualized_risk = 100.0*(exp(sqrt(252.0)*_risk)-1)
     _w = 1.0/(_annualized_risk)
     _w = _w/sum(abs(_w))
