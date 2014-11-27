@@ -111,7 +111,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                     return (np.sum(np.abs(_trc - np.mean(_trc))))
 
                 _constraints = {'type':'eq', 'fun': lambda x: np.sum(np.abs(x)) - 1}
-                self.erc_weights = minimize(_get_l1_norm_risk_contributions, self.erc_weights, method='SLSQP', constraints=_constraints, options={'ftol': 0.0000000000000000000000000001, 'disp': True, 'maxiter':10000}).x
+                self.erc_weights = minimize(_get_l1_norm_risk_contributions, self.erc_weights, method='SLSQP', constraints=_constraints, options={'ftol': 0.0000000000000000000000000001, 'disp': True, 'maxiter':20}).x
 
                 _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0*(np.asmatrix(self.erc_weights)*np.asmatrix(_cov_mat)*np.asmatrix(self.erc_weights).T))[0, 0])-1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)

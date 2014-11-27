@@ -67,7 +67,7 @@ class CorrelationLogReturns(IndicatorListener):
         self.correlation_matrix_already_computed = False # this just marks that we need to recompute elements
 
 
-    def get_correlation_matrix():
+    def get_correlation_matrix(self):
         """Returns the correlation matrix of log returns
         For performance reasons, perhaps we don't want to recompute this in on_indicator_update, but only when requested
         """
