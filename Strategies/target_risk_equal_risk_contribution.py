@@ -30,7 +30,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
         self.correlation_computation_history = max(2, _config.getint('Strategy', 'correlation_computation_history'))
         self.correlation_computation_interval = max(1, _config.getint('Strategy', 'correlation_computation_interval'))
         # Some computational variables
-        self.last_date_correlation_computed = 0 # TODO change these to actual dates
+        self.last_date_correlation_matrix_computed = 0 # TODO change these to actual dates
         self.last_date_stdev_computed = 0 # TODO change thse to actual dates
         self.stdev_computation_indicator_mapping = {} # map from product to the indicator to get the stddev value
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
