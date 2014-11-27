@@ -16,7 +16,7 @@ class TradeAlgorithm( EventsListener ):
     User should inherit this class and override init and OnEventListener functions
     '''
     def __init__( self, _trade_products, _all_products, _startdate, _enddate, _config, _log_filename):
-        self.products = sorted(_trade_products) # we are doing this here so that 
+        self.products = sorted(_trade_products) # we are doing this here so that multiple instances of indicators all point to same value.
         self.all_products = _all_products
         self.daily_indicators = {}
         self.start_date = _startdate
