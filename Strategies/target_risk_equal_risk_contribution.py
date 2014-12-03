@@ -36,6 +36,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
         self.stdev_computation_indicator_mapping = {} # map from product to the indicator to get the stddev value
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
         self.erc_weights = np.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
+        self.erc_weights_optim = np.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
         self.stddev_logret = np.array([1.0]*len(self.products)) # these are the stddev values, with products occuring in the same order as the order in self.products
         # create a diagonal matrix of 1s for correlation matrix
         self.logret_correlation_matrix = np.zeros(shape=(len(self.products), len(self.products)))
@@ -101,6 +102,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                     _annualized_risk = 100.0*(np.exp(np.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
                     zero_corr_risk_parity_weights = 1.0/(_annualized_risk)
                     self.erc_weights = zero_corr_risk_parity_weights/np.sum(np.abs(zero_corr_risk_parity_weights))
+                    self.erc_weights_optim = self.erc_weights
 
                 # Using L1 norm here. It does not optimize well if we use L2 norm.
                 def _get_l1_norm_risk_contributions(_given_weights):
@@ -111,7 +113,8 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                     return (np.sum(np.abs(_trc - np.mean(_trc))))
 
                 _constraints = {'type':'eq', 'fun': lambda x: np.sum(np.abs(x)) - 1}
-                self.erc_weights = minimize(_get_l1_norm_risk_contributions, self.erc_weights, method='SLSQP', constraints=_constraints, options={'ftol': 0.0000000000000000000000000001, 'disp': False, 'maxiter':100}).x
+                self.erc_weights_optim = minimize(_get_l1_norm_risk_contributions, self.erc_weights_optim, method='SLSQP', constraints=_constraints, options={'ftol': 0.0000000000000000000000000001, 'disp': False, 'maxiter':100}).x
+                self.erc_weights = self.erc_weights_optim
 
                 _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0*(np.asmatrix(self.erc_weights)*np.asmatrix(_cov_mat)*np.asmatrix(self.erc_weights).T))[0, 0])-1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
