@@ -72,9 +72,10 @@ class CorrelationLogReturns(IndicatorListener):
         For performance reasons, perhaps we don't want to recompute this in on_indicator_update, but only when requested
         """
         if not self.correlation_matrix_already_computed:
-            self.covariance_matrix = np.cov(self.logret_matrix.T)
-            # TODO, probably this can be made more efficient, since we already have the covariance matrix
-            self.correlation_matrix = np.corrcoef(self.logret_matrix.T) 
-            self.stddev_logret = np.std(self.logret_matrix,axis=0,ddof=1)
-            self.correlation_matrix_already_computed = True
+            if self.logret_matrix.shape[0] >= 2:
+                self.covariance_matrix = np.cov(self.logret_matrix.T)
+                # TODO, probably this can be made more efficient, since we already have the covariance matrix
+                self.correlation_matrix = np.corrcoef(self.logret_matrix.T) 
+                self.stddev_logret = np.std(self.logret_matrix,axis=0,ddof=1)
+                self.correlation_matrix_already_computed = True
         return(self.correlation_matrix)

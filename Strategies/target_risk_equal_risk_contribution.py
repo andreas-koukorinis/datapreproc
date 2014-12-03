@@ -96,7 +96,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                 # compute covariance matrix from correlation matrix and
                 _cov_mat = self.logret_correlation_matrix * np.outer(self.stddev_logret, self.stddev_logret) # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
 
-                if np.sum(self.erc_weights) == 0:
+                if np.sum(np.abs(self.erc_weights)) < 0.001:
                     # Initialize weights
                     _annualized_risk = 100.0*(np.exp(np.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
                     zero_corr_risk_parity_weights = 1.0/(_annualized_risk)
@@ -111,10 +111,11 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                     return (np.sum(np.abs(_trc - np.mean(_trc))))
 
                 _constraints = {'type':'eq', 'fun': lambda x: np.sum(np.abs(x)) - 1}
-                self.erc_weights = minimize(_get_l1_norm_risk_contributions, self.erc_weights, method='SLSQP', constraints=_constraints, options={'ftol': 0.0000000000000000000000000001, 'disp': True, 'maxiter':20}).x
+                self.erc_weights = minimize(_get_l1_norm_risk_contributions, self.erc_weights, method='SLSQP', constraints=_constraints, options={'ftol': 0.0000000000000000000000000001, 'disp': False, 'maxiter':100}).x
 
                 _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0*(np.asmatrix(self.erc_weights)*np.asmatrix(_cov_mat)*np.asmatrix(self.erc_weights).T))[0, 0])-1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
+                print ( "On day %d weights %s" %(self.day, [ str(x) for x in self.erc_weights ]) )
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.erc_weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
 
