@@ -1,4 +1,5 @@
 import numpy as np
+from datetime import datetime
 from Utils.Regular import get_dt_from_date
 from Indicator_Listeners import IndicatorListener
 from DailyLogReturns import DailyLogReturns
@@ -23,7 +24,7 @@ class CorrelationLogReturns(IndicatorListener):
         self.identifier = params[0] + '.' + make_portfolio_string_from_products(self.products) + '.' + params[2]
         self.logret_matrix = np.array([[0.0]*len(self.products)]) # 2d array of log returns # TODO change name
         self.map_identifier_to_index = {}
-        self.date = get_dt_from_date(_startdate).date() # current date. whenever we get an update for a daet which is later than this date, we add a new row to self.logret_matrix
+        self.date = datetime.fromtimestamp(0).date() # current date. whenever we get an update for a daet which is later than this date, we add a new row to self.logret_matrix
 
         # create a diagonal matrix
         self.correlation_matrix = np.zeros(shape=(len(self.products), len(self.products)))
