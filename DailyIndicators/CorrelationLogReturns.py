@@ -1,4 +1,5 @@
 import numpy as np
+from datetime import datetime
 from Utils.Regular import get_dt_from_date
 from Indicator_Listeners import IndicatorListener
 from DailyLogReturns import DailyLogReturns
@@ -69,7 +70,8 @@ class CorrelationLogReturns(IndicatorListener):
 
     def get_correlation_matrix(self):
         """Returns the correlation matrix of log returns
-        For performance reasons, perhaps we don't want to recompute this in on_indicator_update, but only when requested
+        For performance reasons, perhaps we don't want to recompute the output variables
+        ( correlation_matrix covariance_matrix stddev_logret ) in on_indicator_update, but only when requested by strategy
         """
         if not self.correlation_matrix_already_computed:
             if self.logret_matrix.shape[0] >= 2:

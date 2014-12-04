@@ -1,5 +1,5 @@
 def is_valid_strategy_name ( _strategy_name ) :
-    _strategy_name_list = ['CTAMomentum', 'CWAS', 'EqualWeight', 'Momentumv1', 'TargetRiskRP', 'TargetRiskRPv1', 'UnleveredDMF', 'UnleveredRP', 'TargetRiskEqualRiskContribution']
+    _strategy_name_list = ['CTAMomentum', 'CWAS', 'EqualWeight', 'Momentumv1', 'TargetRiskRP', 'TargetRiskRPv1', 'UnleveredDMF', 'UnleveredRP', 'TargetRiskEqualRiskContribution', 'TargetRiskMaxSharpeHistCorr' ]
     _retval = False
     if _strategy_name in _strategy_name_list :
         _retval = True
@@ -26,6 +26,8 @@ def get_module_name_from_strategy_name ( strategy_name ) :
         return ( "UnleveredRP" )
     def _target_risk_equal_risk_contribution():
         return ( "target_risk_equal_risk_contribution" )
+    def _target_risk_max_sharpe_hist_corr():
+        return ( "target_risk_max_sharpe_hist_corr" )
 
     options = { 'CTAMomentum' : _c_t_a_momentum,
                 'CWAS' : _cwas,
@@ -35,7 +37,8 @@ def get_module_name_from_strategy_name ( strategy_name ) :
                 'TargetRiskRPv1' : _target_risk_rp_v1,
                 'UnleveredDMF' : _unlevered_d_m_f,
                 'UnleveredRP' : _unlevered_r_p,
-                'TargetRiskEqualRiskContribution' : _target_risk_equal_risk_contribution
+                'TargetRiskEqualRiskContribution' : _target_risk_equal_risk_contribution,
+                'TargetRiskMaxSharpeHistCorr' : _target_risk_max_sharpe_hist_corr
                 }
     if is_valid_strategy_name ( strategy_name ):
         return ( options[strategy_name]() )
