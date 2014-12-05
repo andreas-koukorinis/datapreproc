@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+from numpy.linalg import inv
 from importlib import import_module
 from scipy.optimize import minimize
 from Algorithm.TradeAlgorithm import TradeAlgorithm
@@ -24,12 +25,34 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
     def init(self, _config):
         self.day = -1 # TODO move this to "watch" or a global time manager
         self.target_risk = _config.getfloat('Strategy', 'target_risk') # this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
-        self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
-        self.stddev_computation_history = max(2, _config.getint('Strategy', 'stddev_computation_history'))
-        self.stddev_computation_interval = max(1, _config.getint('Strategy', 'stddev_computation_interval'))
-        self.stddev_computation_indicator = _config.get('Strategy', 'stddev_computation_indicator')
-        self.correlation_computation_history = max(2, _config.getint('Strategy', 'correlation_computation_history'))
-        self.correlation_computation_interval = max(1, _config.getint('Strategy', 'correlation_computation_interval'))
+
+        self.rebalance_frequency = 1
+        if _config.has_option('Parameters', 'rebalance_frequency'):
+            self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
+
+        self.stddev_computation_history = 252
+        if _config.has_option('Strategy', 'stddev_computation_history'):
+            self.stddev_computation_history = max(2, _config.getint('Strategy', 'stddev_computation_history'))
+
+        if _config.has_option('Strategy', 'stddev_computation_interval'):
+            self.stddev_computation_interval = max(1, _config.getint('Strategy', 'stddev_computation_interval'))
+        else:
+            self.stddev_computation_interval = max(1, self.stddev_computation_history/5)
+
+        self.stddev_computation_indicator = 'StdDev'
+        if _config.has_option('Strategy', 'stddev_computation_indicator'):
+            self.stddev_computation_indicator = _config.get('Strategy', 'stddev_computation_indicator')
+
+        self.correlation_computation_history = 1000
+        if _config.has_option('Strategy', 'correlation_computation_history'):
+            self.correlation_computation_history = max(2, _config.getint('Strategy', 'correlation_computation_history'))
+
+        
+        if _config.has_option('Strategy', 'correlation_computation_interval'):
+            self.correlation_computation_interval = max(1, _config.getint('Strategy', 'correlation_computation_interval'))
+        else:
+            self.correlation_computation_interval = max(2, self.correlation_computation_history/5)
+
         # Some computational variables
         self.last_date_correlation_matrix_computed = 0 # TODO change these to actual dates
         self.last_date_stdev_computed = 0 # TODO change thse to actual dates
@@ -39,10 +62,7 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
         self.erc_weights_optim = np.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
         self.stddev_logret = np.array([1.0]*len(self.products)) # these are the stddev values, with products occuring in the same order as the order in self.products
         # create a diagonal matrix of 1s for correlation matrix
-        self.logret_correlation_matrix = np.zeros(shape=(len(self.products), len(self.products)))
-        for i in xrange(len(self.products)):
-            self.logret_correlation_matrix[i,i] = 1.0
-
+        self.logret_correlation_matrix = np.eye(len(self.products))
         
         self.map_product_to_index = {} # this might be needed, dunno for sure
         _product_index = 0
@@ -97,18 +117,19 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
                 # compute covariance matrix from correlation matrix and
                 _cov_mat = self.logret_correlation_matrix * np.outer(self.stddev_logret, self.stddev_logret) # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
 
+                _annualized_risk = 100.0*(np.exp(np.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
+                zero_corr_risk_parity_weights = 1.0/(_annualized_risk)
                 if np.sum(np.abs(self.erc_weights)) < 0.001:
                     # Initialize weights
-                    _annualized_risk = 100.0*(np.exp(np.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
-                    zero_corr_risk_parity_weights = 1.0/(_annualized_risk)
                     self.erc_weights_optim = zero_corr_risk_parity_weights/np.sum(np.abs(zero_corr_risk_parity_weights))
                     self.erc_weights = self.erc_weights_optim
 
+                expected_sharpe_ratios = np.asmatrix(np.ones(len(self.products))).T
                 # Set erc_weights_optim to inv ( correlation martix ) * zero_corr_risk_parity_weights
-                # self.erc_weights_optim = 
+                self.erc_weights_optim = np.ravel(np.diagflat(zero_corr_risk_parity_weights) * inv(self.logret_correlation_matrix) * expected_sharpe_ratios)
                 self.erc_weights = self.erc_weights_optim
 
-                _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0*(np.asmatrix(self.erc_weights)*np.asmatrix(_cov_mat)*np.asmatrix(self.erc_weights).T))[0, 0])-1)
+                _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0 * (np.asmatrix(self.erc_weights)*np.asmatrix(_cov_mat)*np.asmatrix(self.erc_weights).T))[0, 0]) - 1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
                 #TODO{gchak} have a global debug mode
                 print ( "On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
