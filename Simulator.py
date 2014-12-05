@@ -51,11 +51,8 @@ def __main__() :
     _dispatcher.run()
 
     # Effective number of trading days will be less than [end_date-start_date] due to the warmup time specified by the user
-<<<<<<< HEAD
+
     print '\nTotal Tradable Days = %d'%( _dispatcher.trading_days )
-=======
-    print ( '\nTotal Trading Days = %d' %( _dispatcher.trading_days ) )
->>>>>>> c1b3962dae677dd816707e3c85ffcd0a35f77423
 
     # Call the performance tracker to display the results and plot the graph of cumulative PnL
     _tradelogic_instance.performance_tracker.show_results()
