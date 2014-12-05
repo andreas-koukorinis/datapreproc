@@ -24,12 +24,42 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
     def init(self, _config):
         self.day = -1 # TODO move this to "watch" or a global time manager
         self.target_risk = _config.getfloat('Strategy', 'target_risk') # this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
-        self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
-        self.stddev_computation_history = max(2, _config.getint('Strategy', 'stddev_computation_history'))
-        self.stddev_computation_interval = max(1, _config.getint('Strategy', 'stddev_computation_interval'))
-        self.stddev_computation_indicator = _config.get('Strategy', 'stddev_computation_indicator')
-        self.correlation_computation_history = max(2, _config.getint('Strategy', 'correlation_computation_history'))
-        self.correlation_computation_interval = max(1, _config.getint('Strategy', 'correlation_computation_interval'))
+
+        self.rebalance_frequency = 1
+        if _config.has_option('Parameters', 'rebalance_frequency'):
+            self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
+
+        self.stddev_computation_history = 252
+        if _config.has_option('Strategy', 'stddev_computation_history'):
+            self.stddev_computation_history = max(2, _config.getint('Strategy', 'stddev_computation_history'))
+
+        if _config.has_option('Strategy', 'stddev_computation_interval'):
+            self.stddev_computation_interval = max(1, _config.getint('Strategy', 'stddev_computation_interval'))
+        else:
+            self.stddev_computation_interval = max(1, self.stddev_computation_history/5)
+
+        self.stddev_computation_indicator = 'StdDev'
+        if _config.has_option('Strategy', 'stddev_computation_indicator'):
+            self.stddev_computation_indicator = _config.get('Strategy', 'stddev_computation_indicator')
+
+        self.correlation_computation_history = 1000
+        if _config.has_option('Strategy', 'correlation_computation_history'):
+            self.correlation_computation_history = max(2, _config.getint('Strategy', 'correlation_computation_history'))
+
+        
+        if _config.has_option('Strategy', 'correlation_computation_interval'):
+            self.correlation_computation_interval = max(1, _config.getint('Strategy', 'correlation_computation_interval'))
+        else:
+            self.correlation_computation_interval = max(2, self.correlation_computation_history/5)
+
+        self.optimization_ftol = 0.0000000000000000000000000001
+        if _config.has_option ('Strategy', 'optimization_ftol'):
+            self.optimization_ftol = _config.getfloat('Strategy', 'optimization_ftol')
+
+        self.optimization_maxiter=100
+        if _config.has_option ('Strategy', 'optimization_maxiter'):
+            self.optimization_maxiter = _config.getint('Strategy', 'optimization_maxiter')
+        
         # Some computational variables
         self.last_date_correlation_matrix_computed = 0 # TODO change these to actual dates
         self.last_date_stdev_computed = 0 # TODO change thse to actual dates
@@ -113,10 +143,10 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                     return (np.sum(np.abs(_trc - np.mean(_trc))))
 
                 _constraints = {'type':'eq', 'fun': lambda x: np.sum(np.abs(x)) - 1}
-                self.erc_weights_optim = minimize(_get_l1_norm_risk_contributions, self.erc_weights_optim, method='SLSQP', constraints=_constraints, options={'ftol': 0.0000000000000000000000000001, 'disp': False, 'maxiter':100}).x
+                self.erc_weights_optim = minimize(_get_l1_norm_risk_contributions, self.erc_weights_optim, method='SLSQP', constraints=_constraints, options={'ftol': self.optimization_ftol, 'disp': False, 'maxiter':self.optimization_maxiter}).x
                 self.erc_weights = self.erc_weights_optim
 
-                _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0*(np.asmatrix(self.erc_weights)*np.asmatrix(_cov_mat)*np.asmatrix(self.erc_weights).T))[0, 0])-1)
+                _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0*(np.asmatrix(self.erc_weights)*np.asmatrix(_cov_mat)*np.asmatrix(self.erc_weights).T))[0, 0]) - 1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
                 print ( "On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
                 for _product in self.products:
