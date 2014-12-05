@@ -27,9 +27,7 @@ class CorrelationLogReturns(IndicatorListener):
         self.date = datetime.fromtimestamp(0).date() # current date. whenever we get an update for a daet which is later than this date, we add a new row to self.logret_matrix
 
         # create a diagonal matrix
-        self.correlation_matrix = np.zeros(shape=(len(self.products), len(self.products)))
-        for i in xrange(len(self.products)):
-            self.correlation_matrix[i,i] = 1.0
+        self.correlation_matrix = np.eye(len(self.products))
 
         self.correlation_matrix_already_computed = False
 
