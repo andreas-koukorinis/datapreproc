@@ -132,7 +132,7 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
                 _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0 * (np.asmatrix(self.erc_weights)*np.asmatrix(_cov_mat)*np.asmatrix(self.erc_weights).T))[0, 0]) - 1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
                 #TODO{gchak} have a global debug mode
-                print ( "On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
+                #print ( "On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.erc_weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
 
