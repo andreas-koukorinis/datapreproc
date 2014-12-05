@@ -1,20 +1,25 @@
 import sys
 from numpy import *
+from importlib import import_module
 from Algorithm.TradeAlgorithm import TradeAlgorithm
-from Utils.Regular import check_eod
+from Utils.Regular import check_eod, parse_weights
+from DailyIndicators.Indicator_List import is_valid_daily_indicator
 
 class UnleveredRP( TradeAlgorithm ):
 
     def init( self, _config ):
         self.day=-1
-        self.rebalance_frequency = _config.getint( 'Parameters', 'rebalance_frequency' )
-
-    '''  Use self.bb_objects[product].dailybook to access the closing prices for the 'product'
-         Use self.bb_objects[product].intradaybook to access the intraday prices for the 'product'
-         dailybook consists of tupes of the form (timestamp,closing prices,is_last_trading_day) sorted by timestamp
-         'events' is a list of concurrent events
-         event = {'price': 100, 'product': 'ES1', 'type':'ENDOFDAY', 'dt': datetime(2005,1,2,23,59,99999), 'table': 'ES','is_last_trading_day':False}
-         access conversion_factor using : self.conversion_factor['ES1']'''
+        self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
+        self.periods = _config.get('Strategy','periods').split(',')
+        self.signs = parse_weights(_config.get('Strategy', 'signs'))
+        for product in self.products:
+            for period in self.periods:
+                indicator_name = 'StdDev'
+                indicator = indicator_name + '.' + product + '.' + period
+                if is_valid_daily_indicator(indicator_name):
+                    module = import_module('DailyIndicators.' + indicator_name)
+                    Indicatorclass = getattr(module, indicator_name)
+                    self.daily_indicators[indicator] = Indicatorclass.get_unique_instance(indicator, self.start_date, self.end_date, _config)
 
     def on_events_update(self,events):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
@@ -24,14 +29,17 @@ class UnleveredRP( TradeAlgorithm ):
         if all_eod and self.day % self.rebalance_frequency == 0 :
             # Calculate weights to assign to each product using indicators
             weights = {}
-            sum_weights = 0.0
+            sum_wts = 0.0
             for product in self.products:
-                risk = self.daily_indicators[ 'StdDev.' + product + '.21' ].values[1] # Index 0 contains the date and 1 contains the value of indicator                               
-                annualized_risk_of_product = ( exp( sqrt(252.0)*risk ) -1 )*100.0
-                weights[product] = 1/risk
-                sum_weights = sum_weights + abs(weights[product]) # Here abs does not make any difference,but in general should do
+                _stddev = 0.0
+                for period in self.periods:
+                    val = self.daily_indicators[ 'StdDev.' + product + '.' + period ].values[1]         
+                    _stddev += (exp(sqrt(252.0)*val) - 1)*100.0         
+                vol_product = _stddev/float(len(self.periods))
+                weights[product] = self.signs[product]/vol_product 
+                sum_wts += weights[product]
             for product in self.products:
-                weights[product] = weights[product]/sum_weights                
-            self.update_positions( events[0]['dt'], weights )
+                weights[product] = weights[product]/sum_wts
+            self.update_positions(events[0]['dt'], weights)
         else:
-            self.rollover( events[0]['dt'] )
+            self.rollover(events[0]['dt'])
