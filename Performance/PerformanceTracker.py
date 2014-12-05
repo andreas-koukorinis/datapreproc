@@ -78,7 +78,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.todays_amount_transacted = 0.0
         self.todays_long_amount_transacted = 0.0
         self.todays_short_amount_transacted = 0.0
-        self.turnover_transacted = []
+        self.amount_long_transacted = []
+        self.amount_short_transacted = []
         self.turnover_percent = 0.0
         self.total_amount_transacted = 0.0
 
@@ -138,7 +139,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 _logret_today = log(self.value[-1]/self.value[-2])
             self.daily_log_returns = append(self.daily_log_returns, _logret_today)
             self.amount_transacted.append(self.todays_amount_transacted)
-            self.turnover_transacted.append(min(self.todays_long_amount_transacted, self.todays_short_amount_transacted))
+            self.amount_long_transacted.append(self.todays_long_amount_transacted)
+            self.amount_short_transacted.append(self.todays_short_amount_transacted)
             self.todays_amount_transacted = 0.0
             self.todays_long_amount_transacted = 0.0
             self.todays_short_amount_transacted = 0.0
@@ -203,7 +205,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 _retval = mean(sorted_series[0:_index_of_worst_k_percent])
         return _retval
 
-    def turnover(self, dates, amount_transacted):
+    def compute_turnover_all(self, dates, amount_transacted):
         if len(dates) < 1:
             return 0.0
         turnover_sum = 0.0
@@ -214,12 +216,35 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             amount_transacted_this_year += amount_transacted[i]
             num_days_in_year += 1.0
             if i == len(dates)-1 or dates[i+1].year != dates[i].year:
-                if num_days_in_year < 250:
+                if num_days_in_year < 252:
                     turnover_sum += (252.0/num_days_in_year)*amount_transacted_this_year/self.value[i+1] # Size of value array is 1 more than number of tradable days
                 else:
                     turnover_sum += amount_transacted_this_year/self.value[i+1]
                 turnover_years_count += 1.0
                 amount_transacted_this_year = 0.0 
+                num_days_in_year = 0.0
+        return turnover_sum*100/turnover_years_count
+
+    def compute_turnover_min(self, dates, amount_long_transacted, amount_short_transacted):
+        if len(dates) < 1:
+            return 0.0
+        turnover_sum = 0.0
+        turnover_years_count = 0.0
+        amount_long_transacted_this_year = 0.0
+        amount_short_transacted_this_year = 0.0
+        num_days_in_year = 0.0
+        for i in range(min(len(dates)-1, 5), len(dates)): # Initial buying not to be considered as turnover
+            amount_long_transacted_this_year += amount_long_transacted[i]
+            amount_short_transacted_this_year += amount_short_transacted[i]
+            num_days_in_year += 1.0
+            if i == len(dates)-1 or dates[i+1].year != dates[i].year:
+                if num_days_in_year < 252:
+                    turnover_sum += (252.0/num_days_in_year)*min(amount_long_transacted_this_year, amount_short_transacted_this_year)/self.value[i+1] # Size of value array is 1 more than number of tradable days
+                else:
+                    turnover_sum += min(amount_long_transacted_this_year, amount_short_transacted_this_year)/self.value[i+1]
+                turnover_years_count += 1.0
+                amount_long_transacted_this_year = 0.0
+                amount_short_transacted_this_year = 0.0
                 num_days_in_year = 0.0
         return turnover_sum*100/turnover_years_count
 
@@ -271,8 +296,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.return_by_maxdrawdown = self._annualized_returns_percent/self.max_drawdown_percent
         self._annualized_pnl_by_max_drawdown_dollar = self.annualized_PnL/self.max_drawdown_dollar
         self.ret_var10 = abs(self._annualized_returns_percent/self.dml)
-        self.turnover_all = self.turnover(self.dates, self.amount_transacted)
-        self.turnover_min = self.turnover(self.dates, self.turnover_transacted)
+        self.turnover_all = self.compute_turnover_all(self.dates, self.amount_transacted)
+        self.turnover_min = self.compute_turnover_min(self.dates, self.amount_long_transacted, self.amount_short_transacted)
         #self.print_extreme_days(10)
         self._save_results()
 
