@@ -128,7 +128,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                 if np.sum(np.abs(self.erc_weights)) < 0.001:
                     # Initialize weights
                     _annualized_risk = 100.0*(np.exp(np.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
-                    expected_sharpe_ratios = np.asmatrix(self.allocation_signs).T # switched to self.allocation_signs from np.ones(len(self.products))
+                    expected_sharpe_ratios = self.allocation_signs # switched to self.allocation_signs from not multiplying anything 
                     zero_corr_risk_parity_weights = (1.0/(_annualized_risk))*expected_sharpe_ratios
                     self.erc_weights = zero_corr_risk_parity_weights/np.sum(np.abs(zero_corr_risk_parity_weights))
                     self.erc_weights_optim = self.erc_weights
