@@ -30,6 +30,8 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
         if _config.has_option('Parameters', 'rebalance_frequency'):
             self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
 
+        self.signs = parse_weights(_config.get('Strategy', 'signs'))
+
         self.stddev_computation_history = 252
         if _config.has_option('Strategy', 'stddev_computation_history'):
             self.stddev_computation_history = max(2, _config.getint('Strategy', 'stddev_computation_history'))
