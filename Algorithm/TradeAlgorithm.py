@@ -21,7 +21,12 @@ class TradeAlgorithm( EventsListener ):
         self.daily_indicators = {}
         self.start_date = _startdate
         self.end_date = _enddate
-        self.init( _config )
+
+        self.map_product_to_index = {} # this might be needed, dunno for sure
+        _product_index = 0
+        for _product in self.products:
+            self.map_product_to_index[_product] = _product_index
+            _product_index = _product_index + 1
 
         # Read indicator list from config file
         if _config.has_option('DailyIndicators','names'):
@@ -34,6 +39,7 @@ class TradeAlgorithm( EventsListener ):
                         Indicatorclass = getattr( module, indicator_name )
                         _instance = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
                         self.daily_indicators[_instance.identifier] = _instance
+
         # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects = {}
         for product in self.all_products:
@@ -54,10 +60,12 @@ class TradeAlgorithm( EventsListener ):
         self.performance_tracker.portfolio = self.portfolio # Give Performance Tracker access to the portfolio     
 
         #Instantiate ExecLogic
-        exec_logic_name = _config.get( 'Parameters', 'exec_logic' )
-        exec_logic_module = import_module( 'ExecLogics.' + exec_logic_name )
+        exec_logic_name = _config.get( 'Parameters', 'exec_logic' ) #TODO{gchak} set default option
+        exec_logic_module = import_module( 'ExecLogics.' + exec_logic_name ) #TODO{gchak} check module name
         ExecLogicClass = getattr( exec_logic_module, exec_logic_name )
         self.exec_logic = ExecLogicClass( self.products, self.all_products, self.order_manager, self.portfolio, self.bb_objects, self.performance_tracker, _startdate, _enddate, _config )
+        # By this time we have initialized all common elements, and hence initialize subclass
+        self.init( _config )
 
     # User is expected to write the function
     def on_events_update( self, concurrent_events ):

@@ -29,6 +29,13 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
         if _config.has_option('Parameters', 'rebalance_frequency'):
             self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
 
+        # by default we are long in all products
+        self.allocation_signs = np.ones(len(self.products))
+        if _config.has_option('Strategy', 'allocation_signs'):
+            _given_allocation_signs = parse_weights(_config.get('Strategy', 'allocation_signs'))
+            for _product in _given_allocation_signs:
+                self.allocation_signs[self.map_product_to_index[_product]] = _given_allocation_signs[_product]
+
         self.stddev_computation_history = 252
         if _config.has_option('Strategy', 'stddev_computation_history'):
             self.stddev_computation_history = max(2, _config.getint('Strategy', 'stddev_computation_history'))
@@ -46,7 +53,6 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
         if _config.has_option('Strategy', 'correlation_computation_history'):
             self.correlation_computation_history = max(2, _config.getint('Strategy', 'correlation_computation_history'))
 
-        
         if _config.has_option('Strategy', 'correlation_computation_interval'):
             self.correlation_computation_interval = max(1, _config.getint('Strategy', 'correlation_computation_interval'))
         else:
@@ -67,18 +73,10 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
         self.erc_weights = np.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
         self.erc_weights_optim = np.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
-        self.stddev_logret = np.array([1.0]*len(self.products)) # these are the stddev values, with products occuring in the same order as the order in self.products
-        # create a diagonal matrix of 1s for correlation matrix
-        self.logret_correlation_matrix = np.zeros(shape=(len(self.products), len(self.products)))
-        for i in xrange(len(self.products)):
-            self.logret_correlation_matrix[i,i] = 1.0
+        self.stddev_logret = np.ones(len(self.products)) # these are the stddev values, with products occuring in the same order as the order in self.products
 
-        
-        self.map_product_to_index = {} # this might be needed, dunno for sure
-        _product_index = 0
-        for _product in self.products:
-            self.map_product_to_index[_product] = _product_index
-            _product_index = _product_index + 1
+        # create a diagonal matrix of 1s for correlation matrix
+        self.logret_correlation_matrix = np.eye(len(self.products))
 
         if is_valid_daily_indicator(self.stddev_computation_indicator):
             for product in self.products:
@@ -130,7 +128,8 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                 if np.sum(np.abs(self.erc_weights)) < 0.001:
                     # Initialize weights
                     _annualized_risk = 100.0*(np.exp(np.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
-                    zero_corr_risk_parity_weights = 1.0/(_annualized_risk)
+                    expected_sharpe_ratios = np.asmatrix(self.allocation_signs).T # switched to self.allocation_signs from np.ones(len(self.products))
+                    zero_corr_risk_parity_weights = (1.0/(_annualized_risk))*expected_sharpe_ratios
                     self.erc_weights = zero_corr_risk_parity_weights/np.sum(np.abs(zero_corr_risk_parity_weights))
                     self.erc_weights_optim = self.erc_weights
 
@@ -144,6 +143,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
 
                 _constraints = {'type':'eq', 'fun': lambda x: np.sum(np.abs(x)) - 1}
                 self.erc_weights_optim = minimize(_get_l1_norm_risk_contributions, self.erc_weights_optim, method='SLSQP', constraints=_constraints, options={'ftol': self.optimization_ftol, 'disp': False, 'maxiter':self.optimization_maxiter}).x
+                #TODO{gchak} check whether weights have the desired signs, else set them to 0, or perhaps add as a constraint in optimization
                 self.erc_weights = self.erc_weights_optim
 
                 _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0*(np.asmatrix(self.erc_weights)*np.asmatrix(_cov_mat)*np.asmatrix(self.erc_weights).T))[0, 0]) - 1)

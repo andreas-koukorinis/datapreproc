@@ -30,7 +30,12 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
         if _config.has_option('Parameters', 'rebalance_frequency'):
             self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
 
-        self.signs = parse_weights(_config.get('Strategy', 'signs'))
+        # by default we are long in all products
+        self.allocation_signs = np.ones(len(self.products))
+        if _config.has_option('Strategy', 'allocation_signs'):
+            _given_allocation_signs = parse_weights(_config.get('Strategy', 'allocation_signs'))
+            for _product in _given_allocation_signs:
+                self.allocation_signs[self.map_product_to_index[_product]] = _given_allocation_signs[_product]
 
         self.stddev_computation_history = 252
         if _config.has_option('Strategy', 'stddev_computation_history'):
@@ -49,7 +54,6 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
         if _config.has_option('Strategy', 'correlation_computation_history'):
             self.correlation_computation_history = max(2, _config.getint('Strategy', 'correlation_computation_history'))
 
-        
         if _config.has_option('Strategy', 'correlation_computation_interval'):
             self.correlation_computation_interval = max(1, _config.getint('Strategy', 'correlation_computation_interval'))
         else:
@@ -66,12 +70,6 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
         # create a diagonal matrix of 1s for correlation matrix
         self.logret_correlation_matrix = np.eye(len(self.products))
         
-        self.map_product_to_index = {} # this might be needed, dunno for sure
-        _product_index = 0
-        for _product in self.products:
-            self.map_product_to_index[_product] = _product_index
-            _product_index = _product_index + 1
-
         if is_valid_daily_indicator(self.stddev_computation_indicator):
             for product in self.products:
                 _orig_indicator_name = self.stddev_computation_indicator + '.' + product + '.' + str(self.stddev_computation_history) # this would be something like StdDev.fTY.252
@@ -126,12 +124,12 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
                     self.erc_weights_optim = zero_corr_risk_parity_weights/np.sum(np.abs(zero_corr_risk_parity_weights))
                     self.erc_weights = self.erc_weights_optim
 
-                expected_sharpe_ratios = np.asmatrix(np.ones(len(self.products))).T
+                expected_sharpe_ratios = np.asmatrix(self.allocation_signs).T # switched to self.allocation_signs from np.ones(len(self.products))
                 # Set erc_weights_optim to inv ( correlation martix ) * zero_corr_risk_parity_weights
                 self.erc_weights_optim = np.ravel(np.diagflat(zero_corr_risk_parity_weights) * inv(self.logret_correlation_matrix) * expected_sharpe_ratios)
                 self.erc_weights = self.erc_weights_optim
 
-                _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0 * (np.asmatrix(self.erc_weights)*np.asmatrix(_cov_mat)*np.asmatrix(self.erc_weights).T))[0, 0]) - 1)
+                _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0 * (np.asmatrix(self.erc_weights) * np.asmatrix(_cov_mat) * np.asmatrix(self.erc_weights).T))[0, 0]) - 1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
                 #TODO{gchak} have a global debug mode
                 #print ( "On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
