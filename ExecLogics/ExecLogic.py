@@ -55,7 +55,7 @@ class ExecLogic():
                         p1 = product  # Example: 'fES_1'
                         p2 = get_next_futures_contract(p1)  # Example: 'fES_2'
                         positions_to_take_p1 = self.portfolio.num_shares[p1] + self.order_manager.to_be_filled[p1] + self.orders_to_place[p1]
-                        if p2 not in self.all_products and positions_to_take_p1 > 0:
+                        if p2 not in self.all_products and positions_to_take_p1 != 0:
                             sys.exit( 'exec_logic -> adjust_positions_for_settlements : Product %s not present' %p2 )
                         else:
                             if positions_to_take_p1 != 0:
@@ -105,7 +105,7 @@ class ExecLogic():
                     if is_future( product ) and _is_last_trading_day:
                         p1 = product  # Example: 'fES_1'
                         p2 = get_next_futures_contract(p1)  # Example: 'fES_2'
-                        if p2 not in self.all_products and positions_to_take[p1] > 0:
+                        if p2 not in self.all_products and positions_to_take[p1] != 0:
                             sys.exit( 'exec_logic -> adjust_positions_for_settlements : Product %s not present' %p2 )
                         else:
                             if positions_to_take[p1] != 0:

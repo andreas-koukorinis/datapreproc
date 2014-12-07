@@ -5,6 +5,8 @@ CREATE TABLE `products` (`product` varchar(20) NOT NULL,`csi_number` varchar(20)
 CREATE TABLE `currency_rates` (`currency` varchar(20) NOT NULL,`rate` varchar(20) NOT NULL,PRIMARY KEY (`currency`));
 CREATE TABLE `us_futures` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`specific_ticker` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`is_last_trading_day` varchar(5) NOT NULL, `contract_volume` varchar(20) NOT NULL,`contract_oi` varchar(20) NOT NULL,`total_volume` varchar(20) NOT NULL,`total_oi` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
 CREATE TABLE `euro_futures` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`specific_ticker` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`is_last_trading_day` varchar(5) NOT NULL,`contract_volume` varchar(20) NOT NULL,`contract_oi` varchar(20) NOT NULL,`total_volume` varchar(20) NOT NULL,`total_oi` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
+CREATE TABLE `uk_futures` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`specific_ticker` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`is_last_trading_day` varchar(5) NOT NULL, `contract_volume` varchar(20) NOT NULL,`contract_oi` varchar(20) NOT NULL,`total_volume` varchar(20) NOT NULL,`total_oi` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
+CREATE TABLE `canada_futures` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`specific_ticker` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`is_last_trading_day` varchar(5) NOT NULL, `contract_volume` varchar(20) NOT NULL,`contract_oi` varchar(20) NOT NULL,`total_volume` varchar(20) NOT NULL,`total_oi` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
 
 #CREATE INDEXES
 CREATE INDEX etfsIndex ON etfs (`date`, `product`);
@@ -12,6 +14,8 @@ CREATE INDEX fundsIndex ON funds (`date`, `product`);
 CREATE INDEX productsIndex ON products (`product`);
 CREATE INDEX us_futuresIndex ON us_futures (`product`);
 CREATE INDEX euro_futuresIndex ON euro_futures (`product`);
+CREATE INDEX uk_futuresIndex ON uk_futures (`product`);
+CREATE INDEX canada_futuresIndex ON canada_futures (`product`);
 
 #LOAD DATA TO TABLE
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VTI.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
@@ -88,12 +92,12 @@ insert into products values ('QGMIX','119349','QGMIX','AQR Global Macro Fund Cla
 insert into products values ('SRPFX','102939','SRPFX','Salient Risk Parity Fund Class I','funds','fund','fund','1','1','1','USD','MUTUAL');
 insert into products values ('ABRZX','89437','ABRZX','Invesco Bal-Risk Alloc Fd Cl A','funds','fund','fund','1','1','1','USD','MUTUAL');
 
-insert into products values ('FGBL_1','552','EBL','Euro German Bund-EUREX Future 1','euro_futures','future','commodity','0.010000','10.000000','1000.000000','EUR','EUREX');
-insert into products values ('FGBL_2','552','EBL','Euro German Bund-EUREX Future 2','euro_futures','future','commodity','0.010000','10.000000','1000.000000','EUR','EUREX');
-insert into products values ('ES_1','487','ES','E-mini S&P 500 Future 1','us_futures','future','equity_index','0.250000','12.500000','50.000000','USD','CME');
-insert into products values ('ES_2','487','ES','E-mini S&P 500 Future 2','us_futures','future','equity_index','0.250000','12.500000','50.000000','USD','CME');
-insert into products values ('ZN_1','802','ZN','T-Note-US 10 Yr-GLOBEX Future 1','us_futures','future','commodity','0.015625','15.625000','1000.000000','USD','GLBX');
-insert into products values ('ZN_2','802','ZN','T-Note-US 10 Yr-GLOBEX Future 2','us_futures','future','commodity','0.015625','15.625000','1000.000000','USD','GLBX');
+insert into products values ('FGBL_1','552','EBL','Euro German Bund-EUREX Future 1','euro_futures','future','fixed_income','0.010000','10.000000','1000.000000','EUR','EUREX');
+insert into products values ('FGBL_2','552','EBL','Euro German Bund-EUREX Future 2','euro_futures','future','fixed_income','0.010000','10.000000','1000.000000','EUR','EUREX');
+insert into products values ('ES_1','487','ES','E-mini S&P 500 Future 1','us_futures','future','equity','0.250000','12.500000','50.000000','USD','CME');
+insert into products values ('ES_2','487','ES','E-mini S&P 500 Future 2','us_futures','future','equity','0.250000','12.500000','50.000000','USD','CME');
+insert into products values ('ZN_1','150','TY','T-Note-US 10 Yr-GLOBEX Future 1','us_futures','future','fixed_income','0.015625','15.625000','1000.000000','USD','GLBX');
+insert into products values ('ZN_2','150','TY','T-Note-US 10 Yr-GLOBEX Future 2','us_futures','future','fixed_income','0.015625','15.625000','1000.000000','USD','GLBX');
 
 insert into products values ('6E_1','876','CU1','Euro Future 1','us_futures','future','currency','0.000100','12.500000','125000.000000','USD','GLBX');
 insert into products values ('6E_2','876','CU1','Euro Future 2','us_futures','future','currency','0.000100','12.500000','125000.000000','USD','GLBX');
@@ -109,6 +113,20 @@ insert into products values ('6B_1','879','BP1','British Pound Future 1','us_fut
 insert into products values ('6B_2','879','BP1','British Pound Future 2','us_futures','future','currency','0.000100','6.250000','62500.000000','USD','GLBX');
 insert into products values ('6C_1','880','CD1','Canadian Dollar Future 1','us_futures','future','currency','0.000100','10.000000','100000.000000','USD','GLBX');
 insert into products values ('6C_2','880','CD1','Canadian Dollar Future 2','us_futures','future','currency','0.000100','10.000000','100000.000000','USD','GLBX');
-insert into products values ('FESX_1','530','SXE','Euro STOXX 50 Index-EUREX Future 1','euro_futures','future','index','1.0','10.0','10.0','EUR','EUREX');
-insert into products values ('FESX_2','530','SXE','Euro STOXX 50 Index-EUREX Future 2','euro_futures','future','index','1.0','10.0','10.0','EUR','EUREX');
+insert into products values ('FESX_1','530','SXE','Euro STOXX 50 Index-EUREX Future 1','euro_futures','future','equity','1.0','10.0','10.0','EUR','EUREX');
+insert into products values ('FESX_2','530','SXE','Euro STOXX 50 Index-EUREX Future 2','euro_futures','future','equity','1.0','10.0','10.0','EUR','EUREX');
 
+insert into products values ('FDAX_1','131','FDX','Dax Index-EUREX Future 1','euro_futures','future','equity','0.500000','12.500000','25.000000','EUR','EUREX');
+insert into products values ('FDAX_2','131','FDX','Dax Index-EUREX Future 2','euro_futures','future','equity','0.500000','12.500000','25.000000','EUR','EUREX');
+insert into products values ('SXF_1','588','SXF','S&P Canada 60-ME Future 1','canada_futures','future','equity','0.050000','10.000000','200.000000','CAD','ME');
+insert into products values ('SXF_2','588','SXF','S&P Canada 60-ME Future 2','canada_futures','future','equity','0.050000','10.000000','200.000000','CAD','ME');
+insert into products values ('ZF_1','803','ZF','T-Note-US 5 Yr-GLOBEX Future 1','us_futures','future','fixed_income','0.007812','7.812500','1000.000000','USD','GLBX');
+insert into products values ('ZF_2','803','ZF','T-Note-US 5 Yr-GLOBEX Future 2','us_futures','future','fixed_income','0.007812','7.812500','1000.000000','USD','GLBX');
+insert into products values ('FGBM_1','553','EBM','Euro German Bobl-EUREX Future 1','euro_futures','future','fixed_income','0.005000','5.000000','1000.000000','EUR','EUREX');
+insert into products values ('FGBM_2','553','EBM','Euro German Bobl-EUREX Future 2','euro_futures','future','fixed_income','0.005000','5.000000','1000.000000','EUR','EUREX');
+insert into products values ('LFR_1','174','FLG','Gilt-Long(8.75-13yr)-EURONEXT(LIFFE) Future1','uk_futures','future','fixed_income','0.010000','10.000000','1000.000000','GBP','LIFFE');
+insert into products values ('LFR_2','174','FLG','Gilt-Long(8.75-13yr)-EURONEXT(LIFFE) Future2','uk_futures','future','fixed_income','0.010000','10.000000','1000.000000','GBP','LIFFE');
+insert into products values ('6M_1','23','MP','Mexican Peso-CME Future 1','us_futures','future','currency','0.000010','5.000000','500000.000000','USD','CME');
+insert into products values ('6M_2','23','MP','Mexican Peso-CME Future 2','us_futures','future','currency','0.000010','5.000000','500000.000000','USD','CME');
+insert into products values ('NKD_1','99','NK','Nikkei 225 Index-CME Future 1','us_futures','future','equity','5.000000','25.000000','5.000000','USD','CME');
+insert into products values ('NKD_2','99','NK','Nikkei 225 Index-CME Future 2','us_futures','future','equity','5.000000','25.000000','5.000000','USD','CME');

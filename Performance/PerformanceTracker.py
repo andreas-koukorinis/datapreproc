@@ -36,7 +36,11 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             self.debug_level = defaults.DEBUG_LEVEL  # Default value of debug level,in case not specified in config file
         if self.debug_level > 0:
             self.positions_file = 'logs/'+_log_filename+'/positions.txt'
+        if self.debug_level > 2:
+            self.amount_transacted_file = open('logs/'+_log_filename+'/amount_transacted.txt', 'w')
+            self.amount_transacted_file.write('date,amount_transacted\n')
         self.returns_file = 'logs/'+_log_filename+'/returns.txt'
+        
         self.products = products
         self.conversion_factor = conv_factor(products)
         self.num_shares_traded = dict([(product, 0) for product in self.products])
@@ -69,8 +73,14 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.skewness = 0
         self.kurtosis = 0
         self.trading_cost = 0
-        self.portfolio_snapshots = []
         self.total_orders = 0
+        self.todays_amount_transacted = 0.0
+        self.todays_long_amount_transacted = 0.0
+        self.todays_short_amount_transacted = 0.0
+        self.amount_long_transacted = []
+        self.amount_short_transacted = []
+        self.turnover_percent = 0.0
+        self.total_amount_transacted = 0.0
 
         # Listens to end of day combined event to be able to compute the market ovement based effect on PNL
         Dispatcher.get_unique_instance(products, _startdate, _enddate, _config).add_end_of_day_listener(self)
@@ -81,9 +91,17 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
 
     def on_order_update(self, filled_orders, dt):
         for order in filled_orders:
+            self.portfolio.cash -= order['cost']
             self.num_shares_traded[order['product']] = self.num_shares_traded[order['product']] + abs(order['amount'])
             self.trading_cost = self.trading_cost + order['cost']
             self.total_orders = self.total_orders + 1
+            if order['type'] == 'normal': # Aggressive order not accounted for
+                self.todays_amount_transacted += abs(order['value'])
+                self.total_amount_transacted += abs(order['value'])
+                if order['value'] > 0:
+                    self.todays_long_amount_transacted += abs(order['value'])
+                else:
+                    self.todays_short_amount_transacted += abs(order['value'])
 
     # Called by Dispatcher
     def on_end_of_day(self, date):
@@ -119,7 +137,18 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             else:
                 _logret_today = log(self.value[-1]/self.value[-2])
             self.daily_log_returns = append(self.daily_log_returns, _logret_today)
+            self.amount_long_transacted.append(self.todays_long_amount_transacted)
+            self.amount_short_transacted.append(self.todays_short_amount_transacted)
+            if self.debug_level > 2:
+                self.print_transacted_amount(self.todays_amount_transacted)
+            self.todays_amount_transacted = 0.0
+            self.todays_long_amount_transacted = 0.0
+            self.todays_short_amount_transacted = 0.0
             self.dates.append(self.date)
+
+    def print_transacted_amount(self, amount):
+        s = str(self.date) + ',%f'% (amount)
+        self.amount_transacted_file.write(s + '\n')
 
     def print_filled_orders(self, filled_orders):
         if len(filled_orders) == 0: return
@@ -175,6 +204,29 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 _retval = mean(sorted_series[0:_index_of_worst_k_percent])
         return _retval
 
+    def turnover(self, dates, amount_long_transacted, amount_short_transacted):
+        if len(dates) < 1:
+            return 0.0
+        turnover_sum = 0.0
+        turnover_years_count = 0.0
+        amount_long_transacted_this_year = 0.0
+        amount_short_transacted_this_year = 0.0
+        num_days_in_year = 0.0
+        for i in range(min(len(dates)-1, 5), len(dates)): # Initial buying not to be considered as turnover
+            amount_long_transacted_this_year += amount_long_transacted[i]
+            amount_short_transacted_this_year += amount_short_transacted[i]
+            num_days_in_year += 1.0
+            if i == len(dates)-1 or dates[i+1].year != dates[i].year:
+                if num_days_in_year < 252:
+                    turnover_sum += (252.0/num_days_in_year)*min(amount_long_transacted_this_year, amount_short_transacted_this_year)/self.value[i+1] # Size of value array is 1 more than number of tradable days
+                else:
+                    turnover_sum += min(amount_long_transacted_this_year, amount_short_transacted_this_year)/self.value[i+1]
+                turnover_years_count += 1.0
+                amount_long_transacted_this_year = 0.0
+                amount_short_transacted_this_year = 0.0
+                num_days_in_year = 0.0
+        return turnover_sum*100/turnover_years_count
+
     # Prints the returns for k worst and k best days
     def print_extreme_days(self, k):
         _dates_returns = zip(self.dates, self.daily_log_returns)
@@ -188,6 +240,21 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             for item in _worst_days:
                 print item[0], ' : ', (exp(item[1])-1)*100.0, '%'
             print '\nBest %d Days:'%k
+            for item in reversed(_best_days):
+                print item[0], ' : ', (exp(item[1])-1)*100.0, '%'
+
+    def print_extreme_weeks(self, _dates, _returns, k):
+        _dated_weekly_returns = zip(_dates[0:len(_dates)-k], self.rollsum(_returns, k))
+        _sorted_returns = sorted(_dated_weekly_returns, key=lambda x: x[1]) # Sort by returns
+        _end_index_worst_days = min(len(_sorted_returns), k)
+        _start_index_best_days = max(0, len(_sorted_returns) - k)
+        if len(_sorted_returns) > 0:
+            _worst_days = _sorted_returns[0:_end_index_worst_days]
+            _best_days = _sorted_returns[_start_index_best_days:len(_sorted_returns)]
+            print '\nWorst %d Weeks:'%k
+            for item in _worst_days:
+                print item[0], ' : ', (exp(item[1])-1)*100.0, '%'
+            print '\nBest %d Weeks:'%k
             for item in reversed(_best_days):
                 print item[0], ' : ', (exp(item[1])-1)*100.0, '%'
 
@@ -222,7 +289,10 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.max_drawdown_dollar = abs(self.drawdown(self.PnLvector))
         self.return_by_maxdrawdown = self._annualized_returns_percent/self.max_drawdown_percent
         self._annualized_pnl_by_max_drawdown_dollar = self.annualized_PnL/self.max_drawdown_dollar
-        self.print_extreme_days(10)
+        self.ret_var10 = abs(self._annualized_returns_percent/self.dml)
+        self.turnover_percent = self.turnover(self.dates, self.amount_long_transacted, self.amount_short_transacted)
+        self.print_extreme_days(5)
+        self.print_extreme_weeks(self.dates, self.daily_log_returns, 5)
         self._save_results()
 
-        print "\nInitial Capital = %.10f\nNet PNL = %.10f \nTrading Cost = %.10f\nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Std_PnL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f \n" % (self.initial_capital, self.PnL, self.trading_cost, self.net_returns, self.annualized_PnL, self.annualized_stdev_PnL, self._annualized_returns_percent, self.annualized_stddev_returns, self.sharpe, self.skewness, self.kurtosis, self.dml, self.mml, self._worst_10pc_quarterly_returns, self._worst_10pc_yearly_returns, self.max_drawdown_percent, self.max_drawdown_dollar, self._annualized_pnl_by_max_drawdown_dollar, self.return_by_maxdrawdown)
+        print "\nInitial Capital = %.10f\nNet PNL = %.10f \nTrading Cost = %.10f\nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Std_PnL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f\nReturn Var10 ratio = %.10f\nTurnover = %0.10f%%\nTrading Cost = %0.10f\nTotal Money Transacted = %0.10f\nTotal Orders Placed = %d\n" % (self.initial_capital, self.PnL, self.trading_cost, self.net_returns, self.annualized_PnL, self.annualized_stdev_PnL, self._annualized_returns_percent, self.annualized_stddev_returns, self.sharpe, self.skewness, self.kurtosis, self.dml, self.mml, self._worst_10pc_quarterly_returns, self._worst_10pc_yearly_returns, self.max_drawdown_percent, self.max_drawdown_dollar, self._annualized_pnl_by_max_drawdown_dollar, self.return_by_maxdrawdown, self.ret_var10, self.turnover_percent, self.trading_cost, self.total_amount_transacted, self.total_orders)

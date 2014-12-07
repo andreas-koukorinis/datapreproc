@@ -57,6 +57,65 @@ def plot_series(_files):
                 datey.add(label, zip(df['date'].values, df[column].values))
     datey.render_to_file(_out_file + '.svg')
 
+def plot_series_separately(_files):
+    '''This function plots the interactive graphs(hover and display values)
+    for multiple series in a single graph
+    The files for series are expected to be in csv format i.e.
+    date,return'''
+    dateparse = lambda x: datetime.strptime(x, '%Y-%m-%d').date()
+    for _file in _files:
+        df = pd.read_csv(_file, parse_dates=['date'], \
+                         header=0, date_parser=dateparse)
+        for column in df.columns:
+            if column != 'date':
+                datey = DateY(x_label_rotation=-25, dots_size=0.1, \
+                        y_title='Price', x_title='Date', \
+                        legend_font_size=7, legend_at_bottom=True)
+                datey.x_label_format = "%Y-%m-%d"
+                label = column + '_' + _file.split('/')[-2]
+                datey.add(label, zip(df['date'].values, df[column].values))
+                datey.render_to_png(filename='logs/svgs/'+ column + '.svg')
+
+def plot_series_separately(_files):
+    '''This function plots the interactive graphs(hover and display values)
+    for multiple series in a single graph
+    The files for series are expected to be in csv format i.e.
+    date,return''' 
+    dateparse = lambda x: datetime.strptime(x, '%Y-%m-%d').date()
+    for _file in _files:
+        df = pd.read_csv(_file, parse_dates=['date'], \
+                         header=0, date_parser=dateparse)
+        for column in df.columns: 
+            if column != 'date':
+                datey = DateY(x_label_rotation=-25, dots_size=0.1, \
+                        y_title='Price', x_title='Date', \
+                        legend_font_size=7, legend_at_bottom=True)
+                datey.x_label_format = "%Y-%m-%d" 
+                label = column + '_' + _file.split('/')[-2]
+                datey.add(label, zip(df['date'].values, df[column].values))
+                datey.render_to_file(filename='logs/svgs/'+ column + '.svg')
+
+def plot_returns_separately(_files):
+    '''This function plots the interactive graphs(hover and display values)
+    for multiple series in a single graph
+    The files for series are expected to be in csv format i.e.
+    date,return''' 
+    dateparse = lambda x: datetime.strptime(x, '%Y-%m-%d').date()
+    for _file in _files:
+        df = pd.read_csv(_file, parse_dates=['date'], \
+                         header=0, date_parser=dateparse)
+        for column in df.columns:
+            if column != 'date':
+                datey = DateY(x_label_rotation=-25, dots_size=0.1, \
+                        y_title='Return', x_title='Date', \
+                        legend_font_size=7, legend_at_bottom=True)
+                datey.x_label_format = "%Y-%m-%d"
+                label = column + '_' + _file.split('/')[-2]
+                _returns = df[column].values
+                _cumulative_percent_returns = (np.exp(np.cumsum(_returns)) - 1)*100.0
+                datey.add(label, zip(df['date'].values,_cumulative_percent_returns))
+                datey.render_to_file('logs/svgs/'+ column + '.svg')
+
 def main():
     if len(sys.argv) > 1:
         _directory = 'logs/svgs/'
@@ -68,8 +127,14 @@ def main():
             _files.append(sys.argv[i])
         if _type == 0:
             plot_returns(_files)
-        else:
+        elif _type == 1:
             plot_series(_files)
+        elif _type == 2:
+            plot_returns_separately(_files)
+        elif _type == 3:
+            plot_series_separately(_files)
+        else:
+            sys.exit('Unhandled case')
     else:
         sys.exit('python plot_series_interactive.py type file1 file2 ... filen\n type:0 => returns\n type:1 => other series\n')
 

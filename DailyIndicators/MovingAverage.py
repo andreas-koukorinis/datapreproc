@@ -1,18 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Nov 18 10:51:21 2014
-
-@author: Gurmeet Singh
-"""
-
 from numpy import *
 from Indicator_Listeners import IndicatorListener
-from DailyPrice import DailyPrice
-
+from BookBuilder.BookBuilder import BookBuilder
+from BookBuilder.BookBuilder_Listeners import DailyBookListener
+from Utils.Regular import get_first_futures_contract,is_future_entity
 
 # Track the standard deviation of log returns for the product
-# In the config file this indicator will be specfied as : StdDev,product,period
-class MovingAverage( IndicatorListener ):
+# In the config file this indicator will be specfied as : MovingAverage1.product.period
+class MovingAverage( DailyBookListener ):
 
     instances = {}
 
@@ -20,11 +14,15 @@ class MovingAverage( IndicatorListener ):
         self.values = () # Tuple of the form (dt,value)
         self.identifier = identifier
         params = identifier.strip().split('.')
-        self.product = params[1]
+        _product = params[1]
+        if is_future_entity( _product ): # for a  future like fES, we want the product to be the first contract i.e. fES_1
+            _product = get_first_futures_contract( _product )
+        self.product = _product
         self.period = int( params[2] )
+        self.current_sum = 0.0
+        self.current_num = 0.0
         self.listeners = []
-        daily_price = DailyPrice.get_unique_instance( 'DailyPrice.' + self.product, _startdate, _enddate, _config )
-        daily_price.add_listener( self )
+        BookBuilder.get_unique_instance( self.product, _startdate, _enddate, _config ).add_dailybook_listener( self )
 
     def add_listener( self, listener ):
         self.listeners.append( listener )
@@ -37,13 +35,17 @@ class MovingAverage( IndicatorListener ):
         return MovingAverage.instances[identifier]
 
     # Update moving average indicators on each ENDOFDAY event
-    def on_indicator_update( self, identifier, daily_prices_dt ):
-        daily_prices = array( [ item[1] for item in daily_prices_dt ] ).astype( float )
-        n = daily_prices.shape[0]
-        _start_index = max( 0, n - self.period )  # If sufficient lookback not available,use the available data only to compute indicator
-        val = mean( daily_prices[ _start_index : n ] )
-        if n < 2 or val == 0 :
-            val=0.001  # Dummy value for insufficient lookback period(case where only 1 price)
-        self.values = ( daily_prices_dt[-1][0], val )
+    def on_dailybook_update( self, product, dailybook ):
+        n = len(dailybook)
+        if n > self.period:
+            self.current_sum = self.current_sum - dailybook[n-self.period-1][1] + dailybook[n-1][1] # dailybook[k][1] is the kth closing price in dailybook
+            val = self.current_sum/self.current_num # The mean of closing prices
+        elif n < 1:
+            val = 0.001 # Dummy value for insufficient lookback period(case where only 1 log return)
+        else:
+            self.current_sum = self.current_sum + dailybook[n-1][1]
+            self.current_num += 1
+            val = self.current_sum/self.current_num # The mean of closing prices
+        self.values = ( dailybook[-1][0], val )         
         for listener in self.listeners: 
             listener.on_indicator_update( self.identifier, self.values )
