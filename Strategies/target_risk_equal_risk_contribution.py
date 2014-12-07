@@ -3,7 +3,7 @@ import numpy as np
 from importlib import import_module
 from scipy.optimize import minimize
 from Algorithm.TradeAlgorithm import TradeAlgorithm
-from Utils.Regular import check_eod
+from Utils.Regular import check_eod,parse_weights
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
