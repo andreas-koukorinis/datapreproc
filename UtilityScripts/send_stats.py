@@ -13,7 +13,7 @@ def parse_results( _results ):
 def send_mail(_body, _config_file, _current_date):
     _server = "localhost"
     _from = "sanchit.gupta@tworoads.co.in"
-    _to = "sanchit.gupta@tworoads.co.in"
+    _to = "cvquant@circulumvite.com"
     _subject = "Summary stats on %s for config:%s"%(_current_date,_config_file)
      # Prepare actual message
     message = "From: {0}\nTo: {1}\nSubject: {2}\n\n{3}".format(_from, _to, _subject, _body)
@@ -41,7 +41,7 @@ def main():
         sys.exit(0)
     _config_file = sys.argv[1]
     _current_date = date.today() + timedelta(days=-1)
-    print _current_date
+    #print _current_date
     _ytd_start_date = date(_current_date.year, 1, 1)
     _ytd_end_date = _current_date
     _mtd_start_date = date(_current_date.year, _current_date.month, 1)
