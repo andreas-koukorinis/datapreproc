@@ -40,7 +40,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             self.amount_transacted_file = open('logs/'+_log_filename+'/amount_transacted.txt', 'w')
             self.amount_transacted_file.write('date,amount_transacted\n')
         self.returns_file = 'logs/'+_log_filename+'/returns.txt'
-        
+        self.stats_file = 'logs/'+_log_filename+'/stats.txt'
         self.products = products
         self.conversion_factor = conv_factor(products)
         self.num_shares_traded = dict([(product, 0) for product in self.products])
@@ -228,40 +228,78 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         return turnover_sum*100/turnover_years_count
 
     # Prints the returns for k worst and k best days
-    def print_extreme_days(self, k):
+    def extreme_days(self, k):
+        _extreme_days = ''
         _dates_returns = zip(self.dates, self.daily_log_returns)
         _sorted_returns = sorted(_dates_returns, key=lambda x: x[1]) # Sort by returns
-        _end_index_worst_days = min(len(_sorted_returns), k)
-        _start_index_best_days = max(0, len(_sorted_returns) - k)
-        if len(_sorted_returns) > 0:
-            _worst_days = _sorted_returns[0:_end_index_worst_days]
-            _best_days = _sorted_returns[_start_index_best_days:len(_sorted_returns)]
-            print '\nWorst %d Days:'%k
-            for item in _worst_days:
-                print item[0], ' : ', (exp(item[1])-1)*100.0, '%'
-            print '\nBest %d Days:'%k
-            for item in reversed(_best_days):
-                print item[0], ' : ', (exp(item[1])-1)*100.0, '%'
+        n = len(_sorted_returns)
+        _num_worst_days = 0
+        _worst_day_idx = 0
+        _num_best_days = 0
+        _best_day_idx = n-1
+        if n > 0:
+            _extreme_days += 'Worst %d days\n'%k
+            while _num_worst_days < k and _worst_day_idx < n:
+                _num_worst_days += 1
+                _return = (exp(_sorted_returns[_worst_day_idx][1])-1)*100.0
+                _extreme_days += str(_sorted_returns[_worst_day_idx][0]) + ' : ' + str(_return) + '\n'
+                _worst_day_idx += 1
+            _extreme_days += 'Best %d days\n'%k
+            while _num_best_days < k and _best_day_idx >= 0:
+                _num_best_days += 1
+                _return = (exp(_sorted_returns[_best_day_idx][1])-1)*100.0
+                _extreme_days += str(_sorted_returns[_best_day_idx][0]) + ' : ' + str(_return) + '\n'
+                _best_day_idx -= 1     
+        return _extreme_days
 
-    def print_extreme_weeks(self, _dates, _returns, k):
-        _dated_weekly_returns = zip(_dates[0:len(_dates)-k], self.rollsum(_returns, k))
+    def extreme_weeks(self, _dates, _returns, k):
+        _extreme_weeks = ''
+        _dated_weekly_returns = zip(_dates[0:len(_dates)-k], self.rollsum(_returns, 5))
         _sorted_returns = sorted(_dated_weekly_returns, key=lambda x: x[1]) # Sort by returns
-        _end_index_worst_days = min(len(_sorted_returns), k)
-        _start_index_best_days = max(0, len(_sorted_returns) - k)
-        if len(_sorted_returns) > 0:
-            _worst_days = _sorted_returns[0:_end_index_worst_days]
-            _best_days = _sorted_returns[_start_index_best_days:len(_sorted_returns)]
-            print '\nWorst %d Weeks:'%k
-            for item in _worst_days:
-                print item[0], ' : ', (exp(item[1])-1)*100.0, '%'
-            print '\nBest %d Weeks:'%k
-            for item in reversed(_best_days):
-                print item[0], ' : ', (exp(item[1])-1)*100.0, '%'
+        n = len(_sorted_returns)
+        _num_worst_weeks = 0
+        _worst_week_idx = 0
+        _num_best_weeks = 0
+        _best_week_idx = n-1
+        _worst_start_dates_used = []
+        _best_start_dates_used = []
+
+        def _date_not_used(_date, _used_dates, interval = 5):
+            _not_used = True
+            for _used_date in _used_dates:
+                if abs((_date - _used_date).days) < interval:
+                    _not_used = False
+                    break
+            return _not_used    
+
+        if n > 0:
+            _extreme_weeks += 'Worst %d weeks\n'%k
+            while _num_worst_weeks < k and _worst_week_idx < n:
+                if (not _worst_start_dates_used) or _date_not_used(_sorted_returns[_worst_week_idx][0], _worst_start_dates_used, 5):
+                    _num_worst_weeks += 1
+                    _return = (exp(_sorted_returns[_worst_week_idx][1]) - 1)*100.0
+                    _extreme_weeks += str(_sorted_returns[_worst_week_idx][0]) + ' : ' + str(_return) + '\n'
+                    _worst_start_dates_used.append(_sorted_returns[_worst_week_idx][0])
+                _worst_week_idx += 1
+            _extreme_weeks += 'Best %d weeks\n'%k
+            while _num_best_weeks < k and _best_week_idx >= 0:
+                if (not _worst_start_dates_used) or _date_not_used(_sorted_returns[_best_week_idx][0], _best_start_dates_used, 5):
+                    _num_best_weeks += 1
+                    _return = (exp(_sorted_returns[_best_week_idx][1]) - 1)*100.0
+                    _extreme_weeks += str(_sorted_returns[_best_week_idx][0]) + ' : ' + str(_return) + '\n'
+                    _best_start_dates_used.append(_sorted_returns[_best_week_idx][0])
+                _best_week_idx -= 1     
+        return _extreme_weeks
 
     # non public function to save results to a file
     def _save_results(self):
         with open(self.returns_file, 'wb') as f:
             pickle.dump(zip(self.dates,self.daily_log_returns), f)
+
+    def _save_stats(self, _extreme_days, _extreme_weeks, _stats):
+        text_file = open(self.stats_file, "w")
+        text_file.write("%s\n%s\n%s\n" % (_extreme_days, _extreme_weeks, _stats))
+        text_file.close()
 
     def show_results(self):
         self.PnL = sum(self.PnLvector) # final sum of pnl of all trading days
@@ -291,8 +329,9 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self._annualized_pnl_by_max_drawdown_dollar = self.annualized_PnL/self.max_drawdown_dollar
         self.ret_var10 = abs(self._annualized_returns_percent/self.dml)
         self.turnover_percent = self.turnover(self.dates, self.amount_long_transacted, self.amount_short_transacted)
-        self.print_extreme_days(5)
-        self.print_extreme_weeks(self.dates, self.daily_log_returns, 5)
+        _extreme_days = self.extreme_days(5)
+        _extreme_weeks = self.extreme_weeks(self.dates, self.daily_log_returns, 5)
         self._save_results()
-
-        print "\nInitial Capital = %.10f\nNet PNL = %.10f \nTrading Cost = %.10f\nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Std_PnL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f\nReturn Var10 ratio = %.10f\nTurnover = %0.10f%%\nTrading Cost = %0.10f\nTotal Money Transacted = %0.10f\nTotal Orders Placed = %d\n" % (self.initial_capital, self.PnL, self.trading_cost, self.net_returns, self.annualized_PnL, self.annualized_stdev_PnL, self._annualized_returns_percent, self.annualized_stddev_returns, self.sharpe, self.skewness, self.kurtosis, self.dml, self.mml, self._worst_10pc_quarterly_returns, self._worst_10pc_yearly_returns, self.max_drawdown_percent, self.max_drawdown_dollar, self._annualized_pnl_by_max_drawdown_dollar, self.return_by_maxdrawdown, self.ret_var10, self.turnover_percent, self.trading_cost, self.total_amount_transacted, self.total_orders)
+        _stats = "\nInitial Capital = %.10f\nNet PNL = %.10f \nTrading Cost = %.10f\nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Std_PnL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f\nReturn Var10 ratio = %.10f\nTurnover = %0.10f%%\nTrading Cost = %0.10f\nTotal Money Transacted = %0.10f\nTotal Orders Placed = %d\n" % (self.initial_capital, self.PnL, self.trading_cost, self.net_returns, self.annualized_PnL, self.annualized_stdev_PnL, self._annualized_returns_percent, self.annualized_stddev_returns, self.sharpe, self.skewness, self.kurtosis, self.dml, self.mml, self._worst_10pc_quarterly_returns, self._worst_10pc_yearly_returns, self.max_drawdown_percent, self.max_drawdown_dollar, self._annualized_pnl_by_max_drawdown_dollar, self.return_by_maxdrawdown, self.ret_var10, self.turnover_percent, self.trading_cost, self.total_amount_transacted, self.total_orders)
+        print _extreme_days, _extreme_weeks, _stats
+        self._save_stats(_extreme_days, _extreme_weeks, _stats)
