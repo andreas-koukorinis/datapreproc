@@ -27,35 +27,68 @@ def mean_lowest_k_percent(series,k):
             _retval=mean(sorted_series[0:_index_of_worst_k_percent])
     return _retval
 
- # Prints the returns for k worst and k best days
-def print_extreme_days(_dates_returns, k):
-    _sorted_returns = sorted(_dates_returns, key=lambda x: x[1]) # Sort by returns
-    _end_index_worst_days = min(len(_sorted_returns), k)
-    _start_index_best_days = max(0, len(_sorted_returns) - k)
-    if len(_sorted_returns) > 0:
-        _worst_days = _sorted_returns[0:_end_index_worst_days]
-        _best_days = _sorted_returns[_start_index_best_days:len(_sorted_returns)]
-        print '\nWorst %d Days:'%k
-        for item in _worst_days:
-            print item[0], ' : ', (exp(item[1])-1)*100.0, '%'
-        print '\nBest %d Days:'%k
-        for item in reversed(_best_days):
-            print item[0], ' : ', (exp(item[1])-1)*100.0, '%'
-
-def print_extreme_weeks(_dates, _returns, k):
-    _dated_weekly_returns = zip(_dates[0:len(_dates)-k], rollsum(_returns, k))
+def extreme_weeks(_dates, _returns, k):
+    _extreme_weeks = ''
+    _dated_weekly_returns = zip(_dates[0:len(_dates)-k], rollsum(_returns, 5))
     _sorted_returns = sorted(_dated_weekly_returns, key=lambda x: x[1]) # Sort by returns
-    _end_index_worst_days = min(len(_sorted_returns), k)
-    _start_index_best_days = max(0, len(_sorted_returns) - k)
-    if len(_sorted_returns) > 0:
-        _worst_days = _sorted_returns[0:_end_index_worst_days]
-        _best_days = _sorted_returns[_start_index_best_days:len(_sorted_returns)]
-        print '\nWorst %d Weeks:'%k
-        for item in _worst_days:
-            print item[0], ' : ', (exp(item[1])-1)*100.0, '%'
-        print '\nBest %d Weeks:'%k
-        for item in reversed(_best_days):
-            print item[0], ' : ', (exp(item[1])-1)*100.0, '%'
+    n = len(_sorted_returns)
+    _num_worst_weeks = 0
+    _worst_week_idx = 0
+    _num_best_weeks = 0
+    _best_week_idx = n-1
+    _worst_start_dates_used = []
+    _best_start_dates_used = []
+
+    def _date_not_used(_date, _used_dates, interval = 5):
+        _not_used = True
+        for _used_date in _used_dates:
+            if abs((_date - _used_date).days) < interval:
+                _not_used = False
+                break
+        return _not_used
+
+    if n > 0:
+        _extreme_weeks += 'Worst %d weeks\n'%k
+        while _num_worst_weeks < k and _worst_week_idx < n:
+            if (not _worst_start_dates_used) or _date_not_used(_sorted_returns[_worst_week_idx][0], _worst_start_dates_used, 5):
+                _num_worst_weeks += 1
+                _return = (exp(_sorted_returns[_worst_week_idx][1]) - 1)*100.0
+                _extreme_weeks += str(_sorted_returns[_worst_week_idx][0]) + ' : ' + str(_return) + '\n'
+                _worst_start_dates_used.append(_sorted_returns[_worst_week_idx][0])
+            _worst_week_idx += 1
+        _extreme_weeks += 'Best %d weeks\n'%k
+        while _num_best_weeks < k and _best_week_idx >= 0:
+            if (not _worst_start_dates_used) or _date_not_used(_sorted_returns[_best_week_idx][0], _best_start_dates_used, 5):
+                _num_best_weeks += 1
+                _return = (exp(_sorted_returns[_best_week_idx][1]) - 1)*100.0
+                _extreme_weeks += str(_sorted_returns[_best_week_idx][0]) + ' : ' + str(_return) + '\n'
+                _best_start_dates_used.append(_sorted_returns[_best_week_idx][0])
+            _best_week_idx -= 1
+    return _extreme_weeks
+
+# Prints the returns for k worst and k best days
+def extreme_days(_dates_returns, k):
+    _extreme_days = ''
+    _sorted_returns = sorted(_dates_returns, key=lambda x: x[1]) # Sort by returns
+    n = len(_sorted_returns)
+    _num_worst_days = 0
+    _worst_day_idx = 0
+    _num_best_days = 0
+    _best_day_idx = n-1
+    if n > 0:
+        _extreme_days += 'Worst %d days\n'%k
+        while _num_worst_days < k and _worst_day_idx < n:
+            _num_worst_days += 1
+            _return = (exp(_sorted_returns[_worst_day_idx][1])-1)*100.0
+            _extreme_days += str(_sorted_returns[_worst_day_idx][0]) + ' : ' + str(_return) + '\n'
+            _worst_day_idx += 1
+        _extreme_days += 'Best %d days\n'%k
+        while _num_best_days < k and _best_day_idx >= 0:
+            _num_best_days += 1
+            _return = (exp(_sorted_returns[_best_day_idx][1])-1)*100.0
+            _extreme_days += str(_sorted_returns[_best_day_idx][0]) + ' : ' + str(_return) + '\n'
+            _best_day_idx -= 1
+    return _extreme_days
 
 def analyse(_returns_file):
     with open(_returns_file, 'rb') as f:
@@ -81,9 +114,10 @@ def analyse(_returns_file):
         max_dd_log = drawdown(daily_log_returns)
         max_drawdown_percent = abs((exp(max_dd_log)-1)*100)
         return_by_maxdrawdown = _annualized_returns_percent/max_drawdown_percent
-        print_extreme_days(dates_returns, 5)
-        print_extreme_weeks(_dates, daily_log_returns, 5)
-        print "\nNumber of Tradable Days = %d\n-------------RESULTS--------------------\nNet Returns = %.10f%%\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%%\nReturn_drawdown_Ratio = %.10f \n" %(len(daily_log_returns),net_returns,_annualized_returns_percent,annualized_stddev_returns,sharpe,skewness,kurtosis,dml,mml,qml,yml,max_drawdown_percent,return_by_maxdrawdown)
+        ret_var10 = abs(_annualized_returns_percent/dml)
+        print extreme_days(dates_returns, 5)
+        print extreme_weeks(_dates, daily_log_returns, 5)
+        print "\nNumber of PnL Days = %d\n-------------RESULTS--------------------\nNet Returns = %.10f%%\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%%\nReturn_drawdown_Ratio = %.10f\nReturn Var10 ratio = %.10f\n" %(len(daily_log_returns),net_returns,_annualized_returns_percent,annualized_stddev_returns,sharpe,skewness,kurtosis,dml,mml,qml,yml,max_drawdown_percent,return_by_maxdrawdown,ret_var10)
 
 def main():
     if len( sys.argv ) > 1:
