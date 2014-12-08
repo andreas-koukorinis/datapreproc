@@ -162,9 +162,9 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
     def print_snapshot(self, date):
         text_file = open(self.positions_file, "a")
         if self.PnLvector.shape[0] > 0:
-            s = "\nPortfolio snapshot at EndOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f PnL for today: %f \n" % (date, self.portfolio.cash, str(self.portfolio.num_shares), self.value[-1], self.PnLvector[-1])
+            s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %f\nPortfolio Value:%f\nCash:%f\nPositions:%s\n" % (date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, str(self.portfolio.num_shares))
         else:      
-            s = "\nPortfolio snapshot at EndOfDay %s\nCash:%f\tPositions:%s Portfolio Value:%f Trading has not yet started\n" % (date, self.portfolio.cash, str(self.portfolio.num_shares), self.value[-1]) 
+            s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value:%f\nCash:%f\nPositions:%s\n" % (date, self.value[-1], self.portfolio.cash, str(self.portfolio.num_shares))
         (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, date)
         s = s + 'Money Allocation: %s\n\n' % notional_amounts
         text_file.write(s)
