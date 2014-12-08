@@ -141,18 +141,21 @@ def add_future_quote(date,record,future_someday_total_volume,future_someday_tota
                 print query
                 db_cursor.execute(query)
                 db.commit()
-                query = "UPDATE %s SET contract_volume='%d',total_volume='%d' WHERE date='%s' AND product='%s'" % (table[generic_ticker], future_someday_volume, future_someday_total_volume, future_volume_date, generic_ticker)
+            except:
+                db.rollback()
+                sys.exit('EXCEPTION in add_future_quote %s'%record)
+        if contract_number in [0,1,2]:
+            try:
+                query = "UPDATE %s SET contract_volume='%d',total_volume='%d' WHERE date='%s' AND specific_ticker='%s'" % (table[_base_symbol+'_1'], future_someday_volume, future_someday_total_volume, future_volume_date, specific_ticker)
                 print query
                 db_cursor.execute(query)
-                query = "UPDATE %s SET contract_oi='%d',total_oi='%d' WHERE date='%s' AND product='%s'" % (table[generic_ticker], future_someday_oi, future_someday_total_oi, future_oi_date, generic_ticker)
+                query = "UPDATE %s SET contract_oi='%d',total_oi='%d' WHERE date='%s' AND specific_ticker='%s'" % (table[_base_symbol+'_1'], future_someday_oi, future_someday_total_oi, future_oi_date, specific_ticker)
                 print query
                 db_cursor.execute(query)
                 db.commit()
             except:
                 db.rollback()
                 sys.exit('EXCEPTION in add_future_quote %s'%record)
-        else:
-            pass#print 'Unhandled contract_number in add_future_quote'
     except:
         sys.exit('EXCEPTION in add_future_quote %s'%record)
 
