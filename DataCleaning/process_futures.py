@@ -34,7 +34,7 @@ def get_start_date(product,label,exchange_symbol_manager,start_date):
 def process_futures(num_contracts,product,to_name,folder):
     
     exchange_symbol_manager = ExchangeSymbolManager()
-    path = '/apps/data/csi/historical_futures'+folder+'/'
+    path = '/apps/data/csi/history_part'+folder+'/'
     output_path = '/home/cvdev/stratdev/DataCleaning/Data/'
     dateparse = lambda x: datetime.strptime(x, '%Y%m%d').date() # Parse dates in format required by mysql i.e. YYYY-MM-DD
     directory = path + product + '/'
@@ -68,15 +68,16 @@ def process_futures(num_contracts,product,to_name,folder):
         current_date = start_date + timedelta(days=i)
         first_contract_YYMM = get_YYMM_from_exchange_code(exchange_symbol_manager.get_exchange_symbol(current_date,generic_to_name[0])[-3:])  
         current_idx = sorted_labels.index(first_contract_YYMM)
-        #print current_date,_last_trading_date
+        print current_date,_last_trading_date
         if current_date > _last_trading_date:
             for j in range( len(generic_tickers) ):
                 output_dfs[j].loc[len(output_dfs[j]),'is_last_trading_day'] = 1.0
 
         for j in range( len(generic_tickers) ):
-            YYMM = sorted_labels[current_idx + j] 
+            YYMM = sorted_labels[current_idx + j]
+            print YYMM,current_date 
             if current_date in input_dfs[YYMM].index:
-                #print current_date,YYMM
+                print current_date,YYMM
                 row = input_dfs[YYMM].loc[current_date]            
                 output_dfs[j].loc[len(output_dfs[j])+1] = [ str(current_date), generic_to_name[j], to_name+get_exchange_specific(YYMM),row['open'], row['high'], row['low'], row['close'], '0.0', row['contract_volume'], row['contract_oi'], row['total_volume'], row['total_oi']]
         _last_trading_date = exchange_symbol_manager.get_last_trading_date( current_date, generic_to_name[0] )
