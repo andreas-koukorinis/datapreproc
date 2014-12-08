@@ -47,7 +47,6 @@ LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ZN_1.csv' INTO TA
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ZN_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FGBL_1.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FGBL_2.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
-
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6E_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/E7_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6J_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
@@ -62,10 +61,10 @@ LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/J7_2.csv' INTO TA
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6A_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6B_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/6C_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
-
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FESX_1.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FESX_2.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
-
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FDAX_1.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FDAX_2.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 
 #ADD ENTRIES TO 'products' TABLE
 insert into products values ('VTI','13541','VTI','VANGUARD TOT STK MKT IDX VIPER','etfs','etf','equity','1','1','1','USD','AMEX');
