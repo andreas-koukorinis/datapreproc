@@ -2,19 +2,34 @@
 
 import sys
 import os
+import imp
 import gzip
 import MySQLdb
 import subprocess
 import pandas as pd
-from datetime import datetime,timedelta
+from datetime import datetime,timedelta,date
 #from exchange_symbol_manager import ExchangeSymbolManager 
 
 table = {}
 product_type = {}
 db_cursor = None
 db = None
-mappings = { 'EBL':'FGBL', 'CU1': '6E', 'EX':'E7', 'JY1':'6J', 'JT':'J7', 'AD1': '6A', 'BP1':'6B','CD1':'6C','SXE':'FESX' }
+mappings = {'AD1':'6A','BP1':'6B','CD1':'6C','CU1':'6E','JY1':'6J','MP':'6M','EX':'E7','ES':'ES','FDX':'FDAX','SXE':'FESX','EBL':'FGBL','EBM':'FGBM','JT':'J7','FLG':'LFR','NK':'NKD','SXF':'SXF','ZF':'ZF','TY':'ZN'}
 exchange_symbol_mamager = None
+
+def FloatOrZero(value):
+    try:
+        return float(value)
+    except:
+        print 'ALERT! Empty string being converted to float'
+        return 0.0
+
+def IntOrZero(value):
+    try:
+        return int(value)
+    except:
+        print 'ALERT! Empty string being converted to int'
+        return 0
 
 def db_connect():
     global db,db_cursor
@@ -42,11 +57,13 @@ def get_exchange_specific(YYMM):
 def get_contract_number(date, _base_symbol, YYMM ):
     _exchange_symbol = _base_symbol + get_exchange_specific(YYMM)
     num=1
-    while _exchange_symbol != exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_' + str(num) ):
+    while _exchange_symbol != exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_' + str(num) ) and num < 20:   
         num+=1
+    if num == 20:
+        num=0 
     return num
 
-def get_file( filename,k ):
+def get_file(filename,k):
     filename = filename +'.' + (datetime.now() - timedelta(days=k)).strftime('%Y%m%d')
     print filename
     path = '/home/cvdev/stratdev/DataCleaning/'
@@ -54,7 +71,9 @@ def get_file( filename,k ):
         _file = filename+'.gz'
         is_in_s3 = subprocess.Popen(['s3cmd', 'ls', 's3://cvquantdata/csi/rawdata/'+_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
         if len(is_in_s3) <= 0:
-            sys.exit('File %s not in s3'%_file)
+            #sys.exit('File %s not in s3'%_file)
+            print 'File %s not in s3'%_file
+            return '0'
         subprocess.call(['s3cmd','get','s3://cvquantdata/csi/rawdata/'+_file]) 
         inF = gzip.open(_file, 'rb')
         outF = open(filename, 'wb')
@@ -64,7 +83,7 @@ def get_file( filename,k ):
     return filename
 
 def add_stock_quote(date,record):
-    product, open, high, low, close, volume = record[1], float(record[3]), float(record[4]), float(record[5]), float(record[6]), int(record[8])*100
+    product, open, high, low, close, volume = record[1], FloatOrZero(record[3]), FloatOrZero(record[4]), FloatOrZero(record[5]), FloatOrZero(record[6]), IntOrZero(record[8])*100
     try:
         db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date < '%s' ORDER BY date DESC LIMIT 1"%(table[product],product,date))
         rows = db_cursor.fetchall()
@@ -82,7 +101,7 @@ def add_stock_quote(date,record):
         sys.exit('EXCEPTION in add_stock_quote %s'%record)
     
 def add_fund_quote(date,record):
-    product, csi_num, close, asking_price = record[1], int(record[2]), float(record[3]), float(record[4])    
+    product, csi_num, close, asking_price = record[1], IntOrZero(record[2]), FloatOrZero(record[3]), FloatOrZero(record[4])    
     try:
         db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date < '%s' ORDER BY date DESC LIMIT 1"%(table[product],product,date))
         rows = db_cursor.fetchall()
@@ -99,33 +118,50 @@ def add_fund_quote(date,record):
         db.rollback()
         sys.exit('EXCEPTION in add_fund_quote %s'%record)
 
-def add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date):
-    product, csi_num, YYMM, open1, open2, high, low, close, prev_close, volume, oi = record[1], int(record[2]), record[3], float(record[4]), float(record[5]), float(record[6]), float(record[7]), float(record[8]), float(record[9]), int(record[10]), int(record[11])   
-    if product in mappings.keys():
-        _base_symbol = mappings[product]
-    else:
-        _base_symbol = product
-    _last_trading_date = exchange_symbol_manager.get_last_trading_date( date, _base_symbol + '_1' )
-    is_last_trading_day = str(_last_trading_date) == date
-    contract_number = get_contract_number( date, _base_symbol, YYMM )
-    specific_ticker = _base_symbol + get_exchange_specific( YYMM )
-    generic_ticker = _base_symbol + '_' + str( contract_number )
-    if contract_number in [1,2]: # TODO Should change to mapping per product 
-        try:
-            query = "INSERT INTO %s ( date, product, specific_ticker, open, high, low, close, is_last_trading_day, contract_volume, contract_oi, total_volume, total_oi ) VALUES('%s','%s','%s','%f','%f','%f','%f','%0.1f','%d','%d','%d','%d')" % ( table[generic_ticker], date, generic_ticker, specific_ticker, open1, high, low, close, is_last_trading_day, volume, oi, future_total_volume, future_total_oi)
-            print query
-            #db_cursor.execute(query)
-            #db.commit()
-        except:
-            #db.rollback()
-            sys.exit('EXCEPTION in add_future_quote %s'%record)
+def add_future_quote(date,record,future_someday_total_volume,future_someday_total_oi,future_volume_date,future_oi_date):
+    try:
+        #print record
+        product, csi_num, YYMM, open1, high, low, close, prev_close, future_someday_volume, future_someday_oi = record[1], IntOrZero(record[2]), record[3], FloatOrZero(record[4]), FloatOrZero(record[6]), FloatOrZero(record[7]), FloatOrZero(record[8]), FloatOrZero(record[9]), IntOrZero(record[10]), IntOrZero(record[11])   
+        if product in mappings.keys():
+            _base_symbol = mappings[product]
+        else:
+            _base_symbol = product
+        _last_trading_date = exchange_symbol_manager.get_last_trading_date(datetime.strptime(date, '%Y-%m-%d').date(), _base_symbol + '_1')
+        if str(_last_trading_date) == date:
+            is_last_trading_day = 1.0
+        else:
+            is_last_trading_day = 0.0
+        #print str(_last_trading_date),date,_base_symbol
+        contract_number = get_contract_number(datetime.strptime(date, '%Y-%m-%d').date(), _base_symbol, YYMM)
+        specific_ticker = _base_symbol + get_exchange_specific( YYMM )
+        generic_ticker = _base_symbol + '_' + str( contract_number )
+        if contract_number in [1,2]: # TODO Should change to mapping per product 
+            try:
+                query = "INSERT INTO %s ( date, product, specific_ticker, open, high, low, close, is_last_trading_day, contract_volume, contract_oi, total_volume, total_oi ) VALUES('%s','%s','%s','%f','%f','%f','%f','%0.1f','0','0','0','0')" % ( table[generic_ticker], date, generic_ticker, specific_ticker, open1, high, low, close, is_last_trading_day )
+                print query
+                db_cursor.execute(query)
+                db.commit()
+                query = "UPDATE %s SET contract_volume='%d',total_volume='%d' WHERE date='%s' AND product='%s'" % (table[generic_ticker], future_someday_volume, future_someday_total_volume, future_volume_date, generic_ticker)
+                print query
+                db_cursor.execute(query)
+                query = "UPDATE %s SET contract_oi='%d',total_oi='%d' WHERE date='%s' AND product='%s'" % (table[generic_ticker], future_someday_oi, future_someday_total_oi, future_oi_date, generic_ticker)
+                print query
+                db_cursor.execute(query)
+                db.commit()
+            except:
+                db.rollback()
+                sys.exit('EXCEPTION in add_future_quote %s'%record)
+        else:
+            pass#print 'Unhandled contract_number in add_future_quote'
+    except:
+        sys.exit('EXCEPTION in add_future_quote %s'%record)
 
 # ASSUMPTION: dividend quote will be sequenced after price quote
 def dividend_quote(date,record):
     if len(record) > 5: # ASSUME CAPITAL GAIN ONLY IF RECORD LEN > 5
-        product, csi_num, ex_date, dividend, capital_gain = record[1], int(record[2]), datetime.strptime(record[3], '%Y%m%d').strftime('%Y-%m-%d'), float(record[4]), float(record[5])
+        product, csi_num, ex_date, dividend, capital_gain = record[1], IntOrZero(record[2]), datetime.strptime(record[3], '%Y%m%d').strftime('%Y-%m-%d'),FloatOrZero(record[4]), FloatOrZero(record[5])
     else:
-        product, csi_num, ex_date, dividend, capital_gain = record[1], int(record[2]), datetime.strptime(record[3], '%Y%m%d').strftime('%Y-%m-%d'), float(record[4]),0.0
+        product, csi_num, ex_date, dividend, capital_gain = record[1], IntOrZero(record[2]), datetime.strptime(record[3], '%Y%m%d').strftime('%Y-%m-%d'), FloatOrZero(record[4]),0.0
     try:
         if table[product] == 'funds':
             query = "UPDATE %s SET dividend='%f',capital_gain='%f' WHERE product='%s' AND date='%s'" % ( table[product], dividend, capital_gain, product, ex_date)
@@ -173,13 +209,13 @@ def dividend_quote(date,record):
         sys.exit('EXCEPTION in dividend_quote %s'%record)
 
 def split_quote(date,record):
-    product, csi_num, ex_date, new_shares, old_shares = record[1], int(record[2]), datetime.strptime(record[3], '%Y%m%d').strftime('%Y-%m-%d'), float(record[4]), float(record[5])
+    product, csi_num, ex_date, new_shares, old_shares = record[1], IntOrZero(record[2]), datetime.strptime(record[3], '%Y%m%d').strftime('%Y-%m-%d'), FloatOrZero(record[4]), FloatOrZero(record[5])
     try:
         split_factor = new_shares/old_shares
         if product_type[product] == 'fund':
             query = "UPDATE %s SET close=close/%f, asking_price=asking_price/%f, backward_adjusted_close=backward_adjusted_close/%f, forward_adjusted_close=forward_adjusted_close/%f, dividend=dividend/%f, capital_gain=capital_gain/%f WHERE product='%s' AND date < '%s'" % ( table[product], split_factor, split_factor, split_factor, split_factor, split_factor, split_factor, product, ex_date)
         else:
-            query = "UPDATE %s SET open=open/%f, high=high/%f, low=low/%f, close=close/%f, backward_adjusted_close=backward_adjusted_close/%f, forward_adjusted_close=forward_adjusted_close/%f, volume=volume*%d, dividend=dividend/%f WHERE product='%s' AND date < '%s'" % ( table[product], split_factor, split_factor, split_factor, split_factor, split_factor, split_factor, int(split_factor), split_factor, product, ex_date)
+            query = "UPDATE %s SET open=open/%f, high=high/%f, low=low/%f, close=close/%f, backward_adjusted_close=backward_adjusted_close/%f, forward_adjusted_close=forward_adjusted_close/%f, volume=volume*%d, dividend=dividend/%f WHERE product='%s' AND date < '%s'" % ( table[product], split_factor, split_factor, split_factor, split_factor, split_factor, split_factor, IntOrZero(split_factor), split_factor, product, ex_date)
         print query
         db_cursor.execute(query)
         db.commit()
@@ -192,7 +228,7 @@ def error_correction_quote(date,record):
     #update_record(date,record)
 
 def delete_quote(date,record):
-    date_to_be_deleted, product, csi_num, delivery_YYMM, option_flag, strike_price = datetime.strptime(record[1], '%Y%m%d').strftime('%Y-%m-%d'),record[2], int(record[3]), record[4], record[5], float(record[6])
+    date_to_be_deleted, product, csi_num, delivery_YYMM, option_flag, strike_price = datetime.strptime(record[1], '%Y%m%d').strftime('%Y-%m-%d'),record[2], IntOrZero(record[3]), record[4], record[5], FloatOrZero(record[6])
     try:
         query = "DELETE FROM %s WHERE date='%s' AND product='%s'"
         db_cursor.execute(query)
@@ -201,10 +237,7 @@ def delete_quote(date,record):
         db.rollback()
         sys.exit('EXCEPTION in delete_quote %s'%record)
 
-def daily_update(filename,products,k):
-    filename = get_file( filename ,k)
-    db_connect()
-    product_to_table_map()
+def daily_update(filename,products):
     f = open(filename)
     records = f.readlines()
     f.close()      
@@ -214,20 +247,27 @@ def daily_update(filename,products,k):
         if record[0]=='00': #Header/Trailer
             portfolio_identifier = record[1]
             file_type = record[2]
-            record_count = int(record[3])
+            record_count = IntOrZero(record[3])
             date = datetime.strptime(record[4], '%Y%m%d').strftime('%Y-%m-%d')
             day = record[5]
-            volume_date = record[6]
-            oi_date = record[7]
+            volume_date = datetime.strptime(record[6], '%Y%m%d').strftime('%Y-%m-%d')
+            oi_date = datetime.strptime(record[7], '%Y%m%d').strftime('%Y-%m-%d')
 
         elif record[0]=='01': # Future header
-            future_symbol, future_csi_num, option_flag, future_total_volume,future_total_oi, future_total_est_volume = record[1], int(record[2]), int(record[3]), int(record[4]), int(record[5]), int(record[6])
+            future_symbol, future_csi_num, option_flag, future_total_volume,future_total_oi, future_total_est_volume = record[1], IntOrZero(record[2]), IntOrZero(record[3]), IntOrZero(record[4]), IntOrZero(record[5]), IntOrZero(record[6])
             if len(record) > 8:
-                future_volume_date = record[8]
+                #print record
+                try:
+                    future_volume_date = datetime.strptime(record[8], '%Y%m%d').strftime('%Y-%m-%d')
+                except:
+                    future_volume_date = '1500-01-01'
             else:
                 future_volume_date = volume_date
             if len(record) > 9:
-                future_oi_date = record[9]
+                try:
+                    future_oi_date = datetime.strptime(record[9], '%Y%m%d').strftime('%Y-%m-%d')
+                except:
+                    future_oi_date = '1500-01-01'
             else:
                 future_oi_date = oi_date
 
@@ -282,6 +322,37 @@ def daily_update(filename,products,k):
             if len(products)==0 or symbol in products:
                 dividend_quote(date, record)
 
+def update_last_trading_day(k):
+    _date = date.today() + timedelta(days=-k)
+    for product in mappings.keys():
+        _base_symbol = mappings[product]
+        _last_trading_date = exchange_symbol_manager.get_last_trading_date(_date, _base_symbol + '_1')
+        if _last_trading_date != _date:
+            continue
+        _contract_numbers = [1,2] # TODO should have mapping for this
+        for _contract_number in _contract_numbers:
+            generic_ticker = _base_symbol + '_' + str( _contract_number )
+            try:
+                query = "SELECT * FROM %s WHERE product='%s' AND date <= '%s' ORDER BY date DESC LIMIT 1"%(table[generic_ticker],generic_ticker,_date)
+                print query
+                db_cursor.execute(query)
+                rows = db_cursor.fetchall()
+                if len(rows) < 1:
+                    print 'Unhandled case %s in update_last_trading_day'%(generic_ticker) 
+                else:
+                    _new_last_trading_date= rows[0]['date']
+                    delta = _date - _new_last_trading_date
+                    if delta.days >= 7:
+                        print 'Seems to be a problem in update_last_trading_day %s'%generic_ticker
+                    else:
+                        query = "UPDATE %s SET is_last_trading_day=1.0 WHERE product='%s' AND date='%s'"%(table[generic_ticker],generic_ticker,_new_last_trading_date)
+                        print query
+                        db_cursor.execute(query)
+                db.commit()
+            except:
+                db.rollback()
+                sys.exit('EXCEPTION in update_last_trading_day %s'%generic_ticker)
+
 def __main__() :
     if len( sys.argv ) > 1:
         filename = sys.argv[1]
@@ -291,9 +362,15 @@ def __main__() :
     else:
         print 'python daily_update.py file:canada/f-indices/funds/futures/indices/uk-stocks/us-stocks delay product1 product2 ... productn'
         sys.exit(0)
-    #global exchange_symbol_manager
-    #exchange_symbol_manager = ExchangeSymbolManager()
-    daily_update( filename, products ,int(sys.argv[2]))
+    global exchange_symbol_manager
+    module = imp.load_source('exchange_symbol_manager', '../exchange_symbol_manager.py')
+    exchange_symbol_manager = module.ExchangeSymbolManager()
+    filename = get_file(filename, int(sys.argv[2]))
+    db_connect()
+    product_to_table_map()
+    if filename != '0':
+        daily_update(filename, products)
+    update_last_trading_day(int(sys.argv[2]))
 
 if __name__ == '__main__':
-    __main__();
+    __main__()
