@@ -246,7 +246,8 @@ def daily_update(filename,products):
     f.close()      
     for item in records:
         record = item.strip().split(',')
-        symbol = record[1]
+        if len(record) > 1:
+            symbol = record[1]
         if record[0]=='00': #Header/Trailer
             portfolio_identifier = record[1]
             file_type = record[2]
@@ -369,6 +370,8 @@ def __main__() :
     module = imp.load_source('exchange_symbol_manager', '../exchange_symbol_manager.py')
     exchange_symbol_manager = module.ExchangeSymbolManager()
     filename = get_file(filename, int(sys.argv[2]))
+    #print filename
+    #sys.exit()
     db_connect()
     product_to_table_map()
     if filename != '0':
