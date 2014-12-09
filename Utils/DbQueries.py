@@ -2,6 +2,7 @@ import sys
 import datetime
 import MySQLdb
 import heapq
+import numpy as np
 from Regular import is_future,get_base_symbol
 
 #Connect to the database and return the db cursor if the connection is successful
@@ -111,7 +112,7 @@ def conv_factor( products ):
         conv_factor[symbol] = float(row['conversion_factor'])*float(row['rate'])
     return conv_factor
 
-def fetch_prices(start_date, end_date, product):
+def fetch_prices(product, _startdate, _enddate):
     product = product.lstrip('f')
     (db,db_cursor) = db_connect()
     query = "SELECT * FROM products WHERE product = '%s'" % product
@@ -131,4 +132,4 @@ def fetch_prices(start_date, end_date, product):
             price = float(row['close'])
         dates.append(row['date'])
         prices.append(price)
-    return dates, prices
+    return np.array(dates), np.array(prices)

@@ -1,5 +1,6 @@
 import sys
 import datetime
+import itertools
 from Regular import is_future, get_next_futures_contract
 
 def get_current_prices( bb_objects ):
