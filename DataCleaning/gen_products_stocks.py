@@ -12,7 +12,7 @@ def gen_products( product_type, asset_class, table_name,currency, products ):
     df = df.set_index('Symbol')
     for product in products:
         row = df.loc[product]
-        print "insert into products values ('%s','%s','%s','%s','%s','future','%s','1','1','1','%s','%s');" % (product,row['CsiNumber'],product,row['Name'],table_name,asset_class,currency,row['Exchange'])
+        print "insert into products values ('%s','%s','%s','%s','%s','%s','%s','1','1','1','%s','%s');" % (product,row['CsiNumber'],product,row['Name'],table_name,product_type, asset_class,currency,row['Exchange'])
 
 def __main__() :
     if len( sys.argv ) > 1:
