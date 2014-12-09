@@ -40,6 +40,8 @@ LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/AQMIX.csv' INTO T
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/QGMIX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/SRPFX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ABRZX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VBLTX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VTSMX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ES_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ES_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
@@ -90,6 +92,8 @@ insert into products values ('AQMIX','91380','AQMIX','AQR Managed Futures Fund C
 insert into products values ('QGMIX','119349','QGMIX','AQR Global Macro Fund Class I','funds','fund','fund','1','1','1','USD','MUTUAL');
 insert into products values ('SRPFX','102939','SRPFX','Salient Risk Parity Fund Class I','funds','fund','fund','1','1','1','USD','MUTUAL');
 insert into products values ('ABRZX','89437','ABRZX','Invesco Bal-Risk Alloc Fd Cl A','funds','fund','fund','1','1','1','USD','MUTUAL');
+insert into products values ('VBLTX','23484','VBLTX','Vanguard Long-Term Bond Index Fund','funds','fund','fund','1','1','1','USD','MUTUAL');
+insert into products values ('VTSMX','23577','VTSMX','Vanguard Total Stock Market Index Fund','funds','fund','fund','1','1','1','USD','MUTUAL');
 
 insert into products values ('FGBL_1','552','EBL','Euro German Bund-EUREX Future 1','euro_futures','future','fixed_income','0.010000','10.000000','1000.000000','EUR','EUREX');
 insert into products values ('FGBL_2','552','EBL','Euro German Bund-EUREX Future 2','euro_futures','future','fixed_income','0.010000','10.000000','1000.000000','EUR','EUREX');
