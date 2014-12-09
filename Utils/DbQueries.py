@@ -111,3 +111,24 @@ def conv_factor( products ):
         conv_factor[symbol] = float(row['conversion_factor'])*float(row['rate'])
     return conv_factor
 
+def fetch_prices(start_date, end_date, product):
+    product = product.lstrip('f')
+    (db,db_cursor) = db_connect()
+    query = "SELECT * FROM products WHERE product = '%s'" % product
+    db_cursor.execute(query)
+    rows = db_cursor.fetchall()
+    table = rows[0]['table']
+    product_type = rows[0]['type']
+    query = "SELECT * FROM %s WHERE product='%s' AND date >= '%s' AND date <= '%s'" % (table, product, _startdate, _enddate)
+    db_cursor.execute(query)
+    rows = db_cursor.fetchall()
+    dates = []
+    prices = []
+    for row in rows:
+        if product_type == 'etf' or product_type == 'fund':
+            price = float(row['backward_adjusted_close'])
+        elif product_type == 'future':
+            price = float(row['close'])
+        dates.append(row['date'])
+        prices.append(price)
+    return dates, prices
