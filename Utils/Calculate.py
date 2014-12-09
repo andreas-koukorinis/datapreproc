@@ -39,6 +39,14 @@ def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, date)
         net_value += notional_amount[product]
     return (notional_amount, net_value)
 
+def convert_daily_to_monthly_returns(dates, returns):
+    yyyymm = [ date.strftime("%Y") + '-' + date.strftime("%m") for date in dates]
+    yyyymm_returns = zip(yyyymm, returns)
+    monthly_returns = []
+    for key, rows in itertools.groupby(yyyymm_returns, lambda x : x[0]):
+        monthly_returns.append( (key, sum(x[1] for x in rows) ) )
+    return monthly_returns
+
 #Find the latest price prior to 'date'
 def find_most_recent_price(book, date):
     if len(book) < 1:
