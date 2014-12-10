@@ -58,7 +58,7 @@ class AverageStdDev( IndicatorListener ):
         
         self.received_updates[_index] = 1 # mark that we have received upddate for this
         self.stdev_vec[_index] = values[1]
-        if _have_we_received_all_updates():
+        if self._have_we_received_all_updates():
             val = numpy.sum(self.stdev_vec)/float(self.stdev_vec_len) # Compute the average of stdevs
             self.indicator_values = ( values[0], val )
             for listener in self.listeners: 

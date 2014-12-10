@@ -15,7 +15,7 @@ class Trend(IndicatorListener):
         self.values = ()# Tuple of the form(dt,value)
         self.identifier = identifier
         params = identifier.strip().split('.')
-        if len(params) <= 3:
+        if len(params) <= 2:
             print("Trend requires at least three parameters in the identifier, like Trend.fES.63");
             sys.exit(0)
             #TODO{gchak} do something better than just exit ! Print a better error message.
