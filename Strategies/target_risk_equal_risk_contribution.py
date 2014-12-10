@@ -135,7 +135,8 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
 
                 # Using L1 norm here. It does not optimize well if we use L2 norm.
                 def _get_l1_norm_risk_contributions(_given_weights):
-                    """Function to return the L1 norm of the series of { risk_contrib - man(risk_contrib) }, or sum of absolute values of the series
+                    """Function to return the L1 norm of the series of { risk_contrib - mean(risk_contrib) },
+                    or sum of absolute values of the series of { risk_contributions - mean(risk_contributions) }
                     """
                     _cov_vec = np.array(np.asmatrix(_cov_mat)*np.asmatrix(_given_weights).T)[:, 0]
                     _trc = _given_weights*_cov_vec
@@ -146,7 +147,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                 #TODO{gchak} check whether weights have the desired signs, else set them to 0, or perhaps add as a constraint in optimization
                 self.erc_weights = self.erc_weights_optim
 
-                _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0*(np.asmatrix(self.erc_weights)*np.asmatrix(_cov_mat)*np.asmatrix(self.erc_weights).T))[0, 0]) - 1)
+                _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0 * (np.asmatrix(self.erc_weights) * np.asmatrix(_cov_mat) * np.asmatrix(self.erc_weights).T))[0, 0]) - 1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
                 #print ( "On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
                 for _product in self.products:
