@@ -3,9 +3,10 @@ from Indicator_Listeners import IndicatorListener
 from DailyLogReturns import DailyLogReturns
 
 
-# Track the direction of trend for the product
-# In the config file this indicator will be specfied as : Trend,product,period
 class Trend( IndicatorListener ):
+    """Track the direction of trend for the product
+    In the config file this indicator will be specfied as : Trend,product,period
+    """
 
     instances = {}
 
@@ -13,6 +14,10 @@ class Trend( IndicatorListener ):
         self.values = () # Tuple of the form (dt,value)
         self.identifier = identifier
         params = identifier.strip().split('.')
+        if len(params) <= 3:
+            print ( STDERR "Trend requires at least three parameters in the identifier, like Trend.fES.63" );
+            sys.exit(0)
+            #TODO{gchak} do something better than just exit ! Print a better error message.
         self.product = params[1]
         self.period = int( params[2] )
         self.current_sum = 0.0
@@ -30,8 +35,8 @@ class Trend( IndicatorListener ):
             Trend.instances[identifier] = new_instance
         return Trend.instances[identifier]
 
-    # Update the standard deviation indicators on each ENDOFDAY event
     def on_indicator_update( self, identifier, daily_log_returns_dt ):
+        """Update the past trend observed on each ENDOFDAY event"""
         n = len(daily_log_returns_dt)
         if n > self.period:
             _new_sum =  self.current_sum - daily_log_returns_dt[n-self.period-1][1] + daily_log_returns_dt[n-1][1]
