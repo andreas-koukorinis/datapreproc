@@ -21,6 +21,7 @@ class Trend( IndicatorListener ):
         self.product = params[1]
         self.period = int( params[2] )
         self.current_sum = 0.0
+        self.current_num = 0.0
         self.listeners = []
         daily_log_ret = DailyLogReturns.get_unique_instance( 'DailyLogReturns.' + self.product, _startdate, _enddate, _config )
         daily_log_ret.add_listener( self )
