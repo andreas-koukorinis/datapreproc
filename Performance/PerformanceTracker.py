@@ -326,6 +326,20 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         return _extreme_weeks
 
     def num_days_no_new_high(self, _PnLvector):
+        """This function returns the maximum number of days the strategy did not make a new high
+
+        Online algorithm:
+        max_num_days_no_new_high=0
+        current_high = 0
+        for i in xrange ( len ( _PnLvector ) ):
+            if _cum_PnL[i] >= current_high:
+                #new high
+                max_num_days_no_new_high=0
+            else:
+                max_num_days_no_new_high = max_num_days_no_new_high + 1
+        return max_num_days_no_new_high
+
+        """
         if _PnLvector.shape[0] < 1:
             return 0.0
         _cum_PnL = _PnLvector.cumsum()
