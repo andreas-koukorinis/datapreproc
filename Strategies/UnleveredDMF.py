@@ -23,30 +23,33 @@ class UnleveredDMF( TradeAlgorithm ):
     """
     
     def init( self, _config ):
-        self.day=-1
+        self.day = -1
         self.rebalance_frequency = 1
         if _config.has_option('Parameters', 'rebalance_frequency'):
             self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
         self.stdev_computation_indicator_name="AverageStdDev"
-        self.stdev_computation_history="63 252"
+        self.stdev_computation_history ="63 252"
         self.stdev_computation_interval=5
         self.trend_computation_indicator_name="AverageDiscretizedTrend"
-        self.TrendComputationHistory="21 63 252"
+        self.trend_computation_history ="21 63 252"
         self.trend_computation_interval=5
+
+        self.trend_indicator_vec=[]
+        self.stdev_indicator_vec=[]
         _modelfilepath="/dev/null"
         if _config.has_option('Strategy','modelfilepath'):
             _modelfilepath=adjust_file_path_for_home_directory(_config.get('Strategy','modelfilepath'))
-        process_model_file(_modelfilepath)
+        self.process_model_file(_modelfilepath, _config)
 
         self.expected_return_vec=numpy.zeros(len(self.products))
         self.expected_risk_vec=numpy.ones(len(self.products))
-        self.trend_indicator_vec=[]
-        self.stdev_indicator_vec=[]
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
         self.dmf_weights = np.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
 
-    def process_model_file(self, _modelfilepath):
+    def process_model_file(self, _modelfilepath, _config):
         _model_file_handle = open( _modelfilepath, "r" )
+        _map_product_to_stdev_computation_history ={}
+        _map_product_to_trend_computation_history ={}
         for _model_line in _model_file_handle:
             # We expect lines like:
             # Default StdDevIndicator AverageStdDev
@@ -54,8 +57,6 @@ class UnleveredDMF( TradeAlgorithm ):
             # Default TrendIndicator AverageDiscretizedTrend
             # Default TrendComputationParameters 5 21 63 252
             # fES TrendComputationParameters 5 63 252
-            _map_product_to_StdDevComputationHistory={}
-            _map_product_to_TrendComputationHistory={}
             _model_line_words = _model_line.strip().split(' ')
             if (len(_model_line_words) >= 3):
                 if (_model_line_words[0] == 'Default'):
@@ -65,14 +66,14 @@ class UnleveredDMF( TradeAlgorithm ):
                         _computation_words = _model_line_words[2].split(' ')
                         if len(_computation_words) >= 2:
                             self.stdev_computation_interval=int(_computation_words[0])
-                            self.stdev_computation_history=' '.join ( [ str(y) for y in _computation_words[1:] ] )
+                            self.stdev_computation_history = ' '.join ( [ str(y) for y in _computation_words[1:] ] )
                     if _model_line_words[1] == 'TrendIndicator':
                         self.trend_computation_indicator_name=_model_line_words[2]
                     if _model_line_words[1] == 'TrendComputationParameters':
                         _computation_words = _model_line_words[2].split(' ')
                         if len(_computation_words) >= 2:
                             self.trend_computation_interval=int(_computation_words[0])
-                            self.TrendComputationHistory=' '.join ( [ str(y) for y in _computation_words[1:] ] )
+                            self.trend_computation_history = ' '.join ( [ str(y) for y in _computation_words[1:] ] )
                 else:
                     _product=_model_line_words[0]
                     if _product in self.products:
@@ -81,39 +82,39 @@ class UnleveredDMF( TradeAlgorithm ):
                             if len(_computation_words) >= 2:
                                 #set the refreshing interval to the minimum of current and previous values
                                 self.stdev_computation_interval=numpy.min(self.stdev_computation_interval,int(_computation_words[0])) 
-                                _map_product_to_StdDevComputationHistory=' '.join ( [ str(y) for y in _computation_words[1:] ] )
+                                _map_product_to_stdev_computation_history = ' '.join ( [ str(y) for y in _computation_words[1:] ] )
                         if _model_line_words[1] == 'TrendComputationParameters':
                             _computation_words = _model_line_words[2].split(' ')
                             if len(_computation_words) >= 2:
                                 #set the refreshing interval to the minimum of current and previous values
                                 self.trend_computation_interval=numpy.min(self.trend_computation_interval,int(_computation_words[0]))
-                                _map_product_to_TrendComputationHistory=' '.join ( [ str(y) for y in _computation_words[1:] ] )
+                                _map_product_to_trend_computation_history = ' '.join ( [ str(y) for y in _computation_words[1:] ] )
 
         if is_valid_daily_indicator(self.stdev_computation_indicator_name):
             _stdev_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator_name))
-            StdDevIndicatorClass = getattr(module, self.stdev_computation_indicator_name)
+            StdDevIndicatorClass = getattr(_stdev_indicator_module, self.stdev_computation_indicator_name)
         else:
-            print ( "stdev_computation_indicator string %s is invalid" %(self.Stdev_Computation_Indicator) )
+            print ( "stdev_computation_indicator string %s is invalid" %(self.stdev_computation_indicator_name) )
             sys.exit(0)
 
         if is_valid_daily_indicator(self.trend_computation_indicator_name):
-            _stdev_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.trend_computation_indicator_name))
-            TrendIndicatorClass = getattr(module, self.trend_computation_indicator_name)
+            _trend_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.trend_computation_indicator_name))
+            TrendIndicatorClass = getattr(_trend_indicator_module, self.trend_computation_indicator_name)
         else:
-            print ( "stdev_computation_indicator string %s is invalid" %(self.Stdev_Computation_Indicator) )
+            print ( "stdev_computation_indicator string %s is invalid" %(self.trend_computation_indicator_name) )
             sys.exit(0)
 
         # We have read the model. Now we need to create the indicators
-        for _product in _self.products:
+        for _product in self.products:
             _identifier=self.stdev_computation_indicator_name+'.'+_product+('.'.join(self.stdev_computation_history))
-            if _product in _map_product_to_StdDevComputationHistory:
+            if _product in _map_product_to_stdev_computation_history:
                 _identifier=self.stdev_computation_indicator_name+'.'+_product+('.'.join(self.stdev_computation_history))
-            self.stddev_indicator_vec = self.stddev_indicator_vec.append(StdDevIndicatorClass.get_unique_instance(_identifier,self.start_date, self.end_date, _config))
+            self.stdev_indicator_vec = self.stdev_indicator_vec.append(StdDevIndicatorClass.get_unique_instance(_identifier,self.start_date, self.end_date, _config))
 
-            _identifier=self.trend_computation_indicator_name+'.'+_product+('.'.join(self.TrendComputationHistory))
-            if _product in _map_product_to_TrendComputationHistory:
-                _identifier=self.trend_computation_indicator_name+'.'+_product+('.'.join(self.TrendComputationHistory))
-            self.stddev_indicator_vec = self.stddev_indicator_vec.append(TrendIndicatorClass.get_unique_instance(_identifier,self.start_date, self.end_date, _config))
+            _identifier=self.trend_computation_indicator_name+'.'+_product+('.'.join(self.trend_computation_history))
+            if _product in _map_product_to_trend_computation_history:
+                _identifier=self.trend_computation_indicator_name+'.'+_product+('.'.join(self.trend_computation_history))
+            self.stdev_indicator_vec = self.stdev_indicator_vec.append(TrendIndicatorClass.get_unique_instance(_identifier,self.start_date, self.end_date, _config))
 
     def on_events_update(self,events):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
@@ -125,7 +126,7 @@ class UnleveredDMF( TradeAlgorithm ):
             if (self.day % self.stdev_computation_interval) == 0:
                 # we need to recompute risk estimate
                 for i in xrange(len(self.expected_risk_vec)):
-                    self.expected_risk_vec[i] = self.stddev_indicator_vec[i].indicator_values[-1]
+                    self.expected_risk_vec[i] = self.stdev_indicator_vec[i].indicator_values[-1]
                 _need_to_recompute_dmf_weights = True
             if (self.day % self.trend_computation_interval) == 0:
                 # we need to recompute risk estimate
