@@ -15,7 +15,7 @@ class AverageStdDev( IndicatorListener ):
         self.identifier = identifier # e.g. AverageStdDev.fES.63.252
         params = identifier.strip().split('.')
         if len(params) <= 3:
-            print ( STDERR "AverageStdDev requires at least three parameters in the identifier, like AverageStdDev.fES.63" );
+            print ( "AverageStdDev requires at least three parameters in the identifier, like AverageStdDev.fES.63" );
             sys.exit(0)
             #TODO{gchak} do something better than just exit ! Print a better error message.
         self.product = params[1] #technically we don't need to store this, adn could be a temporary variable

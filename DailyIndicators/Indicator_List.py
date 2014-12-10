@@ -28,5 +28,5 @@ def get_module_name_from_indicator_name ( indicator_name ) :
             return ("Trend")
         return (indicator_name)
     else:
-        print ( STDERR "get_module_name_from_indicator_name called with bad indicator_name %s" %(indicator_name) )
+        print ( "get_module_name_from_indicator_name called with bad indicator_name %s" %(indicator_name) )
         sys.exit(0)

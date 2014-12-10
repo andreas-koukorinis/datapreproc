@@ -93,14 +93,14 @@ class UnleveredDMF( TradeAlgorithm ):
             _stdev_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator_name))
             StdDevIndicatorClass = getattr(module, self.stdev_computation_indicator_name)
         else:
-            print ( STDERR "stdev_computation_indicator string %s is invalid" %(self.Stdev_Computation_Indicator) )
+            print ( "stdev_computation_indicator string %s is invalid" %(self.Stdev_Computation_Indicator) )
             sys.exit(0)
 
         if is_valid_daily_indicator(self.trend_computation_indicator_name):
             _stdev_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.trend_computation_indicator_name))
             TrendIndicatorClass = getattr(module, self.trend_computation_indicator_name)
         else:
-            print ( STDERR "stdev_computation_indicator string %s is invalid" %(self.Stdev_Computation_Indicator) )
+            print ( "stdev_computation_indicator string %s is invalid" %(self.Stdev_Computation_Indicator) )
             sys.exit(0)
 
         # We have read the model. Now we need to create the indicators
@@ -118,7 +118,7 @@ class UnleveredDMF( TradeAlgorithm ):
     def on_events_update(self,events):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
         if all_eod: self.day += 1  # Track the current day number
-           
+        
         # If today is the rebalancing day, then use indicators to calculate new positions to take
         if all_eod and(self.day % self.rebalance_frequency == 0):
             _need_to_recompute_dmf_weights = False # By default we don't need to change weights unless some input has changed
