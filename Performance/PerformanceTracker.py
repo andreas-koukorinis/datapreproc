@@ -336,6 +336,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             if _cum_PnL[i] >= current_high:
                 #new high
                 max_num_days_no_new_high=0
+                current_high = _cum_PnL[i]
             else:
                 max_num_days_no_new_high = max_num_days_no_new_high + 1
         return max_num_days_no_new_high
