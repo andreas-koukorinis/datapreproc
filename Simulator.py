@@ -6,7 +6,8 @@ from importlib import import_module
 import ConfigParser
 from Dispatcher.Dispatcher import Dispatcher
 from Utils.Regular import get_all_products
-from Strategies.StrategyList import is_valid_strategy_name
+from Strategies.strategy_list import is_valid_strategy_name
+from Strategies.strategy_list import get_module_name_from_strategy_name
 
 def __main__() :
     if len ( sys.argv ) < 2 :
@@ -33,11 +34,12 @@ def __main__() :
 
     # Import the strategy class using 'Strategy'->'name' in config file
     _stratfile = _config.get ( 'Strategy', 'name' )  # Remove .py from filename
-    if not ( is_valid_strategy_name ( _stratfile ) ) :
-        print "Cannot proceed with invalid Strategy name";
+    if not(is_valid_strategy_name(_stratfile)):
+        print("Cannot proceed with invalid Strategy name")
         sys.exit()
-    
-    TradeLogic = getattr ( import_module ( 'Strategies.' + _stratfile ) , _stratfile )  # Get the strategy class from the imported module
+
+    strategy_module_name = get_module_name_from_strategy_name(_stratfile)
+    TradeLogic = getattr(import_module('Strategies.' + strategy_module_name), _stratfile)  # Get the strategy class from the imported module
 
     # Initialize the strategy
     # Strategy is written by the user and it inherits from TradeAlgorithm,
