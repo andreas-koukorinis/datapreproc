@@ -2,10 +2,11 @@ from numpy import *
 from Indicator_Listeners import IndicatorListener
 from StdDev import StdDev
 
-# Track the average standard deviation of log returns over a list of periods for the product
-# In the config file this indicator will be specfied as : StdDev,product,period
 class AverageStdDev( IndicatorListener ):
+    """Track the average standard deviation of log returns over a list of periods for the product.
+    In the config file this indicator will be specfied as : StdDev,product,period
 
+    """
     instances = {}
 
     def __init__( self, identifier, _startdate, _enddate, _config ):
