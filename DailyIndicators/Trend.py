@@ -47,7 +47,7 @@ class Trend( IndicatorListener ):
         else:
             _new_sum = self.current_sum + daily_log_returns_dt[n-1][1]
             self.current_num += 1
-            val = sign( _new_sum )
+            val = _new_sum
             self.current_sum = _new_sum
         self.values = ( daily_log_returns_dt[-1][0], val )
         for listener in self.listeners: 
