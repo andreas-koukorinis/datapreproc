@@ -111,13 +111,11 @@ class UnleveredDMF( TradeAlgorithm ):
             _identifier=self.stdev_computation_indicator_name+'.'+_product+'.'+('.'.join(_stdev_computation_history_vec))
             if _product in _map_product_to_stdev_computation_history:
                 _identifier=self.stdev_computation_indicator_name+'.'+_product+'.'+('.'.join(_stdev_computation_history_vec))
-            print _identifier
             self.stdev_indicator_vec.append(StdDevIndicatorClass.get_unique_instance(_identifier,self.start_date, self.end_date, _config))
 
             _identifier=self.trend_computation_indicator_name+'.'+_product+'.'+('.'.join(_trend_computation_history_vec))
             if _product in _map_product_to_trend_computation_history:
                 _identifier=self.trend_computation_indicator_name+'.'+_product+'.'+('.'.join(_trend_computation_history_vec))
-            print _identifier
             self.trend_indicator_vec.append(TrendIndicatorClass.get_unique_instance(_identifier,self.start_date, self.end_date, _config))
 
     def on_events_update(self,events):
