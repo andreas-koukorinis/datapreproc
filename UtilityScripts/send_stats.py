@@ -46,7 +46,7 @@ def main():
     _ytd_end_date = _current_date
     _mtd_start_date = date(_current_date.year, _current_date.month, 1)
     _mtd_end_date = _current_date
-    _yday_start_date = date(_current_date.year , _current_date.month, 1)
+    _yday_start_date = date(_current_date.year , 1, 1)
     _yday_end_date = _current_date
 
     performance_stats = []
