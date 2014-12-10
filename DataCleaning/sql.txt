@@ -70,6 +70,11 @@ LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FESX_2.csv' INTO 
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FDAX_1.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/FDAX_2.csv' INTO TABLE euro_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/CADUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/JPYUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/EURUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/GBPUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+
 #ADD ENTRIES TO 'products' TABLE
 insert into products values ('VTI','13541','VTI','VANGUARD TOT STK MKT IDX VIPER','etfs','etf','equity','1','1','1','USD','AMEX');
 insert into products values ('VTV','56229','VTV','VANGUARD VALUE ETF','etfs','etf','equity','1','1','1','USD','AMEX');
@@ -135,3 +140,8 @@ insert into products values ('6M_1','23','MP','Mexican Peso-CME Future 1','us_fu
 insert into products values ('6M_2','23','MP','Mexican Peso-CME Future 2','us_futures','future','currency','0.000010','5.000000','500000.000000','USD','CME');
 insert into products values ('NKD_1','99','NK','Nikkei 225 Index-CME Future 1','us_futures','future','equity','5.000000','25.000000','5.000000','USD','CME');
 insert into products values ('NKD_2','99','NK','Nikkei 225 Index-CME Future 2','us_futures','future','equity','5.000000','25.000000','5.000000','USD','CME');
+
+insert into products values ('CADUSD','39039','QE2','CAD/USD','forex','fx','fx','1','1','1','USD','FX');
+insert into products values ('EURUSD','59160','EU9','EUR/USD','forex','fx','fx','1','1','1','USD','FX');
+insert into products values ('GBPUSD','59060','DR5','GBP/USD','forex','fx','fx','1','1','1','USD','FX');
+insert into products values ('JPYUSD','39046','QE9','JPY/USD','forex','fx','fx','1','1','1','USD','FX');
