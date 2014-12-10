@@ -15,7 +15,9 @@ def get_monthly_correlation_to_benchmark(dates, daily_log_returns, benchmark_nam
     strategy_monthly_returns = convert_daily_to_monthly_returns(dates, daily_log_returns)
     filtered_benchmark_monthly_returns, filtered_strategy_monthly_returns = filter_series(benchmark_monthly_returns, strategy_monthly_returns)
     if len(filtered_benchmark_monthly_returns) != len(benchmark_monthly_returns) or len(filtered_benchmark_monthly_returns) != strategy_monthly_returns: # If we skipped some months
-        pass #print '%d vs %d vs %d vs %d'%(len(strategy_monthly_returns), len(benchmark_monthly_returns), len(filtered_strategy_monthly_returns), len(filtered_benchmark_monthly_returns))
+        pass#print '%d vs %d vs %d vs %d'%(len(strategy_monthly_returns), len(benchmark_monthly_returns), len(filtered_strategy_monthly_returns), len(filtered_benchmark_monthly_returns))
+    if len(filtered_benchmark_monthly_returns) <= 1:
+        return 0.0
     corr = ss.stats.pearsonr(filtered_benchmark_monthly_returns, filtered_strategy_monthly_returns)
     return corr[0]
 
@@ -25,5 +27,3 @@ def get_benchmark_monthly_returns(start_date, end_date, product):
         dates, prices = fetch_prices(product, str(start_date), str(end_date))
         daily_log_returns = compute_daily_log_returns(prices)
         return convert_daily_to_monthly_returns(dates[1:], daily_log_returns)
-
-#print fetch_prices('VBLTX', '2014-01-01', '2014-10-31')
