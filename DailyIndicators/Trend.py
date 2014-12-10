@@ -22,7 +22,6 @@ class Trend(IndicatorListener):
         self.product = params[1]
         self.period = int(params[2])
         self.current_sum = 0.0
-        self.current_num = 0.0
         self.listeners = []
         daily_log_ret = DailyLogReturns.get_unique_instance('DailyLogReturns.' + self.product, _startdate, _enddate, _config)
         daily_log_ret.add_listener(self)
@@ -48,7 +47,6 @@ class Trend(IndicatorListener):
             val = 0.0 # Dummy value for insufficient lookback period(case where only 1 log return)
         else:
             _new_sum = self.current_sum + daily_log_returns_dt[daily_log_returns_dt_len - 1][1]
-            self.current_num += 1
             val = _new_sum
             self.current_sum = _new_sum
         self.values = (daily_log_returns_dt[-1][0], val)
