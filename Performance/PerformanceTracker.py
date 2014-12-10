@@ -406,7 +406,6 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.sharpe = self._annualized_returns_percent/self.annualized_stddev_returns
         self.yearly_sharpe = self.compute_yearly_sharpe(self.dates, self.daily_log_returns)
         _format_strings = ','.join([' %s : %0.2f'] * len(self.yearly_sharpe))
-        print _format_strings
         _yearly_sharpe_tuple = tuple(list(itertools.chain(*self.yearly_sharpe)))
         _print_yearly_sharpe = _format_strings%_yearly_sharpe_tuple
         self.skewness = ss.skew(self.daily_log_returns)
