@@ -104,17 +104,19 @@ class UnleveredDMF( TradeAlgorithm ):
             print ( "stdev_computation_indicator string %s is invalid" %(self.trend_computation_indicator_name) )
             sys.exit(0)
 
+        _stdev_computation_history_vec = self.stdev_computation_history.split(' ')
+        _trend_computation_history_vec = self.trend_computation_history.split(' ')
         # We have read the model. Now we need to create the indicators
         for _product in self.products:
-            _identifier=self.stdev_computation_indicator_name+'.'+_product+('.'.join(self.stdev_computation_history))
+            _identifier=self.stdev_computation_indicator_name+'.'+_product+'.'+('.'.join(_stdev_computation_history_vec))
             if _product in _map_product_to_stdev_computation_history:
-                _identifier=self.stdev_computation_indicator_name+'.'+_product+('.'.join(self.stdev_computation_history))
-            self.stdev_indicator_vec = self.stdev_indicator_vec.append(StdDevIndicatorClass.get_unique_instance(_identifier,self.start_date, self.end_date, _config))
+                _identifier=self.stdev_computation_indicator_name+'.'+_product+('.'.join(_stdev_computation_history_vec))
+            self.stdev_indicator_vec.append(StdDevIndicatorClass.get_unique_instance(_identifier,self.start_date, self.end_date, _config))
 
-            _identifier=self.trend_computation_indicator_name+'.'+_product+('.'.join(self.trend_computation_history))
+            _identifier=self.trend_computation_indicator_name+'.'+_product+'.'+('.'.join(_trend_computation_history_vec))
             if _product in _map_product_to_trend_computation_history:
-                _identifier=self.trend_computation_indicator_name+'.'+_product+('.'.join(self.trend_computation_history))
-            self.stdev_indicator_vec = self.stdev_indicator_vec.append(TrendIndicatorClass.get_unique_instance(_identifier,self.start_date, self.end_date, _config))
+                _identifier=self.trend_computation_indicator_name+'.'+_product+('.'.join(_trend_computation_history_vec))
+            self.trend_indicator_vec.append(TrendIndicatorClass.get_unique_instance(_identifier,self.start_date, self.end_date, _config))
 
     def on_events_update(self,events):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
