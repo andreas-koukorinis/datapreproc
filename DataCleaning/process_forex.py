@@ -5,7 +5,8 @@ import sys
 import pandas as pd
 from datetime import datetime
 
-product_filename = {'JPYUSD':'US$/US$_XX46.csv', 'CADUSD':'US$/US$_XX39.csv', 'GBPUSD':'US$/US$_XX55.csv', 'EURUSD':'EU2/EU2_XX60.csv'}
+#product -> (filename, to_invert)
+product_info = {'JPYUSD': ('US$/US$_XX46.csv', True), 'CADUSD' : ('US$/US$_XX39.csv', True), 'GBPUSD' : ('GB2/GB2_XX60.csv', False), 'EURUSD' : ('EU2/EU2_XX60.csv', False) }
 
 def process_for_dump(products):
     in_path = '/apps/data/csi/forex/'
@@ -15,10 +16,10 @@ def process_for_dump(products):
     dateparse = lambda x: datetime.strptime(x, '%Y%m%d').date() # Parse dates in format required by mysql i.e. YYYY-MM-DD
 
     for product in products:
-        prices_file = in_path + product_filename[product]
+        prices_file = in_path + product_info[product][0]
         df = pd.read_csv(prices_file,parse_dates =['date'],names=['date', 'open', 'high', 'low', 'close', 'a', 'b', 'c', 'd'], date_parser=dateparse)
         df['product'] = product
-        if product == 'EURUSD':
+        if product_info[product][1]: # if we need to invert the fx pair
             df['open'] = 1.0/df['open']
             df['high'] = 1.0/df['high']
             df['low'] = 1.0/df['low']
