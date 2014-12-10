@@ -44,7 +44,7 @@ class UnleveredDMF( TradeAlgorithm ):
         self.expected_return_vec=numpy.zeros(len(self.products))
         self.expected_risk_vec=numpy.ones(len(self.products))
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
-        self.dmf_weights = np.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
+        self.dmf_weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
 
     def process_model_file(self, _modelfilepath, _config):
         _model_file_handle = open( _modelfilepath, "r" )
