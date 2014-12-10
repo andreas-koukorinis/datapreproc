@@ -10,22 +10,14 @@ def get_current_prices( bb_objects ):
     return current_prices
 
 #Getthe current worth of the portfolio based on the most recent daily closing prices
-def get_worth(current_price,conversion_factor,current_portfolio):
+def get_worth(date, current_price, conversion_factor, currency_factor, current_portfolio):
     net_worth = current_portfolio['cash']
     num_shares = current_portfolio['num_shares']
     for product in current_price.keys():
-        net_worth = net_worth + current_price[product]*conversion_factor[product]*num_shares[product]
+        net_worth = net_worth + current_price[product] * conversion_factor[product] * currency_factor[product][date] * num_shares[product]
     return net_worth
 
-#Given the weights to assign to each product,calculate how many target number shares of the products we want (weight -ve implies short selling)
-def get_positions_from_weights(weight,current_worth,current_price,conversion_factor):
-    positions_to_take = {}
-    for product in current_price.keys():
-        money_allocated = weight[product]*current_worth
-        positions_to_take[product] = money_allocated/(current_price[product]*conversion_factor[product])
-    return positions_to_take
-
-def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, date):
+def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, currency_factor, date):
     notional_amount = {}
     net_value = portfolio.cash
     for product in portfolio.num_shares.keys():
@@ -34,7 +26,7 @@ def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, date)
                 _price = find_most_recent_price_future(bb_objects[product].dailybook, bb_objects[get_next_futures_contract(product)].dailybook, date)
             else:
                 _price = find_most_recent_price(bb_objects[product].dailybook, date)
-            notional_amount[product] = _price * portfolio.num_shares[product] * conversion_factor[product]
+            notional_amount[product] = _price * portfolio.num_shares[product] * conversion_factor[product] * currency_factor[product][date]
         else:
             notional_amount[product] = 0.0
         net_value += notional_amount[product]

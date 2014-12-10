@@ -12,10 +12,10 @@ from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import EndOfDayListener
 from Utils.Regular import check_eod, get_dt_from_date, get_next_futures_contract, is_future
 from Utils.Calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts, convert_daily_to_monthly_returns
-from Utils.DbQueries import conv_factor
 from Utils.benchmark_comparison import get_monthly_correlation_to_benchmark
 from Utils import defaults
 from BookBuilder.BookBuilder import BookBuilder
+from Utils.global_variables import Globals
 
 # TODO {gchak} PerformanceTracker is probably a class that just pertains to the performance of one strategy
 # We need to change it from listening to executions from BackTeser, to being called on from the OrderManager,
@@ -43,7 +43,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.returns_file = 'logs/'+_log_filename+'/returns.txt'
         self.stats_file = 'logs/'+_log_filename+'/stats.txt'
         self.products = products
-        self.conversion_factor = conv_factor(products)
+        self.conversion_factor = Globals.conversion_factor
+        self.currency_factor = Globals.currency_factor
         self.num_shares_traded = dict([(product, 0) for product in self.products])
         self.benchmarks = ['VBLTX', 'VTSMX']
         if _config.has_option('Benchmarks', 'products'):
@@ -136,7 +137,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                     current_price = find_most_recent_price_future(self.bb_objects[product].dailybook, self.bb_objects[get_next_futures_contract(product)].dailybook, date)
                 else:
                     current_price = find_most_recent_price(self.bb_objects[product].dailybook, date)
-                netValue = netValue + current_price * self.portfolio.num_shares[product] * self.conversion_factor[product]
+                netValue = netValue + current_price * self.portfolio.num_shares[product] * self.conversion_factor[product] * self.currency_factor[product][date]
         return netValue
 
     # Computes the daily stats for the most recent trading day prior to 'date'
@@ -182,7 +183,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %f\nPortfolio Value:%f\nCash:%f\nPositions:%s\n" % (date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, str(self.portfolio.num_shares))
         else:      
             s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value:%f\nCash:%f\nPositions:%s\n" % (date, self.value[-1], self.portfolio.cash, str(self.portfolio.num_shares))
-        (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, date)
+        (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, self.currency_factor, date)
         s = s + 'Money Allocation: %s\n\n' % notional_amounts
         text_file.write(s)
         text_file.close()

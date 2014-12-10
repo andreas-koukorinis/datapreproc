@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime
 from RiskManagement.RiskManager import RiskManager
 from Utils.Calculate import get_current_prices, get_worth, get_current_notional_amounts
-from Utils.DbQueries import conv_factor
+from Utils.global_variables import Globals
 from Utils.Regular import is_future, is_future_entity, get_base_symbol, get_first_futures_contract, get_next_futures_contract, get_future_mappings, shift_future_symbols
 from Utils import defaults
 
@@ -16,7 +16,8 @@ class ExecLogic():
         self.order_manager = order_manager
         self.portfolio = portfolio
         self.bb_objects = bb_objects
-        self.conversion_factor = conv_factor(self.all_products)
+        self.conversion_factor = Globals.conversion_factor
+        self.currency_factor = Globals.currency_factor
         self.capital_reduction = 1.0
         self.risk_manager = RiskManager(performance_tracker, _config)
         self.trading_status = True
@@ -59,7 +60,7 @@ class ExecLogic():
                             sys.exit( 'exec_logic -> adjust_positions_for_settlements : Product %s not present' %p2 )
                         else:
                             if positions_to_take_p1 != 0:
-                                positions_to_take_p2 = (positions_to_take_p1*current_prices[p1]*self.conversion_factor[p1])/(current_prices[p2]*self.conversion_factor[p2])
+                                positions_to_take_p2 = (positions_to_take_p1*current_prices[p1]*self.conversion_factor[p1]*self.currency_factor[p1][self.current_date])/(current_prices[p2]*self.conversion_factor[p2]*self.currency_factor[p1][self.current_date])
                                 _orders_to_place[p2] += positions_to_take_p2 # TODO check if = will do # TODO check why should this be different
                             _orders_to_place[p1] += - ( self.order_manager.to_be_filled[p1] + self.portfolio.num_shares[p1] )
                     else:
@@ -74,7 +75,6 @@ class ExecLogic():
                     else:
                         self.place_order( dt, product, _orders_to_place[product] )
                     self.orders_to_place[product] = 0 # Since today is a trading day for this product,so we should have no pending orders left
-            #print 'rollover',dt,self.orders_to_place
 
         else: # Liquidate the portfolio
             for product in self.all_products:
@@ -94,8 +94,8 @@ class ExecLogic():
         if self.trading_status:
             current_portfolio = self.portfolio.get_portfolio()
             current_prices = get_current_prices( self.bb_objects )
-            current_worth = get_worth( current_prices, self.conversion_factor, current_portfolio )
-            positions_to_take = self.get_positions_from_weights( weights, current_worth * self.capital_reduction,current_prices )
+            current_worth = get_worth( self.current_date, current_prices, self.conversion_factor, self.currency_factor, current_portfolio )
+            positions_to_take = self.get_positions_from_weights(self.current_date, weights, current_worth * self.capital_reduction, current_prices )
 
             _orders_to_place = dict( [ ( product, 0 ) for product in self.all_products ] )  
             #Adjust positions for settlements
@@ -109,7 +109,7 @@ class ExecLogic():
                             sys.exit( 'exec_logic -> adjust_positions_for_settlements : Product %s not present' %p2 )
                         else:
                             if positions_to_take[p1] != 0:
-                                positions_to_take_p2 = (positions_to_take[p1] * current_prices[p1] * self.conversion_factor[p1] ) / ( current_prices[p2] * self.conversion_factor[p2] )
+                                positions_to_take_p2 = (positions_to_take[p1] * current_prices[p1] * self.conversion_factor[p1] * self.currency_factor[p1][current_date]) / ( current_prices[p2] * self.conversion_factor[p2] * self.currency_factor[p2][self.current_date])
                                 _orders_to_place[p2] +=  positions_to_take_p2  # TODO check if = will do
                             _orders_to_place[p1] += - ( self.order_manager.to_be_filled[p1] + self.portfolio.num_shares[p1] )
                     else:
@@ -141,14 +141,14 @@ class ExecLogic():
         elif status['reduce_capital'][0]:
             self.capital_reduction = self.capital_reduction*(1.0 - status['reduce_capital'][1])
 
-    def get_positions_from_weights( self, weights, current_worth, current_prices ):
+    def get_positions_from_weights( self, date, weights, current_worth, current_prices ):
         positions_to_take = dict( [ ( product, 0 ) for product in self.all_products ] )
         for product in weights.keys():
             if is_future_entity( product ): #If it is a futures entity like fES
                 first_contract = get_first_futures_contract( product )
-                positions_to_take[first_contract] = positions_to_take[first_contract] + ( weights[product] * current_worth )/( current_prices[first_contract] * self.conversion_factor[first_contract] ) # This execlogic invests in the first futures contract for a future entity
+                positions_to_take[first_contract] = positions_to_take[first_contract] + ( weights[product] * current_worth )/( current_prices[first_contract] * self.conversion_factor[first_contract] * self.currency_factor[first_contract][date] ) # This execlogic invests in the first futures contract for a future entity
             else:
-                positions_to_take[product] = positions_to_take[product] + ( weights[product] * current_worth )/( current_prices[product] * self.conversion_factor[product] )
+                positions_to_take[product] = positions_to_take[product] + ( weights[product] * current_worth )/( current_prices[product] * self.conversion_factor[product] * self.currency_factor[product][date])
         return positions_to_take
 
     def notify_last_trading_day( self ):
@@ -174,7 +174,7 @@ class ExecLogic():
     def print_weights_info(self, dt):
         sum_wts = 0.0
         s = str(dt.date())
-        (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, dt.date())
+        (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, self.currency_factor, dt.date())
         for product in self.all_products:
             _weight = notional_amounts[product]/net_value
             sum_wts += abs(_weight)

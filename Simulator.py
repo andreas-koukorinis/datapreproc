@@ -9,7 +9,7 @@ from Utils.Regular import get_all_products
 from Strategies.strategy_list import is_valid_strategy_name
 from Strategies.strategy_list import get_module_name_from_strategy_name
 from Utils.global_variables import Globals
-from Utils.DbQueries import get_conv_factors
+from Utils.DbQueries import get_currency_and_conversion_factors
 
 def __main__() :
     if len ( sys.argv ) < 2 :
@@ -34,7 +34,7 @@ def __main__() :
 
     _all_products = get_all_products( _config )
 
-    Globals.conv_factor = get_conv_factors(_all_products, _start_date, _end_date)
+    Globals.conversion_factor, Globals.currency_factor = get_currency_and_conversion_factors(_all_products, _start_date, _end_date)
 
     # Import the strategy class using 'Strategy'->'name' in config file
     _stratfile = _config.get ( 'Strategy', 'name' )  # Remove .py from filename

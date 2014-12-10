@@ -95,7 +95,7 @@ def push_all_events( heap, products, _startdate, _enddate ):
             heapq.heappush ( heap, ( _dt, _event ) ) 
     db_close(db)
 
-def get_currency_conversion_factors(products, start_date, end_date):
+def get_currency_and_conversion_factors(products, start_date, end_date):
     _products = products
     conv_factor = {}
     product_to_currency = {}
