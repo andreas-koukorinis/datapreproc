@@ -7,15 +7,17 @@ CREATE TABLE `us_futures` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`
 CREATE TABLE `euro_futures` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`specific_ticker` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`is_last_trading_day` varchar(5) NOT NULL,`contract_volume` varchar(20) NOT NULL,`contract_oi` varchar(20) NOT NULL,`total_volume` varchar(20) NOT NULL,`total_oi` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
 CREATE TABLE `uk_futures` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`specific_ticker` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`is_last_trading_day` varchar(5) NOT NULL, `contract_volume` varchar(20) NOT NULL,`contract_oi` varchar(20) NOT NULL,`total_volume` varchar(20) NOT NULL,`total_oi` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
 CREATE TABLE `canada_futures` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`specific_ticker` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,`is_last_trading_day` varchar(5) NOT NULL, `contract_volume` varchar(20) NOT NULL,`contract_oi` varchar(20) NOT NULL,`total_volume` varchar(20) NOT NULL,`total_oi` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
+CREATE TABLE `forex` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
 
 #CREATE INDEXES
 CREATE INDEX etfsIndex ON etfs (`date`, `product`);
 CREATE INDEX fundsIndex ON funds (`date`, `product`);
 CREATE INDEX productsIndex ON products (`product`);
-CREATE INDEX us_futuresIndex ON us_futures (`product`);
-CREATE INDEX euro_futuresIndex ON euro_futures (`product`);
-CREATE INDEX uk_futuresIndex ON uk_futures (`product`);
-CREATE INDEX canada_futuresIndex ON canada_futures (`product`);
+CREATE INDEX us_futuresIndex ON us_futures (`date`, `product`);
+CREATE INDEX euro_futuresIndex ON euro_futures (`date`, `product`);
+CREATE INDEX uk_futuresIndex ON uk_futures (`date`, `product`);
+CREATE INDEX canada_futuresIndex ON canada_futures (`date`, `product`);
+CREATE INDEX forexIndex ON forex (`date`, `product`);
 
 #LOAD DATA TO TABLE
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/VTI.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
