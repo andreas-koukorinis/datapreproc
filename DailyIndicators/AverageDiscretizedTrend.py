@@ -47,8 +47,7 @@ class AverageDiscretizedTrend( IndicatorListener ):
             self.received_updates = self.received_updates * 0 # is there a faster way to set to 0 ?
             return True
         return False
-    
-    
+        
     def on_indicator_update( self, identifier, values ):
         """On receiving updates from the trend indicators 
         compute the average when we have received all updates
@@ -58,7 +57,7 @@ class AverageDiscretizedTrend( IndicatorListener ):
         
         self.received_updates[_index] = 1 # mark that we have received upddate for this
         self.trend_vec[_index] = numpy.sign(values[1]) # very rudimentary form of discretization
-        if _have_we_received_all_updates():
+        if self._have_we_received_all_updates():
             val = numpy.sum(self.trend_vec)/float(self.trend_vec_len) # Compute the average of trends
             self.indicator_values = ( values[0], val )
             for listener in self.listeners: 
