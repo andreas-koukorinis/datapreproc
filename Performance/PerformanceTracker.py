@@ -90,10 +90,10 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.total_amount_transacted = 0.0
         self.hit_loss_ratio = 0.0
         self.gain_pain_ratio = 0.0
-        self.fraction_of_days_no_new_high = 0.0
+        self.max_num_days_no_new_high = (0, '', '')
         self.leverage = empty(shape=(0))
         self.leverage_stats = (0.0, 0.0, 0.0, 0.0) # (min, max, average, stddev)
-        self.losing_months_streak = (0, 0.0, datetime.datetime.fromtimestamp(0).date(), datetime.datetime.fromtimestamp(0).date())
+        self.losing_months_streak = (0, 0.0, '', '')
         self.correlation_to_spx = 0.0
         self.correlation_to_agg = 0.0
 
@@ -289,7 +289,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
 
     def extreme_weeks(self, _dates, _returns, k):
         _extreme_weeks = ''
-        _dated_weekly_returns = zip(_dates[0:len(_dates)-k], self.rollsum(_returns, 5))
+        _dated_weekly_returns = zip(_dates[0:len(_dates)-4], self.rollsum(_returns, 5))
         _sorted_returns = sorted(_dated_weekly_returns, key=lambda x: x[1]) # Sort by returns
         n = len(_sorted_returns)
         _num_worst_weeks = 0
@@ -326,28 +326,33 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 _best_week_idx -= 1     
         return _extreme_weeks
 
-    def num_days_no_new_high(self, _PnLvector):
-        """This function returns the maximum number of days the strategy did not make a new high
-
-        Online algorithm:
-        max_num_days_no_new_high=0
-        current_high = 0
-        for i in xrange ( len ( _PnLvector ) ):
-            if _cum_PnL[i] >= current_high:
+    def compute_max_num_days_no_new_high(self, dates, PnLvector):
+        """This function returns the maximum number of days the strategy did not make a new high"""
+        if PnLvector.shape[0] < 1:
+            return (0.0, '', '')
+        current_num_days_no_new_high = 0
+        current_start_idx = 0
+        current_high = 0.0
+        max_num_days_no_new_high = 0
+        max_start_idx = -1
+        max_end_idx = -1
+        cum_PnL = PnLvector.cumsum()
+        for i in xrange(len(cum_PnL)):
+            if cum_PnL[i] >= current_high:
                 #new high
-                max_num_days_no_new_high=0
+                current_num_days_no_new_high = 0
+                current_high = cum_PnL[i]
+                current_start_idx = i
             else:
-                max_num_days_no_new_high = max_num_days_no_new_high + 1
-        return max_num_days_no_new_high
-
-        """
-        if _PnLvector.shape[0] < 1:
-            return 0.0
-        _cum_PnL = _PnLvector.cumsum()
-        _shifted_cum_PnL = roll(_cum_PnL, 1) # Numpy array right rotate by 1
-        _shifted_cum_PnL[0] = 0.0 # Convert to right shift and 0 pad
-        _aux_array = _cum_PnL - maximum.accumulate(_shifted_cum_PnL)
-        return sum(where( _aux_array <= 0, 1.0, 0.0))
+                current_num_days_no_new_high += 1
+                if current_num_days_no_new_high > max_num_days_no_new_high:
+                    max_num_days_no_new_high = current_num_days_no_new_high
+                    max_start_idx = current_start_idx + 1
+                    max_end_idx = i
+        if max_start_idx == -1 or max_end_idx == -1:
+            return (0.0, '', '')
+        else:
+            return (max_num_days_no_new_high, dates[max_start_idx], dates[max_end_idx])
 
     def compute_losing_month_streak(self, dates, returns):
         monthly_returns = convert_daily_to_monthly_returns(dates, returns)
@@ -373,7 +378,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                     global_end_idx = current_end_idx
                  
         if global_end_idx == -1 or global_start_idx == -1:
-            return (0, '', '')
+            return (0, 0, '', '')
         else:
             percent_returns_in_streak = (exp(sum(x[1] for x in monthly_returns[global_start_idx : global_end_idx +1])) - 1)*100.0
             return (global_max_length, percent_returns_in_streak, monthly_returns[global_start_idx][0], monthly_returns[global_end_idx][0])       
@@ -434,12 +439,12 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.turnover_percent = self.turnover(self.dates, self.amount_long_transacted, self.amount_short_transacted)
         self.hit_loss_ratio = sum(where(self.daily_log_returns > 0, 1.0, 0.0))/sum(where(self.daily_log_returns < 0, 1.0, 0.0))
         self.gain_pain_ratio = sum(self.daily_log_returns)/sum(where(self.daily_log_returns < 0, -self.daily_log_returns, 0.0))
-        self.percent_days_no_new_high = 100.0*float(self.num_days_no_new_high(self.PnLvector))/len(self.dates)
+        self.max_num_days_no_new_high = self.compute_max_num_days_no_new_high(self.dates, self.PnLvector)
         self.losing_month_streak = self.compute_losing_month_streak(self.dates, self.daily_log_returns)
         _extreme_days = self.extreme_days(5)
         _extreme_weeks = self.extreme_weeks(self.dates, self.daily_log_returns, 5)
         self._save_results()
-        _stats = ("\nInitial Capital = %.10f\nNet PNL = %.10f \nTrading Cost = %.10f\nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Std_PnL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nDrawdown Period = %s to %s\nDrawdown Recovery Period = %s to %s\nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f\nReturn Var10 ratio = %.10f\nYearly_sharpe = " + _print_yearly_sharpe + "\nHit Loss Ratio = %0.10f\nGain Pain Ratio = %0.10f\nPercentage of days with no new high = %0.10f%%\nLosing month streak = Lost %0.10f%% in %d months from %s to %s\nTurnover = %0.10f%%\nLeverage = Min : %0.10f, Max : %0.10f, Average : %0.10f, Stddev : %0.10f\nTrading Cost = %0.10f\nTotal Money Transacted = %0.10f\nTotal Orders Placed = %d") % (self.initial_capital, self.PnL, self.trading_cost, self.net_returns, self.annualized_PnL, self.annualized_stdev_PnL, self._annualized_returns_percent, self.annualized_stddev_returns, self.sharpe, self.skewness, self.kurtosis, self.dml, self.mml, self._worst_10pc_quarterly_returns, self._worst_10pc_yearly_returns, self.max_drawdown_percent, self.drawdown_period[0], self.drawdown_period[1], self.recovery_period[0], self.recovery_period[1], self.max_drawdown_dollar, self._annualized_pnl_by_max_drawdown_dollar, self.return_by_maxdrawdown, self.ret_var10, self.hit_loss_ratio, self.gain_pain_ratio, self.percent_days_no_new_high, self.losing_month_streak[1], self.losing_month_streak[0], self.losing_month_streak[2], self.losing_month_streak[3], self.turnover_percent, min(self.leverage), max(self.leverage), mean(self.leverage), std(self.leverage), self.trading_cost, self.total_amount_transacted, self.total_orders)
+        _stats = ("\nInitial Capital = %.10f\nNet PNL = %.10f \nTrading Cost = %.10f\nNet Returns = %.10f%%\nAnnualized PNL = %.10f\nAnnualized_Std_PnL = %.10f\nAnnualized_Returns = %.10f%% \nAnnualized_Std_Returns = %.10f%% \nSharpe Ratio = %.10f \nSkewness = %.10f\nKurtosis = %.10f\nDML = %.10f%%\nMML = %.10f%%\nQML = %.10f%%\nYML = %.10f%%\nMax Drawdown = %.10f%% \nDrawdown Period = %s to %s\nDrawdown Recovery Period = %s to %s\nMax Drawdown Dollar = %.10f \nAnnualized PNL by drawdown = %.10f \nReturn_drawdown_Ratio = %.10f\nReturn Var10 ratio = %.10f\nYearly_sharpe = " + _print_yearly_sharpe + "\nHit Loss Ratio = %0.10f\nGain Pain Ratio = %0.10f\nMax num days with no new high = %d from %s to %s\nLosing month streak = Lost %0.10f%% in %d months from %s to %s\nTurnover = %0.10f%%\nLeverage = Min : %0.10f, Max : %0.10f, Average : %0.10f, Stddev : %0.10f\nTrading Cost = %0.10f\nTotal Money Transacted = %0.10f\nTotal Orders Placed = %d") % (self.initial_capital, self.PnL, self.trading_cost, self.net_returns, self.annualized_PnL, self.annualized_stdev_PnL, self._annualized_returns_percent, self.annualized_stddev_returns, self.sharpe, self.skewness, self.kurtosis, self.dml, self.mml, self._worst_10pc_quarterly_returns, self._worst_10pc_yearly_returns, self.max_drawdown_percent, self.drawdown_period[0], self.drawdown_period[1], self.recovery_period[0], self.recovery_period[1], self.max_drawdown_dollar, self._annualized_pnl_by_max_drawdown_dollar, self.return_by_maxdrawdown, self.ret_var10, self.hit_loss_ratio, self.gain_pain_ratio, self.max_num_days_no_new_high[0], self.max_num_days_no_new_high[1], self.max_num_days_no_new_high[2], self.losing_month_streak[1], self.losing_month_streak[0], self.losing_month_streak[2], self.losing_month_streak[3], self.turnover_percent, min(self.leverage), max(self.leverage), mean(self.leverage), std(self.leverage), self.trading_cost, self.total_amount_transacted, self.total_orders)
         print _extreme_days, _extreme_weeks, _stats
         for benchmark in self.benchmarks:
             print 'Correlation to %s = %0.10f' % (benchmark, get_monthly_correlation_to_benchmark(self.dates, self.daily_log_returns, benchmark))
