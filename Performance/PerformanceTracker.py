@@ -289,7 +289,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
 
     def extreme_weeks(self, _dates, _returns, k):
         _extreme_weeks = ''
-        _dated_weekly_returns = zip(_dates[0:len(_dates)-k], self.rollsum(_returns, 5))
+        _dated_weekly_returns = zip(_dates[0:len(_dates)-4], self.rollsum(_returns, 5))
         _sorted_returns = sorted(_dated_weekly_returns, key=lambda x: x[1]) # Sort by returns
         n = len(_sorted_returns)
         _num_worst_weeks = 0
@@ -373,7 +373,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                     global_end_idx = current_end_idx
                  
         if global_end_idx == -1 or global_start_idx == -1:
-            return (0, '', '')
+            return (0, 0, '', '')
         else:
             percent_returns_in_streak = (exp(sum(x[1] for x in monthly_returns[global_start_idx : global_end_idx +1])) - 1)*100.0
             return (global_max_length, percent_returns_in_streak, monthly_returns[global_start_idx][0], monthly_returns[global_end_idx][0])       
