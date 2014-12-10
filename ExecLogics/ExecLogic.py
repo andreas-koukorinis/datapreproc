@@ -109,7 +109,7 @@ class ExecLogic():
                             sys.exit( 'exec_logic -> adjust_positions_for_settlements : Product %s not present' %p2 )
                         else:
                             if positions_to_take[p1] != 0:
-                                positions_to_take_p2 = (positions_to_take[p1] * current_prices[p1] * self.conversion_factor[p1] * self.currency_factor[p1][current_date]) / ( current_prices[p2] * self.conversion_factor[p2] * self.currency_factor[p2][self.current_date])
+                                positions_to_take_p2 = (positions_to_take[p1] * current_prices[p1] * self.conversion_factor[p1] * self.currency_factor[p1][self.current_date]) / ( current_prices[p2] * self.conversion_factor[p2] * self.currency_factor[p2][self.current_date])
                                 _orders_to_place[p2] +=  positions_to_take_p2  # TODO check if = will do
                             _orders_to_place[p1] += - ( self.order_manager.to_be_filled[p1] + self.portfolio.num_shares[p1] )
                     else:

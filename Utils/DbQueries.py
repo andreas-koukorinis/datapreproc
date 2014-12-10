@@ -96,29 +96,33 @@ def push_all_events( heap, products, _startdate, _enddate ):
     db_close(db)
 
 def get_currency_and_conversion_factors(products, start_date, end_date):
-    _products = products
     conv_factor = {}
     product_to_currency = {}
     currencies = []
     currency_factor = {}
     curr_factor = {}
     dummy_value = {}
+    product_type = {}
     products = [ product.lstrip('f') for product in products ]
     (db,db_cursor) = db_connect()
     _format_strings = ','.join(['%s'] * len(products))
-    db_cursor.execute("SELECT product,currency,conversion_factor FROM products WHERE product IN (%s)" % _format_strings,tuple(products))
+    db_cursor.execute("SELECT product,currency,conversion_factor,type FROM products WHERE product IN (%s)" % _format_strings,tuple(products))
     rows = db_cursor.fetchall()
     for row in rows:
-        conv_factor[row['product']] = float(row['conversion_factor'])
-    for row in rows:
+        product_type[row['product']] = row['type']
+        if product_type[row['product']] == 'future':
+            _symbol = 'f' + row['product']
+        else:
+            _symbol = row['product']
+        conv_factor[_symbol] = float(row['conversion_factor'])
         if row['currency'] != 'USD':
             _currency = row['currency'] + 'USD'
             currencies.append(_currency)
             dummy_value[_currency] = 0.0
-            product_to_currency[row['product']] = _currency
+            product_to_currency[_symbol] = _currency
             currency_factor[_currency] = {}
         else:
-            product_to_currency[row['product']] = 'USD'
+            product_to_currency[_symbol] = 'USD'
             currency_factor['USD'] = {}
     currencies = list(set(currencies))
     _format_strings = ','.join(['%s'] * len(currencies))
@@ -142,8 +146,12 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
                 currency_factor[_currency][_date] = _currency_val
                 dummy_value[_currency] = _currency_val
         _date += delta
-    for _product in _products:
-        curr_factor[product] = currency_factor[product_to_currency[_product]]
+    for product in products:
+        if product_type[product] == 'future':
+            _symbol = 'f' + product
+        else:
+            _symbol = product
+        curr_factor[_symbol] = currency_factor[product_to_currency[_symbol]]
     return conv_factor, curr_factor
 
 #Fetch the conversion factor for each product from the database
