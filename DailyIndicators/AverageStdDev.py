@@ -28,7 +28,7 @@ class AverageStdDev( IndicatorListener ):
             _identifier = 'StdDev.' + self.product + '.' + str(_stdev_computation_history_vec[i-2])
             self.map_identifier_to_index[_identifier]=(i-2)
             StdDev.get_unique_instance( _identifier, _startdate, _enddate, _config ).add_listener( self )
-        self.stdev_vec_len = float(len(self.stdev_vec)) # converted to float to compute averages later
+        self.stdev_vec_len = len(self.stdev_vec) # converted to float to compute averages later #constant
         self.listeners = []
 
     def add_listener( self, listener ):
@@ -59,7 +59,7 @@ class AverageStdDev( IndicatorListener ):
         self.received_updates[_index] = 1 # mark that we have received upddate for this
         self.stdev_vec[_index] = values[1]
         if _have_we_received_all_updates():
-            val = numpy.sum(self.stdev_vec)/self.stdev_vec_len # Compute the average of stdevs
+            val = numpy.sum(self.stdev_vec)/float(self.stdev_vec_len) # Compute the average of stdevs
             self.indicator_values = ( values[0], val )
             for listener in self.listeners: 
                 listener.on_indicator_update( self.identifier, self.indicator_values )

@@ -28,7 +28,7 @@ class AverageDiscretizedTrend( IndicatorListener ):
             _identifier = 'Trend.' + self.product + '.' + str(_trend_computation_history_vec[i-2])
             self.map_identifier_to_index[_identifier]=(i-2)
             Trend.get_unique_instance( _identifier, _startdate, _enddate, _config ).add_listener( self )
-        self.trend_vec_len = float(len(self.trend_vec)) # converted to float to compute averages later
+        self.trend_vec_len = len(self.trend_vec) # converted to float to compute averages later
         self.listeners = []
 
     def add_listener( self, listener ):
@@ -59,7 +59,7 @@ class AverageDiscretizedTrend( IndicatorListener ):
         self.received_updates[_index] = 1 # mark that we have received upddate for this
         self.trend_vec[_index] = numpy.sign(values[1]) # very rudimentary form of discretization
         if _have_we_received_all_updates():
-            val = numpy.sum(self.trend_vec)/self.trend_vec_len # Compute the average of trends
+            val = numpy.sum(self.trend_vec)/float(self.trend_vec_len) # Compute the average of trends
             self.indicator_values = ( values[0], val )
             for listener in self.listeners: 
                 listener.on_indicator_update( self.identifier, self.indicator_values )
