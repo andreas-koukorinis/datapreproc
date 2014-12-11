@@ -66,7 +66,8 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
         self.rebalance_date = date
 
     def adjust_products_for_log_returns(self):
-        self.current_weights = self.current_weights * np.exp(self.latest_log_returns)/sum(self.current_weights)
+        self.current_weights = self.current_weights * np.exp(self.latest_log_returns)
+        self.current_weights = self.current_weights/sum(self.current_weights)
 
     def update_rebalanced_weights_for_trading_products(self, date):
         for _product in self.products:
