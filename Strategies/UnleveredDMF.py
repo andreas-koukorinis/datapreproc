@@ -62,15 +62,15 @@ class UnleveredDMF( TradeAlgorithm ):
                 if (_model_line_words[0] == 'Default'):
                     if _model_line_words[1] == 'StdDevIndicator':
                         self.stdev_computation_indicator_name=_model_line_words[2]
-                    if _model_line_words[1] == 'StdDevComputationParameters':
-                        _computation_words = _model_line_words[2].split(' ')
+                    elif _model_line_words[1] == 'StdDevComputationParameters':
+                        _computation_words = _model_line_words[2:]
                         if len(_computation_words) >= 2:
                             self.stdev_computation_interval=int(_computation_words[0])
                             self.stdev_computation_history = ' '.join ( [ str(y) for y in _computation_words[1:] ] )
-                    if _model_line_words[1] == 'TrendIndicator':
+                    elif _model_line_words[1] == 'TrendIndicator':
                         self.trend_computation_indicator_name=_model_line_words[2]
-                    if _model_line_words[1] == 'TrendComputationParameters':
-                        _computation_words = _model_line_words[2].split(' ')
+                    elif _model_line_words[1] == 'TrendComputationParameters':
+                        _computation_words = _model_line_words[2:]
                         if len(_computation_words) >= 2:
                             self.trend_computation_interval=int(_computation_words[0])
                             self.trend_computation_history = ' '.join ( [ str(y) for y in _computation_words[1:] ] )
@@ -78,13 +78,13 @@ class UnleveredDMF( TradeAlgorithm ):
                     _product=_model_line_words[0]
                     if _product in self.products:
                         if _model_line_words[1] == 'StdDevComputationParameters':
-                            _computation_words = _model_line_words[2].split(' ')
+                            _computation_words = _model_line_words[2:]
                             if len(_computation_words) >= 2:
                                 #set the refreshing interval to the minimum of current and previous values
                                 self.stdev_computation_interval=numpy.min(self.stdev_computation_interval,int(_computation_words[0])) 
                                 _map_product_to_stdev_computation_history = ' '.join ( [ str(y) for y in _computation_words[1:] ] )
-                        if _model_line_words[1] == 'TrendComputationParameters':
-                            _computation_words = _model_line_words[2].split(' ')
+                        elif _model_line_words[1] == 'TrendComputationParameters':
+                            _computation_words = _model_line_words[2:]
                             if len(_computation_words) >= 2:
                                 #set the refreshing interval to the minimum of current and previous values
                                 self.trend_computation_interval=numpy.min(self.trend_computation_interval,int(_computation_words[0]))
