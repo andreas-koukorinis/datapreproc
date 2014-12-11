@@ -3,11 +3,12 @@ from importlib import import_module
 from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import EventsListener
 from BookBuilder.BookBuilder import BookBuilder
-from Utils.DbQueries import conv_factor
 from OrderManager.OrderManager import OrderManager
 from Portfolio import Portfolio
+from Utils import defaults
 from Performance.PerformanceTracker import PerformanceTracker
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
+from execlogics.execlogic_list import is_valid_execlogic_name, get_module_name_from_execlogic_name
 
 class TradeAlgorithm( EventsListener ):
 
@@ -60,10 +61,14 @@ class TradeAlgorithm( EventsListener ):
         self.performance_tracker.portfolio = self.portfolio # Give Performance Tracker access to the portfolio     
 
         #Instantiate ExecLogic
-        exec_logic_name = _config.get( 'Parameters', 'exec_logic' ) #TODO{gchak} set default option
-        exec_logic_module = import_module( 'ExecLogics.' + exec_logic_name ) #TODO{gchak} check module name
-        ExecLogicClass = getattr( exec_logic_module, exec_logic_name )
-        self.exec_logic = ExecLogicClass( self.products, self.all_products, self.order_manager, self.portfolio, self.bb_objects, self.performance_tracker, _startdate, _enddate, _config )
+        _exec_logic_name = defaults.EXECLOGIC
+        if _config.has_option('Parameters', 'execlogic'):
+            _exec_logic_name = _config.get('Parameters', 'execlogic')
+        if not(is_valid_execlogic_name(_exec_logic_name)):
+            sys.exit("Cannot proceed with invalid Execlogic name")
+        _exec_logic_module_name = get_module_name_from_execlogic_name(_exec_logic_name)
+        ExecLogicClass = getattr(import_module('execlogics.' + _exec_logic_module_name), _exec_logic_name)
+        self.exec_logic = ExecLogicClass(self.products, self.all_products, self.order_manager, self.portfolio, self.bb_objects, self.performance_tracker, _startdate, _enddate, _config)
         # By this time we have initialized all common elements, and hence initialize subclass
         self.init( _config )
 

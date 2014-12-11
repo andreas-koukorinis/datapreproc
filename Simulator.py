@@ -6,8 +6,7 @@ from importlib import import_module
 import ConfigParser
 from Dispatcher.Dispatcher import Dispatcher
 from Utils.Regular import get_all_products
-from Strategies.strategy_list import is_valid_strategy_name
-from Strategies.strategy_list import get_module_name_from_strategy_name
+from Strategies.strategy_list import is_valid_strategy_name, get_module_name_from_strategy_name
 from Utils.global_variables import Globals
 from Utils.DbQueries import get_currency_and_conversion_factors
 
