@@ -53,10 +53,7 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
         self.latest_log_returns[self.map_product_to_index[_product]] = _log_return
 
     def compute_todays_log_return(self, date):
-        _nominal_return = 0.0
-        for _product in self.products:
-            _log_return_product = self.daily_log_returns[_product].get(date, 0.0) 
-            _nominal_return += self.current_weights[self.map_product_to_index[_product]]*(np.exp(_log_return_product) - 1) 
+        _nominal_return = self.current_weights*(np.exp(self.latest_log_returns) - 1) 
         _log_ret = np.log(1 + _nominal_return)
         self.daily_log_returns = np.append(self.daily_log_returns, _log_ret)
         self.net_log_return += self.daily_log_returns[-1]
