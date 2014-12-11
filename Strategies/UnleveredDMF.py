@@ -122,8 +122,7 @@ class UnleveredDMF( TradeAlgorithm ):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
         if all_eod: self.day += 1  # Track the current day number
         
-        # If today is the rebalancing day, then use indicators to calculate new positions to take
-        if all_eod and(self.day % self.rebalance_frequency == 0):
+        if all_eod:
             _need_to_recompute_dmf_weights = False # By default we don't need to change weights unless some input has changed
             if (self.day % self.stdev_computation_interval) == 0:
                 # we need to recompute risk estimate
@@ -143,6 +142,9 @@ class UnleveredDMF( TradeAlgorithm ):
                 self.dmf_weights = self.dmf_weights/numpy.sum(numpy.abs(self.dmf_weights))
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.dmf_weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
-            self.update_positions( events[0]['dt'], self.map_product_to_weight )
-        else:
-            self.rollover( events[0]['dt'] )
+
+            if (self.day % self.rebalance_frequency == 0) or _need_to_recompute_dmf_weights:
+                # if either weights have changed or it is a rebalancing day, then ask execlogic to update weights
+                self.update_positions( events[0]['dt'], self.map_product_to_weight )
+            else:
+                self.rollover( events[0]['dt'] )
