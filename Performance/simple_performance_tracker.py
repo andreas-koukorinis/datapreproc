@@ -25,20 +25,21 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
             _product_index = _product_index + 1 
         self.conversion_factor = Globals.conversion_factor
         self.currency_factor = Globals.currency_factor
-        self.daily_log_returns = np.empty(shape=(0))
+        self.daily_log_returns = np.empty(shape=(len(self.products)))
+        self.net_log_returns = 0.0
         self.current_weights = np.zeros(len(self.products)) # track the current weight of each product
         self.rebalance_weights = np.zeros(len(self.products))
         self.rebalance_date = datetime.datetime.fromtimestamp(0).date()
         self.current_loss = 0
         self.current_drawdown = 0
-        self.lastest_weights_update_date = datetime.datetime.fromtimestamp(0).date()
         Dispatcher.get_unique_instance(products, _startdate, _enddate, _config).add_end_of_day_listener(self)
         self.bb_objects = {}
-        self.daily_log_returns = {}
+        self.log_return_history = {}
+
         for _product in self.all_products:
             self.bb_objects[_product] = BookBuilder.get_unique_instance(_product, _startdate, _enddate, _config)
         for _product in self.products:
-            self.daily_log_returns[_product] = {}
+            self.log_return_history[_product] = {}
             _log_return_identifier = 'DailyLogReturns.' + _product 
             DailyLogReturns.get_unique_instance(_log_return_identifier, _startdate, _enddate, _config).add_listener(self)
 
@@ -46,10 +47,16 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
         _product = identifier.split('.')[1]
         _date = daily_log_returns_dt[-1][0]
         _log_return = daily_log_returns_dt[-1][1]
-        self.daily_log_returns[_product][_date] = _log_return
-        
+        self.log_return_history[_product][_date] = _log_return 
+
     def compute_todays_log_return(self, date):
-        
+        _nominal_return = 0.0
+        for _product in self.products:
+            _log_return_product = self.daily_log_returns[_product].get(date, 0.0) 
+            _nominal_return += self.current_weights[self.map_product_to_index[_product]]*(np.exp(_log_return_product) - 1) 
+        _log_ret = np.log(1 + _nominal_return)
+        self.daily_log_returns = np.append(self.daily_log_returns, _log_ret)
+        self.net_log_return += self.daily_log_returns[-1]
 
     def update_weights(self, date, weights):
         for _product in weights.keys():
@@ -60,14 +67,15 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
     def on_end_of_day(self, date):
         self.compute_daily_stats(date)
         _current_dd_log = self.current_dd(self.daily_log_returns)
-        self.current_drawdown = abs((exp(_current_dd_log) - 1)* 100)
-        #self.current_loss = self.initial_capital - self.value[-1] #TODO
+        self.current_drawdown = abs((np.exp(_current_dd_log) - 1)* 100.0)
+        self.current_loss = (np.exp(self.net_log_returns) - 1)*100.0
+        self.update_rebalanced_weights_for_trading_products()
 
     # Computes the daily stats for the most recent trading day prior to 'date'
     def compute_daily_stats(self, date):
         self.date = date
-        _logret_today = compute_todays_log_return(date)
-        self.daily_log_returns = np.append(self.daily_log_returns, _logret_today)
+        self.compute_todays_log_return(date)
+
 
     # Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value 
     def current_dd(self, returns):
