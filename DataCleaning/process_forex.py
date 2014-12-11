@@ -17,13 +17,16 @@ def process_for_dump(products):
 
     for product in products:
         prices_file = in_path + product_info[product][0]
-        df = pd.read_csv(prices_file,parse_dates =['date'],names=['date', 'open', 'high', 'low', 'close', 'a', 'b', 'c', 'd'], date_parser=dateparse)
+        df = pd.read_csv(prices_file,parse_dates =['date'],names=['date', 'open', 'old_high', 'old_low', 'close', 'a', 'b', 'c', 'd'], date_parser=dateparse)
         df['product'] = product
         if product_info[product][1]: # if we need to invert the fx pair
             df['open'] = 1.0/df['open']
-            df['high'] = 1.0/df['high']
-            df['low'] = 1.0/df['low']
             df['close'] = 1.0/df['close']
+            df['high'] = 1.0/df['old_low']
+            df['low'] = 1.0/df['old_high']
+        else:
+            df['high'] = df['old_high']
+            df['low'] = df['old_low']
         df = df[[ 'date','product','open','high','low','close']] # Rearrange columns to db-table format
         df.to_csv(out_path + product + '.csv', index=False) # Save result to csv 
 
