@@ -7,6 +7,7 @@ from OrderManager.OrderManager import OrderManager
 from Portfolio import Portfolio
 from Utils import defaults
 from Performance.PerformanceTracker import PerformanceTracker
+from PerformanceTracker.simple_performance_tracker import SimplePerformanceTracker
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 from execlogics.execlogic_list import is_valid_execlogic_name, get_module_name_from_execlogic_name
 
@@ -59,6 +60,7 @@ class TradeAlgorithm( EventsListener ):
         # Initialize performance tracker with list of products
         self.performance_tracker = PerformanceTracker( self.all_products, _startdate, _enddate, _config, _log_filename )
         self.performance_tracker.portfolio = self.portfolio # Give Performance Tracker access to the portfolio     
+        self.simple_performance_tracker = SimplePerformanceTracker(self.products, self.all_products, _startdate, _enddate, _config)
 
         #Instantiate ExecLogic
         _exec_logic_name = defaults.EXECLOGIC
@@ -70,18 +72,19 @@ class TradeAlgorithm( EventsListener ):
         ExecLogicClass = getattr(import_module('execlogics.' + _exec_logic_module_name), _exec_logic_name)
         self.exec_logic = ExecLogicClass(self.products, self.all_products, self.order_manager, self.portfolio, self.bb_objects, self.performance_tracker, _startdate, _enddate, _config)
         # By this time we have initialized all common elements, and hence initialize subclass
-        self.init( _config )
+        self.init(_config)
 
     # User is expected to write the function
-    def on_events_update( self, concurrent_events ):
+    def on_events_update(self, concurrent_events):
         pass
 
     # Return the portfolio variables as a dictionary
-    def get_portfolio( self ):
+    def get_portfolio(self):
         return { 'cash' : self.portfolio.cash, 'num_shares' : self.portfolio.num_shares, 'products' : self.portfolio.products }
 
-    def update_positions( self, dt, weights ):
-        self.exec_logic.update_positions( dt, weights )
+    def update_positions(self, dt, weights):
+        self.simple_performace_tracker.update_weights(self, dt.date(), weights)
+        self.exec_logic.update_positions(dt, weights)
 
-    def rollover( self, dt ):
-        self.exec_logic.rollover( dt )
+    def rollover(self, dt):
+        self.exec_logic.rollover(dt)
