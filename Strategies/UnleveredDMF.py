@@ -145,6 +145,10 @@ class UnleveredDMF( TradeAlgorithm ):
 
             if (self.day % self.rebalance_frequency == 0) or _need_to_recompute_dmf_weights:
                 # if either weights have changed or it is a rebalancing day, then ask execlogic to update weights
+                # TODO{gchak} change rebalancing from days to magnitude of divergence from weights
+                # so change the above to
+                # if sum ( abs ( desired weights - current weights ) ) > threshold, then
+                # update_positions
                 self.update_positions( events[0]['dt'], self.map_product_to_weight )
             else:
                 self.rollover( events[0]['dt'] )
