@@ -27,7 +27,7 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
         self.currency_factor = Globals.currency_factor
         self.daily_log_returns = np.empty(shape=(0))
         self.current_weights = np.zeros(len(self.products)) # track the current weight of each product
-        self.rebalance_weights = np.zeros(len(self.products))
+        self.rebalance_weights = np.zeros(len(self.products)) # on every endofday event, if the product is trading, we will update 
         self.rebalance_date = datetime.datetime.fromtimestamp(0).date()
         self.current_loss = 0
         self.current_drawdown = 0
@@ -49,9 +49,11 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
         self.daily_log_returns[_product][_date] = _log_return
         
     def compute_todays_log_return(self, date):
+        # This is being called from compute_daily_stats
         
 
     def update_weights(self, date, weights):
+        # We don't want to update weights just yet since these are desired weights in future.
         for _product in weights.keys():
             self.rebalance_weights[self.map_product_to_index[_product]] = weights[product]
         self.rebalance_date = date
@@ -62,9 +64,10 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
         _current_dd_log = self.current_dd(self.daily_log_returns)
         self.current_drawdown = abs((exp(_current_dd_log) - 1)* 100)
         #self.current_loss = self.initial_capital - self.value[-1] #TODO
-
-    # Computes the daily stats for the most recent trading day prior to 'date'
+    
     def compute_daily_stats(self, date):
+        """Computes the daily stats for the most recent trading day prior to 'date'
+        """
         self.date = date
         _logret_today = compute_todays_log_return(date)
         self.daily_log_returns = np.append(self.daily_log_returns, _logret_today)
