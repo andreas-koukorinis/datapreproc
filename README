@@ -43,6 +43,7 @@ To plot graphs(svg file for graph will be stored in logs/svgs/)
     COMMAND: python Tools/plot_series_interactive.py 1 logs/config_name_1/weights.txt logs/config_name_2/weights.txt logs/config_name_n/weights.txt
     COMMAND: python Tools/plot_series_interactive.py 1 logs/config_name_1/leverage.txt logs/config_name_2/leverage.txt logs/config_name_n/leverage.txt
 
+
 ASSUMPTIONS/PENDING
 -----------
 1) It is the users responsibility to ensure that warmupdays parameter in the config file is such that all the indicatos can be calculated after the warmup days
