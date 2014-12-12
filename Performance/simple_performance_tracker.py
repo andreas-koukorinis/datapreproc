@@ -29,13 +29,13 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
         self.latest_log_returns = np.zeros(len(self.products))     
         self.net_log_return = 0.0
         self.cash = 1.0
-        self.money_allocation = np.zeros(len(self.products))
-        self.rebalance_weights = np.zeros(len(self.products))
+        self.money_allocation = np.zeros(len(self.products)) # track the current weight of each product
+        self.rebalance_weights = np.zeros(len(self.products)) # on every endofday event, if the product is trading, we will update 
         self.rebalance_date = datetime.datetime.fromtimestamp(0).date()
         self.to_update_rebalance_weight = [False]*len(self.products)
         self.current_loss = 0
         self.current_drawdown = 0
-        Dispatcher.get_unique_instance(products, _startdate, _enddate, _config).add_end_of_day_listener(self)
+        Dispatcher.get_unique_instance(products, _startdate, _enddate, _config).add_end_of_day_listener(self) #TODO check that this should be updated prior to TradingAlgorithm
         self.bb_objects = {}
         self.log_return_history = {}
 
@@ -54,6 +54,7 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
         self.latest_log_returns[self.map_product_to_index[_product]] = _log_return
 
     def compute_todays_log_return(self, date):
+        # This is being called from compute_daily_stats
         _nominal_returns = np.exp(self.latest_log_returns)
         _new_money_allocation = self.money_allocation*_nominal_returns
         _new_portfolio_value = sum(_new_money_allocation) + self.cash
@@ -65,6 +66,7 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
         self.latest_log_returns *= 0.0
 
     def update_weights(self, date, weights):
+        # We don't want to update weights just yet since these are desired weights in future.
         self.to_update_rebalance_weight = [True]*len(self.products)
         for _product in weights.keys():
             self.rebalance_weights[self.map_product_to_index[_product]] = weights[_product]
