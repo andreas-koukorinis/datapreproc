@@ -6,10 +6,11 @@ import scipy.stats as ss
 
 from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import EndOfDayListener
-from Utils.Regular import check_eod, get_dt_from_date, get_next_futures_contract, is_future
+from Utils.Regular import get_first_futures_contract, is_future
 from Utils import defaults
 from BookBuilder.BookBuilder import BookBuilder
 from Utils.global_variables import Globals
+from DailyIndicators.Indicator_Listeners import IndicatorListener
 from DailyIndicators.DailyLogReturns import DailyLogReturns
 
 '''SimplePerformanceTracker listens to the Dispatcher for concurrent events and keeps track of daily_log_returns irrespective of whether the strategy is running or not'''
@@ -25,8 +26,8 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
             _product_index = _product_index + 1 
         self.currency_factor = Globals.currency_factor # TODO add in logreturns??
         self.daily_log_returns = np.empty(shape=(0))
-        self.latest_log_returns = zeros(len(self.products))     
-        self.net_log_returns = 0.0
+        self.latest_log_returns = np.zeros(len(self.products))     
+        self.net_log_return = 0.0
         self.cash = 1.0
         self.money_allocation = np.zeros(len(self.products))
         self.rebalance_weights = np.zeros(len(self.products))
@@ -66,13 +67,13 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
     def update_weights(self, date, weights):
         self.to_update_rebalance_weight = [True]*len(self.products)
         for _product in weights.keys():
-            self.rebalance_weights[self.map_product_to_index[_product]] = weights[product]
+            self.rebalance_weights[self.map_product_to_index[_product]] = weights[_product]
         self.rebalance_date = date
 
     def update_rebalanced_weights_for_trading_products(self, date):
         _portfolio_value = self.cash + sum(self.money_allocation)
         for _product in self.products:
-            if is_trading_day(date, _product) and date > self.rebalance_date and self.to_update_rebalance_weight[_product]:
+            if self.is_trading_day(date, _product) and date > self.rebalance_date and self.to_update_rebalance_weight[_product]:
                 self.to_update_rebalance_weight[_product] = False
                 _new_money_allocated_to_product = _portfolio_value * self.rebalance_weights[self.map_product_to_index[_product]]
                 _old_money_allocated_to_product = self.money_allocation[self.map_product_to_index[_product]]
@@ -80,16 +81,17 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
                 self.money_allocation[self.map_product_to_index[_product]] = _new_money_allocated_to_product
 
     def is_trading_day(self, date, product):
-        return len(self.bb_objects[product]) > 0 and self.bb_objects[product].dailybook[-1][0].date() == date # If the closing price for a product is available for a date
+        if is_future(product):
+            product = get_first_futures_contract(product) #TODO check
+        return len(self.bb_objects[product].dailybook) > 0 and self.bb_objects[product].dailybook[-1][0].date() == date # If the closing price for a product is available for a date
 
     # Called by Dispatcher
     def on_end_of_day(self, date):
         self.date = date     
         self.compute_todays_log_return(date)
-        self.compute_daily_stats(date)
         _current_dd_log = self.current_dd(self.daily_log_returns)
         self.current_drawdown = abs((np.exp(_current_dd_log) - 1)* 100.0)
-        self.current_loss = (np.exp(self.net_log_returns) - 1)*100.0
+        self.current_loss = (np.exp(self.net_log_return) - 1)*100.0
         self.update_rebalanced_weights_for_trading_products(date)
 
     # Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value 
