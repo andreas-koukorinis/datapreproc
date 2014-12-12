@@ -8,7 +8,7 @@ from Utils import defaults
 from risk_management.risk_manager_list import is_valid_risk_manager_name, get_module_name_from_risk_manager_name
 
 class ExecLogicAlgo():
-    def __init__(self, trade_products, all_products, order_manager, portfolio, bb_objects, performance_tracker, _startdate, _enddate, _config):
+    def __init__(self, trade_products, all_products, order_manager, portfolio, bb_objects, performance_tracker, simple_performance_tracker, _startdate, _enddate, _config):
         self.trade_products = trade_products
         self.all_products = all_products
         self.future_mappings = get_future_mappings(all_products)
@@ -26,7 +26,7 @@ class ExecLogicAlgo():
             sys.exit("Cannot proceed with invalid RiskManager name")
         _risk_manager_module_name = get_module_name_from_risk_manager_name(_risk_manager_name)
         _RiskManagerClass = getattr(import_module('risk_management.' + _risk_manager_module_name), _risk_manager_name)
-        self.risk_manager = _RiskManagerClass(performance_tracker, _config)
+        self.risk_manager = _RiskManagerClass(performance_tracker, simple_performance_tracker, _config)
         self.trading_status = True
         self.leverage = []
         self.end_date = _enddate

@@ -70,7 +70,7 @@ class TradeAlgorithm( EventsListener ):
             sys.exit("Cannot proceed with invalid Execlogic name")
         _exec_logic_module_name = get_module_name_from_execlogic_name(_exec_logic_name)
         ExecLogicClass = getattr(import_module('execlogics.' + _exec_logic_module_name), _exec_logic_name)
-        self.exec_logic = ExecLogicClass(self.products, self.all_products, self.order_manager, self.portfolio, self.bb_objects, self.performance_tracker, _startdate, _enddate, _config)
+        self.exec_logic = ExecLogicClass(self.products, self.all_products, self.order_manager, self.portfolio, self.bb_objects, self.performance_tracker, self.simple_performance_tracker, _startdate, _enddate, _config)
         # By this time we have initialized all common elements, and hence initialize subclass
         self.init(_config)
 
