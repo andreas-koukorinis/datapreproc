@@ -14,7 +14,7 @@ class AverageDiscretizedTrend( IndicatorListener ):
         self.indicator_values = () # Tuple of the form (dt,value)
         self.identifier = identifier # e.g. AverageDiscretizedTrend.fES.63.252
         params = identifier.strip().split('.')
-        if len(params) <= 3:
+        if len(params) <= 2:
             print ( "AverageDiscretizedTrend requires at least three parameters in the identifier, like AverageDiscretizedTrend.fES.63" );
             sys.exit(0)
             #TODO{gchak} do something better than just exit ! Print a better error message.
@@ -22,12 +22,12 @@ class AverageDiscretizedTrend( IndicatorListener ):
         self.trend_vec = numpy.zeros(len(params)-2) # sign of the last value received from this indicator, initialized to 0
         self.received_updates = numpy.zeros(len(params)-2) # 0 if we have nto received an update from that indicator
         self.map_identifier_to_index = {}
-        _trend_computation_history_vec = []
+        self.trend_computation_indicator_vec = []
         for i in range(2,len(params)):
-            _trend_computation_history_vec.append(int(params[i]))
-            _identifier = 'Trend.' + self.product + '.' + str(_trend_computation_history_vec[i-2])
+            _identifier = 'Trend.' + self.product + '.' + str(int(params[i]))
             self.map_identifier_to_index[_identifier]=(i-2)
-            Trend.get_unique_instance( _identifier, _startdate, _enddate, _config ).add_listener( self )
+            self.trend_computation_indicator_vec.append(Trend.get_unique_instance( _identifier, _startdate, _enddate, _config ))
+            self.trend_computation_indicator_vec[-1].add_listener( self )
         self.trend_vec_len = len(self.trend_vec) # converted to float to compute averages later
         self.listeners = []
 

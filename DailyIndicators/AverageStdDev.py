@@ -22,12 +22,12 @@ class AverageStdDev( IndicatorListener ):
         self.stdev_vec = numpy.ones(len(params)-2) # the last value received from this indicator
         self.received_updates = numpy.zeros(len(params)-2) # 0 if we have nto received an update from that indicator
         self.map_identifier_to_index = {}
-        _stdev_computation_history_vec = []
+        self.stdev_computation_indicator_vec = []
         for i in range(2,len(params)):
-            _stdev_computation_history_vec.append(int(params[i]))
-            _identifier = 'StdDev.' + self.product + '.' + str(_stdev_computation_history_vec[i-2])
+            _identifier = 'StdDev.' + self.product + '.' + str(int(params[i]))
             self.map_identifier_to_index[_identifier]=(i-2)
-            StdDev.get_unique_instance( _identifier, _startdate, _enddate, _config ).add_listener( self )
+            self.stdev_computation_indicator_vec.append(StdDev.get_unique_instance( _identifier, _startdate, _enddate, _config ))
+            self.stdev_computation_indicator_vec[-1].add_listener( self )
         self.stdev_vec_len = len(self.stdev_vec) # converted to float to compute averages later #constant
         self.listeners = []
 
