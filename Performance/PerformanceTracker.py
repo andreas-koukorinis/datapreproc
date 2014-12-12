@@ -63,6 +63,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.yearly_sharpe = []
         self.daily_returns = empty(shape=(0))
         self.daily_log_returns = empty(shape=(0))
+        self.net_log_returns = 0
         self._monthly_nominal_returns_percent = empty(shape=(0))
         self._quarterly_nominal_returns_percent = empty(shape=(0))
         self._yearly_nominal_returns_percent = empty(shape=(0))
@@ -72,6 +73,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self._worst_10pc_yearly_returns = 0
         self.current_loss = 0
         self.current_drawdown = 0
+        self.current_year_trading_cost = (datetime.datetime.fromtimestamp(0).date().year, 0.0)
         self.max_drawdown_percent = 0
         self.drawdown_period = (datetime.datetime.fromtimestamp(0).date(), datetime.datetime.fromtimestamp(0).date())
         self.recovery_period = (datetime.datetime.fromtimestamp(0).date(), datetime.datetime.fromtimestamp(0).date())
@@ -110,6 +112,11 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             self.portfolio.cash -= order['cost']
             self.num_shares_traded[order['product']] = self.num_shares_traded[order['product']] + abs(order['amount'])
             self.trading_cost = self.trading_cost + order['cost']
+            if dt.date().year > self.current_year_trading_cost[0]:
+                self.current_year_trading_cost[1] = order['cost']
+                self.current_year_trading_cost[0] = dt.date().year
+            else:
+                self.current_year_trading_cost[1] += order['cost']
             self.total_orders = self.total_orders + 1
             if order['type'] == 'normal': # Aggressive order not accounted for
                 self.todays_amount_transacted += abs(order['value'])
@@ -124,7 +131,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.compute_daily_stats(date)
         _current_dd_log = self.current_dd(self.daily_log_returns)
         self.current_drawdown = abs((exp(_current_dd_log) - 1)* 100)
-        self.current_loss = self.initial_capital - self.value[-1]
+        self.current_loss = abs(min(0.0, (exp(self.net_log_return) - 1)*100.0))
         if self.debug_level > 0:
             self.print_snapshot(date)
 
@@ -153,6 +160,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             else:
                 _logret_today = log(self.value[-1]/self.value[-2])
             self.daily_log_returns = append(self.daily_log_returns, _logret_today)
+            self.net_log_return += self.daily_log_returns[-1]
             self.amount_long_transacted.append(self.todays_long_amount_transacted)
             self.amount_short_transacted.append(self.todays_short_amount_transacted)
             if self.debug_level > 2:
