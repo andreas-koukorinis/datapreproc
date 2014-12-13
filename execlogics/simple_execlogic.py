@@ -71,15 +71,15 @@ class SimpleExecLogic(ExecLogicAlgo):
             #print 'inside', self.risk_level
             current_portfolio = self.portfolio.get_portfolio()
             current_prices = get_current_prices(self.bb_objects)
-            current_worth = get_worth(self.current_date, current_prices, self.conversion_factor, self.currency_factor, current_portfolio )
-            positions_to_take = self.get_positions_from_weights(self.current_date, weights, current_worth * self.risk_level, current_prices )
+            current_worth = get_worth(self.current_date, current_prices, self.conversion_factor, self.currency_factor, self.product_to_currency, current_portfolio)
+            positions_to_take = self.get_positions_from_weights(self.current_date, weights, current_worth * self.risk_level, current_prices)
 
-            _orders_to_place = dict( [ ( product, 0 ) for product in self.all_products ] )  
+            _orders_to_place = dict([(product, 0) for product in self.all_products ])  
             #Adjust positions for settlements
             for product in self.all_products:
-                if self.is_trading_day( dt, product ): # If today is a trading day for the product
+                if self.is_trading_day(dt, product): # If today is a trading day for the product
                     _is_last_trading_day = self.bb_objects[product].dailybook[-1][2] and ( self.current_date == self.bb_objects[product].dailybook[-1][0].date() )
-                    if is_future( product ) and _is_last_trading_day:
+                    if is_future(product) and _is_last_trading_day:
                         p1 = product  # Example: 'fES_1'
                         p2 = get_next_futures_contract(p1)  # Example: 'fES_2'
                         if p2 not in self.all_products and positions_to_take[p1] != 0:
@@ -109,3 +109,16 @@ class SimpleExecLogic(ExecLogicAlgo):
                 else: # Remember this order,should be placed on the next trading day for the product
                     self.orders_to_place[product] = - ( self.order_manager.to_be_filled[product] + self.portfolio.num_shares[product] ) # TODO should cancel to_be_filled_orders instead of placing orders on the opposite side
         self.notify_last_trading_day()
+
+    def get_positions_from_weights(self, date, weights, current_worth, current_prices): 
+        positions_to_take = dict([(product, 0) for product in self.all_products])
+        for product in weights.keys():
+            if is_future_entity(product): #If it is a futures entity like fES
+                # This execlogic invests in the first futures contract for a future entity
+                first_contract = get_first_futures_contract(product)
+                _conv_factor = self.conversion_factor[first_contract] * self.currency_factor[self.product_to_currency[first_contract]][date]                
+                positions_to_take[first_contract] = positions_to_take[first_contract] + (weights[product] * current_worth)/(current_prices[first_contract] * _conv_factor)
+            else:
+                _conv_factor = self.conversion_factor[product] * self.currency_factor[self.product_to_currency[product]][date]
+                positions_to_take[product] = positions_to_take[product] + (weights[product] * current_worth)/(current_prices[product] * _conv_factor)
+        return positions_to_take

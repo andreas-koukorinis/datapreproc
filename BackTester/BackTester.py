@@ -15,27 +15,28 @@ class BackTester(DailyBookListener):
         self.product=product
         self.pending_orders = []
         self.conversion_factor = Globals.conversion_factor[product]
-        self.currency_factor = Globals.currency_factor[product]
+        _currency = Globals.product_to_currency[product]
+        self.currency_factor = Globals.currency_factor[_currency]
         self.commission_manager = CommissionManager()
         self.listeners = []
-        bookbuilder = BookBuilder.get_unique_instance( product, _startdate, _enddate, _config )
-        bookbuilder.add_dailybook_listener( self )
+        bookbuilder = BookBuilder.get_unique_instance(product, _startdate, _enddate, _config)
+        bookbuilder.add_dailybook_listener(self)
         self.bb = bookbuilder # For filling aggressive order
 
-    def add_listener( self, listener ):
-        self.listeners.append( listener )
+    def add_listener(self, listener):
+        self.listeners.append(listener)
 
     @staticmethod
-    def get_unique_instance( product, _startdate, _enddate, _config ):
+    def get_unique_instance(product, _startdate, _enddate, _config):
         if product not in BackTester.instances.keys() :
-            new_instance = BackTester( product, _startdate, _enddate, _config )
+            new_instance = BackTester(product, _startdate, _enddate, _config)
             BackTester.instances[product] = new_instance
         return BackTester.instances[product]
 
     # Append the orders to the pending_list.
     # ASSUMPTION:Orders will be filled on the next event
-    def send_order( self, order ):
-        self.pending_orders.append( order )
+    def send_order(self, order):
+        self.pending_orders.append(order)
 
     # TODO handle the case that order can be rejected
     def send_order_agg(self, order):

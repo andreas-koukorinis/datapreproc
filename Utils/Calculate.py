@@ -11,14 +11,14 @@ def get_current_prices( bb_objects ):
     return current_prices
 
 #Getthe current worth of the portfolio based on the most recent daily closing prices
-def get_worth(date, current_price, conversion_factor, currency_factor, current_portfolio):
+def get_worth(date, current_price, conversion_factor, currency_factor, product_to_currency, current_portfolio):
     net_worth = current_portfolio['cash']
     num_shares = current_portfolio['num_shares']
     for product in current_price.keys():
-        net_worth = net_worth + current_price[product] * conversion_factor[product] * currency_factor[product][date] * num_shares[product]
+        net_worth = net_worth + current_price[product] * conversion_factor[product] * currency_factor[product_to_currency[product]][date] * num_shares[product]
     return net_worth
 
-def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, currency_factor, date):
+def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, currency_factor, product_to_currency, date):
     notional_amount = {}
     net_value = portfolio.cash
     for product in portfolio.num_shares.keys():
@@ -27,7 +27,7 @@ def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, curre
                 _price = find_most_recent_price_future(bb_objects[product].dailybook, bb_objects[get_next_futures_contract(product)].dailybook, date)
             else:
                 _price = find_most_recent_price(bb_objects[product].dailybook, date)
-            notional_amount[product] = _price * portfolio.num_shares[product] * conversion_factor[product] * currency_factor[product][date]
+            notional_amount[product] = _price * portfolio.num_shares[product] * conversion_factor[product] * currency_factor[product_to_currency[product]][date]
         else:
             notional_amount[product] = 0.0
         net_value += notional_amount[product]

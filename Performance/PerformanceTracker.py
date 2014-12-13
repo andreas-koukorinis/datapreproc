@@ -18,7 +18,7 @@ from BookBuilder.BookBuilder import BookBuilder
 from Utils.global_variables import Globals
 
 # TODO {gchak} PerformanceTracker is probably a class that just pertains to the performance of one strategy
-# We need to change it from listening to executions from BackTeser, to being called on from the OrderManager,
+# We need to change it from listening to executions from BackTester, to being called on from the OrderManager,
 # which will in turn listen to executions from the BackTester
 
 '''Performance tracker listens to the Dispatcher for concurrent events so that it can record the daily returns
@@ -45,6 +45,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.products = products
         self.conversion_factor = Globals.conversion_factor
         self.currency_factor = Globals.currency_factor
+        self.product_to_currency = Globals.product_to_currency
         self.num_shares_traded = dict([(product, 0) for product in self.products])
         self.benchmarks = ['VBLTX', 'VTSMX']
         if _config.has_option('Benchmarks', 'products'):
@@ -144,7 +145,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                     current_price = find_most_recent_price_future(self.bb_objects[product].dailybook, self.bb_objects[get_next_futures_contract(product)].dailybook, date)
                 else:
                     current_price = find_most_recent_price(self.bb_objects[product].dailybook, date)
-                netValue = netValue + current_price * self.portfolio.num_shares[product] * self.conversion_factor[product] * self.currency_factor[product][date]
+                netValue = netValue + current_price * self.portfolio.num_shares[product] * self.conversion_factor[product] * self.currency_factor[self.product_to_currency[product]][date]
         return netValue
 
     # Computes the daily stats for the most recent trading day prior to 'date'
@@ -191,7 +192,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %0.2f\nPortfolio Value:%0.2f\nCash:%0.2f\nPositions:%s\n" % (date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, str(self.portfolio.num_shares))
         else:      
             s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value:%0.2f\nCash:%0.2f\nPositions:%s\n" % (date, self.value[-1], self.portfolio.cash, str(self.portfolio.num_shares))
-        (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, self.currency_factor, date)
+        (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, self.currency_factor, self.product_to_currency, date)
         s = s + 'Money Allocation: %s\n\n' % notional_amounts
         text_file.write(s)
         text_file.close()

@@ -100,7 +100,6 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
     product_to_currency = {}
     currencies = []
     currency_factor = {}
-    curr_factor = {}
     dummy_value = {}
     product_type = {}
     products = [ product.lstrip('f') for product in products ]
@@ -147,30 +146,7 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
                 currency_factor[_currency][_date] = _currency_val
                 dummy_value[_currency] = _currency_val
         _date += delta
-    for product in products:
-        if product_type[product] == 'future':
-            _symbol = 'f' + product
-        else:
-            _symbol = product
-        curr_factor[_symbol] = currency_factor[product_to_currency[_symbol]]
-    return conv_factor, curr_factor
-
-#Fetch the conversion factor for each product from the database
-def conv_factor( products ):
-    products = [ product.lstrip('f') for product in products ]
-    (db,db_cursor) = db_connect()
-    conv_factor = {}
-    _format_strings = ','.join(['%s'] * len(products))
-    db_cursor.execute("SELECT * FROM products NATURAL JOIN currency_rates WHERE product IN (%s)" % _format_strings,tuple(products))
-    rows = db_cursor.fetchall()
-    db_close(db)
-    for row in rows:
-        if row['type'] == 'future':
-            symbol = 'f' + row['product']
-        else:
-            symbol = row['product']
-        conv_factor[symbol] = float(row['conversion_factor'])*float(row['rate'])
-    return conv_factor
+    return conv_factor, currency_factor, product_to_currency
 
 def fetch_prices(product, _startdate, _enddate):
     product = product.lstrip('f')

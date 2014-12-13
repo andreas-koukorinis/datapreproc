@@ -107,6 +107,10 @@ def shift_future_symbols( portfolio, future_contracts ):
     for product in future_contracts:
         portfolio.num_shares[product] = num_shares_updated[product]    
 
+def is_margin_based_product(product):
+    '''Returns True if the product requires margin to be posted and not all cash'''
+    return is_future(product)
+
 def filter_series(dates_returns_1,dates_returns_2):
     dates1 = [item[0] for item in dates_returns_1]
     dates2 = [item[0] for item in dates_returns_2]
