@@ -23,7 +23,9 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
     """
     def init(self, _config):
         self.day = -1 # TODO move this to "watch" or a global time manager
-        self.target_risk = _config.getfloat('Strategy', 'target_risk') # this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
+        self.target_risk = 10 # this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
+        if _config.has_option('Strategy', 'target_risk'):
+            self.target_risk = _config.getfloat('Strategy', 'target_risk') 
 
         self.rebalance_frequency = 1
         if _config.has_option('Parameters', 'rebalance_frequency'):

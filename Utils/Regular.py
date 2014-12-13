@@ -123,3 +123,9 @@ def filter_series(dates_returns_1,dates_returns_2):
     filtered_series = (np.array(filtered_series).T).astype(float)
     return (filtered_series[:,0],filtered_series[:,1])
     
+def adjust_file_path_for_home_directory(file_path):
+    """Give a path like HOME/qplummodels/UnleveredDMF/model1.txt, change it to /home/cvdev/qplummodels/UnleveredDMF/model1.txt etc depending on the home directory of the user
+    
+    """
+    #TODO
+    return (file_path)

@@ -55,7 +55,9 @@ class StdDev( IndicatorListener ):
             self.current_num += 1
             val = sqrt( _new_pow_sum/self.current_num - pow(_new_sum/self.current_num,2) )
             self.current_sum = _new_sum
-            self.current_pow_sum = _new_pow_sum      
+            self.current_pow_sum = _new_pow_sum
+        if isnan(val):
+            print ("something wrong")
         self.values = ( daily_log_returns_dt[-1][0], val )
         for listener in self.listeners: 
             listener.on_indicator_update( self.identifier, self.values )
