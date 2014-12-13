@@ -8,7 +8,7 @@ from Utils import defaults
 from risk_management.risk_manager_list import is_valid_risk_manager_name, get_module_name_from_risk_manager_name
 
 class ExecLogicAlgo():
-    def __init__(self, trade_products, all_products, order_manager, portfolio, bb_objects, performance_tracker, _startdate, _enddate, _config):
+    def __init__(self, trade_products, all_products, order_manager, portfolio, bb_objects, performance_tracker, simple_performance_tracker, _startdate, _enddate, _config):
         self.trade_products = trade_products
         self.all_products = all_products
         self.future_mappings = get_future_mappings(all_products)
@@ -17,7 +17,7 @@ class ExecLogicAlgo():
         self.bb_objects = bb_objects
         self.conversion_factor = Globals.conversion_factor
         self.currency_factor = Globals.currency_factor
-        self.capital_reduction = 1.0
+        self.risk_level = 1.0
         #Instantiate RiskManager
         _risk_manager_name = defaults.RISK_MANAGER
         if _config.has_option('RiskManagement', 'risk_manager'):
@@ -26,8 +26,7 @@ class ExecLogicAlgo():
             sys.exit("Cannot proceed with invalid RiskManager name")
         _risk_manager_module_name = get_module_name_from_risk_manager_name(_risk_manager_name)
         _RiskManagerClass = getattr(import_module('risk_management.' + _risk_manager_module_name), _risk_manager_name)
-        self.risk_manager = _RiskManagerClass(performance_tracker, _config)
-        self.trading_status = True
+        self.risk_manager = _RiskManagerClass(performance_tracker, simple_performance_tracker, _config)
         self.leverage = []
         self.end_date = _enddate
         self.current_date = datetime.strptime(_startdate, "%Y-%m-%d").date()
@@ -54,12 +53,12 @@ class ExecLogicAlgo():
     def update_positions( self, dt, weights ):
         pass
 
-    def update_risk_status( self, dt ):
-        status = self.risk_manager.check_status( dt )
-        if status['stop_trading']:
-            self.trading_status = False
-        elif status['reduce_capital'][0]:
-            self.capital_reduction = self.capital_reduction*(1.0 - status['reduce_capital'][1])
+    def update_risk_level(self, date, weights):
+        _map_product_to_index = self.risk_manager.map_product_to_index
+        if weights: # If dict is not empty i.e we have new weights
+            for _product in weights.keys():
+                self.risk_manager.weights[_map_product_to_index[_product]] = weights[_product]
+        self.risk_level = (self.risk_manager.get_current_risk_level(date))/100.0
 
     def get_positions_from_weights( self, date, weights, current_worth, current_prices ):
         positions_to_take = dict( [ ( product, 0 ) for product in self.all_products ] )

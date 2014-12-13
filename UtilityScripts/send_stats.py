@@ -62,7 +62,7 @@ def main():
     proc = subprocess.Popen(['python', '-W', 'ignore', 'Simulator.py', _config_file, str(_yday_start_date), str(_yday_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     performance_stats.append('------------------------------------------------\nYDAY Performance : %s to %s'%(_yday_start_date,_yday_end_date))
     performance_stats.append(get_positions(_current_date, _config_file))
-    send_mail('\n\n'.join(performance_stats),_config_file,_current_date)
+    #send_mail('\n\n'.join(performance_stats),_config_file,_current_date)
     #print performance_stats
 
 if __name__ == '__main__':

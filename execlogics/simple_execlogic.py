@@ -15,9 +15,11 @@ class SimpleExecLogic(ExecLogicAlgo):
         self.current_date = dt.date()
         if self.debug_level > 1:
             self.print_weights_info(dt)
-        if not self.trading_status: return
-        self.update_risk_status(dt)
-        if self.trading_status:
+        #if self.risk_level == 0: 
+        #    return
+        #self.risk_level = self.update_risk_level(dt, {})
+        #if self.risk_level > 0:
+        if True:
             current_prices = get_current_prices(self.bb_objects)
             _orders_to_place = dict( [ ( product, 0 ) for product in self.all_products ] )
 
@@ -25,7 +27,7 @@ class SimpleExecLogic(ExecLogicAlgo):
             for product in self.all_products:
                 if self.is_trading_day(dt, product): # If today is a trading day for the product
                     _is_last_trading_day = self.bb_objects[product].dailybook[-1][2] and ( self.current_date == self.bb_objects[product].dailybook[-1][0].date() )
-                    if is_future( product ) and _is_last_trading_day:
+                    if is_future(product) and _is_last_trading_day:
                         p1 = product  # Example: 'fES_1'
                         p2 = get_next_futures_contract(p1)  # Example: 'fES_2'
                         positions_to_take_p1 = self.portfolio.num_shares[p1] + self.order_manager.to_be_filled[p1] + self.orders_to_place[p1]
@@ -58,17 +60,19 @@ class SimpleExecLogic(ExecLogicAlgo):
                     self.orders_to_place[product] = - ( self.order_manager.to_be_filled[product] + self.portfolio.num_shares[product] ) # TODO should cancel to_be_filled_orders instead of placing orders on the opposite side
         self.notify_last_trading_day()    
 
-    def update_positions( self, dt, weights ):
+    def update_positions(self, dt, weights):
         self.current_date = dt.date()
         if self.debug_level > 1:
             self.print_weights_info(dt)
-        if not self.trading_status: return
-        self.update_risk_status(dt)
-        if self.trading_status:
+        if self.risk_level == 0:
+            return
+        self.update_risk_level(dt, weights)
+        if self.risk_level > 0:
+            #print 'inside', self.risk_level
             current_portfolio = self.portfolio.get_portfolio()
-            current_prices = get_current_prices( self.bb_objects )
-            current_worth = get_worth( self.current_date, current_prices, self.conversion_factor, self.currency_factor, current_portfolio )
-            positions_to_take = self.get_positions_from_weights(self.current_date, weights, current_worth * self.capital_reduction, current_prices )
+            current_prices = get_current_prices(self.bb_objects)
+            current_worth = get_worth(self.current_date, current_prices, self.conversion_factor, self.currency_factor, current_portfolio )
+            positions_to_take = self.get_positions_from_weights(self.current_date, weights, current_worth * self.risk_level, current_prices )
 
             _orders_to_place = dict( [ ( product, 0 ) for product in self.all_products ] )  
             #Adjust positions for settlements
