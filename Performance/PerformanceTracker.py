@@ -173,14 +173,14 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             self.dates.append(self.date)
 
     def print_transacted_amount(self, amount):
-        s = str(self.date) + ',%f'% (amount)
+        s = str(self.date) + ',%0.2f'% (amount)
         self.amount_transacted_file.write(s + '\n')
 
     def print_filled_orders(self, filled_orders):
         if len(filled_orders) == 0: return
         s = 'ORDER FILLED : '
         for order in filled_orders:
-            s = s + 'id: %d  product: %s  amount: %f  cost: %f  value: %f  fill_price: %f'%(order['id'], order['product'], order['amount'], order['cost'], order['value'], order['fill_price'])
+            s = s + 'id: %d  product: %s  amount: %0.2f  cost: %0.2f  value: %0.2f  fill_price: %0.2f'%(order['id'], order['product'], order['amount'], order['cost'], order['value'], order['fill_price'])
         text_file = open(self.positions_file, "a")
         text_file.write("%s\n" % s)
         text_file.close()
@@ -188,9 +188,9 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
     def print_snapshot(self, date):
         text_file = open(self.positions_file, "a")
         if self.PnLvector.shape[0] > 0:
-            s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %f\nPortfolio Value:%f\nCash:%f\nPositions:%s\n" % (date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, str(self.portfolio.num_shares))
+            s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %0.2f\nPortfolio Value:%0.2f\nCash:%0.2f\nPositions:%s\n" % (date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, str(self.portfolio.num_shares))
         else:      
-            s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value:%f\nCash:%f\nPositions:%s\n" % (date, self.value[-1], self.portfolio.cash, str(self.portfolio.num_shares))
+            s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value:%0.2f\nCash:%0.2f\nPositions:%s\n" % (date, self.value[-1], self.portfolio.cash, str(self.portfolio.num_shares))
         (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, self.currency_factor, date)
         s = s + 'Money Allocation: %s\n\n' % notional_amounts
         text_file.write(s)
@@ -287,13 +287,13 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             while _num_worst_days < k and _worst_day_idx < n:
                 _num_worst_days += 1
                 _return = (exp(_sorted_returns[_worst_day_idx][1])-1)*100.0
-                _extreme_days += str(_sorted_returns[_worst_day_idx][0]) + ' : ' + str(_return) + '\n'
+                _extreme_days += str(_sorted_returns[_worst_day_idx][0]) + (' : %0.2f%%\n' % _return)
                 _worst_day_idx += 1
             _extreme_days += 'Best %d days\n'%k
             while _num_best_days < k and _best_day_idx >= 0:
                 _num_best_days += 1
                 _return = (exp(_sorted_returns[_best_day_idx][1])-1)*100.0
-                _extreme_days += str(_sorted_returns[_best_day_idx][0]) + ' : ' + str(_return) + '\n'
+                _extreme_days += str(_sorted_returns[_best_day_idx][0]) + (' : %0.2f%%\n' % _return)
                 _best_day_idx -= 1     
         return _extreme_days
 
@@ -323,7 +323,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 if (not _worst_start_dates_used) or _date_not_used(_sorted_returns[_worst_week_idx][0], _worst_start_dates_used, 5):
                     _num_worst_weeks += 1
                     _return = (exp(_sorted_returns[_worst_week_idx][1]) - 1)*100.0
-                    _extreme_weeks += str(_sorted_returns[_worst_week_idx][0]) + ' : ' + str(_return) + '\n'
+                    _extreme_weeks += str(_sorted_returns[_worst_week_idx][0]) + (' : %0.2f%%\n' % _return)
                     _worst_start_dates_used.append(_sorted_returns[_worst_week_idx][0])
                 _worst_week_idx += 1
             _extreme_weeks += 'Best %d weeks\n'%k
@@ -331,7 +331,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 if (not _worst_start_dates_used) or _date_not_used(_sorted_returns[_best_week_idx][0], _best_start_dates_used, 5):
                     _num_best_weeks += 1
                     _return = (exp(_sorted_returns[_best_week_idx][1]) - 1)*100.0
-                    _extreme_weeks += str(_sorted_returns[_best_week_idx][0]) + ' : ' + str(_return) + '\n'
+                    _extreme_weeks += str(_sorted_returns[_best_week_idx][0]) + (' : %0.2f%%\n' % _return)
                     _best_start_dates_used.append(_sorted_returns[_best_week_idx][0])
                 _best_week_idx -= 1     
         return _extreme_weeks
