@@ -37,12 +37,11 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
         self.current_drawdown = 0
         Dispatcher.get_unique_instance(products, _startdate, _enddate, _config).add_end_of_day_listener(self) #TODO check that this should be updated prior to TradingAlgorithm
         self.bb_objects = {}
-        self.log_return_history = {}
+        self.log_return_history = np.empty(shape=(0,len(self.products)))
 
         for _product in self.all_products:
             self.bb_objects[_product] = BookBuilder.get_unique_instance(_product, _startdate, _enddate, _config)
         for _product in self.products:
-            self.log_return_history[_product] = {}
             _log_return_identifier = 'DailyLogReturns.' + _product 
             DailyLogReturns.get_unique_instance(_log_return_identifier, _startdate, _enddate, _config).add_listener(self)
 
@@ -50,7 +49,6 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
         _product = identifier.split('.')[1]
         _date = daily_log_returns_dt[-1][0]
         _log_return = daily_log_returns_dt[-1][1]
-        self.log_return_history[_product][_date] = _log_return 
         self.latest_log_returns[self.map_product_to_index[_product]] = _log_return
 
     def compute_todays_log_return(self, date):
@@ -63,6 +61,7 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
         _logret = np.log(_new_portfolio_value/_old_portfolio_value)
         self.daily_log_returns = np.append(self.daily_log_returns, _logret)
         self.net_log_return += self.daily_log_returns[-1]
+        self.log_return_history = np.vstack((self.log_return_history, self.latest_log_returns))
         self.latest_log_returns *= 0.0
 
     def update_weights(self, date, weights):
@@ -75,8 +74,8 @@ class SimplePerformanceTracker(EndOfDayListener, IndicatorListener):
     def update_rebalanced_weights_for_trading_products(self, date):
         _portfolio_value = self.cash + sum(self.money_allocation)
         for _product in self.products:
-            if self.is_trading_day(date, _product) and date > self.rebalance_date and self.to_update_rebalance_weight[_product]:
-                self.to_update_rebalance_weight[_product] = False
+            if self.is_trading_day(date, _product) and date > self.rebalance_date and self.to_update_rebalance_weight[self.map_product_to_index[_product]]:
+                self.to_update_rebalance_weight[self.map_product_to_index[_product]] = False
                 _new_money_allocated_to_product = _portfolio_value * self.rebalance_weights[self.map_product_to_index[_product]]
                 _old_money_allocated_to_product = self.money_allocation[self.map_product_to_index[_product]]
                 self.cash -= (_new_money_allocated_to_product - _old_money_allocated_to_product)

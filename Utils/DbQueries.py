@@ -125,14 +125,15 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
             product_to_currency[_symbol] = 'USD'
             currency_factor['USD'] = {}
     currencies = list(set(currencies))
-    _format_strings = ','.join(['%s'] * len(currencies))
-    query = "SELECT date,product,close FROM forex WHERE product IN (%s) AND date >= '%s' AND date <= '%s' ORDER BY date" % (_format_strings, start_date, end_date)
-    db_cursor.execute(query, tuple(currencies))
-    rows = db_cursor.fetchall()
-    for row in rows:
-        if dummy_value[row['product']] == 0.0:
-            dummy_value[row['product']] = float(row['close'])
-        currency_factor[row['product']][row['date']] = float(row['close'])
+    if len(currencies) > 0:
+        _format_strings = ','.join(['%s'] * len(currencies))
+        query = "SELECT date,product,close FROM forex WHERE product IN (%s) AND date >= '%s' AND date <= '%s' ORDER BY date" % (_format_strings, start_date, end_date)
+        db_cursor.execute(query, tuple(currencies))
+        rows = db_cursor.fetchall()
+        for row in rows:
+            if dummy_value[row['product']] == 0.0:
+                dummy_value[row['product']] = float(row['close'])
+            currency_factor[row['product']][row['date']] = float(row['close'])
     currencies.append('USD')
     _date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
     end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
