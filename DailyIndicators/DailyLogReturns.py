@@ -1,3 +1,4 @@
+import sys
 from numpy import *
 import datetime
 from BookBuilder.BookBuilder_Listeners import DailyBookListener
@@ -73,7 +74,7 @@ class DailyLogReturns( DailyBookListener ):
             else:
                 logret = 0.0  # If last two prices not available for a product,let logreturn = 0
             if isnan(logret) or isinf(logret):
-                print ("something wrong")
+                print ("something wrong in DailyLogReturns")
                 sys.exit(0)
             self.values.append((dailybook[-1][0].date(), logret))
             for listener in self.listeners: 

@@ -128,13 +128,13 @@ class UnleveredDMF( TradeAlgorithm ):
                 # we need to recompute risk estimate
                 for i in xrange(len(self.expected_risk_vec)):
                     if len(self.stdev_indicator_vec[i].indicator_values) >= 1:
-                        self.expected_risk_vec[i] = numpy.max(0.01, self.stdev_indicator_vec[i].indicator_values[-1]) # a max with 1% is just to not have divide by 0 problems.
+                        self.expected_risk_vec[i] = max(0.000001, self.stdev_indicator_vec[i].indicator_values[1]) # a max with 1% is just to not have divide by 0 problems.
                 _need_to_recompute_dmf_weights = True
             if (self.day % self.trend_computation_interval) == 0:
                 # we need to recompute risk estimate
                 for i in xrange(len(self.expected_return_vec)):
                     if len(self.trend_indicator_vec[i].indicator_values) >= 1:
-                        self.expected_return_vec[i] = self.trend_indicator_vec[i].indicator_values[-1]
+                        self.expected_return_vec[i] = self.trend_indicator_vec[i].indicator_values[1]
                 _need_to_recompute_dmf_weights = True
 
             if _need_to_recompute_dmf_weights:
