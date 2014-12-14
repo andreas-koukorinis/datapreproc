@@ -24,7 +24,7 @@ def get_mark_to_market(date, current_price, conversion_factor, currency_factor, 
 
 def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, currency_factor, product_to_currency, date):
     notional_amount = {}
-    net_value = portfolio.cash
+    net_notional_exposure = 0.0
     for product in portfolio.num_shares.keys():
         if portfolio.num_shares[product] != 0:
             if is_future(product):
@@ -34,8 +34,8 @@ def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, curre
             notional_amount[product] = _price * portfolio.num_shares[product] * conversion_factor[product] * currency_factor[product_to_currency[product]][date]
         else:
             notional_amount[product] = 0.0
-        net_value += notional_amount[product]
-    return (notional_amount, net_value)
+        net_notional_exposure += abs(notional_amount[product])
+    return (notional_amount, net_notional_exposure)
 
 def convert_daily_to_monthly_returns(dates, returns):
     yyyymm = [ date.strftime("%Y") + '-' + date.strftime("%m") for date in dates]

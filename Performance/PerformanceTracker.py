@@ -30,19 +30,13 @@ from Utils.global_variables import Globals
 class PerformanceTracker(BackTesterListener, EndOfDayListener):
 
     def __init__(self, products, _startdate, _enddate, _config, _log_filename):
+        self.products = products
         self.date = get_dt_from_date(_startdate).date()  #The earliest date for which daily stats still need to be computed
         if _config.has_option('Parameters', 'debug_level'):
             self.debug_level = _config.getint('Parameters','debug_level')
         else:
             self.debug_level = defaults.DEBUG_LEVEL  # Default value of debug level,in case not specified in config file
-        if self.debug_level > 0:
-            self.positions_file = 'logs/'+_log_filename+'/positions.txt'
-        if self.debug_level > 2:
-            self.amount_transacted_file = open('logs/'+_log_filename+'/amount_transacted.txt', 'w')
-            self.amount_transacted_file.write('date,amount_transacted\n')
-        self.returns_file = 'logs/'+_log_filename+'/returns.txt'
-        self.stats_file = 'logs/'+_log_filename+'/stats.txt'
-        self.products = products
+        self.init_logs(_log_filename, self.debug_level)
         self.conversion_factor = Globals.conversion_factor
         self.currency_factor = Globals.currency_factor
         self.product_to_currency = Globals.product_to_currency
@@ -110,12 +104,26 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             BackTester.get_unique_instance(product, _startdate, _enddate, _config).add_listener(self) # Listen to Backtester for filled orders
             self.bb_objects[product] = BookBuilder.get_unique_instance(product, _startdate, _enddate, _config)
 
+    def init_logs(self, _log_filename, debug_level):
+        if debug_level > 0:
+            self.positions_file = 'logs/' + _log_filename + '/positions.txt'
+        if debug_level > 1:
+            self.leverage_file = open('logs/' + _log_filename + '/leverage.txt','w')
+            self.weights_file = open('logs/' + _log_filename + '/weights.txt','w')
+            self.leverage_file.write('date,leverage\n')
+            self.weights_file.write('date,%s\n' % ( ','.join(self.products)))
+        if debug_level > 2:
+            self.amount_transacted_file = open('logs/' + _log_filename + '/amount_transacted.txt', 'w')
+            self.amount_transacted_file.write('date,amount_transacted\n')
+        self.returns_file = 'logs/'+_log_filename+'/returns.txt'
+        self.stats_file = 'logs/'+_log_filename+'/stats.txt'
+
     def on_last_trading_day(self, _base_symbol, future_mappings):
         shift_future_symbols(self.average_trade_price, future_mappings)
 
     def on_order_update(self, filled_orders, dt):
         for order in filled_orders:
-            self.update_average_trade_price_and_open_equity(order)
+            self.update_average_trade_price(order)
             self.num_shares_traded[order['product']] = self.num_shares_traded[order['product']] + abs(order['amount'])
             self.trading_cost = self.trading_cost + order['cost']
             if dt.date().year > self.current_year_trading_cost[0]:
@@ -132,7 +140,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 else:
                     self.todays_short_amount_transacted += abs(order['value'])
 
-    def update_average_trade_price_and_open_equity(self, order):
+    def update_average_trade_price(self, order):
         _product = order['product']
         _current_num_contracts = self.portfolio.num_shares[_product]
         if is_margin_product(_product): # If we are required to post margin for the product
@@ -153,16 +161,6 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         else:
             self.portfolio.cash -= (order['value'] + order['cost'])
         self.portfolio.num_shares[_product] = self.portfolio.num_shares[_product] + order['amount']
-
-    # Called by Dispatcher
-    def on_end_of_day(self, date):
-        for _currency in self.currency_factor.keys():
-            self.portfolio.cash += self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
-            self.todays_realized_pnl[_currency] = 0
-        self.update_open_equity(date)
-        self.compute_daily_stats(date)
-        if self.debug_level > 0:
-            self.print_snapshot(date)
 
     # Computes the portfolio value at ENDOFDAY on 'date'
     def compute_mark_to_market(self, date):
@@ -188,6 +186,14 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                     _current_price = find_most_recent_price(self.bb_objects[_product].dailybook, date)
                 self.portfolio.open_equity[_product] = (_current_price - self.average_trade_price[_product]) * self.conversion_factor[_product] * self.portfolio.num_shares[_product]
 
+    # Called by Dispatcher
+    def on_end_of_day(self, date):
+        for _currency in self.currency_factor.keys():
+            self.portfolio.cash += self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
+            self.todays_realized_pnl[_currency] = 0
+        self.update_open_equity(date)
+        self.compute_daily_stats(date)
+
     # Computes the daily stats for the most recent trading day prior to 'date'
     # TOASK {gchak} Do we ever expect to run this function without current date ?
     def compute_daily_stats(self, date):
@@ -206,38 +212,38 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             self.current_loss = abs(min(0.0, (exp(self.net_log_return) - 1)*100.0))
             self.amount_long_transacted.append(self.todays_long_amount_transacted)
             self.amount_short_transacted.append(self.todays_short_amount_transacted)
-            if self.debug_level > 2:
-                self.print_transacted_amount(self.todays_amount_transacted)
+            (notional_amounts, net_notional_exposure) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, self.currency_factor, self.product_to_currency, date)
+            _leverage = net_notional_exposure/self.value[-1]
+            self.leverage = append(self.leverage, _leverage)
+            self.dates.append(self.date)
+            self.print_logs(self.debug_level, notional_amounts, self.todays_amount_transacted)
             self.todays_amount_transacted = 0.0
             self.todays_long_amount_transacted = 0.0
             self.todays_short_amount_transacted = 0.0
-            _leverage = (abs(min(0.0, self.portfolio.cash)) + self.value[-1])/(max(0.0, self.portfolio.cash)+ self.value[-1])
-            self.leverage = append(self.leverage, _leverage)
-            self.dates.append(self.date)
 
-    def print_transacted_amount(self, amount):
-        s = str(self.date) + ',%0.2f'% (amount)
-        self.amount_transacted_file.write(s + '\n')
-
-    def print_filled_orders(self, filled_orders):
-        if len(filled_orders) == 0: return
-        s = 'ORDER FILLED : '
-        for order in filled_orders:
-            s = s + 'id: %d  product: %s  amount: %0.2f  cost: %0.2f  value: %0.2f  fill_price: %0.2f'%(order['id'], order['product'], order['amount'], order['cost'], order['value'], order['fill_price'])
-        text_file = open(self.positions_file, "a")
-        text_file.write("%s\n" % s)
-        text_file.close()
-
-    def print_snapshot(self, date):
-        text_file = open(self.positions_file, "a")
-        if self.PnLvector.shape[0] > 0:
-            s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %0.2f\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\n" % (date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares))
-        else:      
-            s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\n" % (date, self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares))
-        (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, self.currency_factor, self.product_to_currency, date)
-        s = s + 'Money Allocation: %s\n\n' % dict_to_string(notional_amounts)
-        text_file.write(s)
-        text_file.close()
+    def print_logs(self, debug_level, notional_amounts, todays_amount_transacted):
+        # Print snapshot
+        if debug_level > 0:
+            text_file = open(self.positions_file, "a")
+            if self.PnLvector.shape[0] > 0:
+                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %0.2f\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\n" % (self.date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares))
+            else:
+                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\n" % (self.date, self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares))
+            s = s + 'Notional Allocation: %s\n' % dict_to_string(notional_amounts)
+            s = s + 'Leverage: %0.2f\n\n' % (self.leverage[-1])
+            text_file.write(s)
+            text_file.close()
+        # Print weights, leverage
+        if debug_level > 1:
+            s = ''
+            for _product in self.products:
+                _weight = notional_amounts[_product]/self.value[-1]
+                s = s + ',%f'% (_weight)
+            self.weights_file.write(s + '\n')
+            self.leverage_file.write('%s,%f\n' % (self.date, self.leverage[-1]))
+        # Print transacted amount
+        if debug_level > 2:
+            self.amount_transacted_file.write('%s,%0.2f\n' % (self.date, todays_amount_transacted))
 
     # Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value 
     def current_dd(self, returns):
