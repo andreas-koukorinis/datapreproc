@@ -15,6 +15,6 @@ class RiskManagerAlgo():
     def issue_notification_level_update(self, date, label, current_level, max_level):
         print 'On %s %s level %0.2f exceded. Current level: %0.2f' % (date, label, max_level, current_level)         
 
-    def issue_notification_capital_update(self, date, capital_level):
-        print 'On %s CAPITAL ALLOCATION changed to %0.2f%%'
+    def issue_notification_capital_update(self, date, label, capital_level):
+        print 'On %s CAPITAL ALLOCATION changed to %0.2f%% (%s)' % (date, capital_level, label)
                 

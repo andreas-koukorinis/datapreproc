@@ -1,7 +1,7 @@
 import sys
 import datetime
 import itertools
-from Regular import is_future, get_next_futures_contract
+from Regular import is_future, get_next_futures_contract, is_margin_product
 
 def get_current_prices( bb_objects ):
     current_prices = {}
@@ -11,12 +11,16 @@ def get_current_prices( bb_objects ):
     return current_prices
 
 #Getthe current worth of the portfolio based on the most recent daily closing prices
-def get_worth(date, current_price, conversion_factor, currency_factor, product_to_currency, current_portfolio):
-    net_worth = current_portfolio['cash']
+def get_mark_to_market(date, current_price, conversion_factor, currency_factor, product_to_currency, current_portfolio):
+    mark_to_market = current_portfolio['cash']
     num_shares = current_portfolio['num_shares']
+    open_equity = current_portfolio['open_equity']
     for product in current_price.keys():
-        net_worth = net_worth + current_price[product] * conversion_factor[product] * currency_factor[product_to_currency[product]][date] * num_shares[product]
-    return net_worth
+        if not is_margin_product(product):
+            mark_to_market += (current_price[product] * conversion_factor[product] * currency_factor[product_to_currency[product]][date] * num_shares[product])
+        else:
+            mark_to_market += open_equity[product] * currency_factor[product_to_currency[product]][date]
+    return mark_to_market
 
 def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, currency_factor, product_to_currency, date):
     notional_amount = {}

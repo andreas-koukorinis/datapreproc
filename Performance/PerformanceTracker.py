@@ -10,7 +10,7 @@ from BackTester.BackTester_Listeners import BackTesterListener
 from BackTester.BackTester import BackTester
 from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import EndOfDayListener
-from Utils.Regular import check_eod, get_dt_from_date, get_next_futures_contract, is_future
+from Utils.Regular import check_eod, get_dt_from_date, get_next_futures_contract, is_future, shift_future_symbols, is_margin_product, dict_to_string
 from Utils.Calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts, convert_daily_to_monthly_returns
 from Utils.benchmark_comparison import get_monthly_correlation_to_benchmark
 from Utils import defaults
@@ -52,6 +52,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             self.benchmarks.extend(_config.get('Benchmarks','products').split(','))
         self.dates = []
         self.PnL = 0
+        self.todays_realized_pnl = dict([(_currency, 0) for _currency in self.currency_factor.keys()]) # Map from currency to todays realized pnl in the currency
+        self.average_trade_price = dict([(_product, 0) for _product in self.products]) # Map from product to average trade price for the open trades in the product
         self.net_returns = 0
         self.initial_capital = _config.getfloat('Parameters', 'initial_capital')
         self.value = array([self.initial_capital])  # Track end of day values of the portfolio
@@ -108,9 +110,12 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             BackTester.get_unique_instance(product, _startdate, _enddate, _config).add_listener(self) # Listen to Backtester for filled orders
             self.bb_objects[product] = BookBuilder.get_unique_instance(product, _startdate, _enddate, _config)
 
+    def on_last_trading_day(self, _base_symbol, future_mappings):
+        shift_future_symbols(self.average_trade_price, future_mappings)
+
     def on_order_update(self, filled_orders, dt):
         for order in filled_orders:
-            self.portfolio.cash -= order['cost']
+            self.update_average_trade_price_and_open_equity(order)
             self.num_shares_traded[order['product']] = self.num_shares_traded[order['product']] + abs(order['amount'])
             self.trading_cost = self.trading_cost + order['cost']
             if dt.date().year > self.current_year_trading_cost[0]:
@@ -119,7 +124,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             else:
                 self.current_year_trading_cost[1] += order['cost']
             self.total_orders = self.total_orders + 1
-            if order['type'] == 'normal': # Aggressive order not accounted for
+            if order['type'] == 'normal': # Aggressive orders not accounted for due to rollover
                 self.todays_amount_transacted += abs(order['value'])
                 self.total_amount_transacted += abs(order['value'])
                 if order['value'] > 0:
@@ -127,33 +132,68 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 else:
                     self.todays_short_amount_transacted += abs(order['value'])
 
+    def update_average_trade_price_and_open_equity(self, order):
+        _product = order['product']
+        _current_num_contracts = self.portfolio.num_shares[_product]
+        if is_margin_product(_product): # If we are required to post margin for the product
+            _currency = self.product_to_currency[_product]
+            _total_num_contracts = order['amount'] + _current_num_contracts
+            _current_price = self.bb_objects[_product].dailybook[-1][1]
+            _direction_switched = (abs(_current_num_contracts) > 0 and abs(_total_num_contracts) > 0) and ( not (sign(_current_num_contracts) == sign(_total_num_contracts) ) )
+            if _direction_switched: # Direction of position changed, pnl realized
+                _closed_position = _current_num_contracts
+                self.todays_realized_pnl[_currency] += _closed_position * (_current_price - self.average_trade_price[_product]) * self.conversion_factor[_product] 
+                self.average_trade_price[_product] = order['fill_price']
+            elif abs(_total_num_contracts) > abs(_current_num_contracts): # Position increased, no pnl realized
+                self.average_trade_price[_product] = (order['amount'] * order['fill_price'] + _current_num_contracts * self.average_trade_price[_product])/_total_num_contracts
+            else: # Position decreased, pnl realized
+                _closed_position = _current_num_contracts - _total_num_contracts
+                self.todays_realized_pnl[_currency] += _closed_position * (_current_price - self.average_trade_price[_product]) * self.conversion_factor[_product]
+            self.portfolio.cash -= order['cost']
+        else:
+            self.portfolio.cash -= (order['value'] + order['cost'])
+        self.portfolio.num_shares[_product] = self.portfolio.num_shares[_product] + order['amount']
+
     # Called by Dispatcher
     def on_end_of_day(self, date):
+        for _currency in self.currency_factor.keys():
+            self.portfolio.cash += self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
+            self.todays_realized_pnl[_currency] = 0
+        self.update_open_equity(date)
         self.compute_daily_stats(date)
-        _current_dd_log = self.current_dd(self.daily_log_returns)
-        self.current_drawdown = abs((exp(_current_dd_log) - 1)* 100)
-        self.current_loss = abs(min(0.0, (exp(self.net_log_return) - 1)*100.0))
         if self.debug_level > 0:
             self.print_snapshot(date)
 
     # Computes the portfolio value at ENDOFDAY on 'date'
-    def get_portfolio_value(self, date):
-        netValue = self.portfolio.cash
+    def compute_mark_to_market(self, date):
+        mark_to_market = self.portfolio.cash
         for product in self.products:
             if self.portfolio.num_shares[product] != 0:
-                if is_future(product):
-                    current_price = find_most_recent_price_future(self.bb_objects[product].dailybook, self.bb_objects[get_next_futures_contract(product)].dailybook, date)
+                if not is_margin_product(product): # Use notional value
+                    if is_future(product): # No need
+                        _current_price = find_most_recent_price_future(self.bb_objects[product].dailybook, self.bb_objects[get_next_futures_contract(product)].dailybook, date)
+                    else:
+                        _current_price = find_most_recent_price(self.bb_objects[product].dailybook, date)
+                    mark_to_market += _current_price * self.portfolio.num_shares[product] * self.conversion_factor[product] * self.currency_factor[self.product_to_currency[product]][date]
+                else: # Use open equity
+                    mark_to_market += self.portfolio.open_equity[product] * self.currency_factor[self.product_to_currency[product]][date]
+        return mark_to_market
+
+    def update_open_equity(self, date):
+        for _product in self.products:
+            if self.portfolio.num_shares[_product] != 0 and is_margin_product(_product):
+                if is_future(_product): # No need
+                    _current_price = find_most_recent_price_future(self.bb_objects[_product].dailybook, self.bb_objects[get_next_futures_contract(_product)].dailybook, date)
                 else:
-                    current_price = find_most_recent_price(self.bb_objects[product].dailybook, date)
-                netValue = netValue + current_price * self.portfolio.num_shares[product] * self.conversion_factor[product] * self.currency_factor[self.product_to_currency[product]][date]
-        return netValue
+                    _current_price = find_most_recent_price(self.bb_objects[_product].dailybook, date)
+                self.portfolio.open_equity[_product] = (_current_price - self.average_trade_price[_product]) * self.conversion_factor[_product] * self.portfolio.num_shares[_product]
 
     # Computes the daily stats for the most recent trading day prior to 'date'
     # TOASK {gchak} Do we ever expect to run this function without current date ?
     def compute_daily_stats(self, date):
         self.date = date
         if self.total_orders > 0: # If no orders have been filled,it implies trading has not started yet
-            todaysValue = self.get_portfolio_value(self.date)
+            todaysValue = self.compute_mark_to_market(self.date)
             self.value = append(self.value, todaysValue)
             self.PnLvector = append(self.PnLvector, (self.value[-1] - self.value[-2]))  # daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
             if self.value[-1] <= 0:
@@ -162,6 +202,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 _logret_today = log(self.value[-1]/self.value[-2])
             self.daily_log_returns = append(self.daily_log_returns, _logret_today)
             self.net_log_return += self.daily_log_returns[-1]
+            self.current_drawdown = abs((exp(self.current_dd(self.daily_log_returns)) - 1)* 100)
+            self.current_loss = abs(min(0.0, (exp(self.net_log_return) - 1)*100.0))
             self.amount_long_transacted.append(self.todays_long_amount_transacted)
             self.amount_short_transacted.append(self.todays_short_amount_transacted)
             if self.debug_level > 2:
@@ -189,11 +231,11 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
     def print_snapshot(self, date):
         text_file = open(self.positions_file, "a")
         if self.PnLvector.shape[0] > 0:
-            s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %0.2f\nPortfolio Value:%0.2f\nCash:%0.2f\nPositions:%s\n" % (date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, str(self.portfolio.num_shares))
+            s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %0.2f\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\n" % (date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares))
         else:      
-            s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value:%0.2f\nCash:%0.2f\nPositions:%s\n" % (date, self.value[-1], self.portfolio.cash, str(self.portfolio.num_shares))
+            s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\n" % (date, self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares))
         (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, self.currency_factor, self.product_to_currency, date)
-        s = s + 'Money Allocation: %s\n\n' % notional_amounts
+        s = s + 'Money Allocation: %s\n\n' % dict_to_string(notional_amounts)
         text_file.write(s)
         text_file.close()
 
@@ -217,7 +259,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             return ((_epoch, _epoch), (_epoch, _epoch))
         _cum_returns = returns.cumsum()
         _end_idx_max_drawdown = argmax(maximum.accumulate(_cum_returns) - _cum_returns) # end of the period
-        _start_idx_max_drawdown = argmax(_cum_returns[:_end_idx_max_drawdown]) # start of period
+        _start_idx_max_drawdown = argmax(_cum_returns[:_end_idx_max_drawdown+1]) # start of period
         _recovery_idx = -1
         _peak_value = _cum_returns[_start_idx_max_drawdown]
         _candidate_idx = argmax(_cum_returns[_end_idx_max_drawdown:] >= _peak_value) + _end_idx_max_drawdown

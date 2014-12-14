@@ -2,7 +2,7 @@ import sys
 import numpy as np
 from datetime import datetime
 from execlogics.execlogic_algorithm import ExecLogicAlgo
-from Utils.Calculate import get_current_prices, get_worth, get_current_notional_amounts
+from Utils.Calculate import get_current_prices, get_mark_to_market, get_current_notional_amounts
 from Utils.Regular import is_future, is_future_entity, get_base_symbol, get_first_futures_contract, get_next_futures_contract, get_future_mappings, shift_future_symbols
 
 '''This execlogic switches to the next futures contract on the last trading day(based on volume) and places aggressive orders for rollover'''
@@ -17,7 +17,7 @@ class SimpleExecLogic(ExecLogicAlgo):
             self.print_weights_info(dt)
         #if self.risk_level == 0: 
         #    return
-        #self.risk_level = self.update_risk_level(dt, {})
+        #self.risk_level = self.update_risk_level(self.current_date, {})
         #if self.risk_level > 0:
         if True:
             current_prices = get_current_prices(self.bb_objects)
@@ -66,12 +66,13 @@ class SimpleExecLogic(ExecLogicAlgo):
             self.print_weights_info(dt)
         if self.risk_level == 0:
             return
-        self.update_risk_level(dt, weights)
+        #self.update_risk_level(self.current_date, weights)
         if self.risk_level > 0:
             #print 'inside', self.risk_level
             current_portfolio = self.portfolio.get_portfolio()
             current_prices = get_current_prices(self.bb_objects)
-            current_worth = get_worth(self.current_date, current_prices, self.conversion_factor, self.currency_factor, self.product_to_currency, current_portfolio)
+            self.performance_tracker.update_open_equity(self.current_date) # TODO{sanchit} Need to change this update
+            current_worth = get_mark_to_market(self.current_date, current_prices, self.conversion_factor, self.currency_factor, self.product_to_currency, current_portfolio)
             positions_to_take = self.get_positions_from_weights(self.current_date, weights, current_worth * self.risk_level, current_prices)
 
             _orders_to_place = dict([(product, 0) for product in self.all_products ])  

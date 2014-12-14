@@ -102,6 +102,7 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
     currency_factor = {}
     dummy_value = {}
     product_type = {}
+    _is_usd_present = False     
     products = [ product.lstrip('f') for product in products ]
     (db,db_cursor) = db_connect()
     _format_strings = ','.join(['%s'] * len(products))
@@ -121,6 +122,7 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
             product_to_currency[_symbol] = _currency
             currency_factor[_currency] = {}
         else:
+            _is_usd_present = True
             product_to_currency[_symbol] = 'USD'
             currency_factor['USD'] = {}
     currencies = list(set(currencies))
@@ -133,7 +135,8 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
             if dummy_value[row['product']] == 0.0:
                 dummy_value[row['product']] = float(row['close'])
             currency_factor[row['product']][row['date']] = float(row['close'])
-    currencies.append('USD')
+    if _is_usd_present:
+        currencies.append('USD')
     _date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
     end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
     delta = datetime.timedelta(days=1)

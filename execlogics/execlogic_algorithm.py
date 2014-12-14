@@ -1,9 +1,9 @@
 import sys
 from datetime import datetime
 from importlib import import_module
-from Utils.Calculate import get_current_prices, get_worth, get_current_notional_amounts
+from Utils.Calculate import get_current_prices, get_current_notional_amounts
 from Utils.global_variables import Globals
-from Utils.Regular import is_future, is_future_entity, get_base_symbol, get_first_futures_contract, get_next_futures_contract, get_future_mappings, shift_future_symbols
+from Utils.Regular import is_future, get_base_symbol, get_future_mappings
 from Utils import defaults
 from risk_management.risk_manager_list import is_valid_risk_manager_name, get_module_name_from_risk_manager_name
 
@@ -15,6 +15,7 @@ class ExecLogicAlgo():
         self.order_manager = order_manager
         self.portfolio = portfolio
         self.bb_objects = bb_objects
+        self.performance_tracker = performance_tracker
         self.conversion_factor = Globals.conversion_factor
         self.currency_factor = Globals.currency_factor
         self.product_to_currency = Globals.product_to_currency
@@ -29,7 +30,7 @@ class ExecLogicAlgo():
         _RiskManagerClass = getattr(import_module('risk_management.' + _risk_manager_module_name), _risk_manager_name)
         self.risk_manager = _RiskManagerClass(performance_tracker, simple_performance_tracker, _config)
         self.leverage = []
-        self.end_date = _enddate
+        self.last_trading_day_listeners = []
         self.current_date = datetime.strptime(_startdate, "%Y-%m-%d").date()
         if _config.has_option('Parameters', 'debug_level'):
             self.debug_level = _config.getint('Parameters','debug_level')
@@ -69,14 +70,13 @@ class ExecLogicAlgo():
                 _last_trading_day_base_symbols.append(get_base_symbol(product))
         _last_trading_day_base_symbols = list(set(_last_trading_day_base_symbols)) # Give unique base symbols
         for _base_symbol in _last_trading_day_base_symbols:
-            self.on_last_trading_day(_base_symbol)
+            self.on_last_trading_day(_base_symbol, self.future_mappings[_base_symbol])
 
-    # Shift symbols on last trading day of a future product
-    def on_last_trading_day(self, _base_symbol):
-        if get_first_futures_contract(_base_symbol) in self.all_products and self.portfolio.num_shares[get_first_futures_contract(_base_symbol)] != 0:
-            sys.exit( 'ERROR : exec_logic -> after_settlement_day -> orders not placed properly -> first futures contract of %s has non zero shares after settlement day' % _base_symbol )
-        else:
-            shift_future_symbols(self.portfolio, self.future_mappings[_base_symbol])
+    # Call performance tracker and portfolio on last trading day for a future contract
+    # TODO{sanchit} change to listeners
+    def on_last_trading_day(self,_base_symbol, future_mappings):
+        self.performance_tracker.on_last_trading_day(_base_symbol, future_mappings)
+        self.portfolio.on_last_trading_day(_base_symbol, future_mappings)
 
     def is_trading_day(self, dt, product):
         return self.bb_objects[product].dailybook[-1][0].date() == dt.date() # If the closing price for a product is available for a date,then the product is tradable on that date
