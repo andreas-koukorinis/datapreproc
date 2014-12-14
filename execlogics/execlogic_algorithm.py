@@ -36,11 +36,6 @@ class ExecLogicAlgo():
             self.debug_level = _config.getint('Parameters','debug_level')
         else:
             self.debug_level = defaults.DEBUG_LEVEL  # Default value of debug level,in case not specified in config file
-        if self.debug_level > 1:
-            self.leverage_file = open('logs/'+self.order_manager.log_filename+'/leverage.txt','w')
-            self.weights_file = open('logs/'+self.order_manager.log_filename+'/weights.txt','w')
-            self.leverage_file.write('date,leverage\n')
-            self.weights_file.write('date,%s\n' % ( ','.join(self.all_products)))
         self.orders_to_place = {} # The net order amount(in number of shares) which are to be placed on the next trading day
         for product in all_products:
             self.orders_to_place[product] = 0 # Initially there is no pending order for any product
@@ -80,17 +75,6 @@ class ExecLogicAlgo():
 
     def is_trading_day(self, dt, product):
         return self.bb_objects[product].dailybook[-1][0].date() == dt.date() # If the closing price for a product is available for a date,then the product is tradable on that date
-
-    def print_weights_info(self, dt):
-        sum_wts = 0.0
-        s = str(dt.date())
-        (notional_amounts, net_value) = get_current_notional_amounts(self.bb_objects, self.portfolio, self.conversion_factor, self.currency_factor, self.product_to_currency, dt.date())
-        for product in self.all_products:
-            _weight = notional_amounts[product]/net_value
-            sum_wts += abs(_weight)
-            s = s + ',%f'% (_weight)
-        self.weights_file.write(s + '\n')
-        self.leverage_file.write('%s,%f\n' % (str(dt.date()), sum_wts))
 
     # Place an order to buy/sell 'num_shares' shares of 'product'
     # If num_shares is +ve -> it is a buy trade

@@ -13,8 +13,6 @@ class SimpleExecLogic(ExecLogicAlgo):
     # Place pending (self.orders_to_place) and rollover orders
     def rollover(self, dt):
         self.current_date = dt.date()
-        if self.debug_level > 1:
-            self.print_weights_info(dt)
         #if self.risk_level == 0: 
         #    return
         #self.risk_level = self.update_risk_level(self.current_date, {})
@@ -62,8 +60,6 @@ class SimpleExecLogic(ExecLogicAlgo):
 
     def update_positions(self, dt, weights):
         self.current_date = dt.date()
-        if self.debug_level > 1:
-            self.print_weights_info(dt)
         if self.risk_level == 0:
             return
         #self.update_risk_level(self.current_date, weights)
