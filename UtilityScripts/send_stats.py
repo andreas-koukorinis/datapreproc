@@ -82,7 +82,7 @@ def get_positions(_current_date, _config_file):
     lines = fp.read()
     fp.close()
     if len(snapshot.findall(lines)) > 0:
-        return process_snapshot(snapshot.findall(lines)[0]) + '\n\n' + process_placed_orders(placed_orders.findall(lines)) + '\n\n' + process_filled_orders(filled_orders.findall(lines))
+        return process_snapshot(snapshot.findall(lines)[0]) + '\n\nORDERS PLACED\n' + process_placed_orders(placed_orders.findall(lines)) + '\n\nORDERS FILLED\n' + process_filled_orders(filled_orders.findall(lines))
     else:
         return 'Not a tradable day or Data not present'
 
