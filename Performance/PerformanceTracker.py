@@ -226,21 +226,19 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         if debug_level > 0:
             text_file = open(self.positions_file, "a")
             if self.PnLvector.shape[0] > 0:
-                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %0.2f\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\n" % (self.date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares))
+                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %0.2f\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\nNotional Allocation: %s\nAverage Trade Price: %s\nLeverage: %0.2f\n\n" % (self.date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares), dict_to_string(notional_amounts), dict_to_string(self.average_trade_price), self.leverage[-1])
             else:
-                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\n" % (self.date, self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares))
-            s = s + 'Notional Allocation: %s\n' % dict_to_string(notional_amounts)
-            s = s + 'Leverage: %0.2f\n\n' % (self.leverage[-1])
+                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\nNotional Allocation: %s\nAverage Trade Price: %s\nLeverage: %0.2f\n\n" % (self.date, self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares), dict_to_string(notional_amounts), dict_to_string(self.average_trade_price), self.leverage[-1])
             text_file.write(s)
             text_file.close()
         # Print weights, leverage
         if debug_level > 1:
-            s = ''
+            s = str(self.date)
             for _product in self.products:
                 _weight = notional_amounts[_product]/self.value[-1]
-                s = s + ',%f'% (_weight)
+                s = s + ',%0.2f'% (_weight)
             self.weights_file.write(s + '\n')
-            self.leverage_file.write('%s,%f\n' % (self.date, self.leverage[-1]))
+            self.leverage_file.write('%s,%0.2f\n' % (self.date, self.leverage[-1]))
         # Print transacted amount
         if debug_level > 2:
             self.amount_transacted_file.write('%s,%0.2f\n' % (self.date, todays_amount_transacted))
