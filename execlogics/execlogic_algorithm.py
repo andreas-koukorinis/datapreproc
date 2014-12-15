@@ -23,7 +23,7 @@ class ExecLogicAlgo():
         #Instantiate RiskManager
         _risk_manager_name = defaults.RISK_MANAGER
         if _config.has_option('RiskManagement', 'risk_manager'):
-            _risk_manager_name = _config.get('Parameters', 'risk_manager')
+            _risk_manager_name = _config.get('RiskManagement', 'risk_manager')
         if not is_valid_risk_manager_name(_risk_manager_name):
             sys.exit("Cannot proceed with invalid RiskManager name")
         _risk_manager_module_name = get_module_name_from_risk_manager_name(_risk_manager_name)
