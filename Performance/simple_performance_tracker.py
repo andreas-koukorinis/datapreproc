@@ -1,7 +1,7 @@
 import sys
 import os
 import datetime
-import numpy as np
+import numpy as numpy
 import scipy.stats as ss
 from Utils.Regular import get_first_futures_contract, is_future
 from Utils import defaults
@@ -22,18 +22,18 @@ class SimplePerformanceTracker(IndicatorListener):
             self.map_product_to_index[_product] = _product_index
             _product_index = _product_index + 1 
         self.currency_factor = Globals.currency_factor # TODO add in logreturns??
-        self.daily_log_returns = np.empty(shape=(0))
-        self.latest_log_returns = np.zeros(len(self.products))     
+        self.daily_log_returns = numpy.empty(shape=(0))
+        self.latest_log_returns = numpy.zeros(len(self.products))     
         self.net_log_return = 0.0
         self.cash = 1.0
-        self.money_allocation = np.zeros(len(self.products)) # track the current weight of each product
-        self.rebalance_weights = np.zeros(len(self.products)) # on every endofday event, if the product is trading, we will update 
+        self.money_allocation = numpy.zeros(len(self.products)) # track the current weight of each product
+        self.rebalance_weights = numpy.zeros(len(self.products)) # on every endofday event, if the product is trading, we will update 
         self.rebalance_date = datetime.datetime.fromtimestamp(0).date()
         self.to_update_rebalance_weight = [False]*len(self.products)
         self.current_loss = 0
         self.current_drawdown = 0
         self.bb_objects = {}
-        self.log_return_history = np.empty(shape=(0,len(self.products)))
+        self.log_return_history = numpy.empty(shape=(0,len(self.products)))
 
         for _product in self.all_products:
             self.bb_objects[_product] = BookBuilder.get_unique_instance(_product, _startdate, _enddate, _config)
@@ -49,16 +49,16 @@ class SimplePerformanceTracker(IndicatorListener):
 
     def compute_todays_log_return(self, date):
         # This is being called from compute_daily_stats
-        _nominal_returns = np.exp(self.latest_log_returns)
+        _nominal_returns = numpy.exp(self.latest_log_returns)
         _new_money_allocation = self.money_allocation*_nominal_returns
         _new_portfolio_value = sum(_new_money_allocation) + self.cash
         #_new_portfolio_value = sum(self.money_allocation) + (_new_money_allocation - self.money_allocation)*currency_factors + self.cash
         _old_portfolio_value = sum(self.money_allocation) + self.cash
         self.money_allocation = _new_money_allocation
-        _logret = np.log(_new_portfolio_value/_old_portfolio_value)
-        self.daily_log_returns = np.append(self.daily_log_returns, _logret)
+        _logret = numpy.log(_new_portfolio_value/_old_portfolio_value)
+        self.daily_log_returns = numpy.append(self.daily_log_returns, _logret)
         self.net_log_return += self.daily_log_returns[-1]
-        self.log_return_history = np.vstack((self.log_return_history, self.latest_log_returns))
+        self.log_return_history = numpy.vstack((self.log_return_history, self.latest_log_returns))
         self.latest_log_returns *= 0.0
 
     def update_weights(self, date, weights):
@@ -93,8 +93,8 @@ class SimplePerformanceTracker(IndicatorListener):
         self.update_rebalanced_weights_for_trading_products(date) # Read as order executed
         #print 'after rebalance',date, self.cash, self.money_allocation
         _current_dd_log = self.current_dd(self.daily_log_returns)
-        self.current_drawdown = abs((np.exp(_current_dd_log) - 1)* 100.0)
-        self.current_loss = abs(min(0.0, (np.exp(self.net_log_return) - 1)*100.0))
+        self.current_drawdown = abs((numpy.exp(_current_dd_log) - 1)* 100.0)
+        self.current_loss = abs(min(0.0, (numpy.exp(self.net_log_return) - 1)*100.0))
 
     # Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value 
     def current_dd(self, returns):
