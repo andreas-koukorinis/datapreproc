@@ -60,10 +60,11 @@ class SimpleExecLogic(ExecLogicAlgo):
 
     def update_positions(self, dt, weights):
         self.current_date = dt.date()
-        if self.risk_level == 0:
-            return
-        #self.update_risk_level(self.current_date, weights)
-        if self.risk_level > 0:
+        #if self.risk_level == 0:
+        #    return
+        _prior_risk_level = self.risk_level
+        self.update_risk_level(self.current_date, weights)
+        if not (self.risk_level == 0 and _prior_risk_level == 0):
             current_portfolio = self.portfolio.get_portfolio()
             current_prices = get_current_prices(self.bb_objects)
             self.performance_tracker.update_open_equity(self.current_date) # TODO{sanchit} Need to change this update
@@ -97,14 +98,14 @@ class SimpleExecLogic(ExecLogicAlgo):
                         self.place_order_agg( dt, product, _orders_to_place[product] ) # If today is the settlement day,then fill order immediately
                     else:
                         self.place_order( dt, product, _orders_to_place[product] )
-        else: # Liquidate the portfolio
+            self.notify_last_trading_day()
+        '''else: # Liquidate the portfolio
             for product in self.all_products:
                 if self.is_trading_day( dt, product ): # If today is a trading day for the product,then place order 
                     self.place_order_target( dt, product, 0 ) # Make target position as 0
                     self.orders_to_place[product] = 0 # no pending orders left for this product
                 else: # Remember this order,should be placed on the next trading day for the product
-                    self.orders_to_place[product] = - ( self.order_manager.to_be_filled[product] + self.portfolio.num_shares[product] ) # TODO should cancel to_be_filled_orders instead of placing orders on the opposite side
-        self.notify_last_trading_day()
+                    self.orders_to_place[product] = - ( self.order_manager.to_be_filled[product] + self.portfolio.num_shares[product] ) # TODO should cancel to_be_filled_orders instead of placing orders on the opposite side'''
 
     def get_positions_from_weights(self, date, weights, current_worth, current_prices): 
         positions_to_take = dict([(product, 0) for product in self.all_products])
