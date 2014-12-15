@@ -1,5 +1,5 @@
-from risk_manager_algorithm import RiskManagerAlgo
 import numpy as np
+from risk_manager_algorithm import RiskManagerAlgo
 
 class SimpleRiskManager(RiskManagerAlgo):
     '''In this risk manager deallcation of capital is based on stoploss levels, drawdown levels, maxloss, and max trading cost per year
@@ -42,8 +42,10 @@ class SimpleRiskManager(RiskManagerAlgo):
         for i in range(len(self.capital_allocation_levels) - 1, -1, -1):
             if _current_loss > self.stoploss_levels[i]: #Stoploss
                 if self.stoploss_flag != i:
+                    # We have entered this level for the first time.
                     self.issue_notification_level_update(_date, 'StopLoss', _current_loss, self.stoploss_levels[i])
                 if self.current_allocation_level > self.capital_allocation_levels[i]:
+                    # We should have a capital allocation <= capital_allocation_levels[i]
                     self.issue_notification_capital_update(_date, 'StopLoss', self.capital_allocation_levels[i])
                     self.current_allocation_level = self.capital_allocation_levels[i]
                 self.stoploss_flag = i
@@ -57,7 +59,8 @@ class SimpleRiskManager(RiskManagerAlgo):
                 self.drawdown_flag = i
                 _updated = True
             if _updated:
-                break
+                break # We break since we are starting from the worst level. Hence future inequalities
+        # we will make separate loops for stoploss and drawdown.
         if _current_loss < self.stoploss_levels[0]:
             self.stoploss_flag = -1
         if _current_drawdown < self.drawdown_levels[0]:
@@ -84,10 +87,10 @@ class SimpleRiskManager(RiskManagerAlgo):
 
         # REALLOCATION
         # If not fully invested, check the paper returns and reallocate the capital accordingly
-        #print 'current allocation level %f'%self.current_allocation_level
+        # print 'current allocation level %f'%self.current_allocation_level
         if self.current_allocation_level < 100.0 and self.max_trading_cost_flag == -1: # If not fully allocated and did not reach max trading cost earlier
             _paper_returns = self.compute_paper_returns(self.return_history)
-            #print 'paper_returns : %f'%_paper_returns
+            # print 'paper_returns : %f'%_paper_returns
             for i in range(0,len(self.reallocation_returns)): # If we have had good enough returns in the past and current allocation is less than desired
                 if _paper_returns >= self.reallocation_returns[i]:
                     if i == 0:
@@ -97,7 +100,7 @@ class SimpleRiskManager(RiskManagerAlgo):
                     if self.current_allocation_level < _desired_allocation:
                         self.current_allocation_level = _desired_allocation
                         self.issue_notification_capital_update(_date, 'Reallocated', _desired_allocation)
-                    break
+                    break #start at the highest level. Hence we break.
         return self.current_allocation_level
 
     # Net paper returns over the past 'return_history' days based on daily rebalanced CWAS
