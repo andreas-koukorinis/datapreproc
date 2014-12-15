@@ -63,8 +63,8 @@ def process_filled_orders(_filled_orders):
 def send_mail(_body, _config_file, _current_date):
     _server = "localhost"
     _from = "sanchit.gupta@tworoads.co.in"
-    #_to = "cvquant@circulumvite.com"
-    _to = "sanchit.gupta@tworoads.co.in"
+    _to = "cvquant@circulumvite.com"
+    #_to = "sanchit.gupta@tworoads.co.in"
     _subject = "Summary stats on %s for config:%s"%(_current_date,_config_file)
      # Prepare actual message
     message = "From: {0}\nTo: {1}\nSubject: {2}\n\n{3}".format(_from, _to, _subject, _body)
@@ -91,7 +91,7 @@ def main():
         print "Arguments needed: config_file"
         sys.exit(0)
     _config_file = sys.argv[1]
-    _current_date = date.today() + timedelta(days=-5)
+    _current_date = date.today() + timedelta(days=-1)
     #print _current_date
     _ytd_start_date = date(_current_date.year, 1, 1)
     _ytd_end_date = _current_date
