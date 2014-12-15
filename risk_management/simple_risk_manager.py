@@ -35,19 +35,21 @@ class SimpleRiskManager(RiskManagerAlgo):
             _current_year_trading_cost = 0.0 #TODO change to transaction cost from simple_performance_tracker
         _current_loss = self.simple_performance_tracker.current_loss
         _current_drawdown = self.simple_performance_tracker.current_drawdown
-        _updated = False
         #print _date, self.simple_performance_tracker.current_loss, self.simple_performance_tracker.current_drawdown, self.performance_tracker.current_loss, self.performance_tracker.current_drawdown, (np.exp(self.simple_performance_tracker.net_log_return)-1)*100.0, (np.exp(self.performance_tracker.net_log_return)-1)*100.0
         # DEALLOCATION
-        # Find out the appropriate allocation level using current_loss, current_drawdown and current_year_trading_cost 
-        for i in range(len(self.capital_allocation_levels) - 1, -1, -1):
-            if _current_loss > self.stoploss_levels[i]: #Stoploss
+        for i in range(len(self.capital_allocation_levels) - 1, -1, -1): #Stoploss
+            if _current_loss > self.stoploss_levels[i]:
                 if self.stoploss_flag != i:
                     self.issue_notification_level_update(_date, 'StopLoss', _current_loss, self.stoploss_levels[i])
                 if self.current_allocation_level > self.capital_allocation_levels[i]:
                     self.issue_notification_capital_update(_date, 'StopLoss', self.capital_allocation_levels[i])
                     self.current_allocation_level = self.capital_allocation_levels[i]
                 self.stoploss_flag = i
-                _updated = True
+                break
+        if _current_loss < self.stoploss_levels[0]:
+            self.stoploss_flag = -1
+
+        for i in range(len(self.capital_allocation_levels) - 1, -1, -1): 
             if _current_drawdown > self.drawdown_levels[i]: #Drawdown
                 if self.drawdown_flag != i:
                     self.issue_notification_level_update(_date, 'Drawdown', _current_drawdown, self.drawdown_levels[i])
@@ -55,11 +57,7 @@ class SimpleRiskManager(RiskManagerAlgo):
                     self.issue_notification_capital_update(_date, 'Drawdown', self.capital_allocation_levels[i])
                     self.current_allocation_level = self.capital_allocation_levels[i]
                 self.drawdown_flag = i
-                _updated = True
-            if _updated:
                 break
-        if _current_loss < self.stoploss_levels[0]:
-            self.stoploss_flag = -1
         if _current_drawdown < self.drawdown_levels[0]:
             self.drawdown_flag = -1
 
