@@ -21,7 +21,7 @@ class SimpleRiskManager(RiskManagerAlgo):
         self.maxloss = _config.getfloat('RiskManagement', 'maxloss') 
         self.max_trading_cost = self.performance_tracker.initial_capital*_config.getfloat('RiskManagement', 'max_trading_cost')/100.0
         _capital_allocation_levels = _config.get('RiskManagement', 'capital_allocation_levels').split(',')
-        self.capital_allocation_levels = ([float(x) for x in _capital_allocation_levels])
+        self.capital_allocation_levels = ([float(x) for x in _capital_allocation_levels]).append(0.0) #Liquidate on last level
         _reallocation_returns = _config.get('RiskManagement', 'reallocation_returns').split(',')
         self.reallocation_returns = ([float(x) for x in _reallocation_returns])
         self.return_history = _config.getint('RiskManagement', 'return_history')
@@ -75,9 +75,9 @@ class SimpleRiskManager(RiskManagerAlgo):
             if self.max_trading_cost_flag != 0:
                 self.issue_notification_level_update(_date, 'Trading Cost', _current_year_trading_cost, self.max_trading_cost)
             if self.current_allocation_level > 0.0:
-                self.issue_notification_capital_update(_date, 'Trading Cost', 0.0)
+                self.issue_notification_capital_update(_date, 'Trading Cost', self.capital_allocation_levels[-1])
             self.max_trading_cost_flag = 0
-            self.current_allocation_level = 0.0
+            self.current_allocation_level = self.capital_allocation_levels[-1]
 
         # REALLOCATION
         # If not fully invested, check the paper returns and reallocate the capital accordingly

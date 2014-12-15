@@ -1,5 +1,4 @@
 import sys
-import numpy as np
 from datetime import datetime
 from execlogics.execlogic_algorithm import ExecLogicAlgo
 from Utils.Calculate import get_current_prices, get_mark_to_market, get_current_notional_amounts
@@ -63,7 +62,7 @@ class SimpleExecLogic(ExecLogicAlgo):
             current_prices = get_current_prices(self.bb_objects)
             self.performance_tracker.update_open_equity(self.current_date) # TODO{sanchit} Need to change this update
             current_worth = get_mark_to_market(self.current_date, current_prices, self.conversion_factor, self.currency_factor, self.product_to_currency, current_portfolio)
-            positions_to_take = self.get_positions_from_weights(self.current_date, weights, current_worth * self.risk_level, current_prices)
+            positions_to_take = self.get_positions_from_weights(self.current_date, weights, current_worth * self.risk_level/100.0, current_prices)
 
             _orders_to_place = dict([(product, 0) for product in self.all_products ])  
             #Adjust positions for settlements
