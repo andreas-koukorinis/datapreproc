@@ -185,6 +185,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 else:
                     _current_price = find_most_recent_price(self.bb_objects[_product].dailybook, date)
                 self.portfolio.open_equity[_product] = (_current_price - self.average_trade_price[_product]) * self.conversion_factor[_product] * self.portfolio.num_shares[_product]
+            else:
+                self.portfolio.open_equity[_product] = 0
 
     # Called by Dispatcher
     def on_end_of_day(self, date):
