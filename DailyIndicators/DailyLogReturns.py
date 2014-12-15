@@ -4,6 +4,8 @@ import datetime
 from BookBuilder.BookBuilder_Listeners import DailyBookListener
 from BookBuilder.BookBuilder import BookBuilder
 from Utils.Regular import get_next_futures_contract,get_first_futures_contract,is_future_entity,is_future
+from Utils.global_variables import Globals
+from datetime import timedelta
 
 # Track the daily log returns for the product
 class DailyLogReturns( DailyBookListener ):
@@ -17,6 +19,8 @@ class DailyLogReturns( DailyBookListener ):
         self.identifier = _identifier
         params = self.identifier.strip().split('.')
         self.product = params[1]
+        self.currency_factor = Globals.currency_factor
+        self.product_to_currency = Globals.product_to_currency
         if is_future( self.product ):
             if is_future_entity( self.product ):
                 _product1 = get_first_futures_contract( self.product )
@@ -71,6 +75,14 @@ class DailyLogReturns( DailyBookListener ):
         if _updated:
             if p2 != 0:
                 logret = log(p1/p2)
+                '''if is_future(product):
+                    _product = self.product1
+                else:
+                    _product = self.product
+                c1 = self.currency_factor[self.product_to_currency[_product]].get(dailybook[-1][0].date(), 1.0) # default 1.0
+                c2 = self.currency_factor[self.product_to_currency[_product]].get(dailybook[-1][0].date()+timedelta(days=-1), c1)
+                #print c1,c2
+                logret = log((p1*c1)/(p2*c2))'''
             else:
                 logret = 0.0  # If last two prices not available for a product,let logreturn = 0
             if isnan(logret) or isinf(logret):

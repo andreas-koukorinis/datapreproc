@@ -1,4 +1,5 @@
 from risk_manager_algorithm import RiskManagerAlgo
+import numpy as np
 
 class SimpleRiskManager(RiskManagerAlgo):
     '''Parameters:
@@ -32,7 +33,7 @@ class SimpleRiskManager(RiskManagerAlgo):
         _current_loss = self.simple_performance_tracker.current_loss
         _current_drawdown = self.simple_performance_tracker.current_drawdown
         _updated = False
-        #print self.simple_performance_tracker.current_loss, self.simple_performance_tracker.current_drawdown, self.performance_tracker.current_loss, self.performance_tracker.current_drawdown
+        #print date, self.simple_performance_tracker.current_loss, self.simple_performance_tracker.current_drawdown, self.performance_tracker.current_loss, self.performance_tracker.current_drawdown, (np.exp(self.simple_performance_tracker.net_log_return)-1)*100.0, (np.exp(self.performance_tracker.net_log_return)-1)*100.0
         # Find out the appropriate allocation level using current_loss, current_drawdown and current_year_trading_cost 
         for i in range(len(self.capital_allocation_levels) - 1, -1, -1):
             if _current_loss > self.stoploss_levels[i]:

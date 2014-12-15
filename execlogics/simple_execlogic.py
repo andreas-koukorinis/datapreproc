@@ -64,7 +64,6 @@ class SimpleExecLogic(ExecLogicAlgo):
             return
         #self.update_risk_level(self.current_date, weights)
         if self.risk_level > 0:
-            #print 'inside', self.risk_level
             current_portfolio = self.portfolio.get_portfolio()
             current_prices = get_current_prices(self.bb_objects)
             self.performance_tracker.update_open_equity(self.current_date) # TODO{sanchit} Need to change this update

@@ -11,7 +11,7 @@ from Performance.simple_performance_tracker import SimplePerformanceTracker
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 from execlogics.execlogic_list import is_valid_execlogic_name, get_module_name_from_execlogic_name
 
-class TradeAlgorithm( EventsListener ):
+class TradeAlgorithm(EventsListener):
 
     '''
     Base class for strategy development
@@ -83,8 +83,10 @@ class TradeAlgorithm( EventsListener ):
         return { 'cash' : self.portfolio.cash, 'num_shares' : self.portfolio.num_shares, 'products' : self.portfolio.products }
 
     def update_positions(self, dt, weights):
+        self.simple_performance_tracker.update_performance(dt.date())
         self.simple_performance_tracker.update_weights(dt.date(), weights)
         self.exec_logic.update_positions(dt, weights)
 
     def rollover(self, dt):
+        self.simple_performance_tracker.update_performance(dt.date())
         self.exec_logic.rollover(dt)

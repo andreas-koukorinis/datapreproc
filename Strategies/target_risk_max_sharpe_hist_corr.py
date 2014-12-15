@@ -60,8 +60,8 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
             self.correlation_computation_interval = max(2, self.correlation_computation_history/5)
 
         # Some computational variables
-        self.last_date_correlation_matrix_computed = 0 # TODO change these to actual dates
-        self.last_date_stdev_computed = 0 # TODO change thse to actual dates
+        self.last_date_correlation_matrix_computed = -self.correlation_computation_interval # TODO change these to actual dates
+        self.last_date_stdev_computed = -self.stddev_computation_interval # TODO change thse to actual dates
         self.stdev_computation_indicator_mapping = {} # map from product to the indicator to get the stddev value
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
         self.erc_weights = np.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
