@@ -1,11 +1,9 @@
-import numpy as np
+
 
 class RiskManagerAlgo():
     def __init__(self, performance_tracker, simple_performance_tracker, _config):
         self.performance_tracker = performance_tracker
         self.simple_performance_tracker = simple_performance_tracker
-        self.map_product_to_index = self.simple_performance_tracker.map_product_to_index
-        self.weights = np.zeros(len(self.simple_performance_tracker.products))
         self.drawdown_flag = -1
         self.stoploss_flag = -1
         self.maxloss_flag = -1

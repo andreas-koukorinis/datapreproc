@@ -1,5 +1,4 @@
 from risk_manager_algorithm import RiskManagerAlgo
-import numpy as np
 
 class SimpleRiskManager(RiskManagerAlgo):
     '''In this risk manager deallcation of capital is based on stoploss levels, drawdown levels, maxloss, and max trading cost per year
