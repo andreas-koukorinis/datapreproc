@@ -84,7 +84,7 @@ class SimpleRiskManager(RiskManagerAlgo):
         # If not fully invested, check the paper returns and reallocate the capital accordingly
         #print 'current allocation level %f'%self.current_allocation_level
         if self.current_allocation_level < 100.0 and self.max_trading_cost_flag == -1: # If not fully allocated and did not reach max trading cost earlier
-            _paper_returns = self.compute_paper_returns(self.return_history)
+            _paper_returns = self.simple_performance_tracker.compute_paper_returns(self.return_history)
             #print 'paper_returns : %f'%_paper_returns
             for i in range(0,len(self.reallocation_returns)): # If we have had good enough returns in the past and current allocation is less than desired
                 if _paper_returns >= self.reallocation_returns[i]:
@@ -97,13 +97,3 @@ class SimpleRiskManager(RiskManagerAlgo):
                         self.issue_notification_capital_update(_date, 'Reallocated', _desired_allocation)
                     break
         return self.current_allocation_level
-
-    # Net paper returns over the past 'return_history' days based on daily rebalanced CWAS
-    def compute_paper_returns(self, return_history):
-        _log_returns = self.simple_performance_tracker.log_return_history
-        _start_index = max(0, _log_returns.shape[0] - return_history)
-        _net_paper_log_return = 0.0
-        for i in range(_start_index, _log_returns.shape[0]):
-            _net_paper_log_return += np.log(1 + sum(self.weights*_log_returns[i]))
-        _net_paper_return = (np.exp(_net_paper_log_return) - 1)*100.0
-        return _net_paper_return

@@ -6,7 +6,6 @@ import scipy.stats as ss
 from Utils.Regular import get_first_futures_contract, is_future
 from Utils import defaults
 from BookBuilder.BookBuilder import BookBuilder
-from Utils.global_variables import Globals
 from DailyIndicators.Indicator_Listeners import IndicatorListener
 from DailyIndicators.DailyLogReturns import DailyLogReturns
 
@@ -21,7 +20,6 @@ class SimplePerformanceTracker(IndicatorListener):
         for _product in self.products:
             self.map_product_to_index[_product] = _product_index
             _product_index = _product_index + 1 
-        self.currency_factor = Globals.currency_factor # TODO add in logreturns??
         self.daily_log_returns = np.empty(shape=(0))
         self.latest_log_returns = np.zeros(len(self.products))     
         self.net_log_return = 0.0
@@ -52,7 +50,6 @@ class SimplePerformanceTracker(IndicatorListener):
         _nominal_returns = np.exp(self.latest_log_returns)
         _new_money_allocation = self.money_allocation*_nominal_returns
         _new_portfolio_value = sum(_new_money_allocation) + self.cash
-        #_new_portfolio_value = sum(self.money_allocation) + (_new_money_allocation - self.money_allocation)*currency_factors + self.cash
         _old_portfolio_value = sum(self.money_allocation) + self.cash
         self.money_allocation = _new_money_allocation
         _logret = np.log(_new_portfolio_value/_old_portfolio_value)
@@ -76,22 +73,19 @@ class SimplePerformanceTracker(IndicatorListener):
                 self.to_update_rebalance_weight[self.map_product_to_index[_product]] = False
                 _new_money_allocated_to_product = self.rebalance_weights[self.map_product_to_index[_product]]
                 _old_money_allocated_to_product = self.money_allocation[self.map_product_to_index[_product]]
-                #self.cash -= (_new_money_allocated_to_product - _old_money_allocated_to_product)
                 self.cash = self.cash - (_new_money_allocated_to_product - _old_money_allocated_to_product) - abs(_new_money_allocated_to_product - _old_money_allocated_to_product)*0.0001 # To account for trading cost
                 self.money_allocation[self.map_product_to_index[_product]] = _new_money_allocated_to_product
 
     def is_trading_day(self, date, product):
         if is_future(product):
-            product = get_first_futures_contract(product) #TODO check
+            product = get_first_futures_contract(product)
         return len(self.bb_objects[product].dailybook) > 0 and self.bb_objects[product].dailybook[-1][0].date() == date # If the closing price for a product is available for a date
 
     # Called by Trade Algorithm
     def update_performance(self, date):
         self.date = date
         self.compute_todays_log_return(date)
-        #print 'before rebalance',date, self.cash, self.money_allocation
         self.update_rebalanced_weights_for_trading_products(date) # Read as order executed
-        #print 'after rebalance',date, self.cash, self.money_allocation
         _current_dd_log = self.current_dd(self.daily_log_returns)
         self.current_drawdown = abs((np.exp(_current_dd_log) - 1)* 100.0)
         self.current_loss = abs(min(0.0, (np.exp(self.net_log_return) - 1)*100.0))
@@ -102,3 +96,9 @@ class SimplePerformanceTracker(IndicatorListener):
             return 0.0
         cum_returns = returns.cumsum()
         return -1.0*(max(cum_returns) - cum_returns[-1])
+
+    def compute_paper_returns(self, return_history):
+        if self.daily_log_returns.shape[0] < return_history: # for insufficient history return 0.0
+            return 0.0
+        else:
+            return (np.exp(np.mean(self.daily_log_returns[-return_history:]) * 252) - 1) * 100
