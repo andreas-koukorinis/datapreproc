@@ -1,4 +1,4 @@
-
+import datetime
 
 class RiskManagerAlgo():
     def __init__(self, performance_tracker, simple_performance_tracker, _config):
@@ -9,6 +9,7 @@ class RiskManagerAlgo():
         self.maxloss_flag = -1
         self.max_trading_cost_flag = -1
         self.init(_config)
+        self.last_update_date = datetime.datetime.fromtimestamp(0).date()
 
     def issue_notification_level_update(self, date, label, current_level, max_level):
         print 'On %s %s level %0.2f exceded. Current level: %0.2f' % (date, label, max_level, current_level)         
