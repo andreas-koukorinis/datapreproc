@@ -18,5 +18,6 @@ class RiskManagerAlgo(object):
         print 'On %s CAPITAL ALLOCATION changed to %0.2f%% (%s)' % (date, capital_level, label)
 
     #TODO add an abstract function so that all child classes of this make sure to implement this function                
-    #def get_current_risk_level(self, _date):
-    #    """public function, called by execlogic to compute the alloctaion level"""
+    def get_current_risk_level(self, _date):
+        """public function, called by execlogic to compute the alloctaion level"""
+        raise NotImplementedError
