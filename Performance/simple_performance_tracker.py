@@ -90,8 +90,12 @@ class SimplePerformanceTracker(IndicatorListener):
         self.current_drawdown = abs((numpy.exp(_current_dd_log) - 1)* 100.0)
         self.current_loss = abs(min(0.0, (numpy.exp(self.net_log_return) - 1)*100.0))
 
-    # Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value 
+    def get_current_drawdown(self):
+        """returns current drawdown"""
+        return (self.current_drawdown)
+    
     def current_dd(self, returns):
+        """Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value"""
         if returns.shape[0] < 2:
             return 0.0
         cum_returns = returns.cumsum()

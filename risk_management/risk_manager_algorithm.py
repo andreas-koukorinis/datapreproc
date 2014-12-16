@@ -1,6 +1,6 @@
 import datetime
 
-class RiskManagerAlgo():
+class RiskManagerAlgo(object):
     def __init__(self, performance_tracker, simple_performance_tracker, _config):
         self.performance_tracker = performance_tracker
         self.simple_performance_tracker = simple_performance_tracker
@@ -16,4 +16,7 @@ class RiskManagerAlgo():
 
     def issue_notification_capital_update(self, date, label, capital_level):
         print 'On %s CAPITAL ALLOCATION changed to %0.2f%% (%s)' % (date, capital_level, label)
-                
+
+    #TODO add an abstract function so that all child classes of this make sure to implement this function                
+    #def get_current_risk_level(self, _date):
+    #    """public function, called by execlogic to compute the alloctaion level"""
