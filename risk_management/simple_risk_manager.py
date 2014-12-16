@@ -1,4 +1,5 @@
 from risk_manager_algorithm import RiskManagerAlgo
+from Utils import defaults
 
 class SimpleRiskManager(RiskManagerAlgo):
     '''In this risk manager deallcation of capital is based on stoploss levels, drawdown levels, maxloss, and max trading cost per year
@@ -14,17 +15,33 @@ class SimpleRiskManager(RiskManagerAlgo):
        return_history=126'''
  
     def init(self, _config):
-        _stoploss_levels = _config.get('RiskManagement', 'stoploss_levels').split(',')
+        _stoploss_levels = list(defaults.STOPLOSS_LEVELS)
+        if _config.has_option('RiskManagement', 'stoploss_levels'):
+            _stoploss_levels = _config.get('RiskManagement', 'stoploss_levels').split(',')
         self.stoploss_levels = ([float(x) for x in _stoploss_levels])
-        _drawdown_levels = _config.get('RiskManagement', 'drawdown_levels').split(',')
+        _drawdown_levels = list(defaults.DRAWDOWN_LEVELS)
+        if _config.has_option('RiskManagement', 'drawdown_levels'):
+            _drawdown_levels = _config.get('RiskManagement', 'drawdown_levels').split(',')
         self.drawdown_levels = ([float(x) for x in _drawdown_levels])
-        self.maxloss = _config.getfloat('RiskManagement', 'maxloss') 
-        self.max_trading_cost = self.performance_tracker.initial_capital*_config.getfloat('RiskManagement', 'max_trading_cost')/100.0
-        _capital_allocation_levels = _config.get('RiskManagement', 'capital_allocation_levels').split(',')
-        self.capital_allocation_levels = ([float(x) for x in _capital_allocation_levels]).append(0.0) #Liquidate on last level
-        _reallocation_returns = _config.get('RiskManagement', 'reallocation_returns').split(',')
+        self.maxloss = float(defaults.MAXLOSS)
+        if _config.has_option('RiskManagement', 'max_loss'):
+            self.maxloss = _config.getfloat('RiskManagement', 'maxloss') 
+        self.max_trading_cost = float(defaults.MAX_TRADING_COST)
+        if _config.has_option('RiskManagement', 'max_trading_cost'):
+            self.max_trading_cost = _config.getfloat('RiskManagement', 'max_trading_cost')
+        self.max_trading_cost = self.performance_tracker.initial_capital * self.max_trading_cost/100.0
+        _capital_allocation_levels = list(defaults.CAPITAL_ALLOCATION_LEVELS)
+        if _config.has_option('RiskManagement', 'capital_allocation_levels'):
+            _capital_allocation_levels = _config.get('RiskManagement', 'capital_allocation_levels').split(',')
+        self.capital_allocation_levels = [float(x) for x in _capital_allocation_levels]
+        self.capital_allocation_levels.append(0.0) #Liquidate on last level
+        self.reallocation_returns = list(defaults.REALLOCATION_LEVELS)
+        if _config.has_option('RiskManagement', 'reallocation_returns'):
+            _reallocation_returns = _config.get('RiskManagement', 'reallocation_returns').split(',')
         self.reallocation_returns = ([float(x) for x in _reallocation_returns])
-        self.return_history = _config.getint('RiskManagement', 'return_history')
+        self.return_history = int(defaults.RETURN_HISTORY)
+        if _config.has_option('RiskManagement', 'return_history'):
+            self.return_history = _config.getint('RiskManagement', 'return_history')
         self.current_allocation_level = 100.0 # Fully allocated initially
 
     def get_current_risk_level(self, _date): 
