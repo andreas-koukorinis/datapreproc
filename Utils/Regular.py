@@ -99,13 +99,18 @@ def get_future_mappings( all_products ):
             future_mappings[ get_base_symbol( product ) ].append( product )
     return future_mappings
     
-def shift_future_symbols( portfolio, future_contracts ):
-    num_shares_updated = dict( [ ( product, 0 ) for product in future_contracts ] ) 
-    for product in future_contracts:
-        if portfolio.num_shares[product] != 0:
-            num_shares_updated[ get_prev_futures_contract( product ) ] = portfolio.num_shares[product]
-    for product in future_contracts:
-        portfolio.num_shares[product] = num_shares_updated[product]    
+def shift_future_symbols(_dictionary, future_contracts):
+    _new_dictionary = dict([(product, 0) for product in future_contracts]) 
+    for _product in future_contracts:
+        _prev_futures_contract = get_prev_futures_contract(_product)
+        if _prev_futures_contract in _dictionary.keys():
+            _new_dictionary[_prev_futures_contract] = _dictionary[_product]
+    for _product in future_contracts:
+        _dictionary[_product] = _new_dictionary[_product]
+
+def is_margin_product(product):
+    '''Returns True if the product requires margin to be posted and not all cash'''
+    return is_future(product)
 
 def filter_series(dates_returns_1,dates_returns_2):
     dates1 = [item[0] for item in dates_returns_1]
@@ -129,3 +134,9 @@ def adjust_file_path_for_home_directory(file_path):
     """
     #TODO
     return (file_path)
+
+def dict_to_string(_dict):
+    _str = ''
+    for key in sorted(_dict.keys()):
+        _str += '%s : %0.2f   ' % (key, _dict[key])
+    return _str

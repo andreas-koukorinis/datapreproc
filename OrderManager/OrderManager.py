@@ -90,22 +90,22 @@ class OrderManager():
         if len(filled_orders) == 0: return
         s = ''
         for order in filled_orders:
-            s = s+ 'ORDER FILLED ON %s: '%dt
-            s = s + 'id: %d  product: %s  amount: %f  cost: %f  value: %f  fill_price: %f\n'%(order['id'], order['product'], order['amount'], order['cost'], order['value'], order['fill_price'])
+            s = s+ 'ORDER FILLED ON %s:'%dt.date()
+            s = s + '   id: %d   product: %s   amount: %0.5f   cost: %0.2f   value: %0.2f   fill_price: %0.2f'%(order['id'], order['product'], order['amount'], order['cost'], order['value'], order['fill_price'])
         text_file = open(self.positions_file, "a")
         text_file.write("%s\n" % s)
         text_file.close()
 
     # Print placed orders to positions_file
     def print_placed_order(self, order):
-        s = 'ORDER PLACED ON %s : id: %d product:%s amount:%f' % ( order['dt'], order['id'], order['product'], order['amount'] )
+        s = 'ORDER PLACED ON %s:   id: %d   product: %s   amount: %0.5f' % ( order['dt'].date(), order['id'], order['product'], order['amount'] )
         text_file = open( self.positions_file, "a" )
         text_file.write("%s\n" % s)
         text_file.close()
 
     # Print orders to positions_file
     def print_cancelled_order(self, current_dt, order):
-        s = 'ORDER CANCELLED ON %s : datetime:%s id: %d product:%s amount:%f' % ( current_dt, order['dt'], order['id'], order['product'], order['amount'] )
+        s = 'ORDER CANCELLED ON %s:   datetime:%s   id: %d   product: %s   amount: %0.5f' % ( current_dt.date(), order['dt'], order['id'], order['product'], order['amount'] )
         text_file = open( self.positions_file, "a" )
         text_file.write("%s\n" % s)
         text_file.close()

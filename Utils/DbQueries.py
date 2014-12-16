@@ -95,22 +95,61 @@ def push_all_events( heap, products, _startdate, _enddate ):
             heapq.heappush ( heap, ( _dt, _event ) ) 
     db_close(db)
 
-#Fetch the conversion factor for each product from the database
-def conv_factor( products ):
+def get_currency_and_conversion_factors(products, start_date, end_date):
+    conv_factor = {}
+    product_to_currency = {}
+    currencies = []
+    currency_factor = {}
+    dummy_value = {}
+    product_type = {}
+    _is_usd_present = False     
     products = [ product.lstrip('f') for product in products ]
     (db,db_cursor) = db_connect()
-    conv_factor = {}
     _format_strings = ','.join(['%s'] * len(products))
-    db_cursor.execute("SELECT * FROM products NATURAL JOIN currency_rates WHERE product IN (%s)" % _format_strings,tuple(products))
+    db_cursor.execute("SELECT product,currency,conversion_factor,type FROM products WHERE product IN (%s)" % _format_strings,tuple(products))
     rows = db_cursor.fetchall()
-    db_close(db)
     for row in rows:
-        if row['type'] == 'future':
-            symbol = 'f' + row['product']
+        product_type[row['product']] = row['type']
+        if product_type[row['product']] == 'future':
+            _symbol = 'f' + row['product']
         else:
-            symbol = row['product']
-        conv_factor[symbol] = float(row['conversion_factor'])*float(row['rate'])
-    return conv_factor
+            _symbol = row['product']
+        conv_factor[_symbol] = float(row['conversion_factor'])
+        if row['currency'] != 'USD':
+            _currency = row['currency'] + 'USD'
+            currencies.append(_currency)
+            dummy_value[_currency] = 0.0
+            product_to_currency[_symbol] = _currency
+            currency_factor[_currency] = {}
+        else:
+            _is_usd_present = True
+            product_to_currency[_symbol] = 'USD'
+            currency_factor['USD'] = {}
+    currencies = list(set(currencies))
+    if len(currencies) > 0:
+        _format_strings = ','.join(['%s'] * len(currencies))
+        query = "SELECT date,product,close FROM forex WHERE product IN (%s) AND date >= '%s' AND date <= '%s' ORDER BY date" % (_format_strings, start_date, end_date)
+        db_cursor.execute(query, tuple(currencies))
+        rows = db_cursor.fetchall()
+        for row in rows:
+            if dummy_value[row['product']] == 0.0:
+                dummy_value[row['product']] = float(row['close'])
+            currency_factor[row['product']][row['date']] = float(row['close'])
+    if _is_usd_present:
+        currencies.append('USD')
+    _date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
+    end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
+    delta = datetime.timedelta(days=1)
+    while _date <= end_date:
+        for _currency in currencies:
+            if _currency == 'USD':
+                currency_factor[_currency][_date] = 1.0
+            else:
+                _currency_val = currency_factor[_currency].get(_date, dummy_value[_currency])
+                currency_factor[_currency][_date] = _currency_val
+                dummy_value[_currency] = _currency_val
+        _date += delta
+    return conv_factor, currency_factor, product_to_currency
 
 def fetch_prices(product, _startdate, _enddate):
     product = product.lstrip('f')
@@ -133,3 +172,7 @@ def fetch_prices(product, _startdate, _enddate):
         dates.append(row['date'])
         prices.append(price)
     return np.array(dates), np.array(prices)
+
+#conv_factor, currency_factor = get_currency_conversion_factors(['ES_1','FGBL_1','SXF_1'], '2014-01-01', '2014-01-30')
+#for key in sorted(currency_factor['EURUSD'].keys()):
+#    print key,currency_factor['EURUSD'][key]

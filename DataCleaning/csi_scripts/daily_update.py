@@ -15,6 +15,7 @@ product_type = {}
 db_cursor = None
 db = None
 mappings = {'AD1':'6A','BP1':'6B','CD1':'6C','CU1':'6E','JY1':'6J','MP':'6M','EX':'E7','ES':'ES','FDX':'FDAX','SXE':'FESX','EBL':'FGBL','EBM':'FGBM','JT':'J7','FLG':'LFR','NK':'NKD','SXF':'SXF','ZF':'ZF','TY':'ZN'}
+forex_mappings = { 'US$_46' : ('JPYUSD',True) ,'US$_39' : ('CADUSD',True), 'GB2_60' : ('GBPUSD',False), 'EU2_60' : ('EURUSD',False) }
 exchange_symbol_mamager = None
 
 def FloatOrZero(value):
@@ -117,6 +118,25 @@ def add_fund_quote(date,record):
     except:
         db.rollback()
         sys.exit('EXCEPTION in add_fund_quote %s'%record)
+
+def add_forex_quote(date,forex_tuple,record):
+    open1, high, low, close = FloatOrZero(record[4]), FloatOrZero(record[6]), FloatOrZero(record[7]), FloatOrZero(record[8])
+    product = forex_tuple[0]
+    if forex_tuple[1]: # If quotes need to be inverted
+        _open1 = 1.0/open1
+        _high = 1.0/low
+        _low = 1.0/high
+        _close = 1.0/close
+    else:
+        _open1, _high, _low, _close = open1, high, low, close
+    try:
+        query = "INSERT INTO %s ( date, product, open, high, low, close ) VALUES('%s','%s','%f', '%f', '%f', '%f')" % (table[product], date, product, _open1, _high, _low, _close)
+        print query
+        db_cursor.execute(query)
+        db.commit()
+    except:
+        db.rollback()
+        sys.exit('EXCEPTION in add_forex_quote %s'%record) 
 
 def add_future_quote(date,record,future_someday_total_volume,future_someday_total_oi,future_volume_date,future_oi_date):
     try:
@@ -276,8 +296,17 @@ def daily_update(filename,products):
                 future_oi_date = oi_date
 
         elif record[0]=='02': # Future price record
-            if len(products)==0 or symbol in products:
-                add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date)
+            if len(record) > 3:
+                num = str(int(record[3])%100)
+                _candidate_forex_identifier = symbol + '_' + num
+                if _candidate_forex_identifier in forex_mappings.keys() and forex_mappings[_candidate_forex_identifier][0] in products:
+                    add_forex_quote(date, forex_mappings[_candidate_forex_identifier], record)
+                else:
+                    if len(products)==0 or symbol in products:
+                        add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date)
+            else:
+                if len(products)==0 or symbol in products:
+                        add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date)
 
         elif record[0]=='03': #Stock Price record
             if len(products)==0 or symbol in products:
@@ -311,8 +340,17 @@ def daily_update(filename,products):
             continue
 
         elif record[0]=='32': # Future price record
-            if len(products)==0 or symbol in products:
-                add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date)
+            if len(record) > 3:
+                num = str(int(record[3])%100)
+                _candidate_forex_identifier = symbol + '_' + num
+                if _candidate_forex_identifier in forex_mappings.keys() and forex_mappings[_candidate_forex_identifier][0] in products:
+                    add_forex_quote(date, forex_mappings[_candidate_forex_identifier], record)
+                else:
+                    if len(products)==0 or symbol in products:
+                        add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date)
+            else:
+                if len(products)==0 or symbol in products:
+                        add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date)
 
         elif record[0]=='33': #Type '03' with prices in decimal
             if len(products)==0 or symbol in products:

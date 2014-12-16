@@ -1,7 +1,7 @@
 import sys
 import datetime
 import itertools
-from Regular import is_future, get_next_futures_contract
+from Regular import is_future, get_next_futures_contract, is_margin_product
 
 def get_current_prices( bb_objects ):
     current_prices = {}
@@ -11,35 +11,31 @@ def get_current_prices( bb_objects ):
     return current_prices
 
 #Getthe current worth of the portfolio based on the most recent daily closing prices
-def get_worth(current_price,conversion_factor,current_portfolio):
-    net_worth = current_portfolio['cash']
+def get_mark_to_market(date, current_price, conversion_factor, currency_factor, product_to_currency, current_portfolio):
+    mark_to_market = current_portfolio['cash']
     num_shares = current_portfolio['num_shares']
+    open_equity = current_portfolio['open_equity']
     for product in current_price.keys():
-        net_worth = net_worth + current_price[product]*conversion_factor[product]*num_shares[product]
-    return net_worth
+        if not is_margin_product(product):
+            mark_to_market += (current_price[product] * conversion_factor[product] * currency_factor[product_to_currency[product]][date] * num_shares[product])
+        else:
+            mark_to_market += open_equity[product] * currency_factor[product_to_currency[product]][date]
+    return mark_to_market
 
-#Given the weights to assign to each product,calculate how many target number shares of the products we want (weight -ve implies short selling)
-def get_positions_from_weights(weight,current_worth,current_price,conversion_factor):
-    positions_to_take = {}
-    for product in current_price.keys():
-        money_allocated = weight[product]*current_worth
-        positions_to_take[product] = money_allocated/(current_price[product]*conversion_factor[product])
-    return positions_to_take
-
-def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, date):
+def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, currency_factor, product_to_currency, date):
     notional_amount = {}
-    net_value = portfolio.cash
+    net_notional_exposure = 0.0
     for product in portfolio.num_shares.keys():
         if portfolio.num_shares[product] != 0:
             if is_future(product):
                 _price = find_most_recent_price_future(bb_objects[product].dailybook, bb_objects[get_next_futures_contract(product)].dailybook, date)
             else:
                 _price = find_most_recent_price(bb_objects[product].dailybook, date)
-            notional_amount[product] = _price * portfolio.num_shares[product] * conversion_factor[product]
+            notional_amount[product] = _price * portfolio.num_shares[product] * conversion_factor[product] * currency_factor[product_to_currency[product]][date]
         else:
             notional_amount[product] = 0.0
-        net_value += notional_amount[product]
-    return (notional_amount, net_value)
+        net_notional_exposure += abs(notional_amount[product])
+    return (notional_amount, net_notional_exposure)
 
 def convert_daily_to_monthly_returns(dates, returns):
     yyyymm = [ date.strftime("%Y") + '-' + date.strftime("%m") for date in dates]

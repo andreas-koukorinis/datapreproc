@@ -60,8 +60,8 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
             self.correlation_computation_interval = max(2, self.correlation_computation_history/5)
 
         # Some computational variables
-        self.last_date_correlation_matrix_computed = 0 # TODO change these to actual dates
-        self.last_date_stdev_computed = 0 # TODO change thse to actual dates
+        self.last_date_correlation_matrix_computed = 0
+        self.last_date_stdev_computed = 0
         self.stdev_computation_indicator_mapping = {} # map from product to the indicator to get the stddev value
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
         self.erc_weights = np.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
@@ -129,10 +129,17 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
                 self.erc_weights_optim = np.ravel(np.diagflat(zero_corr_risk_parity_weights) * inv(self.logret_correlation_matrix) * expected_sharpe_ratios)
                 self.erc_weights = self.erc_weights_optim
 
+                # In the following steps we resize the portfolio to the taregt risk level.
+                # We have just used stdev as the measure of risk ehre since it is simple.
+                # TODO improve risk calculation
                 _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0 * (np.asmatrix(self.erc_weights) * np.asmatrix(_cov_mat) * np.asmatrix(self.erc_weights).T))[0, 0]) - 1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
-                #TODO{gchak} have a global debug mode
-                #print ( "On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
+
+                _check_sign_of_weights=True
+                if _check_sign_of_weights:
+                    if sum(numpy.abs(numpy.sign(self.erc_weights)-numpy.sign(sef.allocation_signs))) > 0 :
+                        print ( "Sign-check-fail: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
+                
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.erc_weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
 
