@@ -45,10 +45,10 @@ class SimpleRiskManager(RiskManagerAlgo):
         self.current_allocation_level = 100.0 # Fully allocated initially
 
     def get_current_risk_level(self, _date):
-        if self.last_update_date == _date:
+        if self.last_risk_level_updated_date == _date:
             return self.current_allocation_level
         else:
-            self.last_update_date = _date
+            self.last_risk_level_updated_date = _date
         if _date.year == self.performance_tracker.current_year_trading_cost[0]:
             _current_year_trading_cost = self.performance_tracker.current_year_trading_cost[1]
         else:
