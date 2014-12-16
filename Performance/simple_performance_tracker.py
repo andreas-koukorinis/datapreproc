@@ -1,7 +1,7 @@
 import sys
 import os
 import datetime
-import numpy as numpy
+import numpy
 import scipy.stats as ss
 from Utils.Regular import get_first_futures_contract, is_future
 from Utils import defaults
@@ -20,8 +20,8 @@ class SimplePerformanceTracker(IndicatorListener):
         for _product in self.products:
             self.map_product_to_index[_product] = _product_index
             _product_index = _product_index + 1 
-        self.daily_log_returns = np.empty(shape=(0))
-        self.latest_log_returns = np.zeros(len(self.products))     
+        self.daily_log_returns = numpy.empty(shape=(0))
+        self.latest_log_returns = numpy.zeros(len(self.products))     
         self.net_log_return = 0.0
         self.cash = 1.0
         self.money_allocation = numpy.zeros(len(self.products)) # track the current weight of each product
@@ -101,4 +101,4 @@ class SimplePerformanceTracker(IndicatorListener):
         if self.daily_log_returns.shape[0] < return_history: # for insufficient history return 0.0
             return 0.0
         else:
-            return (np.exp(np.mean(self.daily_log_returns[-return_history:]) * 252) - 1) * 100
+            return (numpy.exp(numpy.mean(self.daily_log_returns[-return_history:]) * 252) - 1) * 100
