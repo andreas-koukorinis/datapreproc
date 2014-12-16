@@ -5,7 +5,7 @@ from Utils.Calculate import get_current_prices, get_mark_to_market, get_current_
 from Utils.Regular import is_future, is_future_entity, get_base_symbol, get_first_futures_contract, get_next_futures_contract, get_future_mappings, shift_future_symbols
 
 '''This execlogic switches to the next futures contract on the last trading day(based on volume) and places aggressive orders for rollover'''
-class SimpleExecLogicV1(ExecLogicAlgo):
+class SimpleExecLogic(ExecLogicAlgo):
     def init(self, _config):
         pass
 
@@ -46,8 +46,7 @@ class SimpleExecLogicV1(ExecLogicAlgo):
                     else:
                         self.place_order( dt, product, _orders_to_place[product] )
                     self.orders_to_place[product] = 0 # Since today is a trading day for this product,so we should have no pending orders left
-
-        self.notify_last_trading_day()
+            self.notify_last_trading_day()
 
     def update_positions(self, dt, weights):
         self.current_date = dt.date()
