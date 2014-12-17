@@ -6,6 +6,8 @@ from BookBuilder.BookBuilder import BookBuilder
 from OrderManager.OrderManager import OrderManager
 from Portfolio import Portfolio
 from Utils import defaults
+from Utils.global_variables import Globals
+from Utils.Calculate import get_current_prices, get_mark_to_market, find_most_recent_price, find_most_recent_price_future
 from Performance.PerformanceTracker import PerformanceTracker
 from Performance.simple_performance_tracker import SimplePerformanceTracker
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
@@ -78,9 +80,23 @@ class TradeAlgorithm(EventsListener):
     def on_events_update(self, concurrent_events):
         pass
 
-    # Return the portfolio variables as a dictionary
-    def get_portfolio(self):
-        return { 'cash' : self.portfolio.cash, 'num_shares' : self.portfolio.num_shares, 'products' : self.portfolio.products }
+    def get_current_portfolio_weights(self, date):
+        #_net_portfolio_value = self.performance_tracker.value[-1]
+        # TODO should not recompute
+        _net_portfolio_value = get_mark_to_market(date, get_current_prices(self.bb_objects), Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, self.portfolio.get_portfolio())
+        weights = {}
+        for _product in self.portfolio.num_shares.keys():
+            _desired_num_shares = self.portfolio.num_shares[_product] + self.order_manager.to_be_filled[_product]
+            if _desired_num_shares != 0:
+                if is_future(_product):
+                    _price = find_most_recent_price_future(self.bb_objects[_product].dailybook, self.bb_objects[get_next_futures_contract(_product)].dailybook, date)
+                else:
+                    _price = find_most_recent_price(self.bb_objects[_product].dailybook, date)
+                _notional_value_product = _price * _desired_num_shares * self.conversion_factor[_product] * self.currency_factor[self.product_to_currency[_product]][date]
+            else:
+                _notional_value_product = 0.0
+            weights[_product] = _notional_value_product/_net_portfolio_value
+        return weights
 
     def update_positions(self, dt, weights):
         self.simple_performance_tracker.update_performance(dt.date())
