@@ -24,7 +24,7 @@ class SimpleRiskManager(RiskManagerAlgo):
             _drawdown_levels = _config.get('RiskManagement', 'drawdown_levels').split(',')
         self.drawdown_levels = ([float(x) for x in _drawdown_levels])
         self.maxloss = float(defaults.MAXLOSS)
-        if _config.has_option('RiskManagement', 'max_loss'):
+        if _config.has_option('RiskManagement', 'maxloss'):
             self.maxloss = _config.getfloat('RiskManagement', 'maxloss') 
         self.max_trading_cost = float(defaults.MAX_TRADING_COST)
         if _config.has_option('RiskManagement', 'max_trading_cost'):
