@@ -13,10 +13,17 @@ from Utils.DbQueries import get_currency_and_conversion_factors
 def __main__() :
     """ Performs the backtesting of the strategy
     
-    Description: Initialize the global variables in global_variables module
+    Description: 
+        Initialize the global variables in global_variables module
         Instantiate the strategy class and dispatcher class
         Call the dispatcher to start the simulation process
         Print the stats to the standard output
+
+    Example run1: 
+        python Simulator.py test/IVWAS.cfg
+    
+    Example run2:
+        python Simulator.py test/IVWAS.cfg 2014-01-01 2014-10-31
 
     Args: config_file_path <start_date> <end_date>
         config_file_path: The relative path to the config file of the strategy
@@ -37,7 +44,7 @@ def __main__() :
         sys.exit(0)
     # Get handle of config file
     _config_file = sys.argv[1]
-    _directory = 'logs/'+os.path.splitext(os.path.basename(_config_file))[0]+'/' # directory to store positions,returns file
+    _directory = 'logs/'+os.path.splitext(os.path.basename(_config_file))[0]+'/' # directory to store log files like positions,returns file
     if not os.path.exists(_directory):
         os.makedirs(_directory)
     _config = ConfigParser.ConfigParser()
@@ -51,9 +58,9 @@ def __main__() :
 
     # Read product list from config file
     _trade_products = _config.get( 'Products', 'trade_products' ).strip().split(",")
-
     _all_products = get_all_products( _config )
 
+    # Initialize the global variables
     Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency = get_currency_and_conversion_factors(_all_products, _start_date, _end_date)
 
     # Import the strategy class using 'Strategy'->'name' in config file
