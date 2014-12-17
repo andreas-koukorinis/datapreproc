@@ -64,14 +64,14 @@ class AggregatorIV(TradeAlgorithm):
         _new_signal_contributions = []
         _new_portfolio_weights = dict([(_product, 0.0) for _product in self.products])
         if self.day >= self.last_day_volatility_computed + self.volatility_computation_interval:
-            self.update_signal_allocations_using_volatility()
+            self.update_signal_allocations_using_volatility(self.signals)
             self.last_day_volatility_computed = self.day
             _signal_rebalancing_day = [True] * len(_signals) # Treat the day when allocations are changed as the rebalacing day for each signal
         for i in range(len(_signals)):
             _new_signal_contributions.append(dict([(_product, 0.0) for _product in self.products]))
             if _signal_rebalancing_day[i]:
                 for _product in self.products:
-                    _new_signal_contributions[i][_product] = _signal_allocations[i] * _signals[i].weights.get(_product, 0.0)
+                    _new_signal_contributions[i][_product] = self.signal_allocations[i] * _signals[i].weights.get(_product, 0.0)
                     _new_portfolio_weights[_product] += _new_signal_contributions[i][_product]
             else:
                 for _product in self.products:
