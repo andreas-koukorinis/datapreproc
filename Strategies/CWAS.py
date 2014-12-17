@@ -1,5 +1,5 @@
 import sys
-from numpy import *
+import numpy
 from Algorithm.TradeAlgorithm import TradeAlgorithm
 from Utils.Regular import check_eod,parse_weights
 
@@ -22,7 +22,7 @@ class CWAS( TradeAlgorithm ):
         if all_eod: self.day += 1  # Track the current day number
            
         # If today is the rebalancing day,then use indicators to calculate new positions to take
-        if all_eod and self.day % self.rebalance_frequency == 0 :
+        if all_eod and (self.day % self.rebalance_frequency == 0) :
             # Calculate weights to assign to each product using indicators
             weights = self.weights         
             self.update_positions( events[0]['dt'], weights )

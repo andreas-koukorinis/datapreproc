@@ -18,16 +18,24 @@ class TradeAlgorithm(EventsListener):
 
     '''
     Base class for strategy development
-    User should inherit this class and override init and OnEventListener functions
+    User should inherit this class and override init and on_events_update functions
     '''
     def __init__( self, _trade_products, _all_products, _startdate, _enddate, _config, _log_filename):
+        """
+        Parameters ( TODO: what are they ? )
+        _trade_products
+        _all_products
+        _startdate
+        _enddate
+        """
         self.products = sorted(_trade_products) # we are doing this here so that multiple instances of indicators all point to same value.
         self.all_products = _all_products
         self.daily_indicators = {}
         self.start_date = _startdate
         self.end_date = _enddate
 
-        self.map_product_to_index = {} # this might be needed, dunno for sure
+        # this should be a global product to index map, that allows us to work with indices rather than product strings
+        self.map_product_to_index = {} 
         _product_index = 0
         for _product in self.products:
             self.map_product_to_index[_product] = _product_index
@@ -53,11 +61,6 @@ class TradeAlgorithm(EventsListener):
         for product in self.all_products:
             self.bb_objects[product] = BookBuilder.get_unique_instance ( product, _startdate, _enddate, _config )
 
-        # TradeAlgorithm will be notified once all indicators have been updated.
-        # Currently it is implemented as an EventsListener
-        dispatcher = Dispatcher.get_unique_instance ( self.all_products, _startdate, _enddate, _config )
-        dispatcher.add_events_listener( self )
-
         self.order_manager = OrderManager.get_unique_instance ( self.all_products, _startdate, _enddate, _config, _log_filename )
 
         # Give strategy the access to the portfolio instance
@@ -68,7 +71,9 @@ class TradeAlgorithm(EventsListener):
         self.performance_tracker.portfolio = self.portfolio # Give Performance Tracker access to the portfolio     
         self.simple_performance_tracker = SimplePerformanceTracker(self.products, self.all_products, _startdate, _enddate, _config)
 
-        #Instantiate ExecLogic
+        # Instantiate ExecLogic:
+        # We read the parameter "execlogic" from the config, and based on name we import the relevant module
+        # and instantiate the self.exec_logic object
         _exec_logic_name = defaults.EXECLOGIC
         if _config.has_option('Parameters', 'execlogic'):
             _exec_logic_name = _config.get('Parameters', 'execlogic')
@@ -77,11 +82,17 @@ class TradeAlgorithm(EventsListener):
         _exec_logic_module_name = get_module_name_from_execlogic_name(_exec_logic_name)
         ExecLogicClass = getattr(import_module('execlogics.' + _exec_logic_module_name), _exec_logic_name)
         self.exec_logic = ExecLogicClass(self.products, self.all_products, self.order_manager, self.portfolio, self.bb_objects, self.performance_tracker, self.simple_performance_tracker, _startdate, _enddate, _config)
-        # By this time we have initialized all common elements, and hence initialize subclass
-        #self.init(_config) #TODO check if should be called here
 
-    # User is expected to write the function
+        # By this time we have initialized all common elements, and hence initialize subclass
+        self.init(_config)
+
+        # TradeAlgorithm is an EventsListener, and will be notified after all the EventListeners have been updated
+        # and all SignalAlgorithm instances have been updated.
+        dispatcher = Dispatcher.get_unique_instance ( self.all_products, _startdate, _enddate, _config )
+        dispatcher.add_events_listener( self )
+
     def on_events_update(self, concurrent_events):
+        """Main function that gets control in the TradeAlgorithm. Needs to be implemented in child class"""
         pass
 
     def get_current_portfolio_weights(self, date):
@@ -103,10 +114,22 @@ class TradeAlgorithm(EventsListener):
         return get_weights_for_trade_products(self.products, weights)
 
     def update_positions(self, dt, weights):
+        """This function is going to be called by the child classes.
+        It should probably have been called update_allocations,
+        since it updates the portfolio allocation weights that the Strategy wants to have.
+        It updates the simple_performance_tracker.
+        Then it tells the simple_performance_tracker that these are the weights we want to have after this iteration.
+        Then it asks self.exec_logic to execute orders to reach the desired portfolio allocations ( weights )"""
         self.simple_performance_tracker.update_performance(dt.date())
         self.simple_performance_tracker.update_weights(dt.date(), weights)
         self.exec_logic.update_positions(dt, weights)
 
     def rollover(self, dt):
+        """
+        The reason to make a separate function than update_positions is that in this case we are not rebalncing to the desired weights.
+        We are just checking for risk and rollover, things that cannot wait till next rebalncing day.
+        Again we need to update simple_performance_tracker since it will be used by the risk manager.
+        The simple_performance_tracker should probably be listening to end of day events.
+        """
         self.simple_performance_tracker.update_performance(dt.date())
         self.exec_logic.rollover(dt)

@@ -17,6 +17,8 @@ class AggregatorCWAS(TradeAlgorithm):
     """
     
     def init(self, _config):
+        """This is sort of the constructor of this object.
+        For all child classes of TradeAlgorithm we assume that init is called by TradeAlgorithm before adding itself as a listener to Dispatcher."
         self.day = -1
         if _config.has_option('Strategy', 'signal_configs'):
             _signal_configs =  _config.get('Strategy', 'signal_configs').split(',')
