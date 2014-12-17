@@ -78,12 +78,14 @@ class RiskManagerPaper(RiskManagerAlgo):
 
         self.current_risk_level_index = 0 # highest risk level. Unfortunately the highest risk level has the smallest index
         self.current_capital_allocation_level = 100.0 # Fully allocated initially
-        self.last_risk_level_updated_date = 0 #TODO change to some date say one year before first date. 0 is not a valid date
+        self.last_risk_level_updated_date = datetime.datetime.fromtimestamp(0).date() 
 
     def get_risk_level_index_from_drawdown(self,_current_drawdown):
         """private function, that returns the correct index of the risk level array based on the current drawdown level"""
         _retindex = len(self.risk_level_vec)-1
-        while (_retindex > 0) and (self.risk_level_vec[_retindex].max_historical_drawdown > _current_drawdown):
+        # start at lowest risk level
+        # and keep trying a higher risk level as long as the max drawdown of that level will be higher 
+        while (_retindex > 0) and (self.risk_level_vec[(_retindex - 1)].max_historical_drawdown > _current_drawdown):
             _retindex = _retindex - 1
         # _retindex cannot be < 0
         # _retindex cannot be >= len(self.risk_level_vec)
