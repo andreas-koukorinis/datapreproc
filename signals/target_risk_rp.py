@@ -35,6 +35,7 @@ class TargetRiskRP(SignalAlgorithm):
         # If today is the rebalancing day,then use indicators to calculate new positions to take
         if all_eod and self.day % self.rebalance_frequency == 0 :
             # Calculate weights to assign to each product using indicators
+            _weights = {}
             for product in self.products:
                 target_risk_per_product = self.target_risk/len(self.products)
                 _stddev = 0.0
@@ -42,4 +43,7 @@ class TargetRiskRP(SignalAlgorithm):
                     val = self.daily_indicators[ 'StdDev.' + product + '.' + period ].values[1]         
                     _stddev += (numpy.exp(numpy.sqrt(252.0)*val) - 1)*100.0         
                 vol_product = _stddev/float(len(self.periods))
-                self.weights[product] = self.signs[product]*target_risk_per_product/vol_product
+                _weights[product] = 2.0*self.signs[product]*target_risk_per_product/vol_product
+            self.update_positions(events[0]['dt'], _weights)
+        else:
+            self.rollover(events[0]['dt'])

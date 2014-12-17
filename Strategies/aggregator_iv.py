@@ -24,10 +24,10 @@ class AggregatorIV(TradeAlgorithm):
             _signal_configs =  _config.get('Strategy', 'signal_configs').split(',')
             self.volatility_history = 63
             if _config.has_option('Strategy', 'volatility_history'):
-                self.volatility_history = _config.getfloat('Strategy', 'volatility_history')
-            self.volatility_computation_interval =63
+                self.volatility_history = _config.getint('Strategy', 'volatility_history')
+            self.volatility_computation_interval = 63
             if _config.has_option('Strategy', 'volatility_computation_interval'):
-                self.volatility_history = _config.getfloat('Strategy', 'volatility_computation_interval')
+                self.volatility_computation_interval = _config.getint('Strategy', 'volatility_computation_interval')
             self.last_day_volatility_computed = 0
             self.signals = []
             for _config_name in _signal_configs:
@@ -57,7 +57,7 @@ class AggregatorIV(TradeAlgorithm):
 
     def update_signal_allocations_using_volatility(self, _signals):
         for i in range(len(_signals)):
-            self.signal_allocations[i] = _signals[i].simple_performance_tracker.compute_historical_volatility(self.volatility_history)
+            self.signal_allocations[i] = 1.0/_signals[i].simple_performance_tracker.compute_historical_volatility(self.volatility_history)
         self.signal_allocations = self.signal_allocations/sum(self.signal_allocations) # Normalize, dont need abs since all values are positive
 
     def get_new_portfolio_weights(self, _signal_rebalancing_day, _current_portfolio_weights, _signals):
@@ -67,6 +67,7 @@ class AggregatorIV(TradeAlgorithm):
             self.update_signal_allocations_using_volatility(self.signals)
             self.last_day_volatility_computed = self.day
             _signal_rebalancing_day = [True] * len(_signals) # Treat the day when allocations are changed as the rebalacing day for each signal
+            print self.day, self.signal_allocations
         for i in range(len(_signals)):
             _new_signal_contributions.append(dict([(_product, 0.0) for _product in self.products]))
             if _signal_rebalancing_day[i]:

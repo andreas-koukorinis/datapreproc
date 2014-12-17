@@ -58,6 +58,7 @@ class SignalAlgorithm(EventsListener): # TODO Should listen to events correspond
         pass
 
     def update_positions(self, dt, weights):
+        self.weights = weights # To be used by the aggregator
         self.simple_performance_tracker.update_performance(dt.date())
         self.simple_performance_tracker.update_weights(dt.date(), weights)
 
