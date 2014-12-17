@@ -91,7 +91,7 @@ def main():
         print "Arguments needed: config_file"
         sys.exit(0)
     _config_file = sys.argv[1]
-    _current_date = date.today() + timedelta(days=-1)
+    _current_date = date.today() + timedelta(days=-2)
     #print _current_date
     _ytd_start_date = date(_current_date.year, 1, 1)
     _ytd_end_date = _current_date
