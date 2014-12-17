@@ -158,7 +158,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                 _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0 * (np.asmatrix(self.erc_weights) * np.asmatrix(_cov_mat) * np.asmatrix(self.erc_weights).T))[0, 0]) - 1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
 
-                _check_sign_of_weights=True
+                _check_sign_of_weights = False
                 if _check_sign_of_weights:
                     if sum(numpy.abs(numpy.sign(self.erc_weights)-numpy.sign(sef.allocation_signs))) > 0 :
                         print ( "Sign-check-fail: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
