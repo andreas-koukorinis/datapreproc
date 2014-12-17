@@ -20,9 +20,9 @@ class AggregatorCWAS(TradeAlgorithm):
         """This is sort of the constructor of this object.
         For all child classes of TradeAlgorithm we assume that init is called by TradeAlgorithm before adding itself as a listener to Dispatcher."""
         self.day = -1
+        self.signals = [] # This is the set of SignalAlgorithm instances
         if _config.has_option('Strategy', 'signal_configs'):
             _signal_configs =  _config.get('Strategy', 'signal_configs').split(',')
-            self.signals = []
             for _config_name in _signal_configs:
                 _signal_config = ConfigParser.ConfigParser()
                 _signal_config.readfp(open(_config_name, 'r'))
@@ -33,15 +33,25 @@ class AggregatorCWAS(TradeAlgorithm):
                 SignalLogic = getattr(import_module('signals.' + _signal_module_name), _signalfile)
                 _signal_instance = SignalLogic(self.all_products, self.start_date, self.end_date, _signal_config, _config)
                 self.signals.append(_signal_instance)
-            self.past_relative_contribution = []
-            for i in range(len(self.signals)):
-                self.past_relative_contribution.append(dict([(_product, 0.0) for _product in self.products]))
         else:
-            sys.exit('Atleast one signal config expected')
+            sys.exit('Strategy::signal_configs is needed in the config file')
+
+        if len(self.signals) < 1:
+            sys.exit('No SignalAlgorithm instances were created. Hence exiting')
+
+        # past_relative_contribution is needed in updating weights, since the rebalancing frequency of different SignalAlgorithm instances could be different.
+        self.past_relative_contribution = []
+        for i in range(len(self.signals)):
+            self.past_relative_contribution.append(dict([(_product, 0.0) for _product in self.products]))
+            # TODO change from dict to numpy.array in future assuming the map_product_to_index
+
         self.signal_allocations = numpy.array([1.0/float(len(_signal_configs))] * len(_signal_configs)) # Equally weighted by default
         if _config.has_option('Strategy', 'signal_allocations'):
             _signal_allocations = _config.get('Strategy', 'signal_allocations').split(',')
-            self.signal_allocations = numpy.array([float(x) for x in _signal_allocations]) 
+            self.signal_allocations = numpy.array([float(x) for x in _signal_allocations])
+
+        if len(self.signal_allocations) != len(self.signals):
+            sys.exit('Strategy::signal_allocations should have the same length as Strategy::signals in the config')
 
     def update_past_relative_contribution(self, _new_signal_contributions, _new_portfolio_weights):
         for i in range(len(_new_signal_contributions)):
@@ -74,7 +84,7 @@ class AggregatorCWAS(TradeAlgorithm):
         if all_eod: self.day += 1  # Track the current day number
         _signal_rebalancing_day = [False] * len(self.signals)
         _is_rebalancing_day = False
-        #print events[0]['dt'].date()
+
         for i in range(len(self.signals)):
             if self.day % self.signals[i].rebalance_frequency == 0:
                 _signal_rebalancing_day[i] = True
