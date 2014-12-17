@@ -1,5 +1,5 @@
 import sys
-import numpy as np
+import numpy
 from numpy.linalg import inv
 from importlib import import_module
 from scipy.optimize import minimize
@@ -31,7 +31,7 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
             self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
 
         # by default we are long in all products
-        self.allocation_signs = np.ones(len(self.products))
+        self.allocation_signs = numpy.ones(len(self.products))
         if _config.has_option('Strategy', 'allocation_signs'):
             _given_allocation_signs = parse_weights(_config.get('Strategy', 'allocation_signs'))
             for _product in _given_allocation_signs:
@@ -64,11 +64,11 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
         self.last_date_stdev_computed = 0
         self.stdev_computation_indicator_mapping = {} # map from product to the indicator to get the stddev value
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
-        self.erc_weights = np.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
-        self.erc_weights_optim = np.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
-        self.stddev_logret = np.array([1.0]*len(self.products)) # these are the stddev values, with products occuring in the same order as the order in self.products
+        self.erc_weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
+        self.erc_weights_optim = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
+        self.stddev_logret = numpy.array([1.0]*len(self.products)) # these are the stddev values, with products occuring in the same order as the order in self.products
         # create a diagonal matrix of 1s for correlation matrix
-        self.logret_correlation_matrix = np.eye(len(self.products))
+        self.logret_correlation_matrix = numpy.eye(len(self.products))
         
         if is_valid_daily_indicator(self.stddev_computation_indicator):
             for product in self.products:
@@ -115,24 +115,24 @@ class TargetRiskMaxSharpeHistCorr(TradeAlgorithm):
             if _need_to_recompute_erc_weights:
                 # Calculate weights to assign to each product using indicators
                 # compute covariance matrix from correlation matrix and
-                _cov_mat = self.logret_correlation_matrix * np.outer(self.stddev_logret, self.stddev_logret) # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
+                _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stddev_logret, self.stddev_logret) # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
 
-                _annualized_risk = 100.0*(np.exp(np.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
+                _annualized_risk = 100.0*(numpy.exp(numpy.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
                 zero_corr_risk_parity_weights = 1.0/(_annualized_risk)
-                if np.sum(np.abs(self.erc_weights)) < 0.001:
+                if numpy.sum(numpy.abs(self.erc_weights)) < 0.001:
                     # Initialize weights
-                    self.erc_weights_optim = zero_corr_risk_parity_weights/np.sum(np.abs(zero_corr_risk_parity_weights))
+                    self.erc_weights_optim = zero_corr_risk_parity_weights/numpy.sum(numpy.abs(zero_corr_risk_parity_weights))
                     self.erc_weights = self.erc_weights_optim
 
-                expected_sharpe_ratios = np.asmatrix(self.allocation_signs).T # switched to self.allocation_signs from np.ones(len(self.products))
+                expected_sharpe_ratios = numpy.asmatrix(self.allocation_signs).T # switched to self.allocation_signs from numpy.ones(len(self.products))
                 # Set erc_weights_optim to inv ( correlation martix ) * zero_corr_risk_parity_weights
-                self.erc_weights_optim = np.ravel(np.diagflat(zero_corr_risk_parity_weights) * inv(self.logret_correlation_matrix) * expected_sharpe_ratios)
+                self.erc_weights_optim = numpy.ravel(numpy.diagflat(zero_corr_risk_parity_weights) * inv(self.logret_correlation_matrix) * expected_sharpe_ratios)
                 self.erc_weights = self.erc_weights_optim
 
                 # In the following steps we resize the portfolio to the taregt risk level.
                 # We have just used stdev as the measure of risk ehre since it is simple.
                 # TODO improve risk calculation
-                _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0 * (np.asmatrix(self.erc_weights) * np.asmatrix(_cov_mat) * np.asmatrix(self.erc_weights).T))[0, 0]) - 1)
+                _annualized_stddev_of_portfolio = 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(self.erc_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.erc_weights).T))[0, 0]) - 1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
 
                 _check_sign_of_weights=True
