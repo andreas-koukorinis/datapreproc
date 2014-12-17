@@ -9,8 +9,8 @@ from BookBuilder.BookBuilder import BookBuilder
 from DailyIndicators.Indicator_Listeners import IndicatorListener
 from DailyIndicators.DailyLogReturns import DailyLogReturns
 
-'''SimplePerformanceTracker listens to the Dispatcher for concurrent events and keeps track of daily_log_returns irrespective of whether the strategy is running or not'''
 class SimplePerformanceTracker(IndicatorListener):
+    '''SimplePerformanceTracker listens to the Dispatcher for concurrent events and keeps track of daily_log_returns irrespective of whether the strategy is running or not'''
 
     def __init__(self, products, all_products, _startdate, _enddate, _config):
         self.products = products
@@ -81,8 +81,8 @@ class SimplePerformanceTracker(IndicatorListener):
             product = get_first_futures_contract(product)
         return len(self.bb_objects[product].dailybook) > 0 and self.bb_objects[product].dailybook[-1][0].date() == date # If the closing price for a product is available for a date
 
-    # Called by Trade Algorithm
     def update_performance(self, date):
+        """All the computation is done by this function. It is called by TradeAlgorithm and SignalAlgorithm"""
         self.date = date
         self.compute_todays_log_return(date)
         self.update_rebalanced_weights_for_trading_products(date) # Read as order executed

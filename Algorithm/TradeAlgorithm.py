@@ -99,7 +99,7 @@ class TradeAlgorithm(EventsListener):
                 _notional_value_product = _price * _desired_num_shares * Globals.conversion_factor[_product] * Globals.currency_factor[Globals.product_to_currency[_product]][date]
             else:
                 _notional_value_product = 0.0
-            weights[_product] = _notional_value_product/_net_portfolio_value        
+            weights[_product] = _notional_value_product/_net_portfolio_value
         return get_weights_for_trade_products(self.products, weights)
 
     def update_positions(self, dt, weights):
