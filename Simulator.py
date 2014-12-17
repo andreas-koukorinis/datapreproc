@@ -11,6 +11,27 @@ from Utils.global_variables import Globals
 from Utils.DbQueries import get_currency_and_conversion_factors
 
 def __main__() :
+    """ Performs the backtesting of the strategy
+    
+    Description: Initialize the global variables in global_variables module
+        Instantiate the strategy class and dispatcher class
+        Call the dispatcher to start the simulation process
+        Print the stats to the standard output
+
+    Args: config_file_path <start_date> <end_date>
+        config_file_path: The relative path to the config file of the strategy
+        start_date: The start_date of the simulation
+        end_date: The end_date of the simulation
+   
+    Note:
+        1) start_date and end_date are optional arguments, if not specified through command line then
+           the ones mentioned in the config file will be used
+
+    Output: Prints the performance stats to the standard output and log files in logs/config_name/ directory
+    
+    Returns: Nothing 
+    """
+          
     if len ( sys.argv ) < 2 :
         print "config_file <trading-startdate trading-enddate>"
         sys.exit(0)
@@ -44,22 +65,21 @@ def __main__() :
     strategy_module_name = get_module_name_from_strategy_name(_stratfile)
     TradeLogic = getattr(import_module('Strategies.' + strategy_module_name), _stratfile)  # Get the strategy class from the imported module
 
-    # Initialize the strategy
-    # Strategy is written by the user and it inherits from TradeAlgorithm,
+    # Instantiate the strategy
+    # Strategy is written by the user and it inherits from TradeAlgorithm
     # TradeLogic here is the strategy class name converted to variable.Eg: UnleveredRP
     _tradelogic_instance = TradeLogic( _trade_products, _all_products, _start_date, _end_date, _config , os.path.splitext(_config_file)[0].split('/')[-1] ) # TODO Should take logfile as terminal arg
 
-    # Initialize Dispatcher using products list
+    # Instantiate the Dispatcher
     _dispatcher = Dispatcher.get_unique_instance( _all_products, _start_date, _end_date, _config )
 
     # Run the dispatcher to start the backtesting process
     _dispatcher.run()
 
-    # Effective number of trading days will be less than [end_date-start_date] due to the warmup time specified by the user
-
     print '\nTotal Tradable Days = %d'%( _dispatcher.trading_days )
 
-    # Call the performance tracker to display the results and plot the graph of cumulative PnL
+    # Call the performance tracker to display the stats
     _tradelogic_instance.performance_tracker.show_results()
 
-__main__();
+if __name__ == '__main__':
+    __main__()
