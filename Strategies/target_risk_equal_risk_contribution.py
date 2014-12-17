@@ -1,5 +1,5 @@
 import sys
-import numpy as np
+import numpy
 from importlib import import_module
 from scipy.optimize import minimize
 from Algorithm.TradeAlgorithm import TradeAlgorithm
@@ -32,7 +32,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
             self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
 
         # by default we are long in all products
-        self.allocation_signs = np.ones(len(self.products))
+        self.allocation_signs = numpy.ones(len(self.products))
         if _config.has_option('Strategy', 'allocation_signs'):
             _given_allocation_signs = parse_weights(_config.get('Strategy', 'allocation_signs'))
             for _product in _given_allocation_signs:
@@ -73,12 +73,12 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
         self.last_date_stdev_computed = 0
         self.stdev_computation_indicator_mapping = {} # map from product to the indicator to get the stddev value
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
-        self.erc_weights = np.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
-        self.erc_weights_optim = np.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
-        self.stddev_logret = np.ones(len(self.products)) # these are the stddev values, with products occuring in the same order as the order in self.products
+        self.erc_weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
+        self.erc_weights_optim = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
+        self.stddev_logret = numpy.ones(len(self.products)) # these are the stddev values, with products occuring in the same order as the order in self.products
 
         # create a diagonal matrix of 1s for correlation matrix
-        self.logret_correlation_matrix = np.eye(len(self.products))
+        self.logret_correlation_matrix = numpy.eye(len(self.products))
 
         if is_valid_daily_indicator(self.stddev_computation_indicator):
             for product in self.products:
@@ -125,14 +125,14 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
             if _need_to_recompute_erc_weights:
                 # Calculate weights to assign to each product using indicators
                 # compute covariance matrix from correlation matrix and
-                _cov_mat = self.logret_correlation_matrix * np.outer(self.stddev_logret, self.stddev_logret) # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
+                _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stddev_logret, self.stddev_logret) # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
 
-                if np.sum(np.abs(self.erc_weights)) < 0.001:
+                if numpy.sum(numpy.abs(self.erc_weights)) < 0.001:
                     # Initialize weights
-                    _annualized_risk = 100.0*(np.exp(np.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
+                    _annualized_risk = 100.0*(numpy.exp(numpy.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
                     _expected_sharpe_ratios = self.allocation_signs # switched to self.allocation_signs from not multiplying anything 
                     zero_corr_risk_parity_weights = (1.0/_annualized_risk) * _expected_sharpe_ratios
-                    self.erc_weights = zero_corr_risk_parity_weights/np.sum(np.abs(zero_corr_risk_parity_weights))
+                    self.erc_weights = zero_corr_risk_parity_weights/numpy.sum(numpy.abs(zero_corr_risk_parity_weights))
                     self.erc_weights_optim = self.erc_weights
 
                 # Using L1 norm here. It does not optimize well if we use L2 norm.
@@ -140,11 +140,11 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                     """Function to return the L1 norm of the series of { risk_contrib - mean(risk_contrib) },
                     or sum of absolute values of the series of { risk_contributions - mean(risk_contributions) }
                     """
-                    _cov_vec = np.array(np.asmatrix(_cov_mat)*np.asmatrix(_given_weights).T)[:, 0]
+                    _cov_vec = numpy.array(numpy.asmatrix(_cov_mat)*numpy.asmatrix(_given_weights).T)[:, 0]
                     _trc = _given_weights*_cov_vec
-                    return (np.sum(np.abs(_trc - np.mean(_trc))))
+                    return (numpy.sum(numpy.abs(_trc - numpy.mean(_trc))))
 
-                _constraints = {'type':'eq', 'fun': lambda x: np.sum(np.abs(x)) - 1}
+                _constraints = {'type':'eq', 'fun': lambda x: numpy.sum(numpy.abs(x)) - 1}
                 self.erc_weights_optim = minimize(_get_l1_norm_risk_contributions, self.erc_weights_optim, method='SLSQP', constraints=_constraints, options={'ftol': self.optimization_ftol, 'disp': False, 'maxiter':self.optimization_maxiter}).x
                 # TODO{gchak} We should check whether weights produced here have the same signs as self.allocation_signs.
                 # Otherwise we need to set them to 0.
@@ -155,12 +155,12 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                 # In the following steps we resize the portfolio to the taregt risk level.
                 # We have just used stdev as the measure of risk ehre since it is simple.
                 # TODO improve risk calculation
-                _annualized_stddev_of_portfolio = 100.0*(np.exp(np.sqrt(252.0 * (np.asmatrix(self.erc_weights) * np.asmatrix(_cov_mat) * np.asmatrix(self.erc_weights).T))[0, 0]) - 1)
+                _annualized_stddev_of_portfolio = 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(self.erc_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.erc_weights).T))[0, 0]) - 1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
 
                 _check_sign_of_weights=True
                 if _check_sign_of_weights:
-                    if sum(numpy.abs(numpy.sign(self.erc_weights)-numpy.sign(sef.allocation_signs))) > 0 :
+                    if sum(numpy.abs(numpy.sign(self.erc_weights)-numpy.sign(self.allocation_signs))) > 0 :
                         print ( "Sign-check-fail: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
                 
                 for _product in self.products:
