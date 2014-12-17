@@ -1,3 +1,12 @@
+# To create a branch :
+git checkout -b <branch_name>
+
+# To delete a branch locally :
+git branch -d <branch_name> # note that this will not delete the branch from origin
+
+# To delete a branch from origin
+git push origin :<branch_name>
+
 # To checkout ( switch to ) a branch :
 git checkout <branch_name>
 
@@ -27,3 +36,6 @@ git push
 
 # to push changes
 git push origin branch_name
+
+# The most powerful command of them all!
+git stash #this saves the changes you have made since the last commit, and alows you to checkout to another branch and then come back to work on this branch. then you can apply the stash
