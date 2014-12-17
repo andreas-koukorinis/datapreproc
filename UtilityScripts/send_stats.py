@@ -63,8 +63,8 @@ def process_filled_orders(_filled_orders):
 def send_mail(_body, _config_file, _current_date):
     _server = "localhost"
     _from = "sanchit.gupta@tworoads.co.in"
-    _to = "cvquant@circulumvite.com"
-    #_to = "sanchit.gupta@tworoads.co.in"
+    #_to = "cvquant@circulumvite.com"
+    _to = "sanchit.gupta@tworoads.co.in"
     _subject = "Summary stats on %s for config:%s"%(_current_date,_config_file)
      # Prepare actual message
     message = "From: {0}\nTo: {1}\nSubject: {2}\n\n{3}".format(_from, _to, _subject, _body)
@@ -91,13 +91,13 @@ def main():
         print "Arguments needed: config_file"
         sys.exit(0)
     _config_file = sys.argv[1]
-    _current_date = date.today() + timedelta(days=-1)
+    _current_date = date.today() + timedelta(days=-2)
     #print _current_date
     _ytd_start_date = date(_current_date.year, 1, 1)
     _ytd_end_date = _current_date
     _mtd_start_date = date(_current_date.year, _current_date.month, 1)
     _mtd_end_date = _current_date
-    _yday_start_date = date(_current_date.year , 1, 1)
+    _yday_start_date = date(_current_date.year , _current_date.month, 1)
     _yday_end_date = _current_date
 
     performance_stats = []
@@ -111,10 +111,11 @@ def main():
     performance_stats.append(parse_results( proc.communicate()[0] ) )
 
     proc = subprocess.Popen(['python', '-W', 'ignore', 'Simulator.py', _config_file, str(_yday_start_date), str(_yday_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc.communicate()
     performance_stats.append('------------------------------------------------\nYDAY Performance : %s to %s'%(_yday_start_date,_yday_end_date))
     performance_stats.append(get_positions(_current_date, _config_file))
     send_mail('\n\n'.join(performance_stats),_config_file,_current_date)
-    #print performance_stats
+    #print '\n\n'.join(performance_stats)
 
 if __name__ == '__main__':
     main()
