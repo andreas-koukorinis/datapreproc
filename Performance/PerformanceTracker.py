@@ -177,7 +177,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                     mark_to_market += self.portfolio.open_equity[product] * self.currency_factor[self.product_to_currency[product]][date]
         return mark_to_market
 
-    def update_open_equity(self, date):
+    def update_open_equity(self, date): # TODO change to 1 update per day: except for rollovers
         for _product in self.products:
             if self.portfolio.num_shares[_product] != 0 and is_margin_product(_product):
                 if is_future(_product): # No need

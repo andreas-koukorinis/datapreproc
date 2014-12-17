@@ -55,9 +55,9 @@ class SimpleExecLogic(ExecLogicAlgo):
         if not (self.risk_level == 0 and _prior_risk_level == 0):
             current_portfolio = self.portfolio.get_portfolio()
             current_prices = get_current_prices(self.bb_objects)
-            self.performance_tracker.update_open_equity(self.current_date) # TODO{sanchit} Need to change this update
-            current_worth = get_mark_to_market(self.current_date, current_prices, self.conversion_factor, self.currency_factor, self.product_to_currency, current_portfolio)
+            current_worth = get_mark_to_market(self.current_date, current_prices, self.conversion_factor, self.currency_factor, self.product_to_currency, self.performance_tracker, current_portfolio)
             positions_to_take = self.get_positions_from_weights(self.current_date, weights, current_worth * self.risk_level/100.0, current_prices)
+            #print 'execlogic', current_worth, self.current_date,current_prices,current_portfolio
 
             _orders_to_place = dict([(product, 0) for product in self.all_products ])  
             #Adjust positions for settlements
@@ -104,7 +104,7 @@ class SimpleExecLogic(ExecLogicAlgo):
     def get_current_weights(self, date, current_prices):
         #_net_portfolio_value = self.performance_tracker.value[-1]
         # TODO should not recompute
-        _net_portfolio_value = get_mark_to_market(date, current_prices, self.conversion_factor, self.currency_factor,self. product_to_currency, self.portfolio.get_portfolio())
+        _net_portfolio_value = get_mark_to_market(date, current_prices, self.conversion_factor, self.currency_factor,self. product_to_currency, self.performance_tracker, self.portfolio.get_portfolio())
         weights = {}
         for _product in self.portfolio.num_shares.keys():
             _desired_num_shares = self.portfolio.num_shares[_product] + self.order_manager.to_be_filled[_product]

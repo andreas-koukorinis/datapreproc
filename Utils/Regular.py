@@ -135,6 +135,17 @@ def adjust_file_path_for_home_directory(file_path):
     #TODO
     return (file_path)
 
+def get_weights_for_trade_products(_trade_products, _weights):
+    _trade_products_weights = dict([(_product, 0.0) for _product in _trade_products])
+    for _product in _weights.keys():
+        if _product in _trade_products:
+            _trade_products_weights[_product] += _weights[_product]
+        elif is_future(_product):
+            _trade_products_weights[get_base_symbol(_product)] += _weights[_product]
+        else:
+            sys.exit('Product specification in configs inconsistent')
+    return _trade_products_weights
+
 def dict_to_string(_dict):
     _str = ''
     for key in sorted(_dict.keys()):

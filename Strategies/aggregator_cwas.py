@@ -29,13 +29,11 @@ class AggregatorCWAS(TradeAlgorithm):
                     sys.exit("Cannot proceed with invalid Signal name")
                 _signal_module_name = get_module_name_from_signal_name(_signalfile)
                 SignalLogic = getattr(import_module('signals.' + _signal_module_name), _signalfile)
-                _signal_instance = SignalLogic(self.all_products, self.start_date, self.end_date, _signal_config)
+                _signal_instance = SignalLogic(self.all_products, self.start_date, self.end_date, _signal_config, _config)
                 self.signals.append(_signal_instance)
             self.past_relative_contribution = []
             for i in range(len(self.signals)):
-                self.past_relative_contribution.append({})
-                for _product in self.products:
-                    self.past_relative_contribution[i][_product] = 0.0
+                self.past_relative_contribution.append(dict([(_product, 0.0) for _product in self.products]))
         else:
             sys.exit('Atleast one signal config expected')
         self.signal_allocations = numpy.array([1.0/float(len(_signal_configs))] * len(_signal_configs)) # Equally weighted by default
@@ -55,15 +53,17 @@ class AggregatorCWAS(TradeAlgorithm):
         _new_signal_contributions = []
         _new_portfolio_weights = dict([(_product, 0.0) for _product in self.products])
         for i in range(len(_signals)):
-            _new_signal_contributions.append({})
+            _new_signal_contributions.append(dict([(_product, 0.0) for _product in self.products]))
             if _signal_rebalancing_day[i]:
                 for _product in self.products:
                     _new_signal_contributions[i][_product] = _signal_allocations[i] * _signals[i].weights.get(_product, 0.0)
                     _new_portfolio_weights[_product] += _new_signal_contributions[i][_product]
             else:
                 for _product in self.products:
+                    _new_signal_contributions[i], _current_portfolio_weights, self.past_relative_contribution[i]
                     _new_signal_contributions[i][_product] = _current_portfolio_weights[_product] * self.past_relative_contribution[i][_product]
                     _new_portfolio_weights[_product] += _new_signal_contributions[i][_product]
+        #print self.signals[0].weights, self.signals[1].weights, _current_portfolio_weights, _new_portfolio_weights, self.past_relative_contribution, _new_signal_contributions
         self.update_past_relative_contribution(_new_signal_contributions, _new_portfolio_weights) # TODO should not call here
         return _new_portfolio_weights
          
@@ -72,6 +72,7 @@ class AggregatorCWAS(TradeAlgorithm):
         if all_eod: self.day += 1  # Track the current day number
         _signal_rebalancing_day = [False] * len(self.signals)
         _is_rebalancing_day = False
+        #print events[0]['dt'].date()
         for i in range(len(self.signals)):
             if self.day % self.signals[i].rebalance_frequency == 0:
                 _signal_rebalancing_day[i] = True
@@ -79,6 +80,7 @@ class AggregatorCWAS(TradeAlgorithm):
         if _is_rebalancing_day:
             _current_portfolio_weights = self.get_current_portfolio_weights(events[0]['dt'].date())
             _new_weights = self.get_new_portfolio_weights(_signal_rebalancing_day, _current_portfolio_weights, self.signals, self.signal_allocations)
+            #print events[0]['dt'].date(), self.signals[0].weights, self.signals[1].weights, _current_portfolio_weights, _new_weights, self.past_relative_contribution
             self.update_positions(events[0]['dt'], _new_weights)
         else:
             self.rollover(events[0]['dt'])

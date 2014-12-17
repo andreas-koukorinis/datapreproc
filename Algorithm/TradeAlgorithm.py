@@ -8,6 +8,7 @@ from Portfolio import Portfolio
 from Utils import defaults
 from Utils.global_variables import Globals
 from Utils.Calculate import get_current_prices, get_mark_to_market, find_most_recent_price, find_most_recent_price_future
+from Utils.Regular import is_future, get_next_futures_contract, get_weights_for_trade_products
 from Performance.PerformanceTracker import PerformanceTracker
 from Performance.simple_performance_tracker import SimplePerformanceTracker
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
@@ -44,6 +45,9 @@ class TradeAlgorithm(EventsListener):
                         _instance = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
                         self.daily_indicators[_instance.identifier] = _instance
 
+        # Call the strategy subclass
+        self.init(_config)
+
         # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects = {}
         for product in self.all_products:
@@ -74,7 +78,7 @@ class TradeAlgorithm(EventsListener):
         ExecLogicClass = getattr(import_module('execlogics.' + _exec_logic_module_name), _exec_logic_name)
         self.exec_logic = ExecLogicClass(self.products, self.all_products, self.order_manager, self.portfolio, self.bb_objects, self.performance_tracker, self.simple_performance_tracker, _startdate, _enddate, _config)
         # By this time we have initialized all common elements, and hence initialize subclass
-        self.init(_config)
+        #self.init(_config) #TODO check if should be called here
 
     # User is expected to write the function
     def on_events_update(self, concurrent_events):
@@ -83,7 +87,7 @@ class TradeAlgorithm(EventsListener):
     def get_current_portfolio_weights(self, date):
         #_net_portfolio_value = self.performance_tracker.value[-1]
         # TODO should not recompute
-        _net_portfolio_value = get_mark_to_market(date, get_current_prices(self.bb_objects), Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, self.portfolio.get_portfolio())
+        _net_portfolio_value = get_mark_to_market(date, get_current_prices(self.bb_objects), Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, self.performance_tracker, self.portfolio.get_portfolio())
         weights = {}
         for _product in self.portfolio.num_shares.keys():
             _desired_num_shares = self.portfolio.num_shares[_product] + self.order_manager.to_be_filled[_product]
@@ -92,11 +96,11 @@ class TradeAlgorithm(EventsListener):
                     _price = find_most_recent_price_future(self.bb_objects[_product].dailybook, self.bb_objects[get_next_futures_contract(_product)].dailybook, date)
                 else:
                     _price = find_most_recent_price(self.bb_objects[_product].dailybook, date)
-                _notional_value_product = _price * _desired_num_shares * self.conversion_factor[_product] * self.currency_factor[self.product_to_currency[_product]][date]
+                _notional_value_product = _price * _desired_num_shares * Globals.conversion_factor[_product] * Globals.currency_factor[Globals.product_to_currency[_product]][date]
             else:
                 _notional_value_product = 0.0
-            weights[_product] = _notional_value_product/_net_portfolio_value
-        return weights
+            weights[_product] = _notional_value_product/_net_portfolio_value        
+        return get_weights_for_trade_products(self.products, weights)
 
     def update_positions(self, dt, weights):
         self.simple_performance_tracker.update_performance(dt.date())

@@ -13,7 +13,7 @@ class SignalAlgorithm(EventsListener): # TODO Should listen to events correspond
     Base class for signal development
     User should inherit this class and override init and OnEventListener functions
     '''
-    def __init__(self, _all_products, _startdate, _enddate, _config):
+    def __init__(self, _all_products, _startdate, _enddate, _config, _agg_config):
         if not _config.has_option('Products', 'trade_products'):
             sys.exit('Cannot proceed without trade_products in signal config')
         self.products = sorted(_config.get('Products', 'trade_products').split(',')) # we are doing this here so that multiple instances of indicators all point to same value.
@@ -43,11 +43,11 @@ class SignalAlgorithm(EventsListener): # TODO Should listen to events correspond
         # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects = {}
         for product in self.all_products:
-            self.bb_objects[product] = BookBuilder.get_unique_instance (product, _startdate, _enddate, _config)
+            self.bb_objects[product] = BookBuilder.get_unique_instance (product, _startdate, _enddate, _agg_config)
 
         # TradeAlgorithm will be notified once all indicators have been updated.
         # Currently it is implemented as an EventsListener
-        dispatcher = Dispatcher.get_unique_instance (_all_products, _startdate, _enddate, _config)
+        dispatcher = Dispatcher.get_unique_instance (_all_products, _startdate, _enddate, _agg_config)
         dispatcher.add_events_listener(self)
 
         self.simple_performance_tracker = SimplePerformanceTracker(self.products, self.all_products, _startdate, _enddate, _config)
