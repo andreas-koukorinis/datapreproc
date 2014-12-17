@@ -103,8 +103,9 @@ class SimplePerformanceTracker(IndicatorListener):
         else:
             return (numpy.exp(numpy.mean(self.daily_log_returns[-return_history:]) * 252) - 1) * 100
 
-    def compute_strategy_volatility(self, volatility_history): # TODO change to online computation
-        if self.daily_log_returns.shape[0] < volatility_history: # for insufficient history return 100.0 (same for each strategy)
+    def compute_historical_volatility(self, _volatility_history): # TODO change to online computation
+        if self.daily_log_returns.shape[0] < 1: # for insufficient history return 100.0 (same for each strategy)
             return 100.0
         else:
-            return (numpy.exp(numpy.std(self.daily_log_returns[-volatility_history:]) * numpy.sqrt(252.0)) - 1) * 100
+            _start_idx = max(0, self.daily_log_returns.shape[0] - _volatility_history)
+            return (numpy.exp(numpy.std(self.daily_log_returns[_start_idx : _start_idx + _volatility_history]) * numpy.sqrt(252.0)) - 1) * 100
