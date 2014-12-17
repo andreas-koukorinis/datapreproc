@@ -17,7 +17,7 @@ def get_module_name_from_strategy_name ( strategy_name ) :
     def _momentumv1():
         return ( "Momentumv1" )
     def _target_risk_rp():
-        return ( "TargetRiskRP" )
+        return ( "target_risk_rp" )
     def _unlevered_d_m_f():
         return ( "UnleveredDMF" )
     def _unlevered_r_p():
