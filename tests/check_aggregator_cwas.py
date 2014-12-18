@@ -37,7 +37,6 @@ class Alpha(object):
                 for _product in self.products:
                     if abs(_current_portfolio_weights[_product]) < 0.0000001 and self.past_relative_contribution[i][_product] != 0: #shoudl change the != 0 here
                         _new_signal_contributions[i][_product] = self.past_relative_contribution[i][_product]
-                        print i,_new_signal_contributions[i][_product], self.past_relative_contribution[i][_product]
                     else:
                         _new_signal_contributions[i][_product] = _current_portfolio_weights[_product] * self.past_relative_contribution[i][_product]
                     _new_portfolio_weights[_product] += _new_signal_contributions[i][_product]
