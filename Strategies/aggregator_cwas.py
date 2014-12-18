@@ -19,7 +19,7 @@ class AggregatorCWAS(TradeAlgorithm):
     def init(self, _config):
         self.day = -1
         if _config.has_option('Strategy', 'signal_configs'):
-            _signal_configs =  _config.get('Strategy', 'signal_configs').split(',')
+            _signal_configs = [adjust_file_path_for_home_directory(x) for x in _config.get('Strategy', 'signal_configs').split(',')]
             self.signals = []
             for _config_name in _signal_configs:
                 _signal_config = ConfigParser.ConfigParser()
