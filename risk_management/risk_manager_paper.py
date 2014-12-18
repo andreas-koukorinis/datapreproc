@@ -1,6 +1,13 @@
 import sys
+import datetime
 from Utils import defaults
 from risk_manager_algorithm import RiskManagerAlgo
+
+class RiskLevel(object):
+    '''Variables that encapsulate current risk level'''
+    def __init__(self, _capital_allocation_level, _max_historical_drawdown):
+        self.capital_allocation_level = _capital_allocation_level
+        self.max_historical_drawdown = _max_historical_drawdown
 
 class RiskManagerPaper(RiskManagerAlgo):
     '''In this risk manager algorithm, we look at the cumulative log returns of simple_performance_tracker over the specified days.
@@ -15,12 +22,6 @@ class RiskManagerPaper(RiskManagerAlgo):
 
     '''
 
-    class RiskLevel(object):
-        '''Variables that encapsulate current risk level'''
-        def __init__(self, _capital_allocation_level, _max_historical_drawdown):
-            self.capital_allocation_level = _capital_allocation_level
-            self.max_historical_drawdown = _max_historical_drawdown
- 
     def init(self, _config):
         """
         1. read the parameters: return_history, drawdown_levels, capital_allocation_levels
@@ -105,6 +106,7 @@ class RiskManagerPaper(RiskManagerAlgo):
         
         if _target_risk_level_index > self.current_risk_level_index:
             # if risk should be lower then switch to lower risk
+            print ("%s switching to lower risk level %d (level:%d) since current dd= %f" %( _date, _target_risk_level_index, self.risk_level_vec[_target_risk_level_index].capital_allocation_level, _current_drawdown ))
             self.current_risk_level_index = _target_risk_level_index
             self.current_capital_allocation_level = self.risk_level_vec[self.current_risk_level_index].capital_allocation_level
             self.last_date_risk_level_change = _date
@@ -120,6 +122,7 @@ class RiskManagerPaper(RiskManagerAlgo):
             # if so then change the risk level
             if (_date - self.last_date_risk_level_change).days >= self.reallocation_hysteris_days:
                 # Now we are allowed to switch to the higher risk level
+                print ("%s switching to higher risk level %d (level:%d) since current dd= %f" %( _date, _target_risk_level_index, self.risk_level_vec[_target_risk_level_index].capital_allocation_level, _current_drawdown ))
                 self.current_risk_level_index = self.current_risk_level_index - 1 #only raise one risk level at a time
                 self.current_capital_allocation_level = self.risk_level_vec[self.current_risk_level_index].capital_allocation_level
                 self.last_date_risk_level_change = _date
