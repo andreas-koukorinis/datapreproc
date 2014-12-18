@@ -45,17 +45,17 @@ class SimpleRiskManager(RiskManagerAlgo):
         self.current_allocation_level = 100.0 # Fully allocated initially
 
     def get_current_risk_level(self, _date):
-        if self.last_update_date == _date:
+        if self.last_risk_level_updated_date == _date:
             return self.current_allocation_level
         else:
-            self.last_update_date = _date
+            self.last_risk_level_updated_date = _date
         if _date.year == self.performance_tracker.current_year_trading_cost[0]:
             _current_year_trading_cost = self.performance_tracker.current_year_trading_cost[1]
         else:
             _current_year_trading_cost = 0.0 #TODO change to transaction cost from simple_performance_tracker
         _current_loss = self.simple_performance_tracker.current_loss
         _current_drawdown = self.simple_performance_tracker.current_drawdown
-        #print _date, self.simple_performance_tracker.current_loss, self.simple_performance_tracker.current_drawdown, self.performance_tracker.current_loss, self.performance_tracker.current_drawdown, (np.exp(self.simple_performance_tracker.net_log_return)-1)*100.0, (np.exp(self.performance_tracker.net_log_return)-1)*100.0
+
         # DEALLOCATION
         for i in range(len(self.capital_allocation_levels) - 1, -1, -1): #Stoploss
             if _current_loss > self.stoploss_levels[i]:
