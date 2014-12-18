@@ -68,11 +68,11 @@ class AggregatorCWAS(TradeAlgorithm):
             _new_signal_contributions.append(dict([(_product, 0.0) for _product in self.products]))
             if _signal_rebalancing_day[i]:
                 for _product in self.products:
-                    _new_signal_contributions[i][_product] = _signal_allocations[i] * _signals[i].weights.get(_product, 0.0)
+                    _new_signal_contributions[i][_product] = _signal_allocations[i] * _signals[i].weights.get(_product, 0.0) # .get with 0.0 makes sure that if the product is not there in the map then we return 0
                     _new_portfolio_weights[_product] += _new_signal_contributions[i][_product]
             else:
+                # if it isn't a rebalancing day, then 
                 for _product in self.products:
-                    _new_signal_contributions[i], _current_portfolio_weights, self.past_relative_contribution[i]
                     _new_signal_contributions[i][_product] = _current_portfolio_weights[_product] * self.past_relative_contribution[i][_product]
                     _new_portfolio_weights[_product] += _new_signal_contributions[i][_product]
         #print self.signals[0].weights, self.signals[1].weights, _current_portfolio_weights, _new_portfolio_weights, self.past_relative_contribution, _new_signal_contributions
@@ -82,13 +82,15 @@ class AggregatorCWAS(TradeAlgorithm):
     def on_events_update(self, events):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
         if all_eod: self.day += 1  # Track the current day number
+
         _signal_rebalancing_day = [False] * len(self.signals)
         _is_rebalancing_day = False
-
         for i in range(len(self.signals)):
             if self.day % self.signals[i].rebalance_frequency == 0:
+                # today is a rebalancing day for some signal
                 _signal_rebalancing_day[i] = True
                 _is_rebalancing_day = True
+
         if _is_rebalancing_day:
             _current_portfolio_weights = self.get_current_portfolio_weights(events[0]['dt'].date())
             _new_weights = self.get_new_portfolio_weights(_signal_rebalancing_day, _current_portfolio_weights, self.signals, self.signal_allocations)
