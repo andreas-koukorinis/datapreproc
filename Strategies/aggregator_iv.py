@@ -21,7 +21,7 @@ class AggregatorIV(TradeAlgorithm):
     def init(self, _config):
         self.day = -1
         if _config.has_option('Strategy', 'signal_configs'):
-            _signal_configs =  _config.get('Strategy', 'signal_configs').split(',')
+            _signal_configs = [adjust_file_path_for_home_directory(x) for x in _config.get('Strategy', 'signal_configs').split(',')]
             self.volatility_history = 63
             if _config.has_option('Strategy', 'volatility_history'):
                 self.volatility_history = _config.getint('Strategy', 'volatility_history')

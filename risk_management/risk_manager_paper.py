@@ -7,14 +7,12 @@ class RiskManagerPaper(RiskManagerAlgo):
     Depending on which risk level it falls in, we switch to that level, making sure that once we fall to a risk level,
     we do not raise risk again in the next reallocation_hysteris_days.
     
-       Parameters:
+       Args:
        capital_allocation_levels=100,75,50,25,0
        drawdown_levels=15,20,25,30
-       maxloss=50
        return_history=252
        reallocation_hysteris_days=45
 
-       Interpretation of maxloss is that once we hit maxloss in the last 252 days, we stay stopped for 252 days.
     '''
 
     class RiskLevel(object):

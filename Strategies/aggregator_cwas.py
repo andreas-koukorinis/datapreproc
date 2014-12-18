@@ -22,7 +22,7 @@ class AggregatorCWAS(TradeAlgorithm):
         self.day = -1
         self.signals = [] # This is the set of SignalAlgorithm instances
         if _config.has_option('Strategy', 'signal_configs'):
-            _signal_configs =  _config.get('Strategy', 'signal_configs').split(',')
+            _signal_configs = [adjust_file_path_for_home_directory(x) for x in _config.get('Strategy', 'signal_configs').split(',')]
             for _config_name in _signal_configs:
                 _signal_config = ConfigParser.ConfigParser()
                 _signal_config.readfp(open(_config_name, 'r'))
