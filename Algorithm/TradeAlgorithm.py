@@ -108,7 +108,7 @@ class TradeAlgorithm(EventsListener):
 
     # User is expected to write the function
     def on_events_update(self, concurrent_events):
-        """This function is to be implemented by the startegy
+        """This function is to be implemented by the strategy
 
         Args:
             concurrent_events(list): list of concurrent events(each event is a dictionary)
@@ -128,6 +128,8 @@ class TradeAlgorithm(EventsListener):
             date(date object): The current date on which the weights are to be computed #TODO move to watch
 
         Note: 1) Even though the portfolio is on the all_products, returns weights are on trade_products(hence the call get_weights_for_trade_products)
+
+        Returns: Nothing
         """
         # TODO should not recompute
         _net_portfolio_value = get_mark_to_market(date, get_current_prices(self.bb_objects), Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, self.performance_tracker, self.portfolio.get_portfolio())
@@ -151,12 +153,14 @@ class TradeAlgorithm(EventsListener):
 
         Args:
             dt(datetime object): The datetime of concurrent events to which the strategy responded with new weights
-            weights(dict): The new weights the startegy wishes to have(dict from trade_products to weight values)
+            weights(dict): The new weights the strategy wishes to have(dict from trade_products to weight values)
 
         Note:
             1) Updating the performance of simple performance tracker before calling execlogic is necessary,
            because the risk manager may use today's performance of the simple performance tracker to update
            risk level.
+
+        Returns: Nothing
         """
         self.simple_performance_tracker.update_performance(dt.date())
         self.simple_performance_tracker.update_weights(dt.date(), weights)
@@ -174,6 +178,8 @@ class TradeAlgorithm(EventsListener):
             1) Updating the performance of simple performance tracker before calling execlogic is necessary,
            because the risk manager may use today's performance of the simple performance tracker to update
            risk level.
+
+        Returns: Nothing
         """
         self.simple_performance_tracker.update_performance(dt.date())
         self.exec_logic.rollover(dt)
