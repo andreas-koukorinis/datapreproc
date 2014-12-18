@@ -41,7 +41,7 @@ class ExchangeSymbolManager():
             return "bmf"
         elif _basename in ['JFFCE','KFFTI','LFZ','LFI','LFL','LFR','YFEBM','XFW','XFC','XFRC']:
             return "liffe"
-        elif _basename in ['KC']:
+        elif _basename in ['KC', 'CT']:
             return "ice" 
         elif _basename in ['Si','RI','BR','ED','GD']:
             return "rts"
@@ -173,6 +173,11 @@ class ExchangeSymbolManager():
     def is_ice_month( self, _basename, _this_month ):
         if _basename in ['KC']:
             if _this_month in [3,5,7,9,12]:
+                return True
+            else:
+                return False
+        if _basename in ['CT']:
+            if _this_month in [3,5,7,10,12]:
                 return True
             else:
                 return False
@@ -452,12 +457,28 @@ class ExchangeSymbolManager():
         return date 
 
     def get_ice_last_trading_date( self, _basename, _next_ice_month, _next_ice_year ):
-        # KC: First notice date is 7 business days prior to the first notice date of the delivery month
+        # KC: 7 business days prior to the last business day of the delivery month
+        #     Last trading day is one business day prior to last notice day
         #     Go x days prior based on volume shift observation
         if _basename == 'KC':
-            date = datetime.date(day=1, month=_next_ice_month, year=_next_ice_year)
-            while not self.is_ice_exchange_date( _basename, date ): # First Business day of month
-                date = date + datetime.timedelta( days=1 )
+            date = datetime.date(day=monthrange(year, month)[1], month=_next_ice_month, year=_next_ice_year)
+            while not self.is_ice_exchange_date( _basename, date ): # Last Business day of contract month
+                date = date + datetime.timedelta( days=-1 )
+            for i in range(0,8): # Last trading day
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_ice_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            for i in range(0,2): # Adjustment based on volume
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_ice_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        # CT: Last trading day is 17 business days from end of spot month.
+        if _basename == 'CT':
+            date = datetime.date(day=monthrange(year, month)[1], month=_next_ice_month, year=_next_ice_year)
+            while not self.is_ice_exchange_date(_basename, date): # End of spot month
+                date = date + datetime.timedelta( days=-1 )
             for i in range(0,7):
                 date = date + datetime.timedelta( days=-1 )
                 while not self.is_ice_exchange_date( _basename, date ):
