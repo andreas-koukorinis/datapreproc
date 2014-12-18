@@ -4,7 +4,7 @@ from importlib import import_module
 from Utils.Regular import check_eod,adjust_file_path_for_home_directory
 from DailyIndicators.Indicator_List import is_valid_daily_indicator,get_module_name_from_indicator_name
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
-from Algorithm.TradeAlgorithm import TradeAlgorithm
+from Algorithm.trade_algorithm import TradeAlgorithm
 
 class UnleveredDMF( TradeAlgorithm ):
     """Implement a momentum strategy on multiple products.

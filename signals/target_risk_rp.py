@@ -41,7 +41,7 @@ class TargetRiskRP(SignalAlgorithm):
                 _stddev = 0.0
                 for period in self.periods:
                     val = self.daily_indicators[ 'StdDev.' + product + '.' + period ].values[1]         
-                    _stddev += (numpy.exp(numpy.sqrt(252.0)*val) - 1)*100.0         
+                    _stddev += (numpy.exp(numpy.sqrt(252.0)*val) - 1)*100.0
                 vol_product = _stddev/float(len(self.periods))
                 _weights[product] = 2.0*self.signs[product]*target_risk_per_product/vol_product
             self.update_positions(events[0]['dt'], _weights)
