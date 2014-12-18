@@ -11,10 +11,11 @@ def get_current_prices( bb_objects ):
     return current_prices
 
 #Getthe current worth of the portfolio based on the most recent daily closing prices
-def get_mark_to_market(date, current_price, conversion_factor, currency_factor, product_to_currency, current_portfolio):
+def get_mark_to_market(date, current_price, conversion_factor, currency_factor, product_to_currency, performance_tracker, current_portfolio):
     mark_to_market = current_portfolio['cash']
     num_shares = current_portfolio['num_shares']
     open_equity = current_portfolio['open_equity']
+    performance_tracker.update_open_equity(date)
     for product in current_price.keys():
         if not is_margin_product(product):
             mark_to_market += (current_price[product] * conversion_factor[product] * currency_factor[product_to_currency[product]][date] * num_shares[product])

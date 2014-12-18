@@ -73,11 +73,13 @@ class ExecLogicAlgo():
     # If num_shares is +ve -> it is a buy trade
     # If num_shares is -ve -> it is a sell trade
     def place_order(self, dt, product, num_shares):
+        #if abs(num_shares) > 0.0000000001:
         if num_shares != 0:
             self.order_manager.send_order(dt, product, num_shares)
    
     # These order are sent directly yo the backtester by the order manager
     def place_order_agg(self, dt, product, num_shares):
+        #if abs(num_shares) > 0.0000000001:
         if num_shares != 0:
             self.order_manager.send_order_agg(dt, product, num_shares)
 

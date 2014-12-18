@@ -1,5 +1,5 @@
 def is_valid_strategy_name ( _strategy_name ) :
-    _strategy_name_list = ['CTAMomentum', 'CWAS', 'EqualWeight', 'Momentumv1', 'TargetRiskRP', 'TargetRiskRPv1', 'UnleveredDMF', 'UnleveredRP', 'TargetRiskEqualRiskContribution', 'TargetRiskMaxSharpeHistCorr' ]
+    _strategy_name_list = ['CTAMomentum', 'CWAS', 'EqualWeight', 'Momentumv1', 'TargetRiskRP', 'UnleveredDMF', 'UnleveredRP', 'TargetRiskEqualRiskContribution', 'TargetRiskMaxSharpeHistCorr', 'AggregatorCWAS', 'AggregatorIV']
     _retval = False
     if _strategy_name in _strategy_name_list :
         _retval = True
@@ -17,9 +17,7 @@ def get_module_name_from_strategy_name ( strategy_name ) :
     def _momentumv1():
         return ( "Momentumv1" )
     def _target_risk_rp():
-        return ( "TargetRiskRP" )
-    def _target_risk_rp_v1():
-        return ( "TargetRiskRPv1" )
+        return ( "target_risk_rp" )
     def _unlevered_d_m_f():
         return ( "UnleveredDMF" )
     def _unlevered_r_p():
@@ -28,17 +26,23 @@ def get_module_name_from_strategy_name ( strategy_name ) :
         return ( "target_risk_equal_risk_contribution" )
     def _target_risk_max_sharpe_hist_corr():
         return ( "target_risk_max_sharpe_hist_corr" )
+    def _aggregator_cwas():
+        return ( "aggregator_cwas" )
+    def _aggregator_iv():
+        return ( "aggregator_iv" )
 
     options = { 'CTAMomentum' : _c_t_a_momentum,
                 'CWAS' : _cwas,
                 'EqualWeight' : _equal_weight,
                 'Momentumv1' : _momentumv1,
                 'TargetRiskRP' : _target_risk_rp,
-                'TargetRiskRPv1' : _target_risk_rp_v1,
                 'UnleveredDMF' : _unlevered_d_m_f,
                 'UnleveredRP' : _unlevered_r_p,
                 'TargetRiskEqualRiskContribution' : _target_risk_equal_risk_contribution,
-                'TargetRiskMaxSharpeHistCorr' : _target_risk_max_sharpe_hist_corr
+                'TargetRiskMaxSharpeHistCorr' : _target_risk_max_sharpe_hist_corr,
+                'AggregatorCWAS' : _aggregator_cwas,
+                'AggregatorIV' : _aggregator_iv
                 }
+
     if is_valid_strategy_name ( strategy_name ):
         return ( options[strategy_name]() )
