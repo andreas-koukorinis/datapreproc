@@ -15,9 +15,9 @@ class Alpha(object):
     def update_past_relative_contribution(self, _new_signal_contributions, _new_portfolio_weights, _new_portfolio_abs_weights):
         for i in range(len(_new_signal_contributions)):
             for _product in self.products:
-                if _new_portfolio_abs_weights[_product] < 0.01:
+                if _new_portfolio_abs_weights[_product] < 0.00000001:
                     self.past_relative_contribution[i][_product] = 0
-                elif(_new_portfolio_abs_weights[_product] > 0.01 and abs(_new_portfolio_weights[_product]) < 0.01):
+                elif(_new_portfolio_abs_weights[_product] > 0.0000001 and abs(_new_portfolio_weights[_product]) < 0.0000001):
                     self.past_relative_contribution[i][_product] = _new_signal_contributions[i][_product]
                 else:
                     self.past_relative_contribution[i][_product] = _new_signal_contributions[i][_product]/_new_portfolio_weights[_product]
@@ -35,7 +35,7 @@ class Alpha(object):
                     _new_portfolio_abs_weights[_product] += abs(_new_signal_contributions[i][_product])
             else:
                 for _product in self.products:
-                    if abs(_current_portfolio_weights[_product]) < 0.01 and self.past_relative_contribution[i][_product] != 0: #shoudl change the != 0 here
+                    if abs(_current_portfolio_weights[_product]) < 0.0000001 and self.past_relative_contribution[i][_product] != 0: #shoudl change the != 0 here
                         _new_signal_contributions[i][_product] = self.past_relative_contribution[i][_product]
                     else:
                         _new_signal_contributions[i][_product] = _current_portfolio_weights[_product] * self.past_relative_contribution[i][_product]
@@ -65,8 +65,16 @@ def __main__():
     _x = _alpha.get_new_portfolio_weights(signal_rebalancing_day, current_portfolio_weights, signals, signal_allocations)
     print ("%f %f" %(_x['E'], _x['Z']))
     
-    current_portfolio_weights['E'] = 0.0
-    current_portfolio_weights['Z'] = 0.3
+    _x['E'] = _x['E']*1.2
+    _x['Z'] = _x['Z']*0.8
+
+    # make them add upto 1
+    _x['E'] = _x['E'] / ( _x['E'] + _x['Z'] )
+    _x['Z'] = _x['Z'] / ( _x['E'] + _x['Z'] )
+
+    # introduce some market movement
+    current_portfolio_weights['E'] = _x['E']
+    current_portfolio_weights['Z'] = _x['Z']
     
     signals[0].weights['E']=0.3
     signals[0].weights['Z']=0.7
