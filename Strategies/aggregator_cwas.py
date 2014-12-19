@@ -53,7 +53,7 @@ class AggregatorCWAS(TradeAlgorithm):
         if len(self.signal_allocations) != len(self.signals):
             sys.exit('Strategy::signal_allocations should have the same length as Strategy::signals in the config')
 
-    def update_past_relative_contribution(self, _new_signal_contributions, _new_portfolio_weights):
+    def update_past_relative_contribution(self, _new_signal_contributions, _new_portfolio_weights, _new_portfolio_abs_weights):
         for i in range(len(_new_signal_contributions)):
             for _product in self.products:
                 if _new_portfolio_abs_weights[_product] < 0.00000001:
