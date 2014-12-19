@@ -475,6 +475,7 @@ class ExchangeSymbolManager():
             return date
 
         # CT: Last trading day is 17 business days from end of spot month.
+        # Go x days prior based on volume shift observation
         if _basename == 'CT':
             date = datetime.date(day=monthrange(_next_ice_year, _next_ice_month)[1], month=_next_ice_month, year=_next_ice_year)
             while not self.is_ice_exchange_date(_basename, date): # End of spot month
