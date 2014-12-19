@@ -65,10 +65,10 @@ def __main__():
     _x = _alpha.get_new_portfolio_weights(signal_rebalancing_day, current_portfolio_weights, signals, signal_allocations)
     print ("%f %f" %(_x['E'], _x['Z']))
     
-    current_portfolio_weights['E'] = 0.7
+    current_portfolio_weights['E'] = 0.0
     current_portfolio_weights['Z'] = 0.3
     
-    signals[0].weights['E']=0.2
+    signals[0].weights['E']=0.3
     signals[0].weights['Z']=0.7
     signals[1].weights['E']=-0.2
     signals[1].weights['Z']=0.9
