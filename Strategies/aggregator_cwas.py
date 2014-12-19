@@ -65,7 +65,7 @@ class AggregatorCWAS(TradeAlgorithm):
                 else:
                     self.past_relative_contribution[i][_product] = _new_signal_contributions[i][_product]/_new_portfolio_weights[_product]
 
-    def get_new_portfolio_weights(self, _signal_rebalancing_day, _current_portfolio_weights, _signals, _signal_allocations):
+    def get_new_portfolio_weights(self, _signal_rebalancing_day, _current_portfolio_weights, _signals):
         _new_signal_contributions = []
         _new_portfolio_weights = dict([(_product, 0.0) for _product in self.products])
         _new_portfolio_abs_weights = dict([(_product, 0.0) for _product in self.products])
@@ -73,7 +73,7 @@ class AggregatorCWAS(TradeAlgorithm):
             _new_signal_contributions.append(dict([(_product, 0.0) for _product in self.products]))
             if _signal_rebalancing_day[i]:
                 for _product in self.products:
-                    _new_signal_contributions[i][_product] = _signal_allocations[i] * _signals[i].weights.get(_product, 0.0)
+                    _new_signal_contributions[i][_product] = self.signal_allocations[i] * _signals[i].weights.get(_product, 0.0)
                     _new_portfolio_weights[_product] += _new_signal_contributions[i][_product]
                     _new_portfolio_abs_weights[_product] += abs(_new_signal_contributions[i][_product])
             else:
