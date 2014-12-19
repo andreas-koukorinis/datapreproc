@@ -1,15 +1,16 @@
 import sys
 import numpy
+from numpy.linalg import inv
 from importlib import import_module
 from scipy.optimize import minimize
-from Algorithm.trade_algorithm import TradeAlgorithm
+from Algorithm.signal_algorithm import SignalAlgorithm
 from Utils.Regular import check_eod,parse_weights
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
-from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
+from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 
-class TargetRiskEqualRiskContribution(TradeAlgorithm):
-    """Implementation of the ERC risk balanced strategy
+class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
+    """Implementation of the max sharpe strategy under historical correlations without regularization
 
     Items read from config :
     target_risk : this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
@@ -23,9 +24,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
     """
     def init(self, _config):
         self.day = -1 # TODO move this to "watch" or a global time manager
-        self.target_risk = 10 # this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
-        if _config.has_option('Strategy', 'target_risk'):
-            self.target_risk = _config.getfloat('Strategy', 'target_risk') 
+        self.target_risk = _config.getfloat('Strategy', 'target_risk') # this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
 
         self.rebalance_frequency = 1
         if _config.has_option('Parameters', 'rebalance_frequency'):
@@ -60,14 +59,6 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
         else:
             self.correlation_computation_interval = max(2, self.correlation_computation_history/5)
 
-        self.optimization_ftol = 0.0000000000000000000000000001
-        if _config.has_option ('Strategy', 'optimization_ftol'):
-            self.optimization_ftol = _config.getfloat('Strategy', 'optimization_ftol')
-
-        self.optimization_maxiter=100
-        if _config.has_option ('Strategy', 'optimization_maxiter'):
-            self.optimization_maxiter = _config.getint('Strategy', 'optimization_maxiter')
-        
         # Some computational variables
         self.last_date_correlation_matrix_computed = 0
         self.last_date_stdev_computed = 0
@@ -75,11 +66,10 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
         self.erc_weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
         self.erc_weights_optim = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
-        self.stddev_logret = numpy.ones(len(self.products)) # these are the stddev values, with products occuring in the same order as the order in self.products
-
+        self.stddev_logret = numpy.array([1.0]*len(self.products)) # these are the stddev values, with products occuring in the same order as the order in self.products
         # create a diagonal matrix of 1s for correlation matrix
         self.logret_correlation_matrix = numpy.eye(len(self.products))
-
+        
         if is_valid_daily_indicator(self.stddev_computation_indicator):
             for product in self.products:
                 _orig_indicator_name = self.stddev_computation_indicator + '.' + product + '.' + str(self.stddev_computation_history) # this would be something like StdDev.fTY.252
@@ -127,29 +117,16 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                 # compute covariance matrix from correlation matrix and
                 _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stddev_logret, self.stddev_logret) # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
 
+                _annualized_risk = 100.0*(numpy.exp(numpy.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
+                zero_corr_risk_parity_weights = 1.0/(_annualized_risk)
                 if numpy.sum(numpy.abs(self.erc_weights)) < 0.001:
                     # Initialize weights
-                    _annualized_risk = 100.0*(numpy.exp(numpy.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
-                    _expected_sharpe_ratios = self.allocation_signs # switched to self.allocation_signs from not multiplying anything 
-                    zero_corr_risk_parity_weights = (1.0/_annualized_risk) * _expected_sharpe_ratios
-                    self.erc_weights = zero_corr_risk_parity_weights/numpy.sum(numpy.abs(zero_corr_risk_parity_weights))
-                    self.erc_weights_optim = self.erc_weights
+                    self.erc_weights_optim = zero_corr_risk_parity_weights/numpy.sum(numpy.abs(zero_corr_risk_parity_weights))
+                    self.erc_weights = self.erc_weights_optim
 
-                # Using L1 norm here. It does not optimize well if we use L2 norm.
-                def _get_l1_norm_risk_contributions(_given_weights):
-                    """Function to return the L1 norm of the series of { risk_contrib - mean(risk_contrib) },
-                    or sum of absolute values of the series of { risk_contributions - mean(risk_contributions) }
-                    """
-                    _cov_vec = numpy.array(numpy.asmatrix(_cov_mat)*numpy.asmatrix(_given_weights).T)[:, 0]
-                    _trc = _given_weights*_cov_vec
-                    return (numpy.sum(numpy.abs(_trc - numpy.mean(_trc))))
-
-                _constraints = {'type':'eq', 'fun': lambda x: numpy.sum(numpy.abs(x)) - 1}
-                self.erc_weights_optim = minimize(_get_l1_norm_risk_contributions, self.erc_weights_optim, method='SLSQP', constraints=_constraints, options={'ftol': self.optimization_ftol, 'disp': False, 'maxiter':self.optimization_maxiter}).x
-                # TODO{gchak} We should check whether weights produced here have the same signs as self.allocation_signs.
-                # Otherwise we need to set them to 0.
-                # Perhaps it might be better to add a constraint in optimization that if sign(_given_weights) != sign(self.allocation_signs)
-                # then return a very high value indicating that it is not a direction we should go towards.
+                expected_sharpe_ratios = numpy.asmatrix(self.allocation_signs).T # switched to self.allocation_signs from numpy.ones(len(self.products))
+                # Set erc_weights_optim to inv ( correlation martix ) * zero_corr_risk_parity_weights
+                self.erc_weights_optim = numpy.ravel(numpy.diagflat(zero_corr_risk_parity_weights) * inv(self.logret_correlation_matrix) * expected_sharpe_ratios)
                 self.erc_weights = self.erc_weights_optim
 
                 # In the following steps we resize the portfolio to the taregt risk level.
@@ -158,7 +135,8 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                 _annualized_stddev_of_portfolio = 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(self.erc_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.erc_weights).T))[0, 0]) - 1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
 
-                _check_sign_of_weights = False
+                #TODO figure out signs compatibility with mandate
+                _check_sign_of_weights = False # this is sort of a debugging exercise
                 if _check_sign_of_weights:
                     if sum(numpy.abs(numpy.sign(self.erc_weights)-numpy.sign(self.allocation_signs))) > 0 :
                         print ( "Sign-check-fail: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )

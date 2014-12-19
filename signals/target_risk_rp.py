@@ -1,13 +1,13 @@
 import sys
 import numpy
 from importlib import import_module
-from Algorithm.trade_algorithm import TradeAlgorithm
+from Algorithm.signal_algorithm import SignalAlgorithm
 from Utils.Regular import check_eod, parse_weights
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 
-class TargetRiskRP( TradeAlgorithm ):
+class TargetRiskRP(SignalAlgorithm):
 
-    def init( self, _config ):
+    def init(self, _config):
         self.day=-1
         self.target_risk = 10.0
         if _config.has_option('Strategy', 'target_risk'):

@@ -1,8 +1,7 @@
 import sys
-import numpy as np
 from datetime import datetime
 from execlogics.execlogic_algorithm import ExecLogicAlgo
-from Utils.Calculate import get_current_prices, get_mark_to_market, get_current_notional_amounts
+from Utils.Calculate import get_current_prices, get_mark_to_market, get_current_notional_amounts, find_most_recent_price, find_most_recent_price_future
 from Utils.Regular import is_future, is_future_entity, get_base_symbol, get_first_futures_contract, get_next_futures_contract, get_future_mappings, shift_future_symbols
 
 '''This execlogic switches to the next futures contract on the last trading day(based on volume) and places aggressive orders for rollover'''
@@ -13,14 +12,13 @@ class SimpleExecLogic(ExecLogicAlgo):
     # Place pending (self.orders_to_place) and rollover orders
     def rollover(self, dt):
         self.current_date = dt.date()
-        #if self.risk_level == 0: 
-        #    return
-        #self.risk_level = self.update_risk_level(self.current_date, {})
-        #if self.risk_level > 0:
-        if True:
-            current_prices = get_current_prices(self.bb_objects)
-            _orders_to_place = dict( [ ( product, 0 ) for product in self.all_products ] )
-
+        current_prices = get_current_prices(self.bb_objects)
+        _orders_to_place = dict( [ ( product, 0 ) for product in self.all_products ] )
+        _old_risk_level = self.risk_level
+        _new_risk_level = self.risk_manager.get_current_risk_level(self.current_date)
+        if _new_risk_level != _old_risk_level:
+            self.update_positions(dt, self.get_current_weights(self.current_date, current_prices))
+        else:
             #Adjust positions for settlements and pending orders
             for product in self.all_products:
                 if self.is_trading_day(dt, product): # If today is a trading day for the product
@@ -34,10 +32,10 @@ class SimpleExecLogic(ExecLogicAlgo):
                         else:
                             if positions_to_take_p1 != 0:
                                 positions_to_take_p2 = (positions_to_take_p1*current_prices[p1])/current_prices[p2]
-                                _orders_to_place[p2] += positions_to_take_p2 # TODO check if = will do # TODO check why should this be different
+                                _orders_to_place[p2] += positions_to_take_p2
                             _orders_to_place[p1] += - ( self.order_manager.to_be_filled[p1] + self.portfolio.num_shares[p1] )
                     else:
-                        _orders_to_place[product] += self.orders_to_place[product] # TODO check if = will do
+                        _orders_to_place[product] += self.orders_to_place[product]
                 else: # Dont do anything if today is not a trading day for the product
                     pass
             for product in self.all_products:
@@ -48,28 +46,18 @@ class SimpleExecLogic(ExecLogicAlgo):
                     else:
                         self.place_order( dt, product, _orders_to_place[product] )
                     self.orders_to_place[product] = 0 # Since today is a trading day for this product,so we should have no pending orders left
-
-        else: # Liquidate the portfolio
-            for product in self.all_products:
-                if self.is_trading_day( dt, product ): # If today is a trading day for the product,then place order 
-                    self.place_order_target( dt, product, 0 )
-                    self.orders_to_place[product] = 0 # no pending orders left for this product
-                else: # Remember this order,should be placed on the next trading day for the product
-                    self.orders_to_place[product] = - ( self.order_manager.to_be_filled[product] + self.portfolio.num_shares[product] ) # TODO should cancel to_be_filled_orders instead of placing orders on the opposite side
-        self.notify_last_trading_day()    
+            self.notify_last_trading_day()
 
     def update_positions(self, dt, weights):
         self.current_date = dt.date()
-        if self.risk_level == 0:
-            return
-        #self.update_risk_level(self.current_date, weights)
-        if self.risk_level > 0:
-            #print 'inside', self.risk_level
+        _prior_risk_level = self.risk_level
+        self.risk_level = self.risk_manager.get_current_risk_level(self.current_date)
+        if not (self.risk_level == 0 and _prior_risk_level == 0):
             current_portfolio = self.portfolio.get_portfolio()
             current_prices = get_current_prices(self.bb_objects)
-            self.performance_tracker.update_open_equity(self.current_date) # TODO{sanchit} Need to change this update
-            current_worth = get_mark_to_market(self.current_date, current_prices, self.conversion_factor, self.currency_factor, self.product_to_currency, current_portfolio)
-            positions_to_take = self.get_positions_from_weights(self.current_date, weights, current_worth * self.risk_level, current_prices)
+            current_worth = get_mark_to_market(self.current_date, current_prices, self.conversion_factor, self.currency_factor, self.product_to_currency, self.performance_tracker, current_portfolio)
+            positions_to_take = self.get_positions_from_weights(self.current_date, weights, current_worth * self.risk_level/100.0, current_prices)
+            #print 'execlogic', current_worth, self.current_date,current_prices,current_portfolio
 
             _orders_to_place = dict([(product, 0) for product in self.all_products ])  
             #Adjust positions for settlements
@@ -98,14 +86,7 @@ class SimpleExecLogic(ExecLogicAlgo):
                         self.place_order_agg( dt, product, _orders_to_place[product] ) # If today is the settlement day,then fill order immediately
                     else:
                         self.place_order( dt, product, _orders_to_place[product] )
-        else: # Liquidate the portfolio
-            for product in self.all_products:
-                if self.is_trading_day( dt, product ): # If today is a trading day for the product,then place order 
-                    self.place_order_target( dt, product, 0 ) # Make target position as 0
-                    self.orders_to_place[product] = 0 # no pending orders left for this product
-                else: # Remember this order,should be placed on the next trading day for the product
-                    self.orders_to_place[product] = - ( self.order_manager.to_be_filled[product] + self.portfolio.num_shares[product] ) # TODO should cancel to_be_filled_orders instead of placing orders on the opposite side
-        self.notify_last_trading_day()
+            self.notify_last_trading_day()
 
     def get_positions_from_weights(self, date, weights, current_worth, current_prices): 
         positions_to_take = dict([(product, 0) for product in self.all_products])
@@ -119,3 +100,21 @@ class SimpleExecLogic(ExecLogicAlgo):
                 _conv_factor = self.conversion_factor[product] * self.currency_factor[self.product_to_currency[product]][date]
                 positions_to_take[product] = positions_to_take[product] + (weights[product] * current_worth)/(current_prices[product] * _conv_factor)
         return positions_to_take
+
+    def get_current_weights(self, date, current_prices):
+        #_net_portfolio_value = self.performance_tracker.value[-1]
+        # TODO should not recompute
+        _net_portfolio_value = get_mark_to_market(date, current_prices, self.conversion_factor, self.currency_factor,self. product_to_currency, self.performance_tracker, self.portfolio.get_portfolio())
+        weights = {}
+        for _product in self.portfolio.num_shares.keys():
+            _desired_num_shares = self.portfolio.num_shares[_product] + self.order_manager.to_be_filled[_product]
+            if _desired_num_shares != 0:
+                if is_future(_product):
+                    _price = find_most_recent_price_future(self.bb_objects[_product].dailybook, self.bb_objects[get_next_futures_contract(_product)].dailybook, date)
+                else:
+                    _price = find_most_recent_price(self.bb_objects[_product].dailybook, date)
+                _notional_value_product = _price * _desired_num_shares * self.conversion_factor[_product] * self.currency_factor[self.product_to_currency[_product]][date]
+            else:
+                _notional_value_product = 0.0
+            weights[_product] = _notional_value_product/_net_portfolio_value
+        return weights

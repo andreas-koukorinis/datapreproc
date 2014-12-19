@@ -2,6 +2,7 @@ import sys
 import re
 from datetime import datetime
 import numpy as np
+from os.path import expanduser
 
 # Returns the full list of products  with fES_1 and fES_2 treated separately
 # Products which are not traded but have indicators based on them are also included 
@@ -129,11 +130,21 @@ def filter_series(dates_returns_1,dates_returns_2):
     return (filtered_series[:,0],filtered_series[:,1])
     
 def adjust_file_path_for_home_directory(file_path):
-    """Give a path like HOME/qplummodels/UnleveredDMF/model1.txt, change it to /home/cvdev/qplummodels/UnleveredDMF/model1.txt etc depending on the home directory of the user
+    """Give a path like ~/qplummodels/UnleveredDMF/model1.txt, change it to /home/cvdev/qplummodels/UnleveredDMF/model1.txt etc depending on the home directory of the user
     
     """
-    #TODO
-    return (file_path)
+    return expanduser(file_path)
+
+def get_weights_for_trade_products(_trade_products, _weights):
+    _trade_products_weights = dict([(_product, 0.0) for _product in _trade_products])
+    for _product in _weights.keys():
+        if _product in _trade_products:
+            _trade_products_weights[_product] += _weights[_product]
+        elif is_future(_product):
+            _trade_products_weights[get_base_symbol(_product)] += _weights[_product]
+        else:
+            sys.exit('Product specification in configs inconsistent')
+    return _trade_products_weights
 
 def dict_to_string(_dict):
     _str = ''

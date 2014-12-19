@@ -123,7 +123,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
 
     def on_order_update(self, filled_orders, dt):
         for order in filled_orders:
-            self.update_average_trade_price(order)
+            self.update_average_trade_price_and_portfolio(order)
             self.num_shares_traded[order['product']] = self.num_shares_traded[order['product']] + abs(order['amount'])
             self.trading_cost = self.trading_cost + order['cost']
             if dt.date().year > self.current_year_trading_cost[0]:
@@ -140,7 +140,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 else:
                     self.todays_short_amount_transacted += abs(order['value'])
 
-    def update_average_trade_price(self, order):
+    def update_average_trade_price_and_portfolio(self, order):
         _product = order['product']
         _current_num_contracts = self.portfolio.num_shares[_product]
         if is_margin_product(_product): # If we are required to post margin for the product
@@ -177,7 +177,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                     mark_to_market += self.portfolio.open_equity[product] * self.currency_factor[self.product_to_currency[product]][date]
         return mark_to_market
 
-    def update_open_equity(self, date):
+    def update_open_equity(self, date): # TODO change to 1 update per day: except for rollovers
         for _product in self.products:
             if self.portfolio.num_shares[_product] != 0 and is_margin_product(_product):
                 if is_future(_product): # No need
@@ -185,6 +185,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 else:
                     _current_price = find_most_recent_price(self.bb_objects[_product].dailybook, date)
                 self.portfolio.open_equity[_product] = (_current_price - self.average_trade_price[_product]) * self.conversion_factor[_product] * self.portfolio.num_shares[_product]
+            else:
+                self.portfolio.open_equity[_product] = 0
 
     # Called by Dispatcher
     def on_end_of_day(self, date):
@@ -388,7 +390,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         if PnLvector.shape[0] < 1:
             return (0.0, '', '')
         current_num_days_no_new_high = 0
-        current_start_idx = 0
+        current_start_idx = -1
         current_high = 0.0
         max_num_days_no_new_high = 0
         max_start_idx = -1

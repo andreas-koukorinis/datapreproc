@@ -2,13 +2,13 @@ import sys
 import numpy
 from importlib import import_module
 from scipy.optimize import minimize
-from Algorithm.trade_algorithm import TradeAlgorithm
+from Algorithm.signal_algorithm import SignalAlgorithm
 from Utils.Regular import check_eod,parse_weights
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 
-class TargetRiskEqualRiskContribution(TradeAlgorithm):
+class TargetRiskEqualRiskContribution(SignalAlgorithm):
     """Implementation of the ERC risk balanced strategy
 
     Items read from config :
@@ -158,6 +158,7 @@ class TargetRiskEqualRiskContribution(TradeAlgorithm):
                 _annualized_stddev_of_portfolio = 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(self.erc_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.erc_weights).T))[0, 0]) - 1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
 
+                #TODO figure out signs compatibility with mandate
                 _check_sign_of_weights = False
                 if _check_sign_of_weights:
                     if sum(numpy.abs(numpy.sign(self.erc_weights)-numpy.sign(self.allocation_signs))) > 0 :

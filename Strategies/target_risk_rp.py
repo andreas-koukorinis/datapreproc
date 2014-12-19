@@ -5,9 +5,9 @@ from Algorithm.trade_algorithm import TradeAlgorithm
 from Utils.Regular import check_eod, parse_weights
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 
-class TargetRiskRP( TradeAlgorithm ):
+class TargetRiskRP(TradeAlgorithm):
 
-    def init( self, _config ):
+    def init(self, _config):
         self.day=-1
         self.target_risk = 10.0
         if _config.has_option('Strategy', 'target_risk'):
@@ -41,7 +41,7 @@ class TargetRiskRP( TradeAlgorithm ):
                 _stddev = 0.0
                 for period in self.periods:
                     val = self.daily_indicators[ 'StdDev.' + product + '.' + period ].values[1]         
-                    _stddev += (numpy.exp(numpy.sqrt(252.0)*val) - 1)*100.0
+                    _stddev += (numpy.exp(numpy.sqrt(252.0)*val) - 1)*100.0         
                 vol_product = _stddev/float(len(self.periods))
                 _weights[product] = 2.0*self.signs[product]*target_risk_per_product/vol_product
             self.update_positions(events[0]['dt'], _weights)

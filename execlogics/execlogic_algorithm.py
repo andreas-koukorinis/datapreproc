@@ -23,7 +23,7 @@ class ExecLogicAlgo():
         #Instantiate RiskManager
         _risk_manager_name = defaults.RISK_MANAGER
         if _config.has_option('RiskManagement', 'risk_manager'):
-            _risk_manager_name = _config.get('Parameters', 'risk_manager')
+            _risk_manager_name = _config.get('RiskManagement', 'risk_manager')
         if not is_valid_risk_manager_name(_risk_manager_name):
             sys.exit("Cannot proceed with invalid RiskManager name")
         _risk_manager_module_name = get_module_name_from_risk_manager_name(_risk_manager_name)
@@ -50,13 +50,6 @@ class ExecLogicAlgo():
     def update_positions(self, dt, weights):
         pass
 
-    def update_risk_level(self, date, weights):
-        _map_product_to_index = self.risk_manager.map_product_to_index
-        if weights: # If dict is not empty i.e we have new weights
-            for _product in weights.keys():
-                self.risk_manager.weights[_map_product_to_index[_product]] = weights[_product]
-        self.risk_level = (self.risk_manager.get_current_risk_level(date))/100.0
-
     def notify_last_trading_day(self):
         _last_trading_day_base_symbols = []
         for product in self.all_products:
@@ -80,11 +73,13 @@ class ExecLogicAlgo():
     # If num_shares is +ve -> it is a buy trade
     # If num_shares is -ve -> it is a sell trade
     def place_order(self, dt, product, num_shares):
+        #if abs(num_shares) > 0.0000000001:
         if num_shares != 0:
             self.order_manager.send_order(dt, product, num_shares)
    
     # These order are sent directly yo the backtester by the order manager
     def place_order_agg(self, dt, product, num_shares):
+        #if abs(num_shares) > 0.0000000001:
         if num_shares != 0:
             self.order_manager.send_order_agg(dt, product, num_shares)
 
