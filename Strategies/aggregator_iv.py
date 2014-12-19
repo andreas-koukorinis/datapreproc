@@ -47,6 +47,12 @@ class AggregatorIV(TradeAlgorithm):
             sys.exit('Atleast one signal config expected')
         self.signal_allocations = numpy.array([1.0/float(len(_signal_configs))] * len(_signal_configs)) # Equally weighted by default
 
+    def update_signal_allocations_using_volatility(self, _signals):
+        for i in range(len(_signals)):
+            _this_signal_log_ret_stdev = _signals[i].simple_performance_tracker.compute_historical_volatility(self.volatility_history)
+            self.signal_allocations[i] = 1.0/_this_signal_log_ret_stdev
+        self.signal_allocations = self.signal_allocations/sum(self.signal_allocations) # Normalize, dont need abs since all values are positive
+
     def update_past_relative_contribution(self, _new_signal_contributions, _new_portfolio_weights):
         for i in range(len(_new_signal_contributions)):
             for _product in self.products:
@@ -55,11 +61,6 @@ class AggregatorIV(TradeAlgorithm):
                 else:
                     self.past_relative_contribution[i][_product] = _new_signal_contributions[i][_product]/_new_portfolio_weights[_product]
 
-    def update_signal_allocations_using_volatility(self, _signals):
-        for i in range(len(_signals)):
-            self.signal_allocations[i] = 1.0/_signals[i].simple_performance_tracker.compute_historical_volatility(self.volatility_history)
-        self.signal_allocations = self.signal_allocations/sum(self.signal_allocations) # Normalize, dont need abs since all values are positive
-
     def get_new_portfolio_weights(self, _signal_rebalancing_day, _current_portfolio_weights, _signals):
         _new_signal_contributions = []
         _new_portfolio_weights = dict([(_product, 0.0) for _product in self.products])
@@ -67,7 +68,8 @@ class AggregatorIV(TradeAlgorithm):
             self.update_signal_allocations_using_volatility(self.signals)
             self.last_day_volatility_computed = self.day
             _signal_rebalancing_day = [True] * len(_signals) # Treat the day when allocations are changed as the rebalacing day for each signal
-            print self.day, self.signal_allocations
+            #print ( self.day, self.signal_allocations )
+
         for i in range(len(_signals)):
             _new_signal_contributions.append(dict([(_product, 0.0) for _product in self.products]))
             if _signal_rebalancing_day[i]:

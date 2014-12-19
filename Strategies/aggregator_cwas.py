@@ -53,6 +53,8 @@ class AggregatorCWAS(TradeAlgorithm):
         if len(self.signal_allocations) != len(self.signals):
             sys.exit('Strategy::signal_allocations should have the same length as Strategy::signals in the config')
 
+        self.signal_allocations = self.signal_allocations/sum(self.signal_allocations) # Normalize, dont need abs since all values are positive
+
     def update_past_relative_contribution(self, _new_signal_contributions, _new_portfolio_weights, _new_portfolio_abs_weights):
         for i in range(len(_new_signal_contributions)):
             for _product in self.products:
