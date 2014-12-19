@@ -11,34 +11,35 @@ from DailyIndicators.Indicator_List import is_valid_daily_indicator
 class SignalAlgorithm(EventsListener): # TODO May be Should listen to events corresponding to own products
     """Base class for signal development
     User should inherit this class and implement init and on_events_update functions
-
+    
     Description: SignalAlgorithm implements the functions which are common to all the signals
                  SignalAlgorithm and hence every signal has access to the simple_performance_tracker,
                  dailybooks for all the products
 
     Listeners: None
-
+    
     Listening to: Dispathcer for events updates(Currently events are end of day)
-
+    
     Inherited by: Every signal
     """
+    
     def __init__(self, _all_products, _startdate, _enddate, _config, _agg_config):
-    """Initializes the required variables, daily_indicators mentioned in the signal's config file.
-       Instantiates the simple_performance_tracker
-       Stores the reference to the required instances like simple_performance_tracker, dailybooks
-       Starts listening to dispatcher for events update
-       Calls the signal's init function to allow it to perform initialization tasks
-
-       Args:
+        """Initializes the required variables, daily_indicators mentioned in the signal's config file.
+        Instantiates the simple_performance_tracker
+        Stores the reference to the required instances like simple_performance_tracker, dailybooks
+        Starts listening to dispatcher for events update
+        Calls the signal's init function to allow it to perform initialization tasks
+        
+        Args:
            _all_products(list): The exhaustive list of products aggregator ends up trading.Eg: ['fES_1','fES_2','AQRIX']
            _startdate(date object): The start date of the simulation
            _enddate(date object): The end date of the simulation
            _config(ConfigParser handle): The handle to the config file of the signal
            _agg_config(ConfigParser handle): The handle to the config file of the aggregator
 
-       Returns: Nothing 
-    """
-
+        Returns: Nothing 
+        """
+        
         if not _config.has_option('Products', 'trade_products'):
             sys.exit('Cannot proceed without trade_products in signal config')
         self.products = sorted(_config.get('Products', 'trade_products').split(',')) # we are doing this here so that multiple instances of indicators all point to same value.

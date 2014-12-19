@@ -101,7 +101,7 @@ class AggregatorCWAS(TradeAlgorithm):
 
         if _is_rebalancing_day:
             _current_portfolio_weights = self.get_current_portfolio_weights(events[0]['dt'].date())
-            _new_weights = self.get_new_portfolio_weights(_signal_rebalancing_day, _current_portfolio_weights, self.signals, self.signal_allocations)
+            _new_weights = self.get_new_portfolio_weights(_signal_rebalancing_day, _current_portfolio_weights, self.signals)
             #print events[0]['dt'].date(), self.signals[0].weights, self.signals[1].weights, _current_portfolio_weights, _new_weights, self.past_relative_contribution
             self.update_positions(events[0]['dt'], _new_weights)
         else:

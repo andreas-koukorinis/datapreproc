@@ -18,50 +18,50 @@ from execlogics.execlogic_list import is_valid_execlogic_name, get_module_name_f
 class TradeAlgorithm(EventsListener):
     """Base class for strategy development
     User should inherit this class and implement init and on_events_update functions
-
+    
     Description: TradeAlgorithm implements the functions which are common to all the strategies
-                 TradeAlgorithm and hence every strategy has access to the order_manager,execlogic,
-                 portfolio,performance_tracker, simple_performance_tracker, dailybooks for all the products
-
+    TradeAlgorithm and hence every strategy has access to the order_manager,execlogic,
+    portfolio,performance_tracker, simple_performance_tracker, dailybooks for all the products
+    
     Listeners: None
-
+    
     Listening to: Dispathcer for events updates(Currently events are end of day)
-
+    
     Inherited by: Every strategy
     """
-
+    
     def __init__( self, _trade_products, _all_products, _startdate, _enddate, _config, _log_filename):
-    """Initializes the required variables, daily_indicators mentioned in the config file.
-       Instantiates the performance_tracker,portfolio,simple_performance_tracker and execlogic
-       Stores the reference to the required instances like order_manager,execlogic, portfolio,
-       performance_tracker, simple_performance_tracker, dailybooks
-       Starts listening to dispatcher for events update
-       Calls the strategy's init function to allow it to perform initialization tasks # TODO call in the end
-
-       Args:
-           _trade_products(list): The products a strategy is interested in trading.Eg: ['fES','AQRIX']
-           _all_products(list): The exhaustive list of products we end up trading.Eg: ['fES_1','fES_2','AQRIX']
-           _startdate(date object): The start date of the simulation
-           _enddate(date object): The end date of the simulation
-           _config(ConfigParser handle): The handle to the config file of the strategy
-           _log_filename(string): The file for logging.To pass to order_manager # TODO move to Globals
-
-       Returns: Nothing 
-    """   
-
+        """Initializes the required variables, daily_indicators mentioned in the config file.
+        Instantiates the performance_tracker,portfolio,simple_performance_tracker and execlogic
+        Stores the reference to the required instances like order_manager,execlogic, portfolio,
+        performance_tracker, simple_performance_tracker, dailybooks
+        Starts listening to dispatcher for events update
+        Calls the strategy's init function to allow it to perform initialization tasks # TODO call in the end
+        
+        Args:
+            _trade_products(list): The products a strategy is interested in trading.Eg: ['fES','AQRIX']
+            _all_products(list): The exhaustive list of products we end up trading.Eg: ['fES_1','fES_2','AQRIX']
+            _startdate(date object): The start date of the simulation
+            _enddate(date object): The end date of the simulation
+            _config(ConfigParser handle): The handle to the config file of the strategy
+            _log_filename(string): The file for logging.To pass to order_manager # TODO move to Globals
+        
+        Returns: Nothing 
+        """   
+        
         self.products = sorted(_trade_products) # we are doing this here so that multiple instances of indicators all point to same value.
         self.all_products = _all_products
         self.daily_indicators = {}
         self.start_date = _startdate
         self.end_date = _enddate
-
+        
         # TODO this should be a global product to index map, that allows us to work with indices rather than product strings
         self.map_product_to_index = {} 
         _product_index = 0
         for _product in self.products:
             self.map_product_to_index[_product] = _product_index
             _product_index = _product_index + 1
-
+            
         # Read indicator list from config file
         if _config.has_option('DailyIndicators','names'):
             indicators = _config.get( 'DailyIndicators', 'names' ).strip().split(" ")
