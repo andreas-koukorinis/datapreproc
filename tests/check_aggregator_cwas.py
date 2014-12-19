@@ -65,12 +65,17 @@ def __main__():
     _x = _alpha.get_new_portfolio_weights(signal_rebalancing_day, current_portfolio_weights, signals, signal_allocations)
     print ("%f %f" %(_x['E'], _x['Z']))
     
-    print _alpha.past_relative_contribution
-    #current_portfolio_weights['E'] = 0.7
-    current_portfolio_weights['E'] = 0.0
-    current_portfolio_weights['Z'] = 0.3
+    _x['E'] = _x['E']*1.2
+    _x['Z'] = _x['Z']*0.8
+
+    # make them add upto 1
+    _x['E'] = _x['E'] / ( _x['E'] + _x['Z'] )
+    _x['Z'] = _x['Z'] / ( _x['E'] + _x['Z'] )
+
+    # introduce some market movement
+    current_portfolio_weights['E'] = _x['E']
+    current_portfolio_weights['Z'] = _x['Z']
     
-    #signals[0].weights['E']=0.2
     signals[0].weights['E']=0.3
     signals[0].weights['Z']=0.7
     signals[1].weights['E']=-0.2
