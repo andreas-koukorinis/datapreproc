@@ -1,12 +1,12 @@
 import sys
-import numpy as numpy
+import numpy
 from importlib import import_module
 from Utils.Regular import check_eod,adjust_file_path_for_home_directory
 from DailyIndicators.Indicator_List import is_valid_daily_indicator,get_module_name_from_indicator_name
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
-from Algorithm.trade_algorithm import TradeAlgorithm
+from Algorithm.signal_algorithm import SignalAlgorithm
 
-class UnleveredDMF( TradeAlgorithm ):
+class UnleveredDMF( SignalAlgorithm ):
     """Implement a momentum strategy on multiple products.
     The estimated return on each product is a sum of the discretized returns in the past durations.
     For instance if we are provided the TrendIndicator as Trend
