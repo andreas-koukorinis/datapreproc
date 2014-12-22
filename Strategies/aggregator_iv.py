@@ -2,8 +2,8 @@ import sys
 import ConfigParser
 import numpy as numpy
 from importlib import import_module
-from Utils.Regular import check_eod,adjust_file_path_for_home_directory
-from DailyIndicators.Indicator_List import is_valid_daily_indicator,get_module_name_from_indicator_name
+from Utils.Regular import check_eod, adjust_file_path_for_home_directory, is_float_zero
+from DailyIndicators.Indicator_List import is_valid_daily_indicator, get_module_name_from_indicator_name
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 from signals.signal_list import is_valid_signal_name, get_module_name_from_signal_name
 from Algorithm.trade_algorithm import TradeAlgorithm
@@ -61,9 +61,9 @@ class AggregatorIV(TradeAlgorithm):
     def update_past_relative_contribution(self, _new_signal_contributions, _new_portfolio_weights, _new_portfolio_abs_weights):
         for i in range(len(_new_signal_contributions)):
             for _product in self.products:
-                if _new_portfolio_abs_weights[_product] < 0.00000001:
+                if is_float_zero(_new_portfolio_abs_weights[_product]):
                     self.past_relative_contribution[i][_product] = 0
-                elif(_new_portfolio_abs_weights[_product] > 0.0000001 and abs(_new_portfolio_weights[_product]) < 0.0000001):
+                elif (not is_float_zero(_new_portfolio_abs_weights[_product]) and is_float_zero(_new_portfolio_weights[_product]):
                     self.past_relative_contribution[i][_product] = _new_signal_contributions[i][_product]
                 else:
                     self.past_relative_contribution[i][_product] = _new_signal_contributions[i][_product]/_new_portfolio_weights[_product]
@@ -87,7 +87,7 @@ class AggregatorIV(TradeAlgorithm):
                     _new_portfolio_abs_weights[_product] += abs(_new_signal_contributions[i][_product])
             else:
                 for _product in self.products:
-                    if abs(_current_portfolio_weights[_product]) < 0.0000001 and self.past_relative_contribution[i][_product] != 0: #shoudl change the != 0 here
+                    if is_float_zero(_current_portfolio_weights[_product]) and (not is_float_zero(self.past_relative_contribution[i][_product]):
                         _new_signal_contributions[i][_product] = self.past_relative_contribution[i][_product]
                     else:
                         _new_signal_contributions[i][_product] = _current_portfolio_weights[_product] * self.past_relative_contribution[i][_product]
