@@ -164,6 +164,16 @@ insert into products values ('CADUSD','39039','QE2','CAD/USD','forex','fx','fx',
 insert into products values ('EURUSD','59160','EU9','EUR/USD','forex','fx','fx','1','1','1','USD','FX');
 insert into products values ('GBPUSD','59060','DR5','GBP/USD','forex','fx','fx','1','1','1','USD','FX');
 insert into products values ('JPYUSD','39046','QE9','JPY/USD','forex','fx','fx','1','1','1','USD','FX');
+insert into products values ('AUDUSD','39037','QE0','AUD/USD','forex','fx','fx','1','1','1','USD','FX');
+insert into products values ('NZDUSD','39051','QE%','NZD/USD','forex','fx','fx','1','1','1','USD','FX');
+insert into products values ('CHFUSD','39053','QE}','CHF/USD','forex','fx','fx','1','1','1','USD','FX');
+insert into products values ('SEKUSD','39058','QF1','SEK/USD','forex','fx','fx','1','1','1','USD','FX');
+insert into products values ('NOKUSD','39049','QE#','NOK/USD','forex','fx','fx','1','1','1','USD','FX');
+insert into products values ('TRYUSD','98539','USD1','TRY/USD','forex','fx','fx','1','1','1','USD','FX');
+insert into products values ('MXNUSD','39056','QF5','MXN/USD','forex','fx','fx','1','1','1','USD','FX');
+insert into products values ('ZARUSD','39057','QE_','ZAR/USD','forex','fx','fx','1','1','1','USD','FX');
+insert into products values ('ILSUSD','69055','USK','ILS/USD','forex','fx','fx','1','1','1','USD','FX');
+
 
 insert into products values ('KC_1','10','KC','Coffee (Floor trading only)-CSCE Future 1','us_futures','future','agriculture','0.050000','18.750000','375.000000','USD','ICEUS');
 insert into products values ('KC_2','10','KC','Coffee (Floor trading only)-CSCE Future 2','us_futures','future','agriculture','0.050000','18.750000','375.000000','USD','ICEUS');
@@ -173,14 +183,26 @@ insert into products values ('SB_1','20','SB','Sugar #11World-CSCE Future 1','us
 insert into products values ('SB_2','20','SB','Sugar #11World-CSCE Future 2','us_futures','future','agriculture','0.010000','11.200000','1120.000000','USD','ICEUS');
 insert into products values ('CC_1','3','CC','Cocoa (Floor trading only)-CSCE Future 1','us_futures','future','agriculture','1.000000','10.000000','10.000000','USD','ICEUS');
 insert into products values ('CC_2','3','CC','Cocoa (Floor trading only)-CSCE Future 2','us_futures','future','agriculture','1.000000','10.000000','10.000000','USD','ICEUS');
-insert into products values ('GC_1','867','GC2','Gold-COMEX Future 1','us_futures','future','agriculture','0.100000','10.000000','100.000000','USD','COMEX');
-insert into products values ('GC_2','867','GC2','Gold-COMEX Future 2','us_futures','future','agriculture','0.100000','10.000000','100.000000','USD','COMEX');
-insert into products values ('SI_1','868','SI2','Silver-COMEX Future 1','us_futures','future','agriculture','0.100000','5.000000','50.000000','USD','COMEX');
-insert into products values ('SI_2','868','SI2','Silver-COMEX Future 2','us_futures','future','agriculture','0.100000','5.000000','50.000000','USD','COMEX');
-insert into products values ('HG_1','809','HG2','CopperHG-COMEX Future 1','us_futures','future','agriculture','0.050000','12.500000','250.000000','USD','COMEX');
-insert into products values ('HG_2','809','HG2','CopperHG-COMEX Future 2','us_futures','future','agriculture','0.050000','12.500000','250.000000','USD','COMEX');
-insert into products values ('PL_1','859','PL2','Platinum-NYMEX Future 1','us_futures','future','agriculture','0.100000','5.000000','50.000000','USD','NYMEX');
-insert into products values ('PL_2','859','PL2','Platinum-NYMEX Future 2','us_futures','future','agriculture','0.100000','5.000000','50.000000','USD','NYMEX');
-insert into products values ('PA_1','849','PA2','Palladium-NYMEX Future 1','us_futures','future','agriculture','0.050000','5.000000','100.000000','USD','NYMEX');
-insert into products values ('PA_2','849','PA2','Palladium-NYMEX Future 2','us_futures','future','agriculture','0.050000','5.000000','100.000000','USD','NYMEX');
+insert into products values ('GC_1','30','GC','Gold-COMEX Future 1','us_futures','future','agriculture','0.100000','10.000000','100.000000','USD','COMEX');
+insert into products values ('GC_2','30','GC','Gold-COMEX Future 2','us_futures','future','agriculture','0.100000','10.000000','100.000000','USD','COMEX');
+insert into products values ('SI_1','16','SI','Silver-COMEX Future 1','us_futures','future','agriculture','0.100000','5.000000','50.000000','USD','COMEX');
+insert into products values ('SI_2','16','SI','Silver-COMEX Future 2','us_futures','future','agriculture','0.100000','5.000000','50.000000','USD','COMEX');
+insert into products values ('HG_1','8','HG','CopperHG-COMEX Future 1','us_futures','future','agriculture','0.050000','12.500000','250.000000','USD','COMEX');
+insert into products values ('HG_2','8','HG','CopperHG-COMEX Future 2','us_futures','future','agriculture','0.050000','12.500000','250.000000','USD','COMEX');
+insert into products values ('PL_1','13','PL','Platinum-NYMEX Future 1','us_futures','future','agriculture','0.100000','5.000000','50.000000','USD','NYMEX');
+insert into products values ('PL_2','13','PL','Platinum-NYMEX Future 2','us_futures','future','agriculture','0.100000','5.000000','50.000000','USD','NYMEX');
+insert into products values ('PA_1','69','PA','Palladium-NYMEX Future 1','us_futures','future','agriculture','0.050000','5.000000','100.000000','USD','NYMEX');
+insert into products values ('PA_2','69','PA','Palladium-NYMEX Future 2','us_futures','future','agriculture','0.050000','5.000000','100.000000','USD','NYMEX');
 
+insert into products values ('CL_1','188','CL','Crude Oil-Light-NYMEX Future 1','us_futures','future','energy','0.010000','10.000000','1000.000000','USD','NYMEX');
+insert into products values ('CL_2','188','CL','Crude Oil-Light-NYMEX Future 2','us_futures','future','energy','0.010000','10.000000','1000.000000','USD','NYMEX');
+insert into products values ('B_1','136','LCO','Brent Crude -(IPE) Future 1','us_futures','future','energy','0.010000','10.000000','1000.000000','USD','ICEUK');
+insert into products values ('B_2','136','LCO','Brent Crude -(IPE) Future 2','us_futures','future','energy','0.010000','10.000000','1000.000000','USD','ICEUK');
+insert into products values ('HO_1','89','HO','NY Harbor ULSD -NYMEX( Future 1','us_futures','future','energy','0.000100','4.200000','42000.000000','USD','NYMEX');
+insert into products values ('HO_2','89','HO','NY Harbor ULSD -NYMEX( Future 2','us_futures','future','energy','0.000100','4.200000','42000.000000','USD','NYMEX');
+insert into products values ('RB_1','866','RB1','Gasoline-Reformulated Blendstock-NYMEX Future 1','us_futures','future','energy','0.000100','4.200000','42000.000000','USD','NYMEX');
+insert into products values ('RB_2','866','RB1','Gasoline-Reformulated Blendstock-NYMEX Future 2','us_futures','future','energy','0.000100','4.200000','42000.000000','USD','NYMEX');
+insert into products values ('NG_1','191','NG','Natural Gas-Henry Hub-NYMEX Future 1','us_futures','future','energy','0.001000','10.000000','10000.000000','USD','NYMEX');
+insert into products values ('NG_2','191','NG','Natural Gas-Henry Hub-NYMEX Future 2','us_futures','future','energy','0.001000','10.000000','10000.000000','USD','NYMEX');
+insert into products values ('G_1','134','LGO','Gas Oil-(IPE) Future 1','us_futures','future','energy','0.050000','5.000000','100.000000','USD','ICEUK');
+insert into products values ('G_2','134','LGO','Gas Oil-(IPE) Future 2','us_futures','future','energy','0.050000','5.000000','100.000000','USD','ICEUK');
