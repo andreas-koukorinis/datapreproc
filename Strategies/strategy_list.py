@@ -1,5 +1,5 @@
 def is_valid_strategy_name ( _strategy_name ) :
-    _strategy_name_list = ['CTAMomentum', 'CWAS', 'EqualWeight', 'Momentumv1', 'TargetRiskRP', 'UnleveredDMF', 'UnleveredRP', 'TargetRiskEqualRiskContribution', 'TargetRiskMaxSharpeHistCorr', 'AggregatorCWAS', 'AggregatorIV']
+    _strategy_name_list = ['CTAMomentum', 'CWAS', 'EqualWeight', 'Momentumv1', 'TargetRiskRP', 'UnleveredDMF', 'UnleveredRP', 'TargetRiskEqualRiskContribution', 'TargetRiskMaxSharpeHistCorr', 'AggregatorCWAS', 'AggregatorIV','MVO']
     _retval = False
     if _strategy_name in _strategy_name_list :
         _retval = True
@@ -30,6 +30,8 @@ def get_module_name_from_strategy_name ( strategy_name ) :
         return ( "aggregator_cwas" )
     def _aggregator_iv():
         return ( "aggregator_iv" )
+    def _mvo():
+        return ( "mvo" )
 
     options = { 'CTAMomentum' : _c_t_a_momentum,
                 'CWAS' : _cwas,
@@ -41,7 +43,8 @@ def get_module_name_from_strategy_name ( strategy_name ) :
                 'TargetRiskEqualRiskContribution' : _target_risk_equal_risk_contribution,
                 'TargetRiskMaxSharpeHistCorr' : _target_risk_max_sharpe_hist_corr,
                 'AggregatorCWAS' : _aggregator_cwas,
-                'AggregatorIV' : _aggregator_iv
+                'AggregatorIV' : _aggregator_iv,
+                'MVO': _mvo
                 }
 
     if is_valid_strategy_name ( strategy_name ):

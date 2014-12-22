@@ -244,6 +244,5 @@ class MVO(TradeAlgorithm):
                     self.map_product_to_weight[_product] = self.weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
 
             self.update_positions(events[0]['dt'], self.map_product_to_weight)    
-
         else:
             self.rollover(events[0]['dt'])
