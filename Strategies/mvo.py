@@ -1,7 +1,7 @@
 import sys
 from importlib import import_module
 from math import sqrt, exp
-import numpy as np
+import numpy
 from numpy import hstack, vstack
 from cvxopt import matrix
 from cvxopt.solvers import qp
@@ -90,16 +90,16 @@ class MVO(TradeAlgorithm):
         # Optimization will be done to find both w and y i.e 29+29 weights
         # Dmat entries for y kept low to not affect minimzing function as much as possible
         # Not kept 0 to still keep Dmat as semi-definite
-        dummy_var_dmat = 0.000001*np.eye(n)
+        dummy_var_dmat = 0.000001*numpy.eye(n)
         Dmat = vstack((hstack((covariance, matrix(0., (n, n)))), hstack((matrix(0., (n, n)), dummy_var_dmat))))
         # Constraint:  y1 + y2 + ... + yn <= 5
         Amat = vstack((matrix(0, (n, 1)), matrix(1, (n, 1))))
         bvec = [leverage]
         # Constraints:   y1, y2 ,..., yn >= 0
-        Amat = hstack((Amat, vstack((matrix(0, (n, n)), -1*np.eye(n)))))
+        Amat = hstack((Amat, vstack((matrix(0, (n, n)), -1*numpy.eye(n)))))
         bvec = bvec + n*[min_allocation]
         # Constraint:  y1, y2 ,..., yn <= max_allocation
-        Amat = hstack((Amat, vstack((matrix(0, (n, n)), np.eye(n)))))
+        Amat = hstack((Amat, vstack((matrix(0, (n, n)), numpy.eye(n)))))
         bvec = bvec + n*[max_allocation]
         # Constraint:  -w1 <= y1, -w2 <= y2, ..., -wn <= yn
         dummy_wt_constraint1 = [-1] + (n-1)*[0] + [-1] + (n-1)*[0]
@@ -172,7 +172,7 @@ class MVO(TradeAlgorithm):
         self.last_date_stdev_computed = 0
         self.stdev_computation_indicator_mapping = {} # map from product to the indicator to get the stddev value
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
-        self.erc_weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
+        self.weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
         self.stddev_logret = numpy.array([1.0]*len(self.products)) # these are the stddev values, with products occuring in the same order as the order in self.products
         # Create a diagonal matrix of 1s for correlation matrix
         self.logret_correlation_matrix = numpy.eye(len(self.products))
@@ -208,13 +208,13 @@ class MVO(TradeAlgorithm):
 
         # If today is the rebalancing day, then use indicators to calculate new positions to take
         if all_eod and(self.day % self.rebalance_frequency == 0):
-            _need_to_recompute_erc_weights = False # By default we don't need to change weights unless some input has changed
+            _need_to_recompute_weights = False # By default we don't need to change weights unless some input has changed
             if self.day >= (self.last_date_correlation_matrix_computed + self.correlation_computation_interval):
                 # we need to recompute the correlation matrix
                 self.logret_correlation_matrix = self.correlation_computation_indicator.get_correlation_matrix() # this command will not do anything if the values have been already computed. else it will
                 # TODO Add tests here for the correlation matrix to make sense.
                 # If it fails, do not overwrite previous values, or throw an error
-                _need_to_recompute_erc_weights = True
+                _need_to_recompute_weights = True
                 self.last_date_correlation_matrix_computed = self.day
 
             if self.day >= (self.last_date_stdev_computed + self.stddev_computation_interval):
@@ -224,24 +224,24 @@ class MVO(TradeAlgorithm):
                     # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.
                     # TODO we can make tests here that the module needs to pass.
-                _need_to_recompute_erc_weights = True
+                _need_to_recompute_weights = True
                 self.last_date_stdev_computed = self.day
             
             # Get the expected log return values values from the stddev indicators
             for _product in self.products:
                 self.exp_log_returns[self.map_product_to_index[_product]] = self.daily_indicators[self.expreturns_indicator + '.' + _product + '.' + str(self.exp_return_computation_history)].values[1]
-            _need_to_recompute_erc_weights = True
+            _need_to_recompute_weights = True
             
-            if _need_to_recompute_erc_weights:
+            if _need_to_recompute_weights :
                 # Calculate weights to assign to each product using indicators
                 # compute covariance matrix from correlation matrix and
                 _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stddev_logret, self.stddev_logret) # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
 
                 
-                self.erc_weights = efficient_frontier(self.exp_log_returns, _cov_mat, self.leverage, self.risk_tolerance, self.max_allocation, self.min_allocation)
+                self.weights = efficient_frontier(self.exp_log_returns, _cov_mat, self.leverage, self.risk_tolerance, self.max_allocation, self.min_allocation)
                 
             for _product in self.products:
-                    self.map_product_to_weight[_product] = self.erc_weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
+                    self.map_product_to_weight[_product] = self.weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
 
             self.update_positions(events[0]['dt'], self.map_product_to_weight)    
 
