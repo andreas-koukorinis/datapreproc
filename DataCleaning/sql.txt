@@ -74,6 +74,15 @@ LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/CADUSD.csv' INTO 
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/JPYUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/EURUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/GBPUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/AUDUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/NZDUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/CHFUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/SEKUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/NOKUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/TRYUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/MXNUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ZARUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/ILSUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/KC_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/CT_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;

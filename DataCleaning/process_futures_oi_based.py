@@ -103,6 +103,7 @@ def process_futures(product, to_name):
     out_file_aux1 = out_dir + 'aux1_' + product + '.csv'
     cmd = "cd %s;for dd_ in `cat *csv | sort -g | awk -F, '{ print $1 }' | uniq`;do grep $dd_ *csv | sort -k7,7 -rg -t, | head -n1 | sed 's/:/,/' ;done"%(in_dir)
     output = commands.getoutput(cmd)
+    output = ''.join(output.split('\r'))
     f = open(out_file_aux1, 'w')
     f.write(output)
     f.close()
@@ -122,7 +123,7 @@ def process_futures(product, to_name):
     get_second_contract(in_dir, oi_1, out_file_new_aux1, out_file_aux2, oi_1)
 
     # Process the data and output to db format
-    generic_tickers = [product + '_1', product + '_2']
+    generic_tickers = [to_name + '_1', to_name + '_2']
     output_path_1 = out_dir + generic_tickers[0] + '.csv'
     output_path_2 = out_dir + generic_tickers[1] + '.csv'   
     dateparse = lambda x: datetime.strptime(x, '%Y%m%d').date() # Parse dates in format required by mysql i.e. YYYY-MM-DD
