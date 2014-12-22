@@ -9,10 +9,35 @@ from datetime import timedelta
 
 # Track the daily log returns for the product
 class DailyLogReturns( DailyBookListener ):
+    """Tracks the dailylogreturns of a product
+
+       Identifier: DailyLogReturns.product_name
+                   Eg: DailyLogReturns.fES or DailyLogReturns.AQRIX 
+
+       Listeners: Many other indicators like StdDev, Trend
+                  Apart from other indicators, simple performance tracker also listens to the daily log returns of the products in its portfolio
+
+       Listening to: BookBuilder for dailybook updates
+    """
 
     instances = {}
 
     def __init__( self, _identifier, _startdate, _enddate, _config ):
+        """Initializes the required variables like identifier, last two prices etc
+           and starts listening to products whose closing prices are needed to compute the dailylogreturns of a given product
+           
+           Args:
+               _identifier(string): The identifier for this indicator. Eg: DailyLogReturns.fES
+               _startdate(date object): The start date of the simulation
+               _enddate(date object): The end date of the simulation
+               _config(ConfigParser handle): The handle to the config file of the strategy
+            
+           Note:
+               1) DailyLogReturns indicator will listen to dailybook updates for 2 products in case of futures, otherwise 1.
+                  Eg: DailyLogReturns.fES will listen to dailybook updates of fES_1 and fES_2 
+                      DailyLogReturns.AQRIX will listen to dailybook updates of AQRIX only
+        """
+
         self.listeners = []
         self.values = []
         self.prices = [0,0]  # Remember last two prices for the product #prices[0] is latest
@@ -36,10 +61,18 @@ class DailyLogReturns( DailyBookListener ):
             BookBuilder.get_unique_instance ( self.product, _startdate, _enddate, _config ).add_dailybook_listener( self )
 
     def add_listener( self, listener ):
+        """Used by other classes to register as on_indicator_update listener of the dispatcher
+
+           Args:
+               listener(object): The object of the class which wants to listen
+
+           Returns: Nothing       
+        """
         self.listeners.append( listener )
 
     @staticmethod
     def get_unique_instance( identifier, _startdate, _enddate, _config ):
+        """This static function is used by other classes to add themselves as a listener to the DailyLogReturns"""
         if identifier not in DailyLogReturns.instances.keys() :
             new_instance = DailyLogReturns ( identifier, _startdate, _enddate, _config )
             DailyLogReturns.instances[identifier] = new_instance
@@ -47,6 +80,16 @@ class DailyLogReturns( DailyBookListener ):
 
     # Update the daily log returns on each ENDOFDAY event
     def on_dailybook_update( self, product, dailybook ):
+        """On a dailybook update, this function is called by the bookbuilder and the new logreturn is computed here
+           On computation of a new log return all the dailylogreturns history is passed onto the listeners of this indicator
+           in the format : list of tuples (date, logreturn)
+
+           Args:
+               product(string): The product for which this new dailybook update is 
+               dailybook(list of tuples (date,price,is_last_trading_day)): The dailybook of the product 
+
+           Returns: Nothing
+        """ 
         _updated = False
         if is_future( self.product ):
             if product == self.product1 : 
@@ -89,5 +132,5 @@ class DailyLogReturns( DailyBookListener ):
                 print ("something wrong in DailyLogReturns")
                 sys.exit(0)
             self.values.append((dailybook[-1][0].date(), logret))
-            for listener in self.listeners: 
+            for listener in self.listeners: # Pass the dailylogreturn history onto the listeners
                 listener.on_indicator_update( self.identifier, self.values )
