@@ -22,6 +22,10 @@ def convert_to_year_month(YYMM):
         year = 2000 + yy
     return year*100 + mm
 
+def get_number_from_filename(filename):
+    filename = os.path.splitext(filename)[0].split('/')[-1].rsplit('_',1)[1]
+    return convert_to_year_month(filename[-4:])
+
 def compare_ticker(ticker1, ticker2):
     month_codes_rev = {'F':'01','G':'02','H':'03','J':'04','K':'05','M':'06','N':'07','Q':'08','U':'09','V':'10','X':'11','Z':'12'}
     code1 = convert_to_year_month(ticker1[-2:] + month_codes_rev[ticker1[-3]])
@@ -52,16 +56,27 @@ def fix_flips(in_dir, df):
 def get_second_contract(in_dir, df,  out_file_aux1, out_file_aux2, oi_1):
     cmd = "cat %s | awk -F, '{ print $1 }' | uniq"%(out_file_aux1)
     contract_filenames = commands.getoutput(cmd).split('\n')
+    cmd = "cd %s; ls"%(in_dir)
+    contract_filenames_ls = commands.getoutput(cmd).split('\n')
+    contract_filenames_ls = sorted(contract_filenames_ls, key = get_number_from_filename) 
     j = 1
     f = open(out_file_aux2, 'w')
+    mode = 0
     for i in range(len(df)-2):
-        if df.loc[i, 'contract_filename'] == contract_filenames[j]:
-            j += 1
-            if j == len(contract_filenames):
-                break
-        if j != len(contract_filenames): 
+        if mode == 0:
+            if df.loc[i, 'contract_filename'] == contract_filenames[j]:
+                j += 1
+                if j == len(contract_filenames)-1:
+                    mode = 1
+        if mode == 0: 
             date =  df.loc[i, 'date']
             cmd = "cd %s;grep -H %s %s | sed 's/:/,/'"%(in_dir, str(date), contract_filenames[j])
+            output = commands.getoutput(cmd)
+            f.write(output)
+        else:
+            date =  df.loc[i, 'date']
+            j = contract_filenames_ls.index(df.loc[i, 'contract_filename']) + 1
+            cmd = "cd %s;grep -H %s %s | sed 's/:/,/'"%(in_dir, str(date), contract_filenames_ls[j])
             output = commands.getoutput(cmd)
             f.write(output)
     f.close()
@@ -98,10 +113,9 @@ def process_futures(product, to_name):
     if flips_present(oi_1):
         oi_1 = fix_flips(in_dir, oi_1)
         flips_present(oi_1)
-        oi_1 = oi_1[['contract_filename', 'date','open','high','low','close','contract_volume','contract_oi','total_volume','total_oi']]
-        #flips_present(oi_1)
-        out_file_new_aux1 = out_dir + 'aux1_new_' + product + '.csv'
-        oi_1.to_csv(out_file_new_aux1, index=False, header=False)
+    oi_1 = oi_1[['contract_filename', 'date','open','high','low','close','contract_volume','contract_oi','total_volume','total_oi']]
+    out_file_new_aux1 = out_dir + 'aux1_new_' + product + '.csv'
+    oi_1.to_csv(out_file_new_aux1, index=False, header=False)
 
     # Get the data for second contract based on first contract
     out_file_aux2 = out_dir + 'aux2_' + product + '.csv'
@@ -133,6 +147,9 @@ def process_futures(product, to_name):
             oi_2.loc[i,'is_last_trading_day'] = 0.0
     oi_2 = oi_2[['date','product','specific_ticker','open','high','low','close','is_last_trading_day','contract_volume','contract_oi','total_volume','total_oi']]
 
+    end_date = date(2014,10,31)
+    oi_1 = oi_1[oi_1['date'] <= end_date]
+    oi_2 = oi_2[oi_2['date'] <= end_date]
     oi_1.to_csv(output_path_1, index=False)
     oi_2.to_csv(output_path_2, index=False)
 
