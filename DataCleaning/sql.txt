@@ -75,6 +75,25 @@ LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/JPYUSD.csv' INTO 
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/EURUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/GBPUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/KC_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/CT_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/SB_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/CC_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/GC_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/SI_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/HG_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/PL_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/PA_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/KC_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/CT_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/SB_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/CC_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/GC_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/SI_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/HG_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/PL_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/PA_2.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+
 #ADD ENTRIES TO 'products' TABLE
 insert into products values ('VTI','13541','VTI','VANGUARD TOT STK MKT IDX VIPER','etfs','etf','equity','1','1','1','USD','AMEX');
 insert into products values ('VTV','56229','VTV','VANGUARD VALUE ETF','etfs','etf','equity','1','1','1','USD','AMEX');
@@ -145,3 +164,23 @@ insert into products values ('CADUSD','39039','QE2','CAD/USD','forex','fx','fx',
 insert into products values ('EURUSD','59160','EU9','EUR/USD','forex','fx','fx','1','1','1','USD','FX');
 insert into products values ('GBPUSD','59060','DR5','GBP/USD','forex','fx','fx','1','1','1','USD','FX');
 insert into products values ('JPYUSD','39046','QE9','JPY/USD','forex','fx','fx','1','1','1','USD','FX');
+
+insert into products values ('KC_1','10','KC','Coffee (Floor trading only)-CSCE Future 1','us_futures','future','agriculture','0.050000','18.750000','375.000000','USD','ICEUS');
+insert into products values ('KC_2','10','KC','Coffee (Floor trading only)-CSCE Future 2','us_futures','future','agriculture','0.050000','18.750000','375.000000','USD','ICEUS');
+insert into products values ('CT_1','7','CT','Cotton #2 (Floor trading only)-ICE Future 1','us_futures','future','agriculture','0.010000','5.000000','500.000000','USD','ICEUS');
+insert into products values ('CT_2','7','CT','Cotton #2 (Floor trading only)-ICE Future 2','us_futures','future','agriculture','0.010000','5.000000','500.000000','USD','ICEUS');
+insert into products values ('SB_1','20','SB','Sugar #11World-CSCE Future 1','us_futures','future','agriculture','0.010000','11.200000','1120.000000','USD','ICEUS');
+insert into products values ('SB_2','20','SB','Sugar #11World-CSCE Future 2','us_futures','future','agriculture','0.010000','11.200000','1120.000000','USD','ICEUS');
+insert into products values ('CC_1','3','CC','Cocoa (Floor trading only)-CSCE Future 1','us_futures','future','agriculture','1.000000','10.000000','10.000000','USD','ICEUS');
+insert into products values ('CC_2','3','CC','Cocoa (Floor trading only)-CSCE Future 2','us_futures','future','agriculture','1.000000','10.000000','10.000000','USD','ICEUS');
+insert into products values ('GC_1','867','GC2','Gold-COMEX Future 1','us_futures','future','agriculture','0.100000','10.000000','100.000000','USD','COMEX');
+insert into products values ('GC_2','867','GC2','Gold-COMEX Future 2','us_futures','future','agriculture','0.100000','10.000000','100.000000','USD','COMEX');
+insert into products values ('SI_1','868','SI2','Silver-COMEX Future 1','us_futures','future','agriculture','0.100000','5.000000','50.000000','USD','COMEX');
+insert into products values ('SI_2','868','SI2','Silver-COMEX Future 2','us_futures','future','agriculture','0.100000','5.000000','50.000000','USD','COMEX');
+insert into products values ('HG_1','809','HG2','CopperHG-COMEX Future 1','us_futures','future','agriculture','0.050000','12.500000','250.000000','USD','COMEX');
+insert into products values ('HG_2','809','HG2','CopperHG-COMEX Future 2','us_futures','future','agriculture','0.050000','12.500000','250.000000','USD','COMEX');
+insert into products values ('PL_1','859','PL2','Platinum-NYMEX Future 1','us_futures','future','agriculture','0.100000','5.000000','50.000000','USD','NYMEX');
+insert into products values ('PL_2','859','PL2','Platinum-NYMEX Future 2','us_futures','future','agriculture','0.100000','5.000000','50.000000','USD','NYMEX');
+insert into products values ('PA_1','849','PA2','Palladium-NYMEX Future 1','us_futures','future','agriculture','0.050000','5.000000','100.000000','USD','NYMEX');
+insert into products values ('PA_2','849','PA2','Palladium-NYMEX Future 2','us_futures','future','agriculture','0.050000','5.000000','100.000000','USD','NYMEX');
+
