@@ -90,7 +90,7 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
 
         for product in self.products:
             _orig_indicator_name = self.stdev_computation_indicator + '.' + product + '.' + str(self.stdev_computation_history) # this would be something like StdDev.fZN.252
-            self.daily_indicators[_orig_indicator_name] = StdevIndicatorclass.get_unique_instance(_orig_indicator_name, self.start_date, self.end_date, _config)
+            self.daily_indicators[_orig_indicator_name] = StdevIndicatorClass.get_unique_instance(_orig_indicator_name, self.start_date, self.end_date, _config)
             # self.stdev_computation_indicator[product] = self.daily_indicators[_orig_indicator_name]
             # No need to attach ourselves as a listener to the indicator for now. We are going to access the value directly.
 
