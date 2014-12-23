@@ -151,3 +151,6 @@ def dict_to_string(_dict):
     for key in sorted(_dict.keys()):
         _str += '%s : %0.2f   ' % (key, _dict[key])
     return _str
+
+def is_float_zero(val):
+    return abs(val) < 0.000000001
