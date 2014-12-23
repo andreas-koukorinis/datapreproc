@@ -112,7 +112,7 @@ class MVO(TradeAlgorithm):
         Amat = matrix(Amat.T)
         dvec = matrix(hstack((expected_returns, n*[0])).T)
         # Optimize
-        portfolios = qp(risk_tolerance*Dmat, dvec, Amat, bvec)['x']
+        portfolios = qp(Dmat, risk_tolerance*dvec, Amat, bvec)['x']
         return portfolios
 
     def init(self, _config):
