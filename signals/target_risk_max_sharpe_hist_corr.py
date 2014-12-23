@@ -3,11 +3,13 @@ import numpy
 from numpy.linalg import inv
 from importlib import import_module
 from scipy.optimize import minimize
-from Algorithm.signal_algorithm import SignalAlgorithm
+
 from Utils.Regular import check_eod,parse_weights
+from Utils.correct_signs_weights import correct_signs_weights
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
+from Algorithm.signal_algorithm import SignalAlgorithm
 
 class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
     """Implementation of the max sharpe strategy under historical correlations without regularization
@@ -118,16 +120,27 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
                 _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stddev_logret, self.stddev_logret) # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
 
                 _annualized_risk = 100.0*(numpy.exp(numpy.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
-                zero_corr_risk_parity_weights = 1.0/(_annualized_risk)
+                _expected_sharpe_ratios = self.allocation_signs # switched to self.allocation_signs from not multiplying anything 
+                zero_corr_no_sign_risk_parity_weights = (1.0/_annualized_risk) # IVWAS without support for signs
+                zero_corr_risk_parity_weights = (1.0/_annualized_risk) * _expected_sharpe_ratios # what IVWAS would have done 
                 if numpy.sum(numpy.abs(self.erc_weights)) < 0.001:
                     # Initialize weights
                     self.erc_weights_optim = zero_corr_risk_parity_weights/numpy.sum(numpy.abs(zero_corr_risk_parity_weights))
                     self.erc_weights = self.erc_weights_optim
 
-                expected_sharpe_ratios = numpy.asmatrix(self.allocation_signs).T # switched to self.allocation_signs from numpy.ones(len(self.products))
-                # Set erc_weights_optim to inv ( correlation martix ) * zero_corr_risk_parity_weights
-                self.erc_weights_optim = numpy.ravel(numpy.diagflat(zero_corr_risk_parity_weights) * inv(self.logret_correlation_matrix) * expected_sharpe_ratios)
+                _t_expected_sharpe_ratios = numpy.asmatrix(self.allocation_signs).T # switched to self.allocation_signs from numpy.ones(len(self.products))
+                # Set erc_weights_optim to inv ( correlation martix ) * zero_corr_no_sign_risk_parity_weights
+                self.erc_weights_optim = numpy.ravel(numpy.diagflat(zero_corr_no_sign_risk_parity_weights) * inv(self.logret_correlation_matrix) * _t_expected_sharpe_ratios)
                 self.erc_weights = self.erc_weights_optim
+
+                # We check whether weights produced here have the same signs as self.allocation_signs.
+                # Otherwise we try to correct them
+                if sum(numpy.abs(numpy.sign(self.erc_weights)-numpy.sign(self.allocation_signs))) > 0:
+                    # some sign isn't what it should be
+                    _check_sign_of_weights = False # this is sort of a debugging exercise
+                    if _check_sign_of_weights:
+                        print ( "Sign-check-fail: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
+                    self.erc_weights = correct_signs_weights(self.erc_weights, zero_corr_risk_parity_weights)
 
                 # In the following steps we resize the portfolio to the taregt risk level.
                 # We have just used stdev as the measure of risk ehre since it is simple.
