@@ -3,31 +3,54 @@ from Indicator_Listeners import IndicatorListener
 from DailyLogReturns import DailyLogReturns
 
 
-# Track the standard deviation of log returns for the product
-# In the config file this indicator will be specfied as : StdDev,product,period
 class StdDev( IndicatorListener ):
+    """Track the standard deviation of log returns for the product
 
+       Identifier: StdDev.product_name.period
+                   Eg: StdDev.fES.21
+
+       Listeners: Other indicators like AverageStdDev
+
+       Listening to: DailyLogReturns of the corresponding product
+    """
     instances = {}
 
     def __init__( self, identifier, _startdate, _enddate, _config ):
+        """Initializes the required variables like identifier, period, current_sum, current_num, current_pow_sum etc
+           and starts listening to dailylogreturns of the corresponding product
+           
+           Args:
+               _identifier(string): The identifier for this indicator. Eg: StdDev.fES.21
+               _startdate(date object): The start date of the simulation
+               _enddate(date object): The end date of the simulation
+               _config(ConfigParser handle): The handle to the config file of the strategy            
+        """        
         self.values = () # Tuple of the form (dt,value)
         self.identifier = identifier
         params = identifier.strip().split('.')
         self.product = params[1]
         self.period = int( params[2] )
         # To maintain running stdDev
-        self.current_sum = 0.0
-        self.current_num = 0.0
-        self.current_pow_sum = 0.0
+        self.current_sum = 0.0 # Sum of log returns in the window
+        self.current_num = 0.0 # Number of elements in the window
+        self.current_pow_sum = 0.0 # Sum of squares of log returns in the window
         self.listeners = []
         daily_log_ret = DailyLogReturns.get_unique_instance( 'DailyLogReturns.' + self.product, _startdate, _enddate, _config )
         daily_log_ret.add_listener( self )
 
     def add_listener( self, listener ):
+        """Used by other classes to register as on_indicator_update listener of the dispatcher
+
+           Args:
+               listener(object): The object of the class which wants to listen
+
+           Returns: Nothing       
+        """
         self.listeners.append( listener )
 
     @staticmethod
     def get_unique_instance( identifier, _startdate, _enddate, _config):
+        """This static function is used by other classes to add themselves as a listener to the StdDev"""
         if identifier not in StdDev.instances.keys() :
             new_instance = StdDev( identifier, _startdate, _enddate, _config )
             StdDev.instances[identifier] = new_instance
@@ -36,6 +59,18 @@ class StdDev( IndicatorListener ):
     # Update the standard deviation indicators on each ENDOFDAY event
     # Efficient version
     def on_indicator_update( self, identifier, daily_log_returns_dt ):
+        """On a logreturn update, this function is called by the DailyLogReturns instance and the new stddev is computed here
+           On computation of a new stddev value, the tuple (date, new_stddev_value) is passed onto the listeners of this indicator
+
+           Args:
+               identifier(string): The identifier for the indicator whose update has come.In this case DailyLogReturns.product 
+               daily_log_returns_dt(list of tuples (date, logretvalue)): THe logreturns of the product
+
+           Note:
+               Here stddev is computed in an online fashion for efficiency purposes and hence the variables current_sum, current_num, current_pow_sum
+
+           Returns: Nothing
+        """ 
         n = len(daily_log_returns_dt)
         if n > self.period:
             _new_sum =  self.current_sum - daily_log_returns_dt[n-self.period-1][1] + daily_log_returns_dt[n-1][1] 
