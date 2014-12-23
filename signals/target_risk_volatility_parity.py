@@ -14,7 +14,7 @@ from Algorithm.signal_algorithm import SignalAlgorithm
 class TargetRiskVolatilityParity(SignalAlgorithm):
     """Implementation of the volatility partity algorithm, that assigns weights to each product inversely proportional to its risk.
     We use stdev computed over a recent period for risk computation.
-    If we assume products are not correlated, this is an optimal soltuion in terms of risk adjusted returns.
+    If we assume products are not correlated(or equally correlated), this is an optimal soltuion in terms of risk adjusted returns.
 
     Items read from config :
     target_risk : this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure

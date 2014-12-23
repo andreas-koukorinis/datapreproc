@@ -16,9 +16,9 @@ def correct_signs_weights(_current_erc_weights, _zc_weight_vector):
         _zc_weight_vector = _zc_weight_vector * numpy.sum(numpy.abs(_current_erc_weights))/numpy.sum(numpy.abs(_zc_weight_vector)) # scale it to the same leverage
         #print ( "_zc_weight_vector * erc_weights %s" %([ str(x) for x in _zc_weight_vector * erc_weights ]) )
         #print ( "_zc_weight_vector * _zc_weight_vector %s" %([ str(x) for x in _zc_weight_vector * _zc_weight_vector ]) )
-        y = -(_zc_weight_vector * erc_weights)/(_zc_weight_vector * _zc_weight_vector)
+        y = -(_zc_weight_vector * _current_erc_weights)/(_zc_weight_vector * _zc_weight_vector)
         #print ( "-(_zc_weight_vector * erc_weights)/(_zc_weight_vector * _zc_weight_vector) %s" %([ str(x) for x in y ]) )
-        _zc_weight_multiplier = max( -(_zc_weight_vector * erc_weights)/(_zc_weight_vector * _zc_weight_vector))
+        _zc_weight_multiplier = max( -(_zc_weight_vector * _current_erc_weights)/(_zc_weight_vector * _zc_weight_vector))
         if _zc_weight_multiplier > 0.001:
             #print ( "zcmult %f" %(_zc_weight_multiplier))
             _retval = (_current_erc_weights + ( _zc_weight_multiplier * _zc_weight_vector ))/(1+_zc_weight_multiplier)
