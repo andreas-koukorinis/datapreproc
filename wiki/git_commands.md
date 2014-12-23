@@ -39,3 +39,7 @@ git push origin branch_name
 
 # The most powerful command of them all!
 git stash #this saves the changes you have made since the last commit, and alows you to checkout to another branch and then come back to work on this branch. then you can apply the stash
+
+# removes stale branches that have been already deleted in origin
+git remote prune origin
+#Deletes all stale remote-tracking branches under <name>. These stale branches have already been removed from the remote repository referenced by <name>, but are still locally available in "remotes/<name>". With --dry-run option, report what branches will be pruned, but do not actually prune them.
