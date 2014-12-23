@@ -9,6 +9,7 @@ class TargetRiskRP(SignalAlgorithm):
 
     def init(self, _config):
         self.day=-1
+        self.risk_multiplier = 2.5
         self.target_risk = 10.0
         if _config.has_option('Strategy', 'target_risk'):
             self.target_risk = _config.getfloat('Strategy', 'target_risk')
@@ -18,7 +19,18 @@ class TargetRiskRP(SignalAlgorithm):
         self.periods = ['21']
         if _config.has_option('Strategy','periods'):
             self.periods = _config.get('Strategy','periods').split(',') 
-        self.signs = parse_weights(_config.get('Strategy', 'signs'))
+
+        # by default we are long in all products
+        self.allocation_signs = numpy.ones(len(self.products))
+        if _config.has_option('Strategy', 'signs'):
+            _given_allocation_signs = parse_weights(_config.get('Strategy', 'signs'))
+            for _product in _given_allocation_signs:
+                self.allocation_signs[self.map_product_to_index[_product]] = _given_allocation_signs[_product]
+        if _config.has_option('Strategy', 'allocation_signs'):
+            _given_allocation_signs = parse_weights(_config.get('Strategy', 'allocation_signs'))
+            for _product in _given_allocation_signs:
+                self.allocation_signs[self.map_product_to_index[_product]] = _given_allocation_signs[_product]
+
         for product in self.products:
             for period in self.periods:
                 indicator_name = 'StdDev'
@@ -43,7 +55,7 @@ class TargetRiskRP(SignalAlgorithm):
                     val = self.daily_indicators[ 'StdDev.' + product + '.' + period ].values[1]         
                     _stddev += (numpy.exp(numpy.sqrt(252.0)*val) - 1)*100.0
                 vol_product = _stddev/float(len(self.periods))
-                _weights[product] = 2.0*self.signs[product]*target_risk_per_product/vol_product
+                _weights[product] = self.risk_multiplier * self.allocation_signs[self.map_product_to_index[product]] * target_risk_per_product / vol_product
             self.update_positions(events[0]['dt'], _weights)
         else:
             self.rollover(events[0]['dt'])
