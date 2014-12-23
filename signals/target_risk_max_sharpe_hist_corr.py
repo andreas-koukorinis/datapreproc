@@ -39,18 +39,21 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
             for _product in _given_allocation_signs:
                 self.allocation_signs[self.map_product_to_index[_product]] = _given_allocation_signs[_product]
 
-        self.stdev_computation_history = 252
-        if _config.has_option('Strategy', 'stdev_computation_history'):
-            self.stdev_computation_history = max(2, _config.getint('Strategy', 'stdev_computation_history'))
+        self.stdev_computation_indicator = 'AverageStdDev'
+        if _config.has_option('Strategy', 'stdev_computation_indicator'):
+            self.stdev_computation_indicator = _config.get('Strategy', 'stdev_computation_indicator')
 
+        self.stdev_computation_history_vec = ['63'] # changed from int to a string to support AverageStdDev
+        if _config.has_option('Strategy', 'stdev_computation_history'):
+            _stdev_computation_history_string = _config.get('Strategy', 'stdev_computation_history')
+            self.stdev_computation_history_vec = [max(2,int(x)) for x in _stdev_computation_history_string.split(',')]
+        if (self.stdev_computation_indicator == 'StdDev') and (len(self.stdev_computation_history_vec) > 1):
+            sys.exit('For stdev_computation_indicator StdDev only one history value is allowed')
+        
         if _config.has_option('Strategy', 'stdev_computation_interval'):
             self.stdev_computation_interval = max(1, _config.getint('Strategy', 'stdev_computation_interval'))
         else:
-            self.stdev_computation_interval = max(1, self.stdev_computation_history/5)
-
-        self.stdev_computation_indicator = 'StdDev'
-        if _config.has_option('Strategy', 'stdev_computation_indicator'):
-            self.stdev_computation_indicator = _config.get('Strategy', 'stdev_computation_indicator')
+            self.stdev_computation_interval = max(1, min(self.stdev_computation_history_vec)/5)
 
         self.correlation_computation_history = 1000
         if _config.has_option('Strategy', 'correlation_computation_history'):
@@ -73,16 +76,17 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
         self.logret_correlation_matrix = numpy.eye(len(self.products))
         
         if is_valid_daily_indicator(self.stdev_computation_indicator):
-            for product in self.products:
-                _orig_indicator_name = self.stdev_computation_indicator + '.' + product + '.' + str(self.stdev_computation_history) # this would be something like StdDev.fZN.252
-                module = import_module('DailyIndicators.' + self.stdev_computation_indicator)
-                Indicatorclass = getattr(module, self.stdev_computation_indicator)
-                self.daily_indicators[_orig_indicator_name] = Indicatorclass.get_unique_instance(_orig_indicator_name, self.start_date, self.end_date, _config)
-                # self.stdev_computation_indicator[product] = self.daily_indicators[_orig_indicator_name]
-                # No need to attach ourselves as a listener to the indicator for now. We are going to access the value directly.
+            _stdev_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator))
+            StdevIndicatorClass = getattr(_stdev_indicator_module, self.stdev_computation_indicator)
         else:
-            print("Stdev computation indicator %s invalid!" %(self.stdev_computation_indicator))
+            print ( "stdev_computation_indicator string %s is invalid" %(self.stdev_computation_indicator) )
             sys.exit(0)
+
+        for product in self.products:
+            _orig_indicator_name = self.stdev_computation_indicator + '.' + product + '.' + '.'.join([str(x) for x in self.stdev_computation_history_vec]) # this would be something like StdDev.fZN.252
+            self.daily_indicators[_orig_indicator_name] = StdevIndicatorClass.get_unique_instance(_orig_indicator_name, self.start_date, self.end_date, _config)
+            # self.stdev_computation_indicator[product] = self.daily_indicators[_orig_indicator_name]
+            # No need to attach ourselves as a listener to the indicator for now. We are going to access the value directly.
 
         _portfolio_string = make_portfolio_string_from_products(self.products) # this allows us to pass a portfolio to the CorrelationLogReturns indicator.
         # TODO Should we change the design of passing arguments to the indicators from a '.' concatenated list to a variable argument set?
@@ -107,7 +111,8 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
             if self.day >= (self.last_date_stdev_computed + self.stdev_computation_interval):
                 # Get the stdev values from the stdev indicators
                 for _product in self.products:
-                    self.stdev_logret[self.map_product_to_index[_product]] = self.daily_indicators[self.stdev_computation_indicator + '.' + _product + '.' + str(self.stdev_computation_history)].values[1] # earlier this was self.stdev_computation_indicator[_product] but due to error in line 57, switched to this
+                    _orig_indicator_name = self.stdev_computation_indicator + '.' + _product + '.' + '.'.join([str(x) for x in self.stdev_computation_history_vec])
+                    self.stdev_logret[self.map_product_to_index[_product]] = self.daily_indicators[_orig_indicator_name].get_stdev() 
                     # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.
                     # TODO we can make tests here that the module needs to pass.
