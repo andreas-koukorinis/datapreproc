@@ -1,5 +1,5 @@
 def is_valid_strategy_name ( _strategy_name ) :
-    _strategy_name_list = ['CTAMomentum', 'CWAS', 'EqualWeight', 'Momentumv1', 'UnleveredDMF', 'UnleveredRP', 'AggregatorCWAS', 'AggregatorIV']
+    _strategy_name_list = ['CTAMomentum', 'CWAS', 'EqualWeight', 'Momentumv1', 'AggregatorCWAS', 'AggregatorIV']
     _retval = False
     if _strategy_name in _strategy_name_list :
         _retval = True
@@ -16,10 +16,6 @@ def get_module_name_from_strategy_name ( strategy_name ) :
         return ( "EqualWeight" )
     def _momentumv1():
         return ( "Momentumv1" )
-    def _unlevered_d_m_f():
-        return ( "UnleveredDMF" )
-    def _unlevered_r_p():
-        return ( "UnleveredRP" )
     def _aggregator_cwas():
         return ( "aggregator_cwas" )
     def _aggregator_iv():
@@ -29,8 +25,6 @@ def get_module_name_from_strategy_name ( strategy_name ) :
                 'CWAS' : _cwas,
                 'EqualWeight' : _equal_weight,
                 'Momentumv1' : _momentumv1,
-                'UnleveredDMF' : _unlevered_d_m_f,
-                'UnleveredRP' : _unlevered_r_p,
                 'AggregatorCWAS' : _aggregator_cwas,
                 'AggregatorIV' : _aggregator_iv
                 }
