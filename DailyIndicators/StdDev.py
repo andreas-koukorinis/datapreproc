@@ -25,7 +25,7 @@ class StdDev( IndicatorListener ):
                _enddate(date object): The end date of the simulation
                _config(ConfigParser handle): The handle to the config file of the strategy            
         """        
-        self.values = () # Tuple of the form (dt,value)
+        self.values = (0.0,1) # Tuple of the form (dt,value) #TODO better init for default dt
         self.identifier = identifier
         params = identifier.strip().split('.')
         self.product = params[1]
@@ -38,6 +38,12 @@ class StdDev( IndicatorListener ):
         daily_log_ret = DailyLogReturns.get_unique_instance( 'DailyLogReturns.' + self.product, _startdate, _enddate, _config )
         daily_log_ret.add_listener( self )
 
+    def get_stdev(self):
+        if len(self.values) >= 2:
+            return (self.values[1])
+        else:
+            return 1
+    
     def add_listener( self, listener ):
         """Used by other classes to register as on_indicator_update listener of the dispatcher
 
@@ -54,6 +60,7 @@ class StdDev( IndicatorListener ):
         if identifier not in StdDev.instances.keys() :
             new_instance = StdDev( identifier, _startdate, _enddate, _config )
             StdDev.instances[identifier] = new_instance
+            print ("Created new StdDev instance %s" %(identifier) )
         return StdDev.instances[identifier]
 
     # Update the standard deviation indicators on each ENDOFDAY event

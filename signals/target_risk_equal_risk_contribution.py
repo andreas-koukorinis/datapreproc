@@ -121,7 +121,7 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
                 # Get the stdev values from the stdev indicators
                 for _product in self.products:
                     _orig_indicator_name = self.stdev_computation_indicator + '.' + _product + '.' + '.'.join([str(x) for x in self.stdev_computation_history_vec])
-                    self.stdev_logret[self.map_product_to_index[_product]] = self.daily_indicators[_orig_indicator_name].values[1] # earlier this was self.stdev_computation_indicator[_product] but due to error in line 57, switched to this
+                    self.stdev_logret[self.map_product_to_index[_product]] = self.daily_indicators[_orig_indicator_name].get_stdev() 
                     # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.
                     # TODO we can make tests here that the module needs to pass.
