@@ -130,10 +130,9 @@ class UnleveredDMF( SignalAlgorithm ):
                     self.expected_risk_vec[i] = max(0.000001, self.stdev_indicator_vec[i].get_stdev()) # a max with 1% is just to not have divide by 0 problems.
                 _need_to_recompute_dmf_weights = True
             if (self.day % self.trend_computation_interval) == 0:
-                # we need to recompute risk estimate
+                # we need to recompute expected return estimate from trend 
                 for i in xrange(len(self.expected_return_vec)):
-                    if len(self.trend_indicator_vec[i].indicator_values) >= 1:
-                        self.expected_return_vec[i] = self.trend_indicator_vec[i].indicator_values[1]
+                    self.expected_return_vec[i] = self.trend_indicator_vec[i].get_trend()
                 _need_to_recompute_dmf_weights = True
 
             if _need_to_recompute_dmf_weights:
