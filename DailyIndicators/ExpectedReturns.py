@@ -36,19 +36,17 @@ class ExpectedReturns( IndicatorListener ):
     def on_indicator_update( self, identifier, daily_log_returns_dt ):
         n = len(daily_log_returns_dt)
         if n > self.period:
-            _new_sum =  self.current_sum - daily_log_returns_dt[n-self.period-1][1] + daily_log_returns_dt[n-1][1] 
-            val = _new_sum/self.current_num
-            self.current_sum = _new_sum
+            self.current_sum =  self.current_sum - daily_log_returns_dt[n-self.period-1][1] + daily_log_returns_dt[n-1][1] 
+            val = self.current_sum/self.current_num
         elif n < 2:
             val = 0.001 # Dummy value for insufficient lookback period(case where only 1 log return)
             if n == 1:
                 self.current_sum = daily_log_returns_dt[n-1][1]
                 self.current_num = 1
         else:
-            _new_sum = self.current_sum + daily_log_returns_dt[n-1][1]
+            self.current_sum = self.current_sum + daily_log_returns_dt[n-1][1]
             self.current_num += 1
-            val = _new_sum/self.current_num
-            self.current_sum = _new_sum
+            val = self.current_sum/self.current_num
         if isnan(val):
             print ("something wrong")
         self.values = ( daily_log_returns_dt[-1][0], val )
