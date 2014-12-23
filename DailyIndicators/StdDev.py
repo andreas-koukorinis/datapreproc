@@ -60,7 +60,6 @@ class StdDev( IndicatorListener ):
         if identifier not in StdDev.instances.keys() :
             new_instance = StdDev( identifier, _startdate, _enddate, _config )
             StdDev.instances[identifier] = new_instance
-            print ("Created new StdDev instance %s" %(identifier) )
         return StdDev.instances[identifier]
 
     # Update the standard deviation indicators on each ENDOFDAY event
