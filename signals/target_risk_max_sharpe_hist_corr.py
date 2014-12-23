@@ -142,18 +142,12 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
                         print ( "Sign-check-fail: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
                     self.erc_weights = correct_signs_weights(self.erc_weights, zero_corr_risk_parity_weights)
 
-                # In the following steps we resize the portfolio to the taregt risk level.
-                # We have just used stdev as the measure of risk ehre since it is simple.
+                # In the following steps we resize the portfolio to the target risk level.
+                # We have just used stdev as the measure of risk here since it is simple.
                 # TODO improve risk calculation
                 _annualized_stddev_of_portfolio = 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(self.erc_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.erc_weights).T))[0, 0]) - 1)
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
 
-                #TODO figure out signs compatibility with mandate
-                _check_sign_of_weights = False # this is sort of a debugging exercise
-                if _check_sign_of_weights:
-                    if sum(numpy.abs(numpy.sign(self.erc_weights)-numpy.sign(self.allocation_signs))) > 0 :
-                        print ( "Sign-check-fail: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
-                
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.erc_weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
 
