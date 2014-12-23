@@ -3,7 +3,7 @@ from importlib import import_module
 from math import sqrt, exp
 import numpy
 from numpy import hstack, vstack
-from cvxopt import matrix
+from cvxopt import matrix, solvers
 from cvxopt.solvers import qp
 from Algorithm.trade_algorithm import TradeAlgorithm
 from Utils.Regular import check_eod, parse_weights
@@ -11,6 +11,7 @@ from DailyIndicators.Indicator_List import is_valid_daily_indicator
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 
+solvers.options['show_progress'] = False
 
 class MVO(TradeAlgorithm):
     """Perform mean variance optimization"""
@@ -112,7 +113,7 @@ class MVO(TradeAlgorithm):
         Amat = matrix(Amat.T)
         dvec = matrix(hstack((expected_returns, n*[0])).T)
         # Optimize
-        portfolios = qp(Dmat, risk_tolerance*dvec, Amat, bvec)['x']
+        portfolios = qp(Dmat, -1*risk_tolerance*dvec, Amat, bvec)['x']
         return portfolios
 
     def init(self, _config):
@@ -242,8 +243,6 @@ class MVO(TradeAlgorithm):
                 
             for _product in self.products:
                     self.map_product_to_weight[_product] = self.weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
-
-            print self.map_product_to_weight
 
             self.update_positions(events[0]['dt'], self.map_product_to_weight)    
         else:
