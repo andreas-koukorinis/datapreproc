@@ -17,9 +17,9 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
     Items read from config :
     target_risk : this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
     rebalance_frequency : This is the number of days after which we rebalance to the assigned weights
-    stddev_computation_history :
-    stddev_computation_interval :
-    stddev_computation_indicator : The indicator to use to compute the estimate of ex-ante standard deviation.
+    stdev_computation_history :
+    stdev_computation_interval :
+    stdev_computation_indicator : The indicator to use to compute the estimate of ex-ante standard deviation.
     correlation_computation_history :
     correlation_computation_interval :
 
@@ -39,18 +39,18 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
             for _product in _given_allocation_signs:
                 self.allocation_signs[self.map_product_to_index[_product]] = _given_allocation_signs[_product]
 
-        self.stddev_computation_history = 252
-        if _config.has_option('Strategy', 'stddev_computation_history'):
-            self.stddev_computation_history = max(2, _config.getint('Strategy', 'stddev_computation_history'))
+        self.stdev_computation_history = 252
+        if _config.has_option('Strategy', 'stdev_computation_history'):
+            self.stdev_computation_history = max(2, _config.getint('Strategy', 'stdev_computation_history'))
 
-        if _config.has_option('Strategy', 'stddev_computation_interval'):
-            self.stddev_computation_interval = max(1, _config.getint('Strategy', 'stddev_computation_interval'))
+        if _config.has_option('Strategy', 'stdev_computation_interval'):
+            self.stdev_computation_interval = max(1, _config.getint('Strategy', 'stdev_computation_interval'))
         else:
-            self.stddev_computation_interval = max(1, self.stddev_computation_history/5)
+            self.stdev_computation_interval = max(1, self.stdev_computation_history/5)
 
-        self.stddev_computation_indicator = 'StdDev'
-        if _config.has_option('Strategy', 'stddev_computation_indicator'):
-            self.stddev_computation_indicator = _config.get('Strategy', 'stddev_computation_indicator')
+        self.stdev_computation_indicator = 'StdDev'
+        if _config.has_option('Strategy', 'stdev_computation_indicator'):
+            self.stdev_computation_indicator = _config.get('Strategy', 'stdev_computation_indicator')
 
         self.correlation_computation_history = 1000
         if _config.has_option('Strategy', 'correlation_computation_history'):
@@ -64,24 +64,24 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
         # Some computational variables
         self.last_date_correlation_matrix_computed = 0
         self.last_date_stdev_computed = 0
-        self.stdev_computation_indicator_mapping = {} # map from product to the indicator to get the stddev value
+        self.stdev_computation_indicator_mapping = {} # map from product to the indicator to get the stdev value
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
         self.erc_weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
         self.erc_weights_optim = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
-        self.stddev_logret = numpy.array([1.0]*len(self.products)) # these are the stddev values, with products occuring in the same order as the order in self.products
+        self.stdev_logret = numpy.array([1.0]*len(self.products)) # these are the stdev values, with products occuring in the same order as the order in self.products
         # create a diagonal matrix of 1s for correlation matrix
         self.logret_correlation_matrix = numpy.eye(len(self.products))
         
-        if is_valid_daily_indicator(self.stddev_computation_indicator):
+        if is_valid_daily_indicator(self.stdev_computation_indicator):
             for product in self.products:
-                _orig_indicator_name = self.stddev_computation_indicator + '.' + product + '.' + str(self.stddev_computation_history) # this would be something like StdDev.fTY.252
-                module = import_module('DailyIndicators.' + self.stddev_computation_indicator)
-                Indicatorclass = getattr(module, self.stddev_computation_indicator)
+                _orig_indicator_name = self.stdev_computation_indicator + '.' + product + '.' + str(self.stdev_computation_history) # this would be something like StdDev.fZN.252
+                module = import_module('DailyIndicators.' + self.stdev_computation_indicator)
+                Indicatorclass = getattr(module, self.stdev_computation_indicator)
                 self.daily_indicators[_orig_indicator_name] = Indicatorclass.get_unique_instance(_orig_indicator_name, self.start_date, self.end_date, _config)
-                # self.stddev_computation_indicator[product] = self.daily_indicators[_orig_indicator_name]
+                # self.stdev_computation_indicator[product] = self.daily_indicators[_orig_indicator_name]
                 # No need to attach ourselves as a listener to the indicator for now. We are going to access the value directly.
         else:
-            print("Stdev computation indicator %s invalid!" %(self.stddev_computation_indicator))
+            print("Stdev computation indicator %s invalid!" %(self.stdev_computation_indicator))
             sys.exit(0)
 
         _portfolio_string = make_portfolio_string_from_products(self.products) # this allows us to pass a portfolio to the CorrelationLogReturns indicator.
@@ -104,10 +104,10 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
                 _need_to_recompute_erc_weights = True
                 self.last_date_correlation_matrix_computed = self.day
 
-            if self.day >= (self.last_date_stdev_computed + self.stddev_computation_interval):
-                # Get the stdev values from the stddev indicators
+            if self.day >= (self.last_date_stdev_computed + self.stdev_computation_interval):
+                # Get the stdev values from the stdev indicators
                 for _product in self.products:
-                    self.stddev_logret[self.map_product_to_index[_product]] = self.daily_indicators[self.stddev_computation_indicator + '.' + _product + '.' + str(self.stddev_computation_history)].values[1] # earlier this was self.stddev_computation_indicator[_product] but due to error in line 57, switched to this
+                    self.stdev_logret[self.map_product_to_index[_product]] = self.daily_indicators[self.stdev_computation_indicator + '.' + _product + '.' + str(self.stdev_computation_history)].values[1] # earlier this was self.stdev_computation_indicator[_product] but due to error in line 57, switched to this
                     # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.
                     # TODO we can make tests here that the module needs to pass.
@@ -117,9 +117,9 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
             if _need_to_recompute_erc_weights:
                 # Calculate weights to assign to each product using indicators
                 # compute covariance matrix from correlation matrix and
-                _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stddev_logret, self.stddev_logret) # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
+                _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stdev_logret, self.stdev_logret) # we should probably do it when either self.stdev_logret or _correlation_matrix has been updated
 
-                _annualized_risk = 100.0*(numpy.exp(numpy.sqrt(252.0)*self.stddev_logret)-1) # we should do this only when self.stddev_logret has been updated
+                _annualized_risk = 100.0*(numpy.exp(numpy.sqrt(252.0)*self.stdev_logret)-1) # we should do this only when self.stdev_logret has been updated
                 _expected_sharpe_ratios = self.allocation_signs # switched to self.allocation_signs from not multiplying anything 
                 zero_corr_no_sign_risk_parity_weights = (1.0/_annualized_risk) # IVWAS without support for signs
                 zero_corr_risk_parity_weights = (1.0/_annualized_risk) * _expected_sharpe_ratios # what IVWAS would have done 
@@ -145,8 +145,8 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
                 # In the following steps we resize the portfolio to the target risk level.
                 # We have just used stdev as the measure of risk here since it is simple.
                 # TODO improve risk calculation
-                _annualized_stddev_of_portfolio = 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(self.erc_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.erc_weights).T))[0, 0]) - 1)
-                self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stddev_of_portfolio)
+                _annualized_stdev_of_portfolio = 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(self.erc_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.erc_weights).T))[0, 0]) - 1)
+                self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stdev_of_portfolio)
 
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.erc_weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
