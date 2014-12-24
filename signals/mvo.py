@@ -49,6 +49,7 @@ class MVO(SignalAlgorithm):
         n = len(x)
         mat = [self.lag(x, i) for i in range(0, m)]
         mat = matrix(mat, (n, m))
+        return mat
 
     def efficient_frontier(self,expected_returns, covariance, leverage, risk_tolerance, max_allocation=0.5):
         """ Function that calculates the efficient frontier
