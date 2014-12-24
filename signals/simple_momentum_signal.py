@@ -133,7 +133,7 @@ class SimpleMomentumSignal( SignalAlgorithm ):
             if (self.day % self.trend_computation_interval) == 0:
                 # we need to recompute expected return estimate from trend 
                 for i in xrange(len(self.expected_return_vec)):
-                    self.expected_return_vec[i] = 0.002*self.trend_indicator_vec[i].get_trend()
+                    self.expected_return_vec[i] = 0.002 * self.trend_indicator_vec[i].get_trend()
                 _need_to_recompute_dmf_weights = True
 
             if _need_to_recompute_dmf_weights:
