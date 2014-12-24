@@ -163,5 +163,5 @@ class RiskManagerVar(RiskManagerAlgo):
         _new_captial_allocation = 100.0 * min(1.0, self.var_level_vec[_target_var_level_index].var_level/self.current_var_estimate)
         if _new_captial_allocation != self.current_capital_allocation_level:
             self.current_capital_allocation_level = _new_captial_allocation
-            self.issue_notification_capital_update(_date, 'VAR', self.current_capital_allocation_level)
+            #self.issue_notification_capital_update(_date, 'VAR', self.current_capital_allocation_level)
         return self.current_capital_allocation_level
