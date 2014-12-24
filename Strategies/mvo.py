@@ -122,7 +122,7 @@ class MVO(TradeAlgorithm):
         # Set leverage
         self.leverage = 1
         if _config.has_option('Strategy', 'leverage'):
-            self.lerverage = _config.getfloat('Strategy', 'leverage')
+            self.leverage = _config.getfloat('Strategy', 'leverage')
         # Set risk tolerance
         self.risk_tolerance = 0.015
         if _config.has_option('Strategy', 'risk_tolerance'):
@@ -239,6 +239,7 @@ class MVO(TradeAlgorithm):
                 # compute covariance matrix from correlation matrix and
                 _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stddev_logret, self.stddev_logret) # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
                 # Recompute weights
+                
                 self.weights = self.efficient_frontier(self.exp_log_returns, _cov_mat, self.leverage, self.risk_tolerance, self.max_allocation)
                 
             for _product in self.products:
