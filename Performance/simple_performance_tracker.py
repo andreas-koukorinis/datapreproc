@@ -9,8 +9,8 @@ from BookBuilder.BookBuilder import BookBuilder
 from DailyIndicators.Indicator_Listeners import IndicatorListener
 from DailyIndicators.DailyLogReturns import DailyLogReturns
 
-'''SimplePerformanceTracker listens to the Dispatcher for concurrent events and keeps track of daily_log_returns irrespective of whether the strategy is running or not'''
 class SimplePerformanceTracker(IndicatorListener):
+    '''SimplePerformanceTracker listens to the Dispatcher for concurrent events and keeps track of daily_log_returns irrespective of whether the strategy is running or not'''
 
     def __init__(self, products, all_products, _startdate, _enddate, _config):
         self.products = products
@@ -81,8 +81,8 @@ class SimplePerformanceTracker(IndicatorListener):
             product = get_first_futures_contract(product)
         return len(self.bb_objects[product].dailybook) > 0 and self.bb_objects[product].dailybook[-1][0].date() == date # If the closing price for a product is available for a date
 
-    # Called by Trade Algorithm
     def update_performance(self, date):
+        """All the computation is done by this function. It is called by TradeAlgorithm and SignalAlgorithm"""
         self.date = date
         self.compute_todays_log_return(date)
         self.update_rebalanced_weights_for_trading_products(date) # Read as order executed
@@ -90,8 +90,12 @@ class SimplePerformanceTracker(IndicatorListener):
         self.current_drawdown = abs((numpy.exp(_current_dd_log) - 1)* 100.0)
         self.current_loss = abs(min(0.0, (numpy.exp(self.net_log_return) - 1)*100.0))
 
-    # Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value 
+    def get_current_drawdown(self):
+        """returns current drawdown"""
+        return (self.current_drawdown)
+    
     def current_dd(self, returns):
+        """Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value"""
         if returns.shape[0] < 2:
             return 0.0
         cum_returns = returns.cumsum()
@@ -104,8 +108,13 @@ class SimplePerformanceTracker(IndicatorListener):
             return (numpy.exp(numpy.mean(self.daily_log_returns[-return_history:]) * 252) - 1) * 100
 
     def compute_historical_volatility(self, _volatility_history): # TODO change to online computation
-        if self.daily_log_returns.shape[0] < 1: # for insufficient history return 100.0 (same for each strategy)
-            return 100.0
+        _recent_log_ret_anlualized_stdev = 100.0 # need this to be a default
+        if self.daily_log_returns.shape[0] < 2: # for insufficient history return 100.0 (same for each strategy)
+            _recent_log_ret_anlualized_stdev = 100.0 # need this to be a default
         else:
             _start_idx = max(0, self.daily_log_returns.shape[0] - _volatility_history)
-            return (numpy.exp(numpy.std(self.daily_log_returns[_start_idx : _start_idx + _volatility_history]) * numpy.sqrt(252.0)) - 1) * 100
+            _recent_log_ret_anlualized_stdev = (numpy.exp(numpy.std(self.daily_log_returns[_start_idx : _start_idx + _volatility_history]) * numpy.sqrt(252.0)) - 1) * 100
+            _recent_log_ret_anlualized_stdev = min ( 100.0, _recent_log_ret_anlualized_stdev )
+            _recent_log_ret_anlualized_stdev = max ( 1.0, _recent_log_ret_anlualized_stdev )
+        return (_recent_log_ret_anlualized_stdev)
+

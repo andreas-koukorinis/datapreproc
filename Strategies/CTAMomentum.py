@@ -1,6 +1,6 @@
 import sys
-from numpy import *
-from Algorithm.TradeAlgorithm import TradeAlgorithm
+import numpy
+from Algorithm.trade_algorithm import TradeAlgorithm
 from Utils.Regular import check_eod
 
 class CTAMomentum( TradeAlgorithm ):
@@ -8,13 +8,6 @@ class CTAMomentum( TradeAlgorithm ):
     def init( self, _config ):
         self.day=-1
         self.rebalance_frequency = _config.getint( 'Parameters', 'rebalance_frequency' )
-
-    '''  Use self.bb_objects[product].dailybook to access the closing prices for the 'product'
-         Use self.bb_objects[product].intradaybook to access the intraday prices for the 'product'
-         dailybook consists of tupes of the form (timestamp,closing prices,is_last_trading_day) sorted by timestamp
-         'events' is a list of concurrent events
-         event = {'price': 100, 'product': 'ES1', 'type':'ENDOFDAY', 'dt': datetime(2005,1,2,23,59,99999), 'table': 'ES','is_last_trading_day':False}
-         access conversion_factor using : self.conversion_factor['ES1']'''
 
     def on_events_update(self,events):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
@@ -34,7 +27,7 @@ class CTAMomentum( TradeAlgorithm ):
                 else:
                     weights[product] = -1
                     
-                sum_weights = sum_weights + abs(weights[product]) # Here abs does not make any difference,but in general should do
+                sum_weights = sum_weights + abs(weights[product]) # Here abs does not make any difference, but in general should do
             for product in self.products:
                 weights[product] = weights[product]/sum_weights                
             self.update_positions( events[0]['dt'], weights )
