@@ -24,6 +24,7 @@ class SimpleMomentumSignal( SignalAlgorithm ):
     
     def init( self, _config ):
         self.day = -1
+        self.last_rebalanced_day = -1
         self.rebalance_frequency = 1
         if _config.has_option('Parameters', 'rebalance_frequency'):
             self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
@@ -141,12 +142,13 @@ class SimpleMomentumSignal( SignalAlgorithm ):
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.dmf_weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
 
-            if (self.day % self.rebalance_frequency == 0) or _need_to_recompute_dmf_weights:
+            if (self.day - self.last_rebalanced_day >= self.rebalance_frequency) or _need_to_recompute_dmf_weights:
                 # if either weights have changed or it is a rebalancing day, then ask execlogic to update weights
                 # TODO{gchak} change rebalancing from days to magnitude of divergence from weights
                 # so change the above to
                 # if sum ( abs ( desired weights - current weights ) ) > threshold, then
                 # update_positions
                 self.update_positions( events[0]['dt'], self.map_product_to_weight )
+                self.last_rebalanced_day = self.day
             else:
                 self.rollover( events[0]['dt'] )
