@@ -3,6 +3,7 @@ import os
 import datetime
 import numpy
 import scipy.stats as ss
+
 from Utils.Regular import get_first_futures_contract, is_future
 from Utils import defaults
 from BookBuilder.BookBuilder import BookBuilder
@@ -39,6 +40,14 @@ class SimplePerformanceTracker(IndicatorListener):
             _log_return_identifier = 'DailyLogReturns.' + _product 
             DailyLogReturns.get_unique_instance(_log_return_identifier, _startdate, _enddate, _config).add_listener(self)
 
+    def get_rebalance_weights(self):
+        """read only access to rebalance_weights. Needed by risk management to assess the leverage sought by strategy"""
+        return (self.rebalance_weights)
+
+    def get_desired_leverage(self):
+        """returns the currently desired leverage of the strategy"""
+        return numpy.sum(numpy.abs(self.rebalance_weights))
+    
     def on_indicator_update(self, identifier, daily_log_returns_dt):
         _product = identifier.split('.')[1]
         _date = daily_log_returns_dt[-1][0]
@@ -52,6 +61,8 @@ class SimplePerformanceTracker(IndicatorListener):
         _new_portfolio_value = sum(_new_money_allocation) + self.cash
         _old_portfolio_value = sum(self.money_allocation) + self.cash
         self.money_allocation = _new_money_allocation
+        if (_old_portfolio_value <= 0.01) or numpy.isnan(_old_portfolio_value):
+            sys.exit("Lost all the money!")
         _logret = numpy.log(_new_portfolio_value/_old_portfolio_value)
         self.daily_log_returns = numpy.append(self.daily_log_returns, _logret)
         self.net_log_return += self.daily_log_returns[-1]
