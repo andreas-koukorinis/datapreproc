@@ -51,7 +51,7 @@ class MVO(SignalAlgorithm):
         mat = matrix(mat, (n, m))
         return mat
 
-            # Function that calculates the efficient frontier  
+    # Function that calculates the efficient frontier  
     # by minimizing (Variance - tolerance * expected returns)
     # with the given constraints
     # sum(abs(weights)) <= 5
