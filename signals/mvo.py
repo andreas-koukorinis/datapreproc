@@ -51,7 +51,21 @@ class MVO(SignalAlgorithm):
         mat = matrix(mat, (n, m))
         return mat
 
+<<<<<<< HEAD
     def efficient_frontier(self, expected_returns, covariance, leverage, risk_tolerance, max_allocation=0.5):
+=======
+    # Function that calculates the efficient frontier  
+    # by minimizing (Variance - tolerance * expected returns)
+    # with the given constraints
+    # sum(abs(weights)) <= 5
+    # Input: returns - matrix containing log daily returns for n securities.
+    #        tolerance_limit - upper bound of tolerance in function to be minimized
+    #        max_allocation - maximum weight to be allocated to one security
+    #                         (set low threshold to diversify)
+    # Output: frontier - matrix of optimal weight for each value of tolerance with 
+    #                    performance stats exp.returns, std.dev, sharpe ratio
+    def efficient_frontier(self,expected_returns, covariance, leverage, risk_tolerance, max_allocation=0.5):
+>>>>>>> 81a95af9ca8a8f10317d5336740bbb169e6332bf
         """ Function that calculates the efficient frontier
             by minimizing (Variance - risk tolerance * expected returns)
             with a given lerverage and risk tolance
