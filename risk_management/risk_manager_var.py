@@ -139,7 +139,7 @@ class RiskManagerVar(RiskManagerAlgo):
         """
         # first check if we have already done the computation today. If so then return previously computed value.
         if self.last_risk_level_updated_date == _date:
-            return self.current_capital_allocation_level
+            return (self.current_capital_allocation_level)
         else:
             self.last_risk_level_updated_date = _date
 
@@ -164,4 +164,9 @@ class RiskManagerVar(RiskManagerAlgo):
         if _new_captial_allocation != self.current_capital_allocation_level:
             self.current_capital_allocation_level = _new_captial_allocation
             #self.issue_notification_capital_update(_date, 'VAR', self.current_capital_allocation_level)
-        return self.current_capital_allocation_level
+
+        _retval = self.current_capital_allocation_level
+        if self.simple_performance_tracker.get_desired_leverage() > self.maximum_allowed_leverage:
+            print ("didn't expect to see desired leverage %f to exceed maximum allowed leverage %f" %(self.simple_performance_tracker.get_desired_leverage(), self.maximum_allowed_leverage))
+            _retval = min (_retval, (self.maximum_allowed_leverage/self.simple_performance_tracker.get_desired_leverage()))
+        return (_retval)

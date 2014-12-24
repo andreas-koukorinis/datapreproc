@@ -127,4 +127,8 @@ class RiskManagerPaper(RiskManagerAlgo):
                 self.current_capital_allocation_level = self.risk_level_vec[self.current_risk_level_index].capital_allocation_level
                 self.last_date_risk_level_change = _date
 
-        return (self.current_capital_allocation_level)
+        _retval = self.current_capital_allocation_level
+        if self.simple_performance_tracker.get_desired_leverage() > self.maximum_allowed_leverage:
+            print ("didn't expect to see desired leverage %f to exceed maximum allowed leverage %f" %(self.simple_performance_tracker.get_desired_leverage(), self.maximum_allowed_leverage))
+            _retval = min (_retval, (self.maximum_allowed_leverage/self.simple_performance_tracker.get_desired_leverage()))
+        return (_retval)
