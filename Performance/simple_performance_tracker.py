@@ -93,6 +93,10 @@ class SimplePerformanceTracker(IndicatorListener):
     def get_current_drawdown(self):
         """returns current drawdown"""
         return (self.current_drawdown)
+
+    def get_current_loss(self):
+        """returns current loss"""
+        return self.current_loss
     
     def current_dd(self, returns):
         """Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value"""
@@ -118,3 +122,22 @@ class SimplePerformanceTracker(IndicatorListener):
             _recent_log_ret_anlualized_stdev = max ( 1.0, _recent_log_ret_anlualized_stdev )
         return (_recent_log_ret_anlualized_stdev)
 
+    def compute_current_var_estimate(self, return_history):
+        """Computes an estimate of daily VAR10 of the strategy based on daily rebalanced CWAS
+        
+        Args:
+            weights: The current weights of the strategy
+            return_history: The number of days of return history to be used
+
+        Returns: The estimate of VAR10
+        """
+        if self.log_return_history.shape[0] < return_history:
+            return 0.001 # Low value for complete allocation
+        _log_returns = self.log_return_history[-return_history:,:]
+        _cwas_log_return_series = numpy.log(1 + numpy.sum((numpy.exp(_log_returns) -1)*self.rebalance_weights, axis=1)) #TODO consider changing to actual weights
+        _sorted_cwas_log_return_series = numpy.sort(_cwas_log_return_series)
+        n = _sorted_cwas_log_return_series.shape[0]
+        _end_index = min(n-1, int(0.1*n)) # Considering the worst 10% days
+        _Var10_log = numpy.mean(_sorted_cwas_log_return_series[0:_end_index])
+        _Var10 = abs((numpy.exp(_Var10_log) - 1)*100.0) # +ve value for VAR
+        return max(0.001, _Var10) # To ensure that we dont return 0
