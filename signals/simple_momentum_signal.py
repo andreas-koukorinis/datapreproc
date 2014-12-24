@@ -128,17 +128,18 @@ class SimpleMomentumSignal( SignalAlgorithm ):
             if (self.day % self.stdev_computation_interval) == 0:
                 # we need to recompute risk estimate
                 for i in xrange(len(self.expected_risk_vec)):
-                    if len(self.stdev_indicator_vec[i].indicator_values) >= 1:
-                        self.expected_risk_vec[i] = max(0.000001, self.stdev_indicator_vec[i].indicator_values[1]) # a max with 1% is just to not have divide by 0 problems.
+                    self.expected_risk_vec[i] = max(0.000001, self.stdev_indicator_vec[i].get_stdev()) # a max with 1% is just to not have divide by 0 problems.
                 _need_to_recompute_dmf_weights = True
             if (self.day % self.trend_computation_interval) == 0:
                 # we need to recompute expected return estimate from trend 
                 for i in xrange(len(self.expected_return_vec)):
-                    self.expected_return_vec[i] = self.trend_indicator_vec[i].get_trend()
+                    self.expected_return_vec[i] = 0.002*self.trend_indicator_vec[i].get_trend()
                 _need_to_recompute_dmf_weights = True
 
             if _need_to_recompute_dmf_weights:
                 self.dmf_weights = self.expected_return_vec/self.expected_risk_vec
+                if numpy.sum(numpy.abs(self.dmf_weights)) > 0.001: # a very hacky way of checking divide by 0 problem !
+                    self.dmf_weights = self.dmf_weights/numpy.sum(numpy.abs(self.dmf_weights))
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.dmf_weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
 
