@@ -5,15 +5,13 @@ import numpy
 from numpy import hstack, vstack
 from cvxopt import matrix, solvers
 from cvxopt.solvers import qp
-from Algorithm.trade_algorithm import TradeAlgorithm
+from Algorithm.signal_algorithm import SignalAlgorithm
 from Utils.Regular import check_eod, parse_weights
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 
-solvers.options['show_progress'] = False
-
-class MVO(TradeAlgorithm):
+class MVO(SignalAlgorithm):
     """Perform mean variance optimization"""
 
     # Helper functions to succinctly represent constraints for optimizer
@@ -119,6 +117,7 @@ class MVO(TradeAlgorithm):
     def init(self, _config):
         """Initialize variables with configuration inputs or defaults"""
         self.day = -1
+        solvers.options['show_progress'] = False
         # Set leverage
         self.leverage = 1
         if _config.has_option('Strategy', 'leverage'):
