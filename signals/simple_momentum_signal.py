@@ -1,7 +1,8 @@
 import sys
 import numpy
 from importlib import import_module
-from Utils.Regular import check_eod, adjust_file_path_for_home_directory, adjust_to_desired_l1norm_range
+
+from Utils.Regular import check_eod, adjust_file_path_for_home_directory, is_float_zero, parse_weights, adjust_to_desired_l1norm_range
 from DailyIndicators.Indicator_List import is_valid_daily_indicator,get_module_name_from_indicator_name
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 from signals.signal_algorithm import SignalAlgorithm
@@ -38,8 +39,8 @@ class SimpleMomentumSignal( SignalAlgorithm ):
         self.dmf_weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
 
         _paramfilepath="/dev/null"
-        if _config.has_option('Strategy','paramfilepath'):
-            _paramfilepath=adjust_file_path_for_home_directory(_config.get('Strategy','paramfilepath'))
+        if _config.has_option('Parameters', 'paramfilepath'):
+            _paramfilepath=adjust_file_path_for_home_directory(_config.get('Parameters', 'paramfilepath'))
         self.process_param_file(_paramfilepath, _config)
 
         _modelfilepath="/dev/null"
