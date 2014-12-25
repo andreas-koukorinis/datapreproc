@@ -119,12 +119,12 @@ def set_configs(param_names, values):
         with open(_config_name, 'wb') as configfile:
             _handle.write(configfile)
 
-def get_perf_stats(all_param_names, all_value_combinations):
+def get_perf_stats(all_param_names, all_value_combinations, agg_config):
     """For each set of values to be tested,set up the config files and run Simulator to get the perf stats"""
     performance_stats = []
     for i in range(len(all_value_combinations)):
         set_configs(all_param_names, all_value_combinations[i])
-        proc = subprocess.Popen(['python', '-W', 'ignore', 'Simulator.py', all_param_names[0][1] ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        proc = subprocess.Popen(['python', '-W', 'ignore', 'Simulator.py', agg_config ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         performance_stats.append(parse_results(proc.communicate()[0]))
     return performance_stats
 
@@ -134,6 +134,7 @@ def save_perf_stats(perf_stats, _param_string, all_value_combinations, dest_dir)
     f.write('Order: ' + _param_string + '\n')
     for i in range(len(all_value_combinations)):
         f.write('Param_set: ' + (' ').join(all_value_combinations[i]) + '\n')
+        print perf_stats[i]
         for elem in final_order:
             f.write(elem + ': ' + perf_stats[i][elem] + '\n')
         f.write('\n\n')
@@ -231,7 +232,7 @@ def main():
 
     config_handles_names = get_config_handles_and_names(agg_config_file, param_file, dest_dir)
     all_param_names, all_value_combinations = generate_test_combinations(config_handles_names)
-    perf_stats = get_perf_stats(all_param_names, all_value_combinations)
+    perf_stats = get_perf_stats(all_param_names, all_value_combinations, config_handles_names[0][1])
     _param_string = '_'.join([_param_name[2] for _param_name in all_param_names])
     #print perf_stats
     save_perf_stats(perf_stats, _param_string, all_value_combinations, dest_dir)    
