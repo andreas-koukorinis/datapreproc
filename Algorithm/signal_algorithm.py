@@ -77,8 +77,12 @@ class SignalAlgorithm(EventsListener): # TODO May be Should listen to events cor
         dispatcher.add_events_listener(self)
 
         self.simple_performance_tracker = SimplePerformanceTracker(self.products, self.all_products, _startdate, _enddate, _config)
-        self.init(_config)
 
+        self.rebalance_frequency = 5
+        self.minimum_leverage = 1.0
+        self.maximum_leverage = 1.0
+        self.init(_config)
+        
     # User is expected to write the function
     def on_events_update(self, concurrent_events):
         """This function is to be implemented by the signal
