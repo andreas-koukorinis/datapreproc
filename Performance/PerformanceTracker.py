@@ -332,13 +332,13 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         _num_best_days = 0
         _best_day_idx = n-1
         if n > 0:
-            _extreme_days += 'Worst %d days:   '%k
+            _extreme_days += 'Worst %d days =   '%k
             while _num_worst_days < k and _worst_day_idx < n:
                 _num_worst_days += 1
                 _return = (exp(_sorted_returns[_worst_day_idx][1])-1)*100.0
                 _extreme_days += str(_sorted_returns[_worst_day_idx][0]) + (' : %0.2f%%   ' % _return)
                 _worst_day_idx += 1
-            _extreme_days += '\nBest %d days:   '%k
+            _extreme_days += '\nBest %d days =   '%k
             while _num_best_days < k and _best_day_idx >= 0:
                 _num_best_days += 1
                 _return = (exp(_sorted_returns[_best_day_idx][1])-1)*100.0
@@ -367,7 +367,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             return _not_used    
 
         if n > 0:
-            _extreme_weeks += 'Worst %d weeks:   '%k
+            _extreme_weeks += 'Worst %d weeks =   '%k
             while _num_worst_weeks < k and _worst_week_idx < n:
                 if (not _worst_start_dates_used) or _date_not_used(_sorted_returns[_worst_week_idx][0], _worst_start_dates_used, 5):
                     _num_worst_weeks += 1
@@ -375,7 +375,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                     _extreme_weeks += str(_sorted_returns[_worst_week_idx][0]) + (' : %0.2f%%   ' % _return)
                     _worst_start_dates_used.append(_sorted_returns[_worst_week_idx][0])
                 _worst_week_idx += 1
-            _extreme_weeks += '\nBest %d weeks   '%k
+            _extreme_weeks += '\nBest %d weeks =   '%k
             while _num_best_weeks < k and _best_week_idx >= 0:
                 if (not _worst_start_dates_used) or _date_not_used(_sorted_returns[_best_week_idx][0], _best_start_dates_used, 5):
                     _num_best_weeks += 1
