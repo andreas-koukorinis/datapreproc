@@ -1,5 +1,4 @@
 #!/usr/bin/env/python
-import re
 import sys
 import os
 import shutil
@@ -7,8 +6,6 @@ import argparse
 import subprocess
 import itertools
 import ConfigParser
-from io import StringIO
-from datetime import date, timedelta
 
 stats = {'sharpe': ('Sharpe Ratio', '+'),  'ret_dd_ratio': ('Return_drawdown_Ratio', '+'), 'max_dd': ('Max Drawdown', '-'), 'net_pnl': ('Net PNL', '+'), 'ret_var_ratio': ('Return Var10 ratio', '+'),'gain_pain_ratio': ('Gain Pain Ratio', '+'), 'hit_loss_ratio': ('Hit Loss Ratio', '+'), 'turnover': ('Turnover', '-'), 'skewness': ('Skewness','?'), 'kurtosis': ('Kurtosis', '?'), 'corr_vbltx': ('Correlation to VBLTX', '?'), 'corr_vtsmx': ('Correlation to VTSMX', '?'), 'ann_std_ret': ('Annualized_Std_Returns', '-'), 'max_dd_dollar': ('Max Drawdown Dollar', '-'), 'ann_pnl': ('Annualized PNL', '+'), 'dml': ('DML', '+'), 'mml': ('MML', '+'), 'qml': ('QML', '+'), 'yml': ('YML', '+'), 'max_num_days_no_new_high' : ('Max num days with no new high', '-')}
 
@@ -107,6 +104,7 @@ def generate_test_combinations(config_handles_names):
     return all_param_names, all_value_combinations 
 
 def set_configs(param_names, values):
+    """Change the configs to accomodate for this param set"""
     for i in range(len(param_names)):
         _handle = param_names[i][0]
         _config_name = param_names[i][1]
@@ -130,6 +128,7 @@ def get_perf_stats(all_param_names, all_value_combinations):
     return performance_stats
 
 def save_perf_stats(perf_stats, _param_string, all_value_combinations, dest_dir):
+    """Save the perf stats corresponding to each param set to a file"""
     f = open(dest_dir + 'stats', 'w')
     f.write('Order: ' + _param_string + '\n')
     for i in range(len(all_value_combinations)):
@@ -140,12 +139,13 @@ def save_perf_stats(perf_stats, _param_string, all_value_combinations, dest_dir)
     f.close()
 
 def print_perf_stats(perf_stats):
+    """Print out the perf stats in specified order to terminal"""
     for elem in final_order:
         print elem + ': ' + perf_stats[elem]
 
 def impose_constraints(perf_stats, cons_greater, cons_less):
+    """Filter out the param sets which do not satisfy the constraints"""
     success_indices = []
-    print cons_greater, cons_less
     for j in range(len(perf_stats)):
         cons_satisfied = True
         if cons_greater is not None:
@@ -153,7 +153,6 @@ def impose_constraints(perf_stats, cons_greater, cons_less):
             while i < len(cons_greater):
                 key = stats[cons_greater[i]][0]
                 val = float(perf_stats[j][key].strip(' ').strip('%').strip('\n'))
-                print key, val
                 if val < float(cons_greater[i+1]):
                     cons_satisfied = False
                 i += 2
@@ -162,7 +161,6 @@ def impose_constraints(perf_stats, cons_greater, cons_less):
             while i < len(cons_less):
                 key = stats[cons_less[i]][0]
                 val = float(perf_stats[j][key].strip(' ').strip('%').strip('\n'))
-                print key, val
                 if val > float(cons_less[i+1]):        
                     cons_satisfied = False
                 i += 2
@@ -171,6 +169,7 @@ def impose_constraints(perf_stats, cons_greater, cons_less):
     return success_indices
 
 def optimize_perf_stats(perf_stats, success_indices, _param_string, all_value_combinations, stat):
+    """Select optimum parameter set based in performance of 'stat' """
     if stat is None:
         return success_indices
     opt_idx = []
