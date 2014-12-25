@@ -1,7 +1,7 @@
 import sys
 import numpy
 from importlib import import_module
-from Utils.Regular import check_eod,adjust_file_path_for_home_directory
+from Utils.Regular import check_eod, adjust_file_path_for_home_directory, adjust_to_desired_l1norm_range
 from DailyIndicators.Indicator_List import is_valid_daily_indicator,get_module_name_from_indicator_name
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 from signals.signal_algorithm import SignalAlgorithm
@@ -23,11 +23,6 @@ class SimpleMomentumSignal( SignalAlgorithm ):
     """
     
     def init( self, _config ):
-        self.day = -1
-        self.last_rebalanced_day = -1
-        self.rebalance_frequency = 5
-        self.minimum_leverage = 1.0
-        self.maximum_leverage = 1.0
         self.stdev_computation_indicator_name = "AverageStdDev"
         self.stdev_computation_history = "63 252"
         self.stdev_computation_interval = 5
@@ -46,15 +41,16 @@ class SimpleMomentumSignal( SignalAlgorithm ):
         if _config.has_option('Strategy','paramfilepath'):
             _paramfilepath=adjust_file_path_for_home_directory(_config.get('Strategy','paramfilepath'))
         self.process_param_file(_paramfilepath, _config)
-        # legacy param processing code
-        if _config.has_option('Parameters', 'rebalance_frequency'):
-            self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
 
         _modelfilepath="/dev/null"
         if _config.has_option('Strategy','modelfilepath'):
             _modelfilepath=adjust_file_path_for_home_directory(_config.get('Strategy','modelfilepath'))
         self.process_model_file(_modelfilepath, _config)
 
+    def process_param_file(self, _paramfilepath, _config):
+        super(SimpleMomentumSignal, self).process_param_file(_paramfilepath, _config)
+
+    
     def process_model_file(self, _modelfilepath, _config):
         _model_file_handle = open( _modelfilepath, "r" )
         _map_product_to_stdev_computation_history ={}
