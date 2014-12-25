@@ -32,7 +32,7 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
         _paramfilepath="/dev/null"
         if _config.has_option('Strategy','paramfilepath'):
             _paramfilepath=adjust_file_path_for_home_directory(_config.get('Strategy','paramfilepath'))
-        #self.process_param_file(_paramfilepath, _config)
+        self.process_param_file(_paramfilepath, _config)
 
         # by default we are long in all products
         self.allocation_signs = numpy.ones(len(self.products))
