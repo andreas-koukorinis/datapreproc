@@ -23,7 +23,7 @@ class SignalAlgorithm(EventsListener): # TODO May be Should listen to events cor
     Inherited by: Every signal
     """
     
-    def __init__(self, _all_products, _startdate, _enddate, _config, _agg_config):
+    def __init__(self, _all_products, _startdate, _enddate, _config, _main_strategy_config):
         """Initializes the required variables, daily_indicators mentioned in the signal's config file.
         Instantiates the simple_performance_tracker
         Stores the reference to the required instances like simple_performance_tracker, dailybooks
@@ -35,7 +35,7 @@ class SignalAlgorithm(EventsListener): # TODO May be Should listen to events cor
            _startdate(date object): The start date of the simulation
            _enddate(date object): The end date of the simulation
            _config(ConfigParser handle): The handle to the config file of the signal
-           _agg_config(ConfigParser handle): The handle to the config file of the aggregator
+           _main_strategy_config(ConfigParser handle): The handle to the config file of the aggregator
 
         Returns: Nothing 
         """
@@ -72,11 +72,11 @@ class SignalAlgorithm(EventsListener): # TODO May be Should listen to events cor
         # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects = {}
         for product in self.all_products:
-            self.bb_objects[product] = BookBuilder.get_unique_instance (product, _startdate, _enddate, _agg_config)
+            self.bb_objects[product] = BookBuilder.get_unique_instance (product, _startdate, _enddate, _main_strategy_config)
 
         # TradeAlgorithm will be notified once all indicators have been updated.
         # Currently it is implemented as an EventsListener
-        dispatcher = Dispatcher.get_unique_instance (_all_products, _startdate, _enddate, _agg_config)
+        dispatcher = Dispatcher.get_unique_instance (_all_products, _startdate, _enddate, _main_strategy_config)
         dispatcher.add_events_listener(self)
 
         self.simple_performance_tracker = SimplePerformanceTracker(self.products, self.all_products, _startdate, _enddate, _config)
