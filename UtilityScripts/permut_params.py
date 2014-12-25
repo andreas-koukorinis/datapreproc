@@ -122,7 +122,6 @@ def set_configs(param_names, values):
 
 def get_perf_stats(all_param_names, all_value_combinations):
     """For each set of values to be tested,set up the config files and run Simulator to get the perf stats"""
-    print all_param_names, all_value_combinations
     performance_stats = []
     for i in range(len(all_value_combinations)):
         set_configs(all_param_names, all_value_combinations[i])
@@ -134,29 +133,36 @@ def save_perf_stats(perf_stats, _param_string, all_value_combinations, dest_dir)
     f = open(dest_dir + 'stats', 'w')
     f.write('Order: ' + _param_string + '\n')
     for i in range(len(all_value_combinations)):
-        f.write('Param_set: ' + ('_').join(all_value_combinations[i]) + '\n')
+        f.write('Param_set: ' + (' ').join(all_value_combinations[i]) + '\n')
         for elem in final_order:
             f.write(elem + ': ' + perf_stats[i][elem] + '\n')
         f.write('\n\n')
     f.close()
 
+def print_perf_stats(perf_stats):
+    for elem in final_order:
+        print elem + ': ' + perf_stats[elem]
+
 def impose_constraints(perf_stats, cons_greater, cons_less):
     success_indices = []
+    print cons_greater, cons_less
     for j in range(len(perf_stats)):
         cons_satisfied = True
-        if cons_greater:
+        if cons_greater is not None:
             i = 0
             while i < len(cons_greater):
-                key = stats[cons_greater[i]]
+                key = stats[cons_greater[i]][0]
                 val = float(perf_stats[j][key].strip(' ').strip('%').strip('\n'))
+                print key, val
                 if val < float(cons_greater[i+1]):
                     cons_satisfied = False
                 i += 2
-        if cons_less:
+        if cons_less is not None:
             i = 0
             while i < len(cons_less):
-                key = stats[cons_less[i]]
+                key = stats[cons_less[i]][0]
                 val = float(perf_stats[j][key].strip(' ').strip('%').strip('\n'))
+                print key, val
                 if val > float(cons_less[i+1]):        
                     cons_satisfied = False
                 i += 2
@@ -164,10 +170,30 @@ def impose_constraints(perf_stats, cons_greater, cons_less):
             success_indices.append(j)
     return success_indices
 
+def optimize_perf_stats(perf_stats, success_indices, _param_string, all_value_combinations, stat):
+    if stat is None:
+        return success_indices
+    opt_idx = []
+    sign = stats[stat][1]
+    if sign == '+':
+        opt_val = -1000000000000
+    elif sign == '-':
+        opt_val = 1000000000000
+    else:
+        sys.exit('Cannot optimize this stat')
+    for idx in success_indices:
+        _val = float(perf_stats[idx][key].strip(' ').strip('%').strip('\n'))
+        if sign == '+' and _val > opt_val:
+            opt_idx = [idx]
+        elif sign == '-' and _val < opt_val:
+            opt_idx = [idx]
+        elif _val == opt_val:
+            opt_idx.append(idx)
+    return opt_idx
+
 def main():
     if len(sys.argv) < 2:
-        print "Arguments needed: agg_config_file param_file"
-        sys.exit(0)
+        print "Arguments needed: agg_config_file param_file\nStats Allowed:\n%s\n" % ('\n'.join(stats.keys()))
     
     parser = argparse.ArgumentParser()
     parser.add_argument('agg_config_file')
@@ -175,11 +201,8 @@ def main():
     parser.add_argument('-o', nargs=1, help='Optimize this parameter', dest='optimize')
     parser.add_argument('-ge', nargs='*', help='Greater than equal to parameter constraint', dest='greater')
     parser.add_argument('-le', nargs='*', help='Less than equal to parameter constraint', dest='less')
-    parser.add_argument('-p', nargs=1, help='Plot the param sets versus this stat', dest='less')
+    parser.add_argument('-p', nargs=1, help='Plot the param sets versus this stat', dest='plot')
     args = parser.parse_args()
-
-    print args.agg_config_file, args.param_file
-    print args.optimize, args.greater, args.less
 
     agg_config_file = sys.argv[1].replace("~", os.path.expanduser("~"))
     param_file = sys.argv[2].replace("~", os.path.expanduser("~"))
@@ -194,8 +217,22 @@ def main():
     perf_stats = get_perf_stats(all_param_names, all_value_combinations)
     _param_string = '_'.join([_param_name[2] for _param_name in all_param_names])
     save_perf_stats(perf_stats, _param_string, all_value_combinations, dest_dir)    
-    #success_indices = impose_constraints(perf_stats, args.greater, args.less)
-    #optimize_perf_stats(perf_stats, success_indices, _param_string, all_value_combinations)
+    success_indices = impose_constraints(perf_stats, args.greater, args.less)
+    if args.less is None and args.greater is None and args.optimize is None:
+        args.optimize = ['sharpe']
+    opt_indices = optimize_perf_stats(perf_stats, success_indices, _param_string, all_value_combinations, args.optimize[0])
+
+    if len(opt_indices) == 0:
+        print 'No Params selected'
+    else:
+        print 'Param Order: %s\n'%(_param_string)
+        if len(opt_indices) == 1:
+            print 'Selected Param_set: %s\n' % ((' ').join(all_value_combinations[opt_indices[0]]))
+            print_perf_stats(perf_stats[opt_indices[0]])
+        else:
+            print 'Selected Param_sets:\n'
+            for idx in opt_indices:
+                print (' ').join(all_value_combinations[idx])
     #plot_perf_stats(perf_stats)
 
 if __name__ == '__main__':
