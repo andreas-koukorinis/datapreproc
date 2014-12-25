@@ -74,9 +74,6 @@ class TradeAlgorithm(EventsListener):
                         _instance = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
                         self.daily_indicators[_instance.identifier] = _instance
 
-        # Call the strategy subclass
-        self.init(_config)
-
         # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects = {}
         for product in self.all_products:
