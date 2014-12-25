@@ -96,7 +96,7 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
 
 
     def process_param_file(self, _paramfilepath, _config):
-        super(TargetRiskEqualRiskContribution, self).process_param_file(_paramfilepath, _config)
+        super(TargetRiskMaxSharpeHistCorr, self).process_param_file(_paramfilepath, _config)
 
     def on_events_update(self, events):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
