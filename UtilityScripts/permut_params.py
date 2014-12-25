@@ -10,7 +10,9 @@ import ConfigParser
 from io import StringIO
 from datetime import date, timedelta
 
-strategy_params = {'trade_products': 'Products','name': 'Strategy', 'signal_configs':'Strategy','signal_allocations':'Strategy','risk_profile':'RiskManagement','start_date':'Dates','end_date':'Dates','warmupdays':'Parameters','initial_capital':'Parameters','execlogic':'Parameters'}
+stats = {'sharpe': ('Sharpe Ratio', '+'),  'ret_dd_ratio': ('Return_drawdown_Ratio', '+'), 'max_dd': ('Max Drawdown', '-'), 'net_pnl': ('Net PNL', '+'), 'ret_var_ratio': ('Return Var10 ratio', '+'),'gain_pain_ratio': ('Gain Pain Ratio', '+'), 'hit_loss_ratio': ('Hit Loss Ratio', '+'), 'turnover': ('Turnover', '-'), 'skewness': ('Skewness','?'), 'kurtosis': ('Kurtosis', '?'), 'corr_vbltx': ('Correlation to VBLTX', '?'), 'corr_vtsmx': ('Correlation to VTSMX', '?'), 'ann_std_ret': ('Annualized_Std_Returns', '-'), 'max_dd_dollar': ('Max Drawdown Dollar', '-'), 'ann_pnl': ('Annualized PNL', '+'), 'dml': ('DML', '+'), 'mml': ('MML', '+'), 'qml': ('QML', '+'), 'yml': ('YML', '+'), 'max_num_days_no_new_high' : ('Max num days with no new high', '-')}
+
+final_order = ['Net Returns', 'Total Tradable Days','Sharpe Ratio', 'Return_drawdown_Ratio','Return Var10 ratio','Correlation to VBLTX', 'Correlation to VTSMX', 'Annualized_Returns', 'Annualized_Std_Returns', 'Initial Capital', 'Net PNL', 'Annualized PNL', 'Annualized_Std_PnL', 'Skewness','Kurtosis','DML','MML','QML','YML','Max Drawdown','Drawdown Period','Drawdown Recovery Period','Max Drawdown Dollar','Annualized PNL by drawdown','Yearly_sharpe','Hit Loss Ratio','Gain Pain Ratio','Max num days with no new high','Losing month streak','Turnover','Leverage','Trading Cost','Total Money Transacted','Total Orders Placed','Worst 5 days','Best 5 days','Worst 5 weeks','Best 5 weeks']
 
 def parse_results(results):
     """Parses the performance stats(output of Simulator) and returns them as dict
@@ -128,6 +130,40 @@ def get_perf_stats(all_param_names, all_value_combinations):
         performance_stats.append(parse_results(proc.communicate()[0]))
     return performance_stats
 
+def save_perf_stats(perf_stats, _param_string, all_value_combinations, dest_dir):
+    f = open(dest_dir + 'stats', 'w')
+    f.write('Order: ' + _param_string + '\n')
+    for i in range(len(all_value_combinations)):
+        f.write('Param_set: ' + ('_').join(all_value_combinations[i]) + '\n')
+        for elem in final_order:
+            f.write(elem + ': ' + perf_stats[i][elem] + '\n')
+        f.write('\n\n')
+    f.close()
+
+def impose_constraints(perf_stats, cons_greater, cons_less):
+    success_indices = []
+    for j in range(len(perf_stats)):
+        cons_satisfied = True
+        if cons_greater:
+            i = 0
+            while i < len(cons_greater):
+                key = stats[cons_greater[i]]
+                val = float(perf_stats[j][key].strip(' ').strip('%').strip('\n'))
+                if val < float(cons_greater[i+1]):
+                    cons_satisfied = False
+                i += 2
+        if cons_less:
+            i = 0
+            while i < len(cons_less):
+                key = stats[cons_less[i]]
+                val = float(perf_stats[j][key].strip(' ').strip('%').strip('\n'))
+                if val > float(cons_less[i+1]):        
+                    cons_satisfied = False
+                i += 2
+        if cons_satisfied:
+            success_indices.append(j)
+    return success_indices
+
 def main():
     if len(sys.argv) < 2:
         print "Arguments needed: agg_config_file param_file"
@@ -136,9 +172,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('agg_config_file')
     parser.add_argument('param_file')
-    parser.add_argument('-o', nargs=1, help='Optimize this parameter', dest='optimize', default='sharpe', const='sharpe')
+    parser.add_argument('-o', nargs=1, help='Optimize this parameter', dest='optimize')
     parser.add_argument('-ge', nargs='*', help='Greater than equal to parameter constraint', dest='greater')
     parser.add_argument('-le', nargs='*', help='Less than equal to parameter constraint', dest='less')
+    parser.add_argument('-p', nargs=1, help='Plot the param sets versus this stat', dest='less')
     args = parser.parse_args()
 
     print args.agg_config_file, args.param_file
@@ -156,10 +193,10 @@ def main():
     all_param_names, all_value_combinations = generate_test_combinations(config_handles_names)
     perf_stats = get_perf_stats(all_param_names, all_value_combinations)
     _param_string = '_'.join([_param_name[2] for _param_name in all_param_names])
-    print perf_stats
-    #_optimal_idx = find_optimal_perf_stats(perf_stats)
+    save_perf_stats(perf_stats, _param_string, all_value_combinations, dest_dir)    
+    #success_indices = impose_constraints(perf_stats, args.greater, args.less)
+    #optimize_perf_stats(perf_stats, success_indices, _param_string, all_value_combinations)
     #plot_perf_stats(perf_stats)
-    #save_perf_stats(perf_stats)    
 
 if __name__ == '__main__':
     main()
