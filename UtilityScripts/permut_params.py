@@ -6,8 +6,9 @@ import argparse
 import subprocess
 import itertools
 import ConfigParser
+import matplotlib.pyplot as plt
 
-stats = {'sharpe': ('Sharpe Ratio', '+'),  'ret_dd_ratio': ('Return_drawdown_Ratio', '+'), 'max_dd': ('Max Drawdown', '-'), 'net_pnl': ('Net PNL', '+'), 'ret_var_ratio': ('Return Var10 ratio', '+'),'gain_pain_ratio': ('Gain Pain Ratio', '+'), 'hit_loss_ratio': ('Hit Loss Ratio', '+'), 'turnover': ('Turnover', '-'), 'skewness': ('Skewness','?'), 'kurtosis': ('Kurtosis', '?'), 'corr_vbltx': ('Correlation to VBLTX', '?'), 'corr_vtsmx': ('Correlation to VTSMX', '?'), 'ann_std_ret': ('Annualized_Std_Returns', '-'), 'max_dd_dollar': ('Max Drawdown Dollar', '-'), 'ann_pnl': ('Annualized PNL', '+'), 'dml': ('DML', '+'), 'mml': ('MML', '+'), 'qml': ('QML', '+'), 'yml': ('YML', '+'), 'max_num_days_no_new_high' : ('Max num days with no new high', '-')}
+stats = {'sharpe': ('Sharpe Ratio', '+'),  'ret_dd_ratio': ('Return_drawdown_Ratio', '+'), 'max_dd': ('Max Drawdown', '-'), 'net_pnl': ('Net PNL', '+'), 'ret_var_ratio': ('Return Var10 ratio', '+'),'ann_ret': ('Annualized_Returns','+'), 'gain_pain_ratio': ('Gain Pain Ratio', '+'), 'hit_loss_ratio': ('Hit Loss Ratio', '+'), 'turnover': ('Turnover', '-'), 'skewness': ('Skewness','?'), 'kurtosis': ('Kurtosis', '?'), 'corr_vbltx': ('Correlation to VBLTX', '?'), 'corr_vtsmx': ('Correlation to VTSMX', '?'), 'ann_std_ret': ('Annualized_Std_Returns', '-'), 'max_dd_dollar': ('Max Drawdown Dollar', '-'), 'ann_pnl': ('Annualized PNL', '+'), 'dml': ('DML', '+'), 'mml': ('MML', '+'), 'qml': ('QML', '+'), 'yml': ('YML', '+'), 'max_num_days_no_new_high' : ('Max num days with no new high', '-')}
 
 final_order = ['Net Returns', 'Total Tradable Days','Sharpe Ratio', 'Return_drawdown_Ratio','Return Var10 ratio','Correlation to VBLTX', 'Correlation to VTSMX', 'Annualized_Returns', 'Annualized_Std_Returns', 'Initial Capital', 'Net PNL', 'Annualized PNL', 'Annualized_Std_PnL', 'Skewness','Kurtosis','DML','MML','QML','YML','Max Drawdown','Drawdown Period','Drawdown Recovery Period','Max Drawdown Dollar','Annualized PNL by drawdown','Yearly_sharpe','Hit Loss Ratio','Gain Pain Ratio','Max num days with no new high','Losing month streak','Turnover','Leverage','Trading Cost','Total Money Transacted','Total Orders Placed','Worst 5 days','Best 5 days','Worst 5 weeks','Best 5 weeks']
 
@@ -174,6 +175,7 @@ def optimize_perf_stats(perf_stats, success_indices, _param_string, all_value_co
         return success_indices
     opt_idx = []
     sign = stats[stat][1]
+    key = stats[stat][0]
     if sign == '+':
         opt_val = -1000000000000
     elif sign == '-':
@@ -181,14 +183,30 @@ def optimize_perf_stats(perf_stats, success_indices, _param_string, all_value_co
     else:
         sys.exit('Cannot optimize this stat')
     for idx in success_indices:
-        _val = float(perf_stats[idx][key].strip(' ').strip('%').strip('\n'))
-        if sign == '+' and _val > opt_val:
+        val = float(perf_stats[idx][key].strip(' ').strip('%').strip('\n'))
+        if sign == '+' and val > opt_val:
             opt_idx = [idx]
-        elif sign == '-' and _val < opt_val:
+            opt_val = val
+        elif sign == '-' and val < opt_val:
             opt_idx = [idx]
-        elif _val == opt_val:
+            opt_val = val
+        elif val == opt_val:
             opt_idx.append(idx)
     return opt_idx
+
+def plot_perf_stats(perf_stats, all_value_combinations, stat, dest_dir):
+    x = []
+    y = []
+    key = stats[stat][0]
+    for i in range(len(perf_stats)):
+        x.append(' '.join(all_value_combinations[i]))
+        y.append(float(perf_stats[i][key].strip(' ').strip('%').strip('\n')))
+    x1 = range(len(x))
+    plt.xticks(x1,x)
+    plt.scatter(x1,y)
+    plt.xlabel("Param set")
+    plt.ylabel(stat)
+    plt.savefig(dest_dir + 'plot.png')
 
 def main():
     if len(sys.argv) < 2:
@@ -197,10 +215,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('agg_config_file')
     parser.add_argument('param_file')
-    parser.add_argument('-o', nargs=1, help='Optimize this parameter', dest='optimize')
-    parser.add_argument('-ge', nargs='*', help='Greater than equal to parameter constraint', dest='greater')
-    parser.add_argument('-le', nargs='*', help='Less than equal to parameter constraint', dest='less')
-    parser.add_argument('-p', nargs=1, help='Plot the param sets versus this stat', dest='plot')
+    parser.add_argument('-o', nargs=1, help='Optimize this parameter\nEg: -o sharpe', dest='optimize')
+    parser.add_argument('-ge', nargs='*', help='Greater than equal to parameter constraint\nEg: -gt sharpe 1 ann_ret 4', dest='greater')
+    parser.add_argument('-le', nargs='*', help='Less than equal to parameter constraint\nEg: -lt max_dd 10', dest='less')
+    parser.add_argument('-p', nargs=1, help='Plot the param sets versus this stat\nEg: -p sharpe', dest='plot')
     args = parser.parse_args()
 
     agg_config_file = sys.argv[1].replace("~", os.path.expanduser("~"))
@@ -215,6 +233,7 @@ def main():
     all_param_names, all_value_combinations = generate_test_combinations(config_handles_names)
     perf_stats = get_perf_stats(all_param_names, all_value_combinations)
     _param_string = '_'.join([_param_name[2] for _param_name in all_param_names])
+    #print perf_stats
     save_perf_stats(perf_stats, _param_string, all_value_combinations, dest_dir)    
     success_indices = impose_constraints(perf_stats, args.greater, args.less)
     if args.less is None and args.greater is None and args.optimize is None:
@@ -232,7 +251,8 @@ def main():
             print 'Selected Param_sets:\n'
             for idx in opt_indices:
                 print (' ').join(all_value_combinations[idx])
-    #plot_perf_stats(perf_stats)
+    if args.plot is not None:
+        plot_perf_stats(perf_stats, all_value_combinations, args.plot[0], dest_dir)
 
 if __name__ == '__main__':
     main()
