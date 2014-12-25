@@ -9,7 +9,7 @@ from Utils.correct_signs_weights import correct_signs_weights
 from DailyIndicators.Indicator_List import is_valid_daily_indicator,get_module_name_from_indicator_name
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
-from Algorithm.signal_algorithm import SignalAlgorithm
+from signals.signal_algorithm import SignalAlgorithm
 
 class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
     """Implementation of the max sharpe strategy under historical correlations without regularization
