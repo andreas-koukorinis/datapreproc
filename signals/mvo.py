@@ -1,113 +1,19 @@
 import sys
 from importlib import import_module
 import numpy
-from numpy import hstack, vstack
-from cvxopt import matrix, solvers
-from cvxopt.solvers import qp
 from Algorithm.signal_algorithm import SignalAlgorithm
-from Utils.Regular import check_eod
+from Utils.Regular import check_eod, efficient_frontier
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 
 
-class MVO(SignalAlgorithm):
+class MeanVarianceOptimization(SignalAlgorithm):
     """Perform mean variance optimization"""
-
-    # Helper functions to succinctly represent constraints for optimizer
-    def lag(self, x, k):
-        """ Helper function lag(x,k)
-        Produces a lag of k in a series x with leading zeros
-        Args:
-            x(list): Vector of numbers
-            k(int): Discrete steps of lag to be introduced
-        Returns:
-            List: Vector of numbers shifted by k padded with zeros
-        Example:
-            >>> lag([1,2,3,4],2)
-            [0,0,1,2]
-        """
-        if k == 0:
-            return x
-        elif k > len(x):
-            return len(x)*[0]
-        else:
-            return k*[0]+x[0:-k]
-
-    def shift_vec(self, x, m):
-        """ Helper function shift_vec(x,m)
-        Produces a matrix of vectors each with a lag i where i ranges from 0 to m-1
-        Args:
-            x(list): Vector of numbers
-            m(int): Number of lagged vectors to be produced
-        Returns:
-            mat(matrix): Array of vectors each with a lag i where i ranges from 0 to m-1
-        Example:
-            >>> shift_vec([1,2,3],3)
-            [[1,2,3],[0,1,2],[0,0,1]]'
-        """
-        n = len(x)
-        mat = [self.lag(x, i) for i in range(0, m)]
-        mat = matrix(mat, (n, m))
-        return mat
-
-    def efficient_frontier(self,expected_returns, covariance, leverage, risk_tolerance, max_allocation=0.5):
-        """ Function that calculates the efficient frontier
-            by minimizing (Variance - risk tolerance * expected returns)
-            with a given lerverage and risk tolance
-            Args:
-                returns(matrix) - matrix containing log daily returns for n securities
-                covariance(matrix) - matrix containing covariance of the n securities
-                leverage(float) - acceptable value of levarage
-                risk_tolerance(float) - parameter of risk tolrance used in MVO
-                max_allocation(float) - maximum weight to be allocated to one security
-                                        (set low threshold to diversify)
-            Returns:
-                matrix of optimal weights performance stats exp.returns, std.dev, sharpe ratio
-        """
-        n = expected_returns.shape[0]  # Number of products
-        # Setup inputs for optimizer
-        # min(-d^T b + 1/2 b^T D b) with the constraints A^T b <= b_0
-        # Constraint: sum(abs(weights)) <= leverage is non-linear
-        # To make it linear introduce a dummy weight vector y = [y1..yn]
-        # w1<y1,-w1<y1,w2<y2,-w2<y2,...
-        # y1,y2,..,yn > 0
-        # y1 + y2 + ... + yn <= leverage
-        # Optimization will be done to find both w and y i.e n+n weights
-        # Dmat entries for y kept low to not affect minimzing function as much as possible
-        # Not kept 0 to still keep Dmat as semi-definite
-        dummy_var_dmat = 0.000001*numpy.eye(n)
-        Dmat = vstack((hstack((covariance, matrix(0., (n, n)))), hstack((matrix(0., (n, n)), dummy_var_dmat))))
-        # Constraint:  y1 + y2 + ... + yn <= leverage
-        Amat = vstack((matrix(0, (n, 1)), matrix(1, (n, 1))))
-        bvec = [leverage]
-        # Constraints:   y1, y2 ,..., yn >= 0
-        Amat = hstack((Amat, vstack((matrix(0, (n, n)), -1*numpy.eye(n)))))
-        bvec = bvec + n*[0]
-        # Constraints:  y1, y2 ,..., yn <= max_allocation
-        Amat = hstack((Amat, vstack((matrix(0, (n, n)), numpy.eye(n)))))
-        bvec = bvec + n*[max_allocation]
-        # Constraints:  -w1 <= y1, -w2 <= y2, ..., -wn <= yn
-        dummy_wt_constraint1 = [-1] + (n-1)*[0] + [-1] + (n-1)*[0]
-        Amat = hstack((Amat, self.shift_vec(dummy_wt_constraint1, n)))
-        bvec = bvec + n*[0]
-        # Constraints:  w1 <= y1, w2 <= y2, ..., wn <= yn
-        dummy_wt_constraint2 = [1] + (n-1)*[0] + [-1] + (n-1)*[0]
-        Amat = hstack((Amat, self.shift_vec(dummy_wt_constraint2, n)))
-        bvec = bvec + n*[0]
-        # Convert all NumPy arrays to CVXOPT matrics
-        Dmat = matrix(Dmat)
-        bvec = matrix(bvec, (len(bvec), 1))
-        Amat = matrix(Amat.T)
-        dvec = matrix(hstack((expected_returns, n*[0])).T)
-        # Optimize
-        portfolios = qp(Dmat, -1*risk_tolerance*dvec, Amat, bvec)['x']
-        return portfolios
 
     def init(self, _config):
         """Initialize variables with configuration inputs or defaults"""
         self.day = -1
-        solvers.options['show_progress'] = False
         # Set leverage
         self.leverage = 1
         if _config.has_option('Strategy', 'leverage'):
@@ -228,7 +134,7 @@ class MVO(SignalAlgorithm):
                 _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stddev_logret, self.stddev_logret)  # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
                 # Recompute weights
 
-                self.weights = self.efficient_frontier(self.exp_log_returns, _cov_mat, self.leverage, self.risk_tolerance, self.max_allocation)
+                self.weights = efficient_frontier(self.exp_log_returns, _cov_mat, self.leverage, self.risk_tolerance, self.max_allocation)
 
             for _product in self.products:
                     self.map_product_to_weight[_product] = self.weights[self.map_product_to_index[_product]]  # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
