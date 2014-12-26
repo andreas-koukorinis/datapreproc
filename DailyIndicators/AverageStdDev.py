@@ -31,6 +31,12 @@ class AverageStdDev( IndicatorListener ):
         self.stdev_vec_len = len(self.stdev_vec) # converted to float to compute averages later #constant
         self.listeners = []
 
+    def get_stdev(self):
+        if len(self.indicator_values) >= 2:
+            return (self.indicator_values[1])
+        else:
+            return 1
+    
     def add_listener( self, listener ):
         self.listeners.append( listener )
 

@@ -12,7 +12,13 @@ from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 
 
 class MVO(SignalAlgorithm):
-    """Perform mean variance optimization"""
+    """Perform mean variance optimization
+
+    expected return ( non-discretized-return ) ... emphasis on expected return is very high, and two parameters are moved to one
+    measure of risk ( stdev )
+    diversification report
+    min-max-leverage
+    """
 
     # Helper functions to succinctly represent constraints for optimizer
     def lag(self, x, k):
@@ -106,7 +112,6 @@ class MVO(SignalAlgorithm):
 
     def init(self, _config):
         """Initialize variables with configuration inputs or defaults"""
-        self.day = -1
         solvers.options['show_progress'] = False
         # Set leverage
         self.leverage = 1

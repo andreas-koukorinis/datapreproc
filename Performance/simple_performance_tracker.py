@@ -3,6 +3,7 @@ import os
 import datetime
 import numpy
 import scipy.stats as ss
+
 from Utils.Regular import get_first_futures_contract, is_future
 from Utils import defaults
 from BookBuilder.BookBuilder import BookBuilder
@@ -39,6 +40,14 @@ class SimplePerformanceTracker(IndicatorListener):
             _log_return_identifier = 'DailyLogReturns.' + _product 
             DailyLogReturns.get_unique_instance(_log_return_identifier, _startdate, _enddate, _config).add_listener(self)
 
+    def get_rebalance_weights(self):
+        """read only access to rebalance_weights. Needed by risk management to assess the leverage sought by strategy"""
+        return (self.rebalance_weights)
+
+    def get_desired_leverage(self):
+        """returns the currently desired leverage of the strategy"""
+        return numpy.sum(numpy.abs(self.rebalance_weights))
+    
     def on_indicator_update(self, identifier, daily_log_returns_dt):
         _product = identifier.split('.')[1]
         _date = daily_log_returns_dt[-1][0]
@@ -52,6 +61,8 @@ class SimplePerformanceTracker(IndicatorListener):
         _new_portfolio_value = sum(_new_money_allocation) + self.cash
         _old_portfolio_value = sum(self.money_allocation) + self.cash
         self.money_allocation = _new_money_allocation
+        if (_old_portfolio_value <= 0.01) or numpy.isnan(_old_portfolio_value):
+            sys.exit("Lost all the money!")
         _logret = numpy.log(_new_portfolio_value/_old_portfolio_value)
         self.daily_log_returns = numpy.append(self.daily_log_returns, _logret)
         self.net_log_return += self.daily_log_returns[-1]
@@ -93,6 +104,10 @@ class SimplePerformanceTracker(IndicatorListener):
     def get_current_drawdown(self):
         """returns current drawdown"""
         return (self.current_drawdown)
+
+    def get_current_loss(self):
+        """returns current loss"""
+        return self.current_loss
     
     def current_dd(self, returns):
         """Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value"""
@@ -118,3 +133,22 @@ class SimplePerformanceTracker(IndicatorListener):
             _recent_log_ret_anlualized_stdev = max ( 1.0, _recent_log_ret_anlualized_stdev )
         return (_recent_log_ret_anlualized_stdev)
 
+    def compute_current_var_estimate(self, return_history):
+        """Computes an estimate of daily VAR10 of the strategy based on daily rebalanced CWAS
+        
+        Args:
+            weights: The current weights of the strategy
+            return_history: The number of days of return history to be used
+
+        Returns: The estimate of VAR10
+        """
+        if self.log_return_history.shape[0] < return_history:
+            return 0.001 # Low value for complete allocation
+        _log_returns = self.log_return_history[-return_history:,:]
+        _cwas_log_return_series = numpy.log(1 + numpy.sum((numpy.exp(_log_returns) -1)*self.rebalance_weights, axis=1)) #TODO consider changing to actual weights
+        _sorted_cwas_log_return_series = numpy.sort(_cwas_log_return_series)
+        n = _sorted_cwas_log_return_series.shape[0]
+        _end_index = min(n-1, int(0.1*n)) # Considering the worst 10% days
+        _Var10_log = numpy.mean(_sorted_cwas_log_return_series[0:_end_index])
+        _Var10 = abs((numpy.exp(_Var10_log) - 1)*100.0) # +ve value for VAR
+        return max(0.001, _Var10) # To ensure that we dont return 0

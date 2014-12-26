@@ -23,7 +23,7 @@ class SignalAlgorithm(EventsListener): # TODO May be Should listen to events cor
     Inherited by: Every signal
     """
     
-    def __init__(self, _all_products, _startdate, _enddate, _config, _agg_config):
+    def __init__(self, _all_products, _startdate, _enddate, _config, _main_strategy_config):
         """Initializes the required variables, daily_indicators mentioned in the signal's config file.
         Instantiates the simple_performance_tracker
         Stores the reference to the required instances like simple_performance_tracker, dailybooks
@@ -35,11 +35,14 @@ class SignalAlgorithm(EventsListener): # TODO May be Should listen to events cor
            _startdate(date object): The start date of the simulation
            _enddate(date object): The end date of the simulation
            _config(ConfigParser handle): The handle to the config file of the signal
-           _agg_config(ConfigParser handle): The handle to the config file of the aggregator
+           _main_strategy_config(ConfigParser handle): The handle to the config file of the aggregator
 
         Returns: Nothing 
         """
-        
+
+        self.day = -1 # TODO move this to "watch" or a global time manager
+        self.last_rebalanced_day = -1
+
         if not _config.has_option('Products', 'trade_products'):
             sys.exit('Cannot proceed without trade_products in signal config')
         self.products = sorted(_config.get('Products', 'trade_products').split(',')) # we are doing this here so that multiple instances of indicators all point to same value.
@@ -69,15 +72,45 @@ class SignalAlgorithm(EventsListener): # TODO May be Should listen to events cor
         # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects = {}
         for product in self.all_products:
-            self.bb_objects[product] = BookBuilder.get_unique_instance (product, _startdate, _enddate, _agg_config)
+            self.bb_objects[product] = BookBuilder.get_unique_instance (product, _startdate, _enddate, _main_strategy_config)
 
         # TradeAlgorithm will be notified once all indicators have been updated.
         # Currently it is implemented as an EventsListener
-        dispatcher = Dispatcher.get_unique_instance (_all_products, _startdate, _enddate, _agg_config)
+        dispatcher = Dispatcher.get_unique_instance (_all_products, _startdate, _enddate, _main_strategy_config)
         dispatcher.add_events_listener(self)
 
         self.simple_performance_tracker = SimplePerformanceTracker(self.products, self.all_products, _startdate, _enddate, _config)
+
+        self.rebalance_frequency = 5
+        self.minimum_leverage = 1.0
+        self.maximum_leverage = 1.0
         self.init(_config)
+
+    def process_param_file(self, _paramfilepath, _config):
+        """This function reads the parameter file and loads up the main parameters.
+        In the super class SignalAlgorithm we are reading
+        rebalance_frequency(int)
+        minimum_leverage(float)
+        maximum_leverage(float)
+        """
+        _param_file_handle = open( _paramfilepath, "r" )
+        for _param_line in _param_file_handle:
+            # We expect lines like:
+            # rebalance_frequency 5
+            # minimum_leverage 0.1
+            # maximum_leverage 20
+            _param_line_words = _param_line.strip().split(' ')
+            if (len(_param_line_words) >= 2):
+                if (_param_line_words[0] == 'rebalance_frequency'):
+                    self.rebalance_frequency = int(_param_line_words[1])
+                elif (_param_line_words[0] == 'minimum_leverage'):
+                    self.minimum_leverage = float(_param_line_words[1])
+                elif (_param_line_words[0] == 'maximum_leverage'):
+                    self.maximum_leverage = float(_param_line_words[1])
+        
+        # legacy param processing code
+        if _config.has_option('Parameters', 'rebalance_frequency'):
+            self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
 
     # User is expected to write the function
     def on_events_update(self, concurrent_events):

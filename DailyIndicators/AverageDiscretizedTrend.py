@@ -34,6 +34,12 @@ class AverageDiscretizedTrend( IndicatorListener ):
     def add_listener( self, listener ):
         self.listeners.append( listener )
 
+    def get_trend(self):
+        if len(self.indicator_values) >= 2:
+            return (self.indicator_values[1])
+        else:
+            return 0
+
     @staticmethod
     def get_unique_instance( identifier, _startdate, _enddate, _config):
         if identifier not in AverageDiscretizedTrend.instances.keys() :
