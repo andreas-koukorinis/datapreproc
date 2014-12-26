@@ -32,9 +32,9 @@ class SimpleRiskManager(RiskManagerAlgo):
            _riskprofilefilepath = adjust_file_path_for_home_directory(_config.get('RiskManagement', 'risk_profile'))
        self.process_riskprofile_file(_riskprofilefilepath, _config)
 
-       if self.capital_allocation_levels[0] < 99.9: # Append 100 to the front
+       if self.capital_allocation_levels[0] < 100: # Append 100 to the front
            self.capital_allocation_levels.insert(0, 100.0)
-       if self.capital_allocation_levels[-1] > 0.1: # Append 0 to the end
+       if self.capital_allocation_levels[-1] > 1: # Append 0 to the end
            self.capital_allocation_levels.append(0.0)
          
        # Check the values
