@@ -67,8 +67,8 @@ class TargetRiskVolatilityParity(SignalAlgorithm):
             self.correlation_computation_interval = max(2, self.correlation_computation_history/5)
 
         # Some computational variables
-        self.last_date_correlation_matrix_computed = 0
-        self.last_date_stdev_computed = 0
+        self.last_date_correlation_matrix_computed = -self.correlation_computation_interval # So that even if the rebalance frequency is very high, we should trade on the first day
+        self.last_date_stdev_computed = -self.stdev_computation_interval
         self.stdev_computation_indicator_mapping = {} # map from product to the indicator to get the stdev value
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
         self.erc_weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products

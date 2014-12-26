@@ -134,9 +134,12 @@ def save_perf_stats(perf_stats, _param_string, all_value_combinations, dest_dir)
     f.write('Order: ' + _param_string + '\n')
     for i in range(len(all_value_combinations)):
         f.write('Param_set: ' + (' ').join(all_value_combinations[i]) + '\n')
-        print perf_stats[i]
+        #print perf_stats[i]
         for elem in final_order:
-            f.write(elem + ': ' + perf_stats[i][elem] + '\n')
+            if elem in perf_stats[i].keys():
+                f.write(elem + ': ' + perf_stats[i][elem] + '\n')
+            else:
+                print "Something wrong! missing %s"%elem
         f.write('\n\n')
     f.close()
 
