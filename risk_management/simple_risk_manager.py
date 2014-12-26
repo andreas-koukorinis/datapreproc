@@ -1,3 +1,4 @@
+import sys
 from risk_manager_algorithm import RiskManagerAlgo
 from Utils import defaults
 from Utils.Regular import adjust_file_path_for_home_directory
@@ -25,35 +26,36 @@ class SimpleRiskManager(RiskManagerAlgo):
        self.reallocation_returns = [15.0, 10.0, 5.0]
        self.return_history = 63
 
-        # Load existing values from riskprofile_file 
-        _riskprofilefilepath = "/dev/null"
-        if _config.has_option('RiskManagement', 'risk_profile'):
-            _riskprofilefilepath = adjust_file_path_for_home_directory(_config.get('Parameters', 'risk_profile'))
-        self.process_riskprofile_file(_riskprofilefilepath, _config)
+       # Load existing values from riskprofile_file 
+       _riskprofilefilepath = "/dev/null"
+       if _config.has_option('RiskManagement', 'risk_profile'):
+           _riskprofilefilepath = adjust_file_path_for_home_directory(_config.get('RiskManagement', 'risk_profile'))
+       self.process_riskprofile_file(_riskprofilefilepath, _config)
 
-        if self.capital_allocation_levels[0] < 99.9: # Append 100 to the front
-            self.capital_allocation_levels.insert(0, 100.0)
-        if self.capital_allocation_levels[-1] > 0.1: # Append 100 to the end
-            self.capital_allocation_levels.append(0.0)
+       if self.capital_allocation_levels[0] < 99.9: # Append 100 to the front
+           self.capital_allocation_levels.insert(0, 100.0)
+       if self.capital_allocation_levels[-1] > 0.1: # Append 0 to the end
+           self.capital_allocation_levels.append(0.0)
          
-        # Check the values
-        for i in xrange(1, len(self.stoploss_levels)): #check that stoploss levels are in increasing order
-            if self.stoploss_levels[i-1] >= self.stoploss_levels[i]:
-                sys.exit("Stoploss levels should be in increasing order. They seem to not be so! %s" %(','.join(self.stoploss_levels)))
-        for i in xrange(1, len(self.drawdown_levels)): #check that drawdown levels are in increasing order
-            if self.drawdown_levels[i-1] >= self.drawdown_levels[i]:
-                sys.exit("Drawdown levels should be in increasing order. They seem to not be so! %s" %(','.join(self.drawdown_levels)))
-        for i in xrange(1, len(self.capital_allocation_levels)): #check that capital_allocation levels are in decreasing order
-            if self.capital_allocation_levels[i-1] <= self.capital_allocation_levels[i]:
-                sys.exit("Capital_allocation levels should be in decreasing order. They seem to not be so! %s" %(','.join(self.capital_allocation_levels)))
-        for i in xrange(1, len(self.reallocation_returns)): #check that reallocation returns levels are in decreasing order
-            if self.reallocation_returns[i-1] <= self.reallocation_returns[i]:
-                sys.exit("Reallocation returns levels should be in decreasing order. They seem to not be so! %s" %(','.join(self.reallocation_returns)))
-        if len(self.capital_allocation_levels) != 1 + len(self.drawdown_levels) or len(self.capital_allocation_levels) != 1 + len(self.stoploss_levels) or len(self.capital_allocation_levels) != 1 + len(self.reallocation_returns):
-            sys.exit("Number of capital_allocation_levels should be 1 greater than the number of drawdown/stoploss/reallocation levels.Does not hold!")
+       # Check the values
+       for i in xrange(1, len(self.stoploss_levels)): #check that stoploss levels are in increasing order
+           if self.stoploss_levels[i-1] > self.stoploss_levels[i]:
+               sys.exit("Stoploss levels should be in increasing order. They seem to not be so! %s" %(','.join(self.stoploss_levels)))
+       for i in xrange(1, len(self.drawdown_levels)): #check that drawdown levels are in increasing order
+           if self.drawdown_levels[i-1] > self.drawdown_levels[i]:
+               sys.exit("Drawdown levels should be in increasing order. They seem to not be so! %s" %(','.join(self.drawdown_levels)))
+       for i in xrange(1, len(self.capital_allocation_levels)): #check that capital_allocation levels are in decreasing order
+           if self.capital_allocation_levels[i-1] < self.capital_allocation_levels[i]:
+               sys.exit("Capital_allocation levels should be in decreasing order. They seem to not be so! %s" %(','.join(self.capital_allocation_levels)))
+       for i in xrange(1, len(self.reallocation_returns)): #check that reallocation returns levels are in decreasing order
+           if self.reallocation_returns[i-1] < self.reallocation_returns[i]:
+               sys.exit("Reallocation returns levels should be in decreasing order. They seem to not be so! %s" %(','.join(self.reallocation_returns)))
+       if len(self.capital_allocation_levels) != 1 + len(self.drawdown_levels) or len(self.capital_allocation_levels) != 1 + len(self.stoploss_levels) or len(self.capital_allocation_levels) != 1 + len(self.reallocation_returns):
+           sys.exit("Number of capital_allocation_levels should be 1 greater than the number of drawdown/stoploss/reallocation levels.Does not hold!")
 
-        # Fully allocated initially
-        self.current_capital_allocation_level = 100.0
+       self.max_trading_cost = self.performance_tracker.initial_capital * self.max_trading_cost/100.0
+       # Fully allocated initially
+       self.current_capital_allocation_level = 100.0
 
     def process_riskprofile_file(self, _modelfilepath, _config):
         _model_file_handle = open(_modelfilepath, "r")
@@ -68,20 +70,20 @@ class SimpleRiskManager(RiskManagerAlgo):
         for _model_line in _model_file_handle:
             _model_line_words = _model_line.strip().split(' ')
             if len(_model_line_words) >= 2:
-                if _model_line_words[1] == 'stoploss_levels':
+                if _model_line_words[0] == 'stoploss_levels':
                     self.stoploss_levels = [float(x) for x in _model_line_words[1:]]
-                elif _model_line_words[1] == 'drawdown_levels':
+                elif _model_line_words[0] == 'drawdown_levels':
                     self.drawdown_levels = [float(x) for x in _model_line_words[1:]]
-                elif _model_line_words[1] == 'maxloss':
-                    self.maxloss = float(_model_line_words[2])
-                elif _model_line_words[1] == 'max_trading_cost':
-                    self.max_trading_cost = float(_model_line_words[2])
-                elif _model_line_words[1] == 'capital_allocation_levels':
+                elif _model_line_words[0] == 'maxloss':
+                    self.maxloss = float(_model_line_words[1])
+                elif _model_line_words[0] == 'max_trading_cost':
+                    self.max_trading_cost = float(_model_line_words[1])
+                elif _model_line_words[0] == 'capital_allocation_levels':
                     self.capital_allocation_levels = [float(x) for x in _model_line_words[1:]]
-                elif _model_line_words[1] == 'reallocation_returns':
+                elif _model_line_words[0] == 'reallocation_returns':
                     self.reallocation_returns = [float(x) for x in _model_line_words[1:]]
-                elif _model_line_words[1] == 'return_history':
-                    self.return_history = float(_model_line_words[2])
+                elif _model_line_words[0] == 'return_history':
+                    self.return_history = float(_model_line_words[1])
           
     def get_current_risk_level(self, _date):
         if self.last_risk_level_updated_date == _date:
@@ -103,8 +105,8 @@ class SimpleRiskManager(RiskManagerAlgo):
                 if self.stoploss_flag != i:
                     # We have entered this level for the first time.
                     self.issue_notification_level_update(_date, 'StopLoss', _current_loss, self.stoploss_levels[i])
-                if _new_allocation_level > self.capital_allocation_levels[i-1]:
-                    _new_allocation_level = self.capital_allocation_levels[i-1]
+                if _new_allocation_level > self.capital_allocation_levels[i+1]:
+                    _new_allocation_level = self.capital_allocation_levels[i+1]
                     _change_reason = 'Stoploss'
                 self.stoploss_flag = i
                 break # We break since we are starting from the worst level. Hence future inequalities
@@ -115,8 +117,8 @@ class SimpleRiskManager(RiskManagerAlgo):
             if _current_drawdown > self.drawdown_levels[i]: #Drawdown
                 if self.drawdown_flag != i:
                     self.issue_notification_level_update(_date, 'Drawdown', _current_drawdown, self.drawdown_levels[i])
-                if _new_allocation_level > self.capital_allocation_levels[i-1]:
-                    _new_allocation_level = self.capital_allocation_levels[i-1]
+                if _new_allocation_level > self.capital_allocation_levels[i+1]:
+                    _new_allocation_level = self.capital_allocation_levels[i+1]
                     _change_reason = 'Drawdown'
                 self.drawdown_flag = i
                 break
@@ -145,13 +147,9 @@ class SimpleRiskManager(RiskManagerAlgo):
         # print 'current allocation level %f'%self.current_capital_allocation_level
         if _new_allocation_level < 100.0 and self.max_trading_cost_flag == -1: # If not fully allocated and did not reach max trading cost earlier
             _paper_returns = self.simple_performance_tracker.compute_paper_returns(self.return_history)
-            #print 'paper_returns : %f'%_paper_returns
             for i in range(0,len(self.reallocation_returns)): # If we have had good enough returns in the past and current allocation is less than desired
                 if _paper_returns >= self.reallocation_returns[i]:
-                    if i == 0:
-                        _desired_allocation = 100.0
-                    else:
-                        _desired_allocation = self.capital_allocation_levels[i]
+                    _desired_allocation = self.capital_allocation_levels[i]
                     if _new_allocation_level < _desired_allocation:
                         _new_allocation_level = _desired_allocation
                         _change_reason = 'Reallocated'
