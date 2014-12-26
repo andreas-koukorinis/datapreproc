@@ -1,3 +1,5 @@
+""" Implementation of Rolling Mean Variance Optimization in the lines of Modern Portfolio Theory."""
+
 import sys
 from importlib import import_module
 import numpy
@@ -9,15 +11,17 @@ from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 
 
 class MeanVarianceOptimization(SignalAlgorithm):
-    """Perform mean variance optimization"""
+    """Inherits SignalAlgorithm class to perform mean variance optimization.
+       It returns weights to be allocated in each product everytime on_events_update() is called.
+    """
 
     def init(self, _config):
         """Initialize variables with configuration inputs or defaults"""
         self.day = -1
         # Set leverage
-        self.leverage = 1
+        self.max_leverage = 1
         if _config.has_option('Strategy', 'leverage'):
-            self.leverage = _config.getfloat('Strategy', 'leverage')
+            self.max_leverage = _config.getfloat('Strategy', 'leverage')
         # Set risk tolerance
         self.risk_tolerance = 0.015
         if _config.has_option('Strategy', 'risk_tolerance'):
@@ -64,6 +68,7 @@ class MeanVarianceOptimization(SignalAlgorithm):
         self.last_date_correlation_matrix_computed = 0
         self.last_date_stdev_computed = 0
         self.last_date_exp_return_computed = 0
+        self.last_rebalanced_day = -1
         self.stdev_computation_indicator_mapping = {}  # map from product to the indicator to get the stddev value
         self.exp_log_returns = numpy.array([0.0]*len(self.products))
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products])  # map from product to weight, which will be passed downstream
@@ -95,17 +100,24 @@ class MeanVarianceOptimization(SignalAlgorithm):
         self.correlation_computation_indicator = CorrelationLogReturns.get_unique_instance("CorrelationLogReturns" + '.' + _portfolio_string + '.' + str(self.correlation_computation_history), self.start_date, self.end_date, _config)
 
     def on_events_update(self, events):
-        """Implement strategy and update weights"""
+        """Implementation of Mean Variance Optimization in the lines of Modern Portfolio Theory.
+        It is different from MPT in the sense that the weights can be positive and negative.
+        The sum of absolute value of weights is limited by the maximum leverage which is given as input.
+        It minimizes the utility function: (risk of portfolio) -  (risk tolerance) * (expected returns).
+        Maximum allocaion limit enforces diversification in portfolio.
+        More details of implementation in efficient_frontier() function in Utils.Regular
+        """
         all_eod = check_eod(events)  # Check if all events are ENDOFDAY
         if all_eod:
             self.day += 1  # Track the current day number
 
-        # If today is the rebalancing day, then use indicators to calculate new positions to take
-        if all_eod and(self.day % self.rebalance_frequency == 0):
+        
+        if all_eod:
             _need_to_recompute_weights = False  # By default we don't need to change weights unless some input has changed
             if self.day >= (self.last_date_correlation_matrix_computed + self.correlation_computation_interval):
                 # we need to recompute the correlation matrix
-                self.logret_correlation_matrix = self.correlation_computation_indicator.get_correlation_matrix()  # this command will not do anything if the values have been already computed. else it will
+                # this command will not do anything if the values have been already computed. else it will
+                self.logret_correlation_matrix = self.correlation_computation_indicator.get_correlation_matrix()
                 # TODO Add tests here for the correlation matrix to make sense.
                 # If it fails, do not overwrite previous values, or throw an error
                 _need_to_recompute_weights = True
@@ -114,7 +126,8 @@ class MeanVarianceOptimization(SignalAlgorithm):
             if self.day >= (self.last_date_stdev_computed + self.stddev_computation_interval):
                 # Get the stdev values from the stddev indicators
                 for _product in self.products:
-                    self.stddev_logret[self.map_product_to_index[_product]] = self.daily_indicators[self.stddev_computation_indicator + '.' + _product + '.' + str(self.stddev_computation_history)].values[1]  # earlier this was self.stddev_computation_indicator[_product] but due to error in line 57, switched to this
+                     # earlier this was self.stddev_computation_indicator[_product] but due to error, switched to this
+                    self.stddev_logret[self.map_product_to_index[_product]] = self.daily_indicators[self.stddev_computation_indicator + '.' + _product + '.' + str(self.stddev_computation_history)].values[1]
                     # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.
                     # TODO we can make tests here that the module needs to pass.
@@ -132,13 +145,20 @@ class MeanVarianceOptimization(SignalAlgorithm):
                 # Calculate weights to assign to each product using indicators
                 # compute covariance matrix from correlation matrix and
                 _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stddev_logret, self.stddev_logret)  # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
+
                 # Recompute weights
+                self.weights = efficient_frontier(self.exp_log_returns, _cov_mat, self.max_leverage, self.risk_tolerance, self.max_allocation)
 
-                self.weights = efficient_frontier(self.exp_log_returns, _cov_mat, self.leverage, self.risk_tolerance, self.max_allocation)
-
-            for _product in self.products:
+                for _product in self.products:
                     self.map_product_to_weight[_product] = self.weights[self.map_product_to_index[_product]]  # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
 
-            self.update_positions(events[0]['dt'], self.map_product_to_weight)
-        else:
-            self.rollover(events[0]['dt'])
+            if (self.day - self.last_rebalanced_day >= self.rebalance_frequency) or _need_to_recompute_weights:
+                # if either weights have changed or it is a rebalancing day, then ask execlogic to update weights
+                # TODO{gchak} change rebalancing from days to magnitude of divergence from weights
+                # so change the above to
+                # if sum ( abs ( desired weights - current weights ) ) > threshold, then
+                # update_positions
+                self.update_positions(events[0]['dt'], self.map_product_to_weight)
+                self.last_rebalanced_day = self.day
+            else:
+                self.rollover(events[0]['dt'])
