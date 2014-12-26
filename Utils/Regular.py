@@ -1,9 +1,9 @@
 import sys
 import re
 from datetime import datetime
+from os.path import expanduser
 import numpy
 from numpy import hstack, vstack
-from os.path import expanduser
 from cvxopt import matrix, solvers
 from cvxopt.solvers import qp
 
