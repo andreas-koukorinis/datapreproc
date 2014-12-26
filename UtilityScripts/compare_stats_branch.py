@@ -27,7 +27,7 @@ def main():
     default_branch = "beta"
     output1 = []
     output2 = []
-    configs = ["~/modeling/IVWAS/A1_TRVP_all_rb1_tr10_std21.5_corr252.30_rmp.cfg", "~/modeling/IVWAS/A1_TRMSHC_all_rb5_tr10_std63.5_corr252.30.cfg"]
+    configs = ["~/modeling/IVWAS/A1_TRVP_all_rb1_tr10_std21.5_corr252.30_rmp.cfg", "~/modeling/IVWAS/A1_TRMSHC_all_rb5_tr10_std63.5_corr252.30.cfg", "~/modeling/IVWAS/A1_TRERC_all_rb5_tr10_std63.2_corr252.30_maxiter100_rmp.cfg"]
     cmd = 'git checkout %s'%(branch)
     output = commands.getoutput(cmd)
     if 'error' in output:
