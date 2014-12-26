@@ -1,8 +1,8 @@
 import sys
 import re
 from datetime import datetime
-import numpy as np
 from os.path import expanduser
+import numpy
 
 # Returns the full list of products  with fES_1 and fES_2 treated separately
 # Products which are not traded but have indicators based on them are also included 
@@ -116,17 +116,17 @@ def is_margin_product(product):
 def filter_series(dates_returns_1,dates_returns_2):
     dates1 = [item[0] for item in dates_returns_1]
     dates2 = [item[0] for item in dates_returns_2]
-    returns1 = np.array([item[1] for item in dates_returns_1]).astype(float)
-    returns2 = np.array([item[1] for item in dates_returns_2]).astype(float)
+    returns1 = numpy.array([item[1] for item in dates_returns_1]).astype(float)
+    returns2 = numpy.array([item[1] for item in dates_returns_2]).astype(float)
     all_dates = [dates1,dates2]
     all_series = [returns1,returns2]
     intersected_dates = list(set(all_dates[0]).intersection(*all_dates))
     intersected_dates.sort()
     filtered_series = []
     for i in xrange(0,len(all_series)):
-        Indexes = np.sort(np.searchsorted(all_dates[i],intersected_dates))
+        Indexes = numpy.sort(numpy.searchsorted(all_dates[i],intersected_dates))
         filtered_series.append(all_series[i][Indexes])
-    filtered_series = (np.array(filtered_series).T).astype(float)
+    filtered_series = (numpy.array(filtered_series).T).astype(float)
     return (filtered_series[:,0],filtered_series[:,1])
     
 def adjust_file_path_for_home_directory(file_path):
@@ -154,3 +154,27 @@ def dict_to_string(_dict):
 
 def is_float_zero(val):
     return abs(val) < 0.000000001
+
+def adjust_to_desired_l1norm_range(given_weights, minimum_leverage=0.001, maximum_leverage=100):
+    """adjusts the given weights to the desired leverage range
+
+    Arguments:
+    given_weights(1d numpy array - float)
+    minimum_leverage(float)
+    maximum_leverage(gloat)
+    
+    Returns:
+    1d numpy array of floats, which is a scaled version of the given weights to have l1norm or leverage in the desired region
+    
+    Raises:
+    ValueError: if (minimum_leverage < 0.001) or (minimum_leverage > maximum_leverage
+    """
+    if (minimum_leverage < 0.001) or (minimum_leverage > maximum_leverage):
+        raise ValueError("minimum leverage %f should be greater than 0.001 and maximum leverage %f should be greater than minimum leverage" %(minimum_leverage, maximum_leverage))
+    given_leverage = numpy.sum(numpy.abs(given_weights))
+    if (given_leverage > 0.001): # a very hacky way of checking divide by 0 problem !
+        if given_leverage < minimum_leverage:
+            given_weights = given_weights * (minimum_leverage / given_leverage)
+        elif given_leverage > maximum_leverage:
+            given_weights = given_weights * (maximum_leverage / given_leverage)
+    return (given_weights)

@@ -1,13 +1,14 @@
 import sys
 import numpy
 from importlib import import_module
-from Utils.Regular import check_eod,adjust_file_path_for_home_directory
+
+from Utils.Regular import check_eod, adjust_file_path_for_home_directory, is_float_zero, parse_weights, adjust_to_desired_l1norm_range
 from DailyIndicators.Indicator_List import is_valid_daily_indicator,get_module_name_from_indicator_name
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
-from Algorithm.signal_algorithm import SignalAlgorithm
+from signals.signal_algorithm import SignalAlgorithm
 
-class UnleveredDMF( SignalAlgorithm ):
-    """Implement a momentum strategy on multiple products.
+class SimpleMomentumSignal( SignalAlgorithm ):
+    """Implement a simple momentum strategy on multiple products.
     The estimated return on each product is a sum of the discretized returns in the past durations.
     For instance if we are provided the TrendIndicator as Trend
     and TrendComputationParameters for fES: 5 63 252
@@ -23,29 +24,34 @@ class UnleveredDMF( SignalAlgorithm ):
     """
     
     def init( self, _config ):
-        self.day = -1
-        self.rebalance_frequency = 1
-        if _config.has_option('Parameters', 'rebalance_frequency'):
-            self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
-        self.stdev_computation_indicator_name="AverageStdDev"
-        self.stdev_computation_history ="63 252"
-        self.stdev_computation_interval=5
-        self.trend_computation_indicator_name="AverageDiscretizedTrend"
-        self.trend_computation_history ="21 63 252"
-        self.trend_computation_interval=5
+        self.stdev_computation_indicator_name = "AverageStdDev"
+        self.stdev_computation_history = "63 252"
+        self.stdev_computation_interval = 5
+        self.trend_computation_indicator_name = "AverageDiscretizedTrend"
+        self.trend_computation_history = "21 63 252"
+        self.trend_computation_interval = 5
 
-        self.trend_indicator_vec=[]
-        self.stdev_indicator_vec=[]
+        self.trend_indicator_vec = []
+        self.stdev_indicator_vec = []
+        self.expected_return_vec = numpy.zeros(len(self.products))
+        self.expected_risk_vec = numpy.ones(len(self.products))
+        self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
+        self.dmf_weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
+
+        _paramfilepath="/dev/null"
+        if _config.has_option('Parameters', 'paramfilepath'):
+            _paramfilepath=adjust_file_path_for_home_directory(_config.get('Parameters', 'paramfilepath'))
+        self.process_param_file(_paramfilepath, _config)
+
         _modelfilepath="/dev/null"
         if _config.has_option('Strategy','modelfilepath'):
             _modelfilepath=adjust_file_path_for_home_directory(_config.get('Strategy','modelfilepath'))
         self.process_model_file(_modelfilepath, _config)
 
-        self.expected_return_vec=numpy.zeros(len(self.products))
-        self.expected_risk_vec=numpy.ones(len(self.products))
-        self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
-        self.dmf_weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
+    def process_param_file(self, _paramfilepath, _config):
+        super(SimpleMomentumSignal, self).process_param_file(_paramfilepath, _config)
 
+    
     def process_model_file(self, _modelfilepath, _config):
         _model_file_handle = open( _modelfilepath, "r" )
         _map_product_to_stdev_computation_history ={}
@@ -132,22 +138,23 @@ class UnleveredDMF( SignalAlgorithm ):
             if (self.day % self.trend_computation_interval) == 0:
                 # we need to recompute expected return estimate from trend 
                 for i in xrange(len(self.expected_return_vec)):
-                    self.expected_return_vec[i] = self.trend_indicator_vec[i].get_trend()
+                    self.expected_return_vec[i] = 0.002 * self.trend_indicator_vec[i].get_trend()
                 _need_to_recompute_dmf_weights = True
 
             if _need_to_recompute_dmf_weights:
                 self.dmf_weights = self.expected_return_vec/self.expected_risk_vec
-                if numpy.sum(numpy.abs(self.dmf_weights)) > 0.001: # a very hacky way of checking divide by 0 problem !
-                    self.dmf_weights = self.dmf_weights/numpy.sum(numpy.abs(self.dmf_weights))
+                self.dmf_weights = adjust_to_desired_l1norm_range (self.dmf_weights, self.minimum_leverage, self.maximum_leverage)
+
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.dmf_weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
 
-            if (self.day % self.rebalance_frequency == 0) or _need_to_recompute_dmf_weights:
+            if (self.day - self.last_rebalanced_day >= self.rebalance_frequency) or _need_to_recompute_dmf_weights:
                 # if either weights have changed or it is a rebalancing day, then ask execlogic to update weights
                 # TODO{gchak} change rebalancing from days to magnitude of divergence from weights
                 # so change the above to
                 # if sum ( abs ( desired weights - current weights ) ) > threshold, then
                 # update_positions
                 self.update_positions( events[0]['dt'], self.map_product_to_weight )
+                self.last_rebalanced_day = self.day
             else:
                 self.rollover( events[0]['dt'] )

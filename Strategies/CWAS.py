@@ -1,6 +1,6 @@
 import sys
 import numpy
-from Algorithm.trade_algorithm import TradeAlgorithm
+from Strategies.trade_algorithm import TradeAlgorithm
 from Utils.Regular import check_eod,parse_weights
 
 class CWAS( TradeAlgorithm ):

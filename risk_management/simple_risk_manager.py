@@ -42,11 +42,11 @@ class SimpleRiskManager(RiskManagerAlgo):
         self.return_history = int(defaults.RETURN_HISTORY)
         if _config.has_option('RiskManagement', 'return_history'):
             self.return_history = _config.getint('RiskManagement', 'return_history')
-        self.current_allocation_level = 100.0 # Fully allocated initially
+        self.current_capital_allocation_level = 100.0 # Fully allocated initially
 
     def get_current_risk_level(self, _date):
         if self.last_risk_level_updated_date == _date:
-            return self.current_allocation_level
+            return (self.current_capital_allocation_level)
         else:
             self.last_risk_level_updated_date = _date
         if _date.year == self.performance_tracker.current_year_trading_cost[0]:
@@ -55,6 +55,8 @@ class SimpleRiskManager(RiskManagerAlgo):
             _current_year_trading_cost = 0.0 #TODO change to transaction cost from simple_performance_tracker
         _current_loss = self.simple_performance_tracker.current_loss
         _current_drawdown = self.simple_performance_tracker.current_drawdown
+        _new_allocation_level = self.current_capital_allocation_level
+        _change_reason = ''
 
         # DEALLOCATION
         for i in range(len(self.capital_allocation_levels) - 1, -1, -1): #Stoploss
@@ -62,10 +64,9 @@ class SimpleRiskManager(RiskManagerAlgo):
                 if self.stoploss_flag != i:
                     # We have entered this level for the first time.
                     self.issue_notification_level_update(_date, 'StopLoss', _current_loss, self.stoploss_levels[i])
-                if self.current_allocation_level > self.capital_allocation_levels[i]:
-                    # We should have a capital allocation <= capital_allocation_levels[i]
-                    self.issue_notification_capital_update(_date, 'StopLoss', self.capital_allocation_levels[i])
-                    self.current_allocation_level = self.capital_allocation_levels[i]
+                if _new_allocation_level > self.capital_allocation_levels[i]:
+                    _new_allocation_level = self.capital_allocation_levels[i]
+                    _change_reason = 'Stoploss'
                 self.stoploss_flag = i
                 break # We break since we are starting from the worst level. Hence future inequalities
         if _current_loss < self.stoploss_levels[0]:
@@ -75,9 +76,9 @@ class SimpleRiskManager(RiskManagerAlgo):
             if _current_drawdown > self.drawdown_levels[i]: #Drawdown
                 if self.drawdown_flag != i:
                     self.issue_notification_level_update(_date, 'Drawdown', _current_drawdown, self.drawdown_levels[i])
-                if self.current_allocation_level > self.capital_allocation_levels[i]:
-                    self.issue_notification_capital_update(_date, 'Drawdown', self.capital_allocation_levels[i])
-                    self.current_allocation_level = self.capital_allocation_levels[i]
+                if _new_allocation_level > self.capital_allocation_levels[i]:
+                    _new_allocation_level = self.capital_allocation_levels[i]
+                    _change_reason = 'Drawdown'
                 self.drawdown_flag = i
                 break
         if _current_drawdown < self.drawdown_levels[0]:
@@ -86,10 +87,9 @@ class SimpleRiskManager(RiskManagerAlgo):
         if _current_loss > self.maxloss: #Maxloss
             if self.maxloss_flag != 0:
                 self.issue_notification_level_update(_date, 'Maxloss', _current_loss, self.maxloss)
-            if self.current_allocation_level > self.capital_allocation_levels[-1]:
-                self.issue_notification_capital_update(_date, 'Maxloss', self.capital_allocation_levels[-1])
             self.maxloss_flag = 0
-            self.current_allocation_level = self.capital_allocation_levels[-1]
+            _new_allocation_level = self.capital_allocation_levels[-1]
+            _change_reason = 'Maxloss'
         else:
             self.maxloss_flag = -1
 
@@ -97,15 +97,14 @@ class SimpleRiskManager(RiskManagerAlgo):
         if _current_year_trading_cost > self.max_trading_cost: #MaxTradingCost
             if self.max_trading_cost_flag != 0:
                 self.issue_notification_level_update(_date, 'Trading Cost', _current_year_trading_cost, self.max_trading_cost)
-            if self.current_allocation_level > 0.0:
-                self.issue_notification_capital_update(_date, 'Trading Cost', self.capital_allocation_levels[-1])
             self.max_trading_cost_flag = 0
-            self.current_allocation_level = self.capital_allocation_levels[-1]
+            _change_reason = 'Trading Cost'
+            _new_allocation_level = self.capital_allocation_levels[-1]
 
         # REALLOCATION
         # If not fully invested, check the paper returns and reallocate the capital accordingly
-        # print 'current allocation level %f'%self.current_allocation_level
-        if self.current_allocation_level < 100.0 and self.max_trading_cost_flag == -1: # If not fully allocated and did not reach max trading cost earlier
+        # print 'current allocation level %f'%self.current_capital_allocation_level
+        if _new_allocation_level < 100.0 and self.max_trading_cost_flag == -1: # If not fully allocated and did not reach max trading cost earlier
             _paper_returns = self.simple_performance_tracker.compute_paper_returns(self.return_history)
             #print 'paper_returns : %f'%_paper_returns
             for i in range(0,len(self.reallocation_returns)): # If we have had good enough returns in the past and current allocation is less than desired
@@ -114,8 +113,16 @@ class SimpleRiskManager(RiskManagerAlgo):
                         _desired_allocation = 100.0
                     else:
                         _desired_allocation = self.capital_allocation_levels[i-1]
-                    if self.current_allocation_level < _desired_allocation:
-                        self.current_allocation_level = _desired_allocation
-                        self.issue_notification_capital_update(_date, 'Reallocated', _desired_allocation)
+                    if _new_allocation_level < _desired_allocation:
+                        _new_allocation_level = _desired_allocation
+                        _change_reason = 'Reallocated'
                     break #start at the highest level. Hence we break.
-        return self.current_allocation_level
+        if _new_allocation_level != self.current_capital_allocation_level:
+            self.issue_notification_capital_update(_date, _change_reason, _new_allocation_level)
+            self.current_capital_allocation_level = _new_allocation_level
+
+        _retval = self.current_capital_allocation_level
+        if self.simple_performance_tracker.get_desired_leverage() > self.maximum_allowed_leverage:
+            print ("didn't expect to see desired leverage %f to exceed maximum allowed leverage %f" %(self.simple_performance_tracker.get_desired_leverage(), self.maximum_allowed_leverage))
+            _retval = min (_retval, (self.maximum_allowed_leverage/self.simple_performance_tracker.get_desired_leverage()))
+        return (_retval)
