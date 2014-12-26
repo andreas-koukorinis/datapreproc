@@ -37,7 +37,7 @@ class RiskManagerPaper(RiskManagerAlgo):
         _riskprofilefilepath = "/dev/null"
         if _config.has_option('RiskManagement', 'risk_profile'):
             _riskprofilefilepath = adjust_file_path_for_home_directory(_config.get('RiskManagement', 'risk_profile'))
-        self.process_riskprofile_file(_riskprofilefilepath, _config)
+        self.process_riskprofile_file(_riskprofilefilepath)
 
         if self.capital_allocation_levels[0] < 100:
             self.capital_allocation_levels.insert(0, 100.0) # Highest risk is 100% allocation
@@ -72,7 +72,14 @@ class RiskManagerPaper(RiskManagerAlgo):
         self.current_capital_allocation_level = 100.0 # Fully allocated initially
         self.last_risk_level_updated_date = datetime.datetime.fromtimestamp(0).date() 
 
-    def process_riskprofile_file(self, _modelfilepath, _config):
+    def process_riskprofile_file(self, _modelfilepath):
+        """Process the riskprofile_file and load the values
+
+        Args:
+            _modelfilepath: the path to the risk profile file
+
+        Returns: Nothing
+        """
         _model_file_handle = open(_modelfilepath, "r")
         # We expect lines like:
         # drawdown_levels 12 20 30 50
