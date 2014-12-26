@@ -1,8 +1,13 @@
 import sys
 import re
 from datetime import datetime
-from os.path import expanduser
 import numpy
+from numpy import hstack, vstack
+from os.path import expanduser
+from cvxopt import matrix, solvers
+from cvxopt.solvers import qp
+
+from Utils.vector_ops import shift_vec
 
 # Returns the full list of products  with fES_1 and fES_2 treated separately
 # Products which are not traded but have indicators based on them are also included 
@@ -178,3 +183,62 @@ def adjust_to_desired_l1norm_range(given_weights, minimum_leverage=0.001, maximu
         elif given_leverage > maximum_leverage:
             given_weights = given_weights * (maximum_leverage / given_leverage)
     return (given_weights)
+
+def efficient_frontier(expected_returns, covariance, max_leverage, risk_tolerance, max_allocation=0.5):
+    """ Function that calculates the efficient frontier
+        by minimizing (Variance - risk tolerance * expected returns)
+        with a given lerverage and risk tolance
+        Args:
+            returns(matrix) - matrix containing log daily returns for n securities
+            covariance(matrix) - matrix containing covariance of the n securities
+            max_leverage(float) - maximum value of levarage
+            risk_tolerance(float) - parameter of risk tolrance used in MVO
+            max_allocation(float) - maximum weight to be allocated to one security
+                                    (set low threshold to diversify)
+        Returns:
+            matrix of optimal weights performance stats exp.returns, std.dev, sharpe ratio
+    """
+    num_prods = expected_returns.shape[0]  # Number of products
+
+    # Setup inputs for optimizer
+    # Here b is the weight vector we are looking for
+    # d is the expected returns vector
+    # D is the covariance marix
+    # A is the matrix of different constraints
+    # min(-d^T b + 1/2 b^T D b) with the constraints A^T b <= b_0
+    # Constraint: sum(abs(weights)) <= leverage is non-linear
+    # To make it linear introduce a dummy weight vector y = [y1..yn]
+    # w1<y1,-w1<y1,w2<y2,-w2<y2,...
+    # y1,y2,..,yn > 0
+    # y1 + y2 + ... + yn <= leverage
+    # Optimization will be done to find both w and y i.e n+n weights
+    # dmat entries for y kept low to not affect minimzing function as much as possible
+    # Not kept 0 to still keep Dmat as semi-definite
+    dummy_var_dmat = 0.000001*numpy.eye(num_prods)
+    dmat = vstack((hstack((covariance, matrix(0., (num_prods, num_prods)))), hstack((matrix(0., (num_prods, num_prods)), dummy_var_dmat))))
+    # Constraint:  y1 + y2 + ... + yn <= leverage
+    amat = vstack((matrix(0, (num_prods, 1)), matrix(1, (num_prods, 1))))
+    bvec = [max_leverage]
+    # Constraints:   y1, y2 ,..., yn >= 0
+    amat = hstack((amat, vstack((matrix(0, (num_prods, num_prods)), -1*numpy.eye(num_prods)))))
+    bvec = bvec + num_prods*[0]
+    # Constraints:  y1, y2 ,..., yn <= max_allocation
+    amat = hstack((amat, vstack((matrix(0, (num_prods, num_prods)), numpy.eye(num_prods)))))
+    bvec = bvec + num_prods*[max_allocation]
+    # Constraints:  -w1 <= y1, -w2 <= y2, ..., -wn <= yn
+    dummy_wt_constraint1 = [-1] + (num_prods-1)*[0] + [-1] + (num_prods-1)*[0]
+    amat = hstack((amat, shift_vec(dummy_wt_constraint1, num_prods)))
+    bvec = bvec + num_prods*[0]
+    # Constraints:  w1 <= y1, w2 <= y2, ..., wn <= yn
+    dummy_wt_constraint2 = [1] + (num_prods-1)*[0] + [-1] + (num_prods-1)*[0]
+    amat = hstack((amat, shift_vec(dummy_wt_constraint2, num_prods)))
+    bvec = bvec + num_prods*[0]
+    # Convert all NumPy arrays to CVXOPT matrics
+    dmat = matrix(dmat)
+    bvec = matrix(bvec, (len(bvec), 1))
+    amat = matrix(amat.T)
+    dvec = matrix(hstack((expected_returns, num_prods*[0])).T)
+    # Optimize
+    solvers.options['show_progress'] = False
+    portfolios = qp(dmat, -1*risk_tolerance*dvec, amat, bvec)['x']
+    return portfolios

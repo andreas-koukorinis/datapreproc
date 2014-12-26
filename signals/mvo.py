@@ -1,122 +1,27 @@
+""" Implementation of Rolling Mean Variance Optimization in the lines of Modern Portfolio Theory."""
+
 import sys
 from importlib import import_module
 import numpy
-from numpy import hstack, vstack
-from cvxopt import matrix, solvers
-from cvxopt.solvers import qp
 from Algorithm.signal_algorithm import SignalAlgorithm
-from Utils.Regular import check_eod
+from Utils.Regular import check_eod, efficient_frontier
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 
 
-class MVO(SignalAlgorithm):
-    """Perform mean variance optimization
-
-    expected return ( non-discretized-return ) ... emphasis on expected return is very high, and two parameters are moved to one
-    measure of risk ( stdev )
-    diversification report
-    min-max-leverage
+class MeanVarianceOptimization(SignalAlgorithm):
+    """Inherits SignalAlgorithm class to perform mean variance optimization.
+       It returns weights to be allocated in each product everytime on_events_update() is called.
     """
-
-    # Helper functions to succinctly represent constraints for optimizer
-    def lag(self, x, k):
-        """ Helper function lag(x,k)
-        Produces a lag of k in a series x with leading zeros
-        Args:
-            x(list): Vector of numbers
-            k(int): Discrete steps of lag to be introduced
-        Returns:
-            List: Vector of numbers shifted by k padded with zeros
-        Example:
-            >>> lag([1,2,3,4],2)
-            [0,0,1,2]
-        """
-        if k == 0:
-            return x
-        elif k > len(x):
-            return len(x)*[0]
-        else:
-            return k*[0]+x[0:-k]
-
-    def shift_vec(self, x, m):
-        """ Helper function shift_vec(x,m)
-        Produces a matrix of vectors each with a lag i where i ranges from 0 to m-1
-        Args:
-            x(list): Vector of numbers
-            m(int): Number of lagged vectors to be produced
-        Returns:
-            mat(matrix): Array of vectors each with a lag i where i ranges from 0 to m-1
-        Example:
-            >>> shift_vec([1,2,3],3)
-            [[1,2,3],[0,1,2],[0,0,1]]'
-        """
-        n = len(x)
-        mat = [self.lag(x, i) for i in range(0, m)]
-        mat = matrix(mat, (n, m))
-        return mat
-
-    def efficient_frontier(self,expected_returns, covariance, leverage, risk_tolerance, max_allocation=0.5):
-        """ Function that calculates the efficient frontier
-            by minimizing (Variance - risk tolerance * expected returns)
-            with a given lerverage and risk tolance
-            Args:
-                returns(matrix) - matrix containing log daily returns for n securities
-                covariance(matrix) - matrix containing covariance of the n securities
-                leverage(float) - acceptable value of levarage
-                risk_tolerance(float) - parameter of risk tolrance used in MVO
-                max_allocation(float) - maximum weight to be allocated to one security
-                                        (set low threshold to diversify)
-            Returns:
-                matrix of optimal weights performance stats exp.returns, std.dev, sharpe ratio
-        """
-        n = expected_returns.shape[0]  # Number of products
-        # Setup inputs for optimizer
-        # min(-d^T b + 1/2 b^T D b) with the constraints A^T b <= b_0
-        # Constraint: sum(abs(weights)) <= leverage is non-linear
-        # To make it linear introduce a dummy weight vector y = [y1..yn]
-        # w1<y1,-w1<y1,w2<y2,-w2<y2,...
-        # y1,y2,..,yn > 0
-        # y1 + y2 + ... + yn <= leverage
-        # Optimization will be done to find both w and y i.e n+n weights
-        # Dmat entries for y kept low to not affect minimzing function as much as possible
-        # Not kept 0 to still keep Dmat as semi-definite
-        dummy_var_dmat = 0.000001*numpy.eye(n)
-        Dmat = vstack((hstack((covariance, matrix(0., (n, n)))), hstack((matrix(0., (n, n)), dummy_var_dmat))))
-        # Constraint:  y1 + y2 + ... + yn <= leverage
-        Amat = vstack((matrix(0, (n, 1)), matrix(1, (n, 1))))
-        bvec = [leverage]
-        # Constraints:   y1, y2 ,..., yn >= 0
-        Amat = hstack((Amat, vstack((matrix(0, (n, n)), -1*numpy.eye(n)))))
-        bvec = bvec + n*[0]
-        # Constraints:  y1, y2 ,..., yn <= max_allocation
-        Amat = hstack((Amat, vstack((matrix(0, (n, n)), numpy.eye(n)))))
-        bvec = bvec + n*[max_allocation]
-        # Constraints:  -w1 <= y1, -w2 <= y2, ..., -wn <= yn
-        dummy_wt_constraint1 = [-1] + (n-1)*[0] + [-1] + (n-1)*[0]
-        Amat = hstack((Amat, self.shift_vec(dummy_wt_constraint1, n)))
-        bvec = bvec + n*[0]
-        # Constraints:  w1 <= y1, w2 <= y2, ..., wn <= yn
-        dummy_wt_constraint2 = [1] + (n-1)*[0] + [-1] + (n-1)*[0]
-        Amat = hstack((Amat, self.shift_vec(dummy_wt_constraint2, n)))
-        bvec = bvec + n*[0]
-        # Convert all NumPy arrays to CVXOPT matrics
-        Dmat = matrix(Dmat)
-        bvec = matrix(bvec, (len(bvec), 1))
-        Amat = matrix(Amat.T)
-        dvec = matrix(hstack((expected_returns, n*[0])).T)
-        # Optimize
-        portfolios = qp(Dmat, -1*risk_tolerance*dvec, Amat, bvec)['x']
-        return portfolios
 
     def init(self, _config):
         """Initialize variables with configuration inputs or defaults"""
-        solvers.options['show_progress'] = False
+        self.day = -1
         # Set leverage
-        self.leverage = 1
+        self.max_leverage = 1
         if _config.has_option('Strategy', 'leverage'):
-            self.leverage = _config.getfloat('Strategy', 'leverage')
+            self.max_leverage = _config.getfloat('Strategy', 'leverage')
         # Set risk tolerance
         self.risk_tolerance = 0.015
         if _config.has_option('Strategy', 'risk_tolerance'):
@@ -163,6 +68,7 @@ class MVO(SignalAlgorithm):
         self.last_date_correlation_matrix_computed = 0
         self.last_date_stdev_computed = 0
         self.last_date_exp_return_computed = 0
+        self.last_rebalanced_day = -1
         self.stdev_computation_indicator_mapping = {}  # map from product to the indicator to get the stddev value
         self.exp_log_returns = numpy.array([0.0]*len(self.products))
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products])  # map from product to weight, which will be passed downstream
@@ -194,17 +100,24 @@ class MVO(SignalAlgorithm):
         self.correlation_computation_indicator = CorrelationLogReturns.get_unique_instance("CorrelationLogReturns" + '.' + _portfolio_string + '.' + str(self.correlation_computation_history), self.start_date, self.end_date, _config)
 
     def on_events_update(self, events):
-        """Implement strategy and update weights"""
+        """Implementation of Mean Variance Optimization in the lines of Modern Portfolio Theory.
+        It is different from MPT in the sense that the weights can be positive and negative.
+        The sum of absolute value of weights is limited by the maximum leverage which is given as input.
+        It minimizes the utility function: (risk of portfolio) -  (risk tolerance) * (expected returns).
+        Maximum allocaion limit enforces diversification in portfolio.
+        More details of implementation in efficient_frontier() function in Utils.Regular
+        """
         all_eod = check_eod(events)  # Check if all events are ENDOFDAY
         if all_eod:
             self.day += 1  # Track the current day number
 
-        # If today is the rebalancing day, then use indicators to calculate new positions to take
-        if all_eod and(self.day % self.rebalance_frequency == 0):
+        
+        if all_eod:
             _need_to_recompute_weights = False  # By default we don't need to change weights unless some input has changed
             if self.day >= (self.last_date_correlation_matrix_computed + self.correlation_computation_interval):
                 # we need to recompute the correlation matrix
-                self.logret_correlation_matrix = self.correlation_computation_indicator.get_correlation_matrix()  # this command will not do anything if the values have been already computed. else it will
+                # this command will not do anything if the values have been already computed. else it will
+                self.logret_correlation_matrix = self.correlation_computation_indicator.get_correlation_matrix()
                 # TODO Add tests here for the correlation matrix to make sense.
                 # If it fails, do not overwrite previous values, or throw an error
                 _need_to_recompute_weights = True
@@ -213,7 +126,8 @@ class MVO(SignalAlgorithm):
             if self.day >= (self.last_date_stdev_computed + self.stddev_computation_interval):
                 # Get the stdev values from the stddev indicators
                 for _product in self.products:
-                    self.stddev_logret[self.map_product_to_index[_product]] = self.daily_indicators[self.stddev_computation_indicator + '.' + _product + '.' + str(self.stddev_computation_history)].values[1]  # earlier this was self.stddev_computation_indicator[_product] but due to error in line 57, switched to this
+                     # earlier this was self.stddev_computation_indicator[_product] but due to error, switched to this
+                    self.stddev_logret[self.map_product_to_index[_product]] = self.daily_indicators[self.stddev_computation_indicator + '.' + _product + '.' + str(self.stddev_computation_history)].values[1]
                     # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.
                     # TODO we can make tests here that the module needs to pass.
@@ -231,13 +145,20 @@ class MVO(SignalAlgorithm):
                 # Calculate weights to assign to each product using indicators
                 # compute covariance matrix from correlation matrix and
                 _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stddev_logret, self.stddev_logret)  # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
+
                 # Recompute weights
+                self.weights = efficient_frontier(self.exp_log_returns, _cov_mat, self.max_leverage, self.risk_tolerance, self.max_allocation)
 
-                self.weights = self.efficient_frontier(self.exp_log_returns, _cov_mat, self.leverage, self.risk_tolerance, self.max_allocation)
-
-            for _product in self.products:
+                for _product in self.products:
                     self.map_product_to_weight[_product] = self.weights[self.map_product_to_index[_product]]  # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
 
-            self.update_positions(events[0]['dt'], self.map_product_to_weight)
-        else:
-            self.rollover(events[0]['dt'])
+            if (self.day - self.last_rebalanced_day >= self.rebalance_frequency) or _need_to_recompute_weights:
+                # if either weights have changed or it is a rebalancing day, then ask execlogic to update weights
+                # TODO{gchak} change rebalancing from days to magnitude of divergence from weights
+                # so change the above to
+                # if sum ( abs ( desired weights - current weights ) ) > threshold, then
+                # update_positions
+                self.update_positions(events[0]['dt'], self.map_product_to_weight)
+                self.last_rebalanced_day = self.day
+            else:
+                self.rollover(events[0]['dt'])
