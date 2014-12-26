@@ -41,7 +41,7 @@ class ExchangeSymbolManager():
             return "bmf"
         elif _basename in ['JFFCE','KFFTI','LFZ','LFI','LFL','LFR','YFEBM','XFW','XFC','XFRC']:
             return "liffe"
-        elif _basename in ['LFL','LFR','LFS']:
+        elif _basename in ['KC', 'CT']:
             return "ice" 
         elif _basename in ['Si','RI','BR','ED','GD']:
             return "rts"
@@ -169,6 +169,18 @@ class ExchangeSymbolManager():
 
     def is_tmx_month( self, _basename, _this_month ):
         return ( _this_month % 3 ) == 0
+
+    def is_ice_month( self, _basename, _this_month ):
+        if _basename in ['KC']:
+            if _this_month in [3,5,7,9,12]:
+                return True
+            else:
+                return False
+        if _basename in ['CT']:
+            if _this_month in [3,5,7,10,12]:
+                return True
+            else:
+                return False
      
     def get_cme_last_trading_date( self, _basename, _next_cme_month, _next_cme_year ):
         #ES, NQ, YM
@@ -186,7 +198,7 @@ class ExchangeSymbolManager():
 
         # ZT, ZF, ZN, ZB, UB : first notice date is the last day of the previous month
         # We expect to stop trading a day before
-        if _basename in ['ZT', 'ZF', 'ZN', 'ZB', 'UB', 'ZW', 'ZC', 'ZS', 'XW']: 
+        if _basename in ['ZT', 'ZF', 'ZN', 'ZB', 'UB', 'ZW', 'ZS', 'XW']: # TODO {sanchit} new change ZC removed from here
             date = datetime.date(year=_next_cme_year,day=1,month=_next_cme_month) # 1st day of that month of that year
             #date = date + datetime.timedelta( days=-2) TODO how do they take care of holidays
             for i in range(0,2): #TODO ###
@@ -194,6 +206,15 @@ class ExchangeSymbolManager():
                 while not self.is_cme_exchange_date( _basename, date ):
                     date = date + datetime.timedelta( days=-1)
             return date
+
+        if _basename in ['ZC']: # TODO {sanchit} new change
+            date = datetime.date(year=_next_cme_year,day=1,month=_next_cme_month) # 1st day of that month of that year
+            for i in range(0,7): 
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
         # Instead of Monday (Third Wednesday -2 business day ), the volume starts shifting on the previous Friday itself
         # We should make one day before (Thursday) as the last trading date
         if _basename in ['6A', '6B', '6E', '6J', '6M', '6N', '6S', '6C','E7','J7']:
@@ -435,6 +456,42 @@ class ExchangeSymbolManager():
             date = date + datetime.timedelta( days=-1)
         return date 
 
+    def get_ice_last_trading_date( self, _basename, _next_ice_month, _next_ice_year ):
+        # KC: 7 business days prior to the last business day of the delivery month
+        #     Last trading day is one business day prior to last notice day
+        #     Go x days prior based on volume shift observation
+        if _basename == 'KC':
+            date = datetime.date(day=monthrange(_next_ice_year, _next_ice_month)[1], month=_next_ice_month, year=_next_ice_year)
+            while not self.is_ice_exchange_date( _basename, date ): # Last Business day of contract month
+                date = date + datetime.timedelta( days=-1 )
+            for i in range(0,8): # Last trading day
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_ice_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            for i in range(0,10): # Adjustment based on volume
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_ice_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        # CT: Last trading day is 17 business days from end of spot month.
+        # Go x days prior based on volume shift observation
+        if _basename == 'CT':
+            date = datetime.date(day=monthrange(_next_ice_year, _next_ice_month)[1], month=_next_ice_month, year=_next_ice_year)
+            while not self.is_ice_exchange_date(_basename, date): # End of spot month
+                date = date + datetime.timedelta( days=-1 )
+            for i in range(0,17):
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_ice_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            for i in range(0,19): # Adjustment based on volume
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_ice_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        sys.exit('UnHandled case: Using default')
+
     def get_cme_symbol_from_last_trading_date ( self, _basename, _current_min_last_trading_date ): 
         _current_min_last_trading_date_mm = _current_min_last_trading_date.month
         _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
@@ -487,6 +544,17 @@ class ExchangeSymbolManager():
                 _current_min_last_trading_date_mm += 1 
         return _basename + self.month_codes[str(_current_min_last_trading_date_mm)] + self.get_yy(_current_min_last_trading_date_yyyy)
 
+    def get_ice_symbol_from_last_trading_date( self, _basename, _current_min_last_trading_date ):
+        _current_min_last_trading_date_mm = _current_min_last_trading_date.month
+        _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
+        if _basename in ['KC','CT']:
+            if _current_min_last_trading_date_mm == 12:
+                _current_min_last_trading_date_mm = 1
+                _current_min_last_trading_date_yyyy += 1
+            else:
+                _current_min_last_trading_date_mm += 1
+        return _basename + self.month_codes[str(_current_min_last_trading_date_mm)] + self.get_yy(_current_min_last_trading_date_yyyy)
+
     def is_eurex_exchange_date( self, _basename, date ):
         return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
 
@@ -497,6 +565,9 @@ class ExchangeSymbolManager():
         return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
 
     def is_tmx_exchange_date( self, _basename, date ):
+        return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
+
+    def is_ice_exchange_date( self, _basename, date ):
         return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
 
     def get_exchange_symbol_cme( self, date, product ):
@@ -514,6 +585,10 @@ class ExchangeSymbolManager():
     def get_exchange_symbol_tmx( self, date, product ):
         _last_trading_date = self.get_last_trading_date( date, product )
         return self.get_tmx_symbol_from_last_trading_date ( self.get_basename(product), _last_trading_date )
+
+    def get_exchange_symbol_ice( self, date, product ):
+        _last_trading_date = self.get_last_trading_date( date, product )
+        return self.get_ice_symbol_from_last_trading_date ( self.get_basename(product), _last_trading_date )
 
 def __main__() :
     if len( sys.argv ) > 1:

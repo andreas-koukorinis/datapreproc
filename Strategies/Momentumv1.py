@@ -1,7 +1,7 @@
 import sys
 from numpy import *
 from importlib import import_module
-from Algorithm.trade_algorithm import TradeAlgorithm
+from Strategies.trade_algorithm import TradeAlgorithm
 from Utils.Regular import check_eod
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 
