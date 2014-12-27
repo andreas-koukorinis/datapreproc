@@ -9,7 +9,7 @@ from mpldatacursor import datacursor
 import numpy as np
 
 def plot_returns(_returns_files):
-    _out_file = 'logs/pngs/'
+    _out_file = '/spare/local/logs/pngs/'
     for _file in _returns_files:
         _out_file += _file.split('/')[-2] + '_'
         with open(_file, 'rb') as f:
@@ -18,8 +18,6 @@ def plot_returns(_returns_files):
             _dates, _returns = np.array(_dates_returns[0]), np.array(_dates_returns[1]).astype(float)   
             _cumulative_percent_returns = ( np.exp( np.cumsum( _returns ) ) - 1 )*100.0
             pt = plt.plot(_dates,_cumulative_percent_returns,label=_file.split('/')[-2])
-            #datacursor(pt)
-            #plt.show()
     plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13),fancybox=True, ncol=4,prop={'size':6})
     plt.xlabel("Time")
     plt.ylabel("Cumulative returns")
@@ -27,7 +25,7 @@ def plot_returns(_returns_files):
     plt.savefig(_out_file+'.png') #bbox_inches='tight'
 
 def plot_series(_files):
-    _out_file = 'logs/pngs/'
+    _out_file = '/spare/local/logs/pngs/'
     dateparse = lambda x: datetime.datetime.strptime(x, '%Y-%m-%d').date()
     ax_defined = False
     for _file in _files:
@@ -54,7 +52,7 @@ def plot_series(_files):
     plt.savefig(_out_file+'.png') #bbox_inches='tight'
 
 def plot_series_separately(_files):
-    _out_file = 'logs/pngs/'
+    _out_dir = '/spare/local/logs/pngs/'
     dateparse = lambda x: datetime.datetime.strptime(x, '%Y-%m-%d').date()
     for _file in _files:
         df = pd.read_csv(_file,parse_dates =['date'],header=0,date_parser=dateparse)
@@ -67,10 +65,10 @@ def plot_series_separately(_files):
                 plt.xlabel("Time")
                 plt.ylabel(column)
                 plt.xticks(rotation=35)
-                plt.savefig('logs/pngs/'+column+'.png')
+                plt.savefig(_out_dir+column+'.png')
 
 def plot_returns_separately(_files):
-    _out_file = 'logs/pngs/'
+    _out_dir = '/spare/local/logs/pngs/'
     dateparse = lambda x: datetime.datetime.strptime(x, '%Y-%m-%d').date()
     for _file in _files:
         df = pd.read_csv(_file,parse_dates =['date'],header=0,date_parser=dateparse)
@@ -85,11 +83,11 @@ def plot_returns_separately(_files):
                 plt.xlabel("Time")
                 plt.ylabel(column)
                 plt.xticks(rotation=35)
-                plt.savefig('logs/pngs/'+column+'.png')
+                plt.savefig(_out_dir+column+'.png')
 
 def main():
     if len( sys.argv ) > 1:
-        _directory = 'logs/pngs/'
+        _directory = '/spare/local/logs/pngs/'
         if not os.path.exists(_directory):
             os.makedirs(_directory)
  
