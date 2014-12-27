@@ -25,10 +25,10 @@ class SimpleMomentumSignal( SignalAlgorithm ):
     
     def init( self, _config ):
         self.stdev_computation_indicator_name = "AverageStdDev"
-        self.stdev_computation_history = "63 252"
+        self.stdev_computation_history = ['63', '252']
         self.stdev_computation_interval = 5
         self.trend_computation_indicator_name = "AverageDiscretizedTrend"
-        self.trend_computation_history = "21 63 252"
+        self.trend_computation_history = ['21', '63', '252']
         self.trend_computation_interval = 5
 
         self.trend_indicator_vec = []
@@ -54,8 +54,8 @@ class SimpleMomentumSignal( SignalAlgorithm ):
     
     def process_model_file(self, _modelfilepath, _config):
         _model_file_handle = open( _modelfilepath, "r" )
-        _map_product_to_stdev_computation_history ={}
-        _map_product_to_trend_computation_history ={}
+        _map_product_to_stdev_computation_history = {}
+        _map_product_to_trend_computation_history = {}
         for _model_line in _model_file_handle:
             # We expect lines like:
             # Default StdDevIndicator AverageStdDev
@@ -71,15 +71,15 @@ class SimpleMomentumSignal( SignalAlgorithm ):
                     elif _model_line_words[1] == 'StdDevComputationParameters':
                         _computation_words = _model_line_words[2:]
                         if len(_computation_words) >= 2:
-                            self.stdev_computation_interval=int(_computation_words[0])
-                            self.stdev_computation_history = ' '.join ( [ str(y) for y in _computation_words[1:] ] )
+                            self.stdev_computation_interval = int(_computation_words[0])
+                            self.stdev_computation_history = _computation_words[1:]
                     elif _model_line_words[1] == 'TrendIndicator':
                         self.trend_computation_indicator_name=_model_line_words[2]
                     elif _model_line_words[1] == 'TrendComputationParameters':
                         _computation_words = _model_line_words[2:]
                         if len(_computation_words) >= 2:
-                            self.trend_computation_interval=int(_computation_words[0])
-                            self.trend_computation_history = ' '.join ( [ str(y) for y in _computation_words[1:] ] )
+                            self.trend_computation_interval = int(_computation_words[0])
+                            self.trend_computation_history = _computation_words[1:]
                 else:
                     _product=_model_line_words[0]
                     if _product in self.products:
@@ -88,13 +88,13 @@ class SimpleMomentumSignal( SignalAlgorithm ):
                             if len(_computation_words) >= 2:
                                 #set the refreshing interval to the minimum of current and previous values
                                 self.stdev_computation_interval=numpy.min(self.stdev_computation_interval,int(_computation_words[0])) 
-                                _map_product_to_stdev_computation_history = ' '.join ( [ str(y) for y in _computation_words[1:] ] )
+                                _map_product_to_stdev_computation_history[_product] = _computation_words[1:]
                         elif _model_line_words[1] == 'TrendComputationParameters':
                             _computation_words = _model_line_words[2:]
                             if len(_computation_words) >= 2:
                                 #set the refreshing interval to the minimum of current and previous values
                                 self.trend_computation_interval=numpy.min(self.trend_computation_interval,int(_computation_words[0]))
-                                _map_product_to_trend_computation_history = ' '.join ( [ str(y) for y in _computation_words[1:] ] )
+                                _map_product_to_trend_computation_history = _computation_words[1:]
 
         if is_valid_daily_indicator(self.stdev_computation_indicator_name):
             _stdev_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator_name))
@@ -110,18 +110,12 @@ class SimpleMomentumSignal( SignalAlgorithm ):
             print ( "stdev_computation_indicator string %s is invalid" %(self.trend_computation_indicator_name) )
             sys.exit(0)
 
-        _stdev_computation_history_vec = self.stdev_computation_history.split(' ')
-        _trend_computation_history_vec = self.trend_computation_history.split(' ')
         # We have read the model. Now we need to create the indicators
         for _product in self.products:
-            _identifier=self.stdev_computation_indicator_name+'.'+_product+'.'+('.'.join(_stdev_computation_history_vec))
-            if _product in _map_product_to_stdev_computation_history:
-                _identifier=self.stdev_computation_indicator_name+'.'+_product+'.'+('.'.join(_stdev_computation_history_vec))
+            _identifier = self.stdev_computation_indicator_name + '.' + _product + '.' + '.'.join(_map_product_to_stdev_computation_history.get(_product, self.stdev_computation_history))
             self.stdev_indicator_vec.append(StdDevIndicatorClass.get_unique_instance(_identifier,self.start_date, self.end_date, _config))
 
-            _identifier=self.trend_computation_indicator_name+'.'+_product+'.'+('.'.join(_trend_computation_history_vec))
-            if _product in _map_product_to_trend_computation_history:
-                _identifier=self.trend_computation_indicator_name+'.'+_product+'.'+('.'.join(_trend_computation_history_vec))
+            _identifier = self.trend_computation_indicator_name + '.' + _product + '.' + '.'.join(_map_product_to_stdev_computation_history.get(_product, self.stdev_computation_history))
             self.trend_indicator_vec.append(TrendIndicatorClass.get_unique_instance(_identifier,self.start_date, self.end_date, _config))
 
     def on_events_update(self,events):
