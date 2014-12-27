@@ -24,55 +24,29 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
 
     """
     def init(self, _config):
-        self.target_risk = 10 # this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
-        if _config.has_option('Strategy', 'target_risk'):
-            self.target_risk = _config.getfloat('Strategy', 'target_risk') 
+        #Defaults
+        self.target_risk = 10.0 # this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
+        self.allocation_signs = numpy.ones(len(self.products)) # by default we are long in all products
+        self.optimization_ftol = 0.0000000000000000000000000001
+        self.optimization_maxiter = 100
+        self.stdev_computation_indicator = 'AverageStdDev'
+        self.stdev_computation_history = ['63']
+        self.stdev_computation_interval = max(1, min([int(_hist) for _hist in self.stdev_computation_history])/5)
+        self.correlation_computation_history = 1000
+        self.correlation_computation_interval = max(2, self.correlation_computation_history/5)
+        self.stdev_indicator_vec = []
+        self.correlation_computation_indicator = None
 
         _paramfilepath="/dev/null"
         if _config.has_option('Parameters', 'paramfilepath'):
             _paramfilepath=adjust_file_path_for_home_directory(_config.get('Parameters', 'paramfilepath'))
         self.process_param_file(_paramfilepath, _config)
 
-        # by default we are long in all products
-        self.allocation_signs = numpy.ones(len(self.products))
-        if _config.has_option('Strategy', 'allocation_signs'):
-            _given_allocation_signs = parse_weights(_config.get('Strategy', 'allocation_signs'))
-            for _product in _given_allocation_signs:
-                self.allocation_signs[self.map_product_to_index[_product]] = _given_allocation_signs[_product]
+        _modelfilepath="/dev/null"
+        if _config.has_option('Strategy','modelfilepath'):
+            _modelfilepath=adjust_file_path_for_home_directory(_config.get('Strategy','modelfilepath'))
+        self.process_model_file(_modelfilepath, _config)
 
-        self.stdev_computation_indicator = 'AverageStdDev'
-        if _config.has_option('Strategy', 'stdev_computation_indicator'):
-            self.stdev_computation_indicator = _config.get('Strategy', 'stdev_computation_indicator')
-
-        self.stdev_computation_history_vec = ['63'] # changed from int to a string to support AverageStdDev
-        if _config.has_option('Strategy', 'stdev_computation_history'):
-            _stdev_computation_history_string = _config.get('Strategy', 'stdev_computation_history')
-            self.stdev_computation_history_vec = [max(2,int(x)) for x in _stdev_computation_history_string.split(',')]
-        if (self.stdev_computation_indicator == 'StdDev') and (len(self.stdev_computation_history_vec) > 1):
-            sys.exit('For stdev_computation_indicator StdDev only one history value is allowed')
-        
-        if _config.has_option('Strategy', 'stdev_computation_interval'):
-            self.stdev_computation_interval = max(1, _config.getint('Strategy', 'stdev_computation_interval'))
-        else:
-            self.stdev_computation_interval = max(1, min(self.stdev_computation_history_vec)/5)
-
-        self.correlation_computation_history = 1000
-        if _config.has_option('Strategy', 'correlation_computation_history'):
-            self.correlation_computation_history = max(2, _config.getint('Strategy', 'correlation_computation_history'))
-
-        if _config.has_option('Strategy', 'correlation_computation_interval'):
-            self.correlation_computation_interval = max(1, _config.getint('Strategy', 'correlation_computation_interval'))
-        else:
-            self.correlation_computation_interval = max(2, self.correlation_computation_history/5)
-
-        self.optimization_ftol = 0.0000000000000000000000000001
-        if _config.has_option ('Strategy', 'optimization_ftol'):
-            self.optimization_ftol = _config.getfloat('Strategy', 'optimization_ftol')
-
-        self.optimization_maxiter=100
-        if _config.has_option ('Strategy', 'optimization_maxiter'):
-            self.optimization_maxiter = _config.getint('Strategy', 'optimization_maxiter')
-        
         # Some computational variables
         self.last_date_correlation_matrix_computed = 0
         self.last_date_stdev_computed = 0
@@ -80,31 +54,89 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
         self.erc_weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
         self.erc_weights_optim = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
-        self.stdev_logret = numpy.ones(len(self.products)) # these are the stdev values, with products occuring in the same order as the order in self.products
-
+        self.stdev_logret = numpy.array([1.0]*len(self.products)) # these are the stdev values, with products occuring in the same order as the order in self.products
         # create a diagonal matrix of 1s for correlation matrix
         self.logret_correlation_matrix = numpy.eye(len(self.products))
+    
+    def process_param_file(self, _paramfilepath, _config):
+        super(TargetRiskEqualRiskContribution, self).process_param_file(_paramfilepath, _config)
 
-        if is_valid_daily_indicator(self.stdev_computation_indicator):
-            _stdev_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator))
-            StdevIndicatorClass = getattr(_stdev_indicator_module, self.stdev_computation_indicator)
+    def process_model_file(self, _modelfilepath, _config):
+        _model_file_handle = open( _modelfilepath, "r" )
+        _map_product_to_stdev_computation_history = {}
+        for _model_line in _model_file_handle:
+            # We expect lines like:
+            # target_risk 10
+            # optimization_ftol 0.0000000000000000000000000001
+            # optimization_maxiter 100
+            # Default StdDevIndicator AverageStdDev
+            # Default StdDevComputationParameters 5 63
+            # CorrelationComputationParameters 30 252
+            # allocation_signs f6J -1
+            # fES StdDevComputationParameters 5 252
+            _model_line_words = _model_line.strip().split(' ')
+            if len(_model_line_words) >= 3:
+                if _model_line_words[0] == 'Default':
+                    if _model_line_words[1] == 'StdDevIndicator':
+                        self.stdev_computation_indicator_name = _model_line_words[2]
+                    elif _model_line_words[1] == 'StdDevComputationParameters':
+                        _computation_words = _model_line_words[2:]
+                        if len(_computation_words) >= 2:
+                            self.stdev_computation_interval = max(1, int(_computation_words[0]))
+                            self.stdev_computation_history = _computation_words[1:]
+                elif _model_line_words[0] == 'CorrelationComputationParameters':
+                    self.correlation_computation_interval = max(1, int(_model_line_words[1]))
+                    self.correlation_computation_history = max(2, int(_model_line_words[2]))
+                elif _model_line_words[0] == 'allocation_signs':
+                    _sign_words = _model_line_words[1:]
+                    if len(_sign_words) % 2 != 0:
+                        sys.exit('Something wrong in model file.allocation signs not in pairs')
+                    idx = 0
+                    while idx < len(_sign_words):
+                        _product, _sign = _sign_words[idx], float(_sign_words[idx+1])
+                        self.allocation_signs[self.map_product_to_index[_product]] = _sign
+                        idx += 2
+                else:
+                    _product = _model_line_words[0]
+                    if _product in self.products:
+                        if _model_line_words[1] == 'StdDevComputationParameters':
+                            _computation_words = _model_line_words[2:]
+                            if len(_computation_words) >= 2:
+                                #set the refreshing interval to the minimum of current and previous values
+                                self.stdev_computation_interval = min(self.stdev_computation_interval, int(_computation_words[0]))
+                                _map_product_to_stdev_computation_history[_product] = _computation_words[1:]
+            elif len(_model_line_words) == 2:
+                if _model_line_words[0] == 'target_risk':
+                    self.target_risk = float(_model_line_words[1])
+                elif _model_line_words[0] == 'optimization_ftol':
+                    self.optimization_ftol = float(_model_line_words[1])
+                elif _model_line_words[0] == 'optimization_maxiter':
+                    self.optimization_maxiter = int(_model_line_words[1])
+                elif _model_line_words[0] == 'allocation_signs':
+                    _sign_words = _model_line_words[1:]
+                    if len(_sign_words) % 2 != 0:
+                        sys.exit('Something wrong in model file.allocation signs not in pairs')
+                    idx = 0
+                    while idx < len(_sign_words):
+                        _product, _sign = _sign_words[idx], float(_sign_words[idx+1])
+                        self.allocation_signs[self.map_product_to_index[_product]] = _sign
+                        idx += 2
+
+        if is_valid_daily_indicator(self.stdev_computation_indicator_name):
+            _stdev_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator_name))
+            StdDevIndicatorClass = getattr(_stdev_indicator_module, self.stdev_computation_indicator_name)
         else:
-            print ( "stdev_computation_indicator string %s is invalid" %(self.stdev_computation_indicator) )
-            sys.exit(0)
+            sys.exit( "stdev_computation_indicator string %s is invalid" %(self.stdev_computation_indicator_name) )
 
-        for product in self.products:
-            _orig_indicator_name = self.stdev_computation_indicator + '.' + product + '.' + '.'.join([str(x) for x in self.stdev_computation_history_vec]) # this would be something like StdDev.fZN.252
-            self.daily_indicators[_orig_indicator_name] = StdevIndicatorClass.get_unique_instance(_orig_indicator_name, self.start_date, self.end_date, _config)
-            # self.stdev_computation_indicator[product] = self.daily_indicators[_orig_indicator_name]
-            # No need to attach ourselves as a listener to the indicator for now. We are going to access the value directly.
+
+        # We have read the model. Now we need to create the indicators
+        for _product in self.products:
+            _identifier = self.stdev_computation_indicator_name + '.' + _product + '.' + '.'.join(_map_product_to_stdev_computation_history.get(_product, self.stdev_computation_history))
+            self.stdev_indicator_vec.append(StdDevIndicatorClass.get_unique_instance(_identifier, self.start_date, self.end_date, _config))
 
         _portfolio_string = make_portfolio_string_from_products(self.products) # this allows us to pass a portfolio to the CorrelationLogReturns indicator.
         # TODO Should we change the design of passing arguments to the indicators from a '.' concatenated list to a variable argument set?
         self.correlation_computation_indicator = CorrelationLogReturns.get_unique_instance("CorrelationLogReturns" + '.' + _portfolio_string + '.' + str(self.correlation_computation_history), self.start_date, self.end_date, _config)
-
-    
-    def process_param_file(self, _paramfilepath, _config):
-        super(TargetRiskEqualRiskContribution, self).process_param_file(_paramfilepath, _config)
 
     def on_events_update(self, events):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
@@ -122,9 +154,8 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
 
             if self.day >= (self.last_date_stdev_computed + self.stdev_computation_interval):
                 # Get the stdev values from the stdev indicators
-                for _product in self.products:
-                    _orig_indicator_name = self.stdev_computation_indicator + '.' + _product + '.' + '.'.join([str(x) for x in self.stdev_computation_history_vec])
-                    self.stdev_logret[self.map_product_to_index[_product]] = self.daily_indicators[_orig_indicator_name].get_stdev() 
+                for i in xrange(len(self.stdev_logret)):
+                    self.stdev_logret[i] = max(0.000001, self.stdev_indicator_vec[i].get_stdev()) # a max with 1% is just to not have divide by 0 problems.
                     # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.
                     # TODO we can make tests here that the module needs to pass.
