@@ -77,19 +77,56 @@ def copy_config_files(agg_config_path, dest_dir):
         agg_config.write(configfile)
     return new_agg_config_path
 
-def generate_test_combinations(config_handles_names):
-    """Looks at the params file and generates all the pairs of values to be tested
+def generate_test_combinations(base_agg_config_path, permutparam_config_path, dest_dir):
+    """Reads the permutparams file and generates all the pairs of values to be tested
 
     Args:
-        config_handles(list of ConfigParser handles)
+        base_agg_config_path(string): path to the agg config in the /spare/local/logs/permutparamfile/base/ dir
+        permutparam_config_path(string): path to the permutparamfile
+        dest_dir(string): path to the destination directory where all the files are to be created (/spare/local/logs/permutparamfile/)
 
     Returns:
-        all_param_names(list of tuples): Each tuple in the list is of the form (handle, values).
-                                         Eg: [(signal1_handle, rebalance_frequency), (signal2_handle, rebalance_frequency)]
-        all_value_combinations(list of tuples): Each tuple refers to one set of corresponding values
-                                                Eg: [(1,21), (1,63), (1,252)]
-                                                This means that signal1 rb=1 at all times, but signnal2 rb varies among 21,63,252
+        test_dirs(list): Each element is a path to a test directory like '/spare/local/logs/permutparamfile/test_name/'
+                         Each test dir further contains folders, each folder containing configs with one set of parameter values corresponding to that test 
     """
+    test_to_variable_map = {} # Map from test_name to list of params to be changed in this test
+    test_dirs = []
+    permutparam_config = ConfigParser.ConfigParser() # Read permutparam config
+    permutparam_config.readfp(open(permutparam_config_path, 'r'))
+    all_sections = permutparam_config.sections()
+    if 'Tests' in all_sections:
+        all_sections.remove('Tests')
+    all_tests = dict(permutparam_config.items('Tests')) # TODO should check if section exists
+    if not all_tests: # If no test is specified in permutparam config
+        all_tests['all_combinations'] = '*'
+    for test_name in all_tests.keys():
+        all_tests[test_name] = all_tests[test_name].split(',')
+    test_to_variable_map = {} # Map from test_name to list of params to be changed in this test
+    for test_name in all_tests.keys():
+        test_dir = dest_dir + test_name + '/'
+        test_dirs.append(test_dir)
+        if not os.path.exists(test_dir):
+            os.makedirs(test_dir)
+        variables = all_tests[test_name]
+        processed_variables = []
+        for variable in variables:
+            if ':' in variable: # Section has been specified with the variable.Eg: Strategy:start_date
+                elements = variable.split(':')
+                section, var = elements[0], elements[1]
+                if section not in all_sections:
+                    sys.exit('Section specified incorrectly in Tests')
+                processed_variables.append((section, var))
+            elif variable == '*': # All params need to be permuted.Eg: *
+                processed_variables.append((variable, variable))
+                if len(variables) != 1:
+                    sys.exit('something wrong in * test')
+            else: # Section has not been specified with the variable.Eg: rebalance_frequency
+                for section in all_sections:
+                    processed_variables.append((section, variable))
+        test_to_variable_map[test_name] = processed_variables
+    #print test_to_variable_map
+    return test_dirs    
+    '''
     param_handle = config_handles_names[-1][0]
     all_param_names = []
     all_param_values = []
@@ -108,7 +145,7 @@ def generate_test_combinations(config_handles_names):
                 _values = param_handle.get(_signal_section, param).split('|')
                 all_param_values.append(_values)
     all_value_combinations = list(itertools.product(*all_param_values))
-    return all_param_names, all_value_combinations 
+    return all_param_names, all_value_combinations'''
 
 def set_configs(param_names, values):
     """Change the configs to accomodate for this param set"""
@@ -219,15 +256,13 @@ def plot_perf_stats(perf_stats, all_value_combinations, stat, dest_dir):
     plt.savefig(dest_dir + 'plot.png')
 
 def main():
-    """
-    1) Make dir 'base' in /spare/local/logs/param_file/ and copy the following configs : agg_config, signal_configs(+param, +model)
-    2) get handles to above configs
-    3) Read Tests section of permutparamfile and make 1 folder for each test
-    4) For each test, generate combinations of all the variables mentioned in the test, make a folder for each generated combination in the /spare/local/logs/param_file/test_name/ and copy the new configs to that folder
-    5) Run Simulator for each folder like /spare/local/logs/param_file/test_name/xxx/, accumulate the perf stats
-    6) Save all the perf stats, and mappings
-    6) Optimize the perf stats for each set of perf stats(corresponding to each test)
-    7) Show the results corresponding to each test
+    """Following tasks are performed in order
+    1) Make dir 'base' in /spare/local/logs/param_file/ and copy the following configs : agg_config, signal_configs(+param, +model) and get new_agg_config_path
+    2) Read Tests section of permutparamfile and for each test generate combinations of all the variables mentioned in the test, make a folder for each generated combination in the /spare/local/logs/param_file/test_name/ and copy the new configs to that folder
+    3) Run Simulator for each folder like /spare/local/logs/param_file/test_name/xxx/, accumulate the perf stats
+    4) Save all the perf stats, and mappings
+    5) Optimize the perf stats for each set of perf stats(corresponding to each test)
+    6) Show the results corresponding to each test
     """
 
     if len(sys.argv) < 2:
@@ -250,9 +285,9 @@ def main():
         os.makedirs(dest_dir)
 
     new_agg_config_path = copy_config_files(agg_config_path, dest_dir)
-    print new_agg_config_path
+    test_dirs = generate_test_combinations(new_agg_config_path, permutparam_config_path, dest_dir) # List of paths to each test directory
+    #print test_dirs
     '''
-    test_dirs = generate_test_combinations(base_config_handles) # List of paths to each test directory
     # perf_stats is a dict from test dir path to list of perf stats
     perf_stats = get_perf_stats(test_dirs) # TODO distribute this among different machines and collect results
 
