@@ -66,13 +66,13 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
         _map_product_to_stdev_computation_history = {}
         for _model_line in _model_file_handle:
             # We expect lines like:
-            # target_risk 10
-            # optimization_ftol 0.0000000000000000000000000001
-            # optimization_maxiter 100
+            # TargetRisk 10
+            # OptimizationFtol 0.0000000000000000000000000001
+            # OptimizationMaxiter 100
             # Default StdDevIndicator AverageStdDev
             # Default StdDevComputationParameters 5 63
             # CorrelationComputationParameters 30 252
-            # allocation_signs f6J -1
+            # AllocationSigns f6J -1
             # fES StdDevComputationParameters 5 252
             _model_line_words = _model_line.strip().split(' ')
             if len(_model_line_words) >= 3:
@@ -87,7 +87,7 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
                 elif _model_line_words[0] == 'CorrelationComputationParameters':
                     self.correlation_computation_interval = max(1, int(_model_line_words[1]))
                     self.correlation_computation_history = max(2, int(_model_line_words[2]))
-                elif _model_line_words[0] == 'allocation_signs':
+                elif _model_line_words[0] == 'AllocationSigns':
                     _sign_words = _model_line_words[1:]
                     if len(_sign_words) % 2 != 0:
                         sys.exit('Something wrong in model file.allocation signs not in pairs')
@@ -106,13 +106,13 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
                                 self.stdev_computation_interval = min(self.stdev_computation_interval, int(_computation_words[0]))
                                 _map_product_to_stdev_computation_history[_product] = _computation_words[1:]
             elif len(_model_line_words) == 2:
-                if _model_line_words[0] == 'target_risk':
+                if _model_line_words[0] == 'TargetRisk':
                     self.target_risk = float(_model_line_words[1])
-                elif _model_line_words[0] == 'optimization_ftol':
+                elif _model_line_words[0] == 'OptimizationFtol':
                     self.optimization_ftol = float(_model_line_words[1])
-                elif _model_line_words[0] == 'optimization_maxiter':
+                elif _model_line_words[0] == 'OptimizationMaxiter':
                     self.optimization_maxiter = int(_model_line_words[1])
-                elif _model_line_words[0] == 'allocation_signs':
+                elif _model_line_words[0] == 'AllocationSigns':
                     _sign_words = _model_line_words[1:]
                     if len(_sign_words) % 2 != 0:
                         sys.exit('Something wrong in model file.allocation signs not in pairs')

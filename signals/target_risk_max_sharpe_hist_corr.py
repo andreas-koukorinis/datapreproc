@@ -66,11 +66,11 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
         _map_product_to_stdev_computation_history = {}
         for _model_line in _model_file_handle:
             # We expect lines like:
-            # target_risk 10
+            # TargetRisk 10
             # Default StdDevIndicator AverageStdDev
             # Default StdDevComputationParameters 5 63
             # CorrelationComputationParameters 30 252
-            # allocation_signs f6J -1
+            # AllocationSigns f6J -1
             # fES StdDevComputationParameters 5 252
             _model_line_words = _model_line.strip().split(' ')
             if len(_model_line_words) >= 3:
@@ -85,7 +85,7 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
                 elif _model_line_words[0] == 'CorrelationComputationParameters':
                     self.correlation_computation_interval = max(1, int(_model_line_words[1]))
                     self.correlation_computation_history = max(2, int(_model_line_words[2]))
-                elif _model_line_words[0] == 'allocation_signs':
+                elif _model_line_words[0] == 'AllocationSigns':
                     _sign_words = _model_line_words[1:]
                     if len(_sign_words) % 2 != 0:
                         sys.exit('Something wrong in model file.allocation signs not in pairs')
@@ -104,9 +104,9 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
                                 self.stdev_computation_interval = min(self.stdev_computation_interval, int(_computation_words[0]))
                                 _map_product_to_stdev_computation_history[_product] = _computation_words[1:]
             elif len(_model_line_words) == 2:
-                if _model_line_words[0] == 'target_risk':
+                if _model_line_words[0] == 'TargetRisk':
                     self.target_risk = float(_model_line_words[1])
-                elif _model_line_words[0] == 'allocation_signs':
+                elif _model_line_words[0] == 'AllocationSigns':
                     _sign_words = _model_line_words[1:]
                     if len(_sign_words) % 2 != 0:
                         sys.exit('Something wrong in model file.allocation signs not in pairs')
