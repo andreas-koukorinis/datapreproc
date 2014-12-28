@@ -30,46 +30,52 @@ def parse_results(results):
             _dict_results[_name] = _val
     return _dict_results
 
-def get_config_handles_and_names(config_file, param_file, dest_dir):
-    """Copies the configs(agg and signal) to a separate folder and returns the handles to the configs(in new path)
+def copy_config_files(agg_config_path, dest_dir):
+    """Copies the configs(agg and signal(+param, +model)) to the 'base' folder and returns the path to the new agg config
 
     Args:
-        config_file(string): The path to the config of the aggregator
-        dest_dir(string): The destinatiopn directory for this parameter optimization files.EG: logs/param_file/
+        agg_config_file(string): The path to the config of the aggregator
+        dest_dir(string): The destination directory for this permutparamfile.EG: /spare/local/logs/param_file/
 
-    Returns: The list of tuples (config handle, config_name), first handle corresponds to the aggregator, then signals in order, and last one is param file
+    Returns: The path to the new agg config
     """
-    config_handles_names = []
-    signal_config_names = []
-    dest_file = dest_dir + os.path.basename(config_file)
-    shutil.copyfile(config_file, dest_file) # copy aggregator config to new destination
-    config = ConfigParser.ConfigParser() # Read aggregator config
-    config.readfp(open(dest_file, 'r'))
-    config_handles_names.append((config, dest_file))
-    if config.has_option('Strategy','signal_configs'):
-        signal_configs = config.get('Strategy','signal_configs').split(',')
-    else:
-        sys.exit('something wrong')
-    for _config_name in  signal_configs:
-        _config_name_ = _config_name.replace("~", os.path.expanduser("~"))
-        dest_file = dest_dir + os.path.basename(_config_name_)
-        signal_config_names.append(dest_file)
-        shutil.copyfile(_config_name_, dest_file) # copy signal configs to new destination
-        config = ConfigParser.ConfigParser() # Read signal configs
-        config.readfp(open(dest_file, 'r'))
-        config_handles_names.append((config, dest_file))
+    signal_config_paths = []
+    dest_dir = dest_dir + 'base/' # Destination directory is '/spare/local/logs/param_file/base/'
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
+    new_agg_config_path = dest_dir + os.path.basename(agg_config_path)
+    shutil.copyfile(agg_config_path, new_agg_config_path) # Copy aggregator config to new destination
+    agg_config = ConfigParser.ConfigParser() # Read aggregator config
+    agg_config.readfp(open(new_agg_config_path, 'r'))
+    if not agg_config.has_option('Strategy','signal_configs'):
+        sys.exit('something wrong. Signal config path not present in agg config')
+    signal_configs = agg_config.get('Strategy','signal_configs').split(',')
+    for _signal_config_path in  signal_configs:
+        _signal_config_path_ = _signal_config_path.replace("~", os.path.expanduser("~"))
+        new_signal_config_path = dest_dir + os.path.basename(_signal_config_path_)
+        signal_config_paths.append(new_signal_config_path)
+        shutil.copyfile(_signal_config_path_, new_signal_config_path) # copy signal configs to new destination
+        signal_config = ConfigParser.ConfigParser() # Read signal configs
+        signal_config.readfp(open(new_signal_config_path, 'r'))
+        if not signal_config.has_option('Parameters','paramfilepath'):
+            sys.exit('something wrong! No paramfilepath in signal config')
+        _old_paramfilepath = signal_config.get('Parameters','paramfilepath').replace("~", os.path.expanduser("~"))
+        _new_paramfilepath = dest_dir + os.path.splitext(os.path.basename(new_signal_config_path))[0] + '-' + os.path.basename(_old_paramfilepath)
+        shutil.copyfile(_old_paramfilepath, _new_paramfilepath) # copy paramfile of signal config to new destination
+        _old_modelfilepath = signal_config.get('Strategy','modelfilepath').replace("~", os.path.expanduser("~"))
+        _new_modelfilepath = dest_dir + os.path.splitext(os.path.basename(new_signal_config_path))[0] + '-' + os.path.basename(_old_modelfilepath)
+        shutil.copyfile(_old_modelfilepath, _new_modelfilepath) # copy modelfile of signal config to new destination
+        signal_config.set('Parameters', 'paramfilepath', _new_paramfilepath)
+        signal_config.set('Strategy', 'modelfilepath', _new_modelfilepath)
+        with open(new_signal_config_path, 'wb') as configfile: # change paramfile and modelfile path in signal configs
+            signal_config.write(configfile)
 
     # Change the signals path in the new aggregator config
-    _signal_config_string = ','.join(signal_config_names)
-    config_handles_names[0][0].set('Strategy','signal_configs', _signal_config_string)
-    with open(config_handles_names[0][1], 'wb') as configfile:
-        config_handles_names[0][0].write(configfile)    
-
-    # Read the paramfile
-    config = ConfigParser.ConfigParser()
-    config.readfp(open(param_file, 'r'))
-    config_handles_names.append((config, param_file))
-    return config_handles_names
+    _signal_config_string = ','.join(signal_config_paths)
+    agg_config.set('Strategy','signal_configs', _signal_config_string)
+    with open(new_agg_config_path, 'wb') as configfile:
+        agg_config.write(configfile)
+    return new_agg_config_path
 
 def generate_test_combinations(config_handles_names):
     """Looks at the params file and generates all the pairs of values to be tested
@@ -213,6 +219,17 @@ def plot_perf_stats(perf_stats, all_value_combinations, stat, dest_dir):
     plt.savefig(dest_dir + 'plot.png')
 
 def main():
+    """
+    1) Make dir 'base' in /spare/local/logs/param_file/ and copy the following configs : agg_config, signal_configs(+param, +model)
+    2) get handles to above configs
+    3) Read Tests section of permutparamfile and make 1 folder for each test
+    4) For each test, generate combinations of all the variables mentioned in the test, make a folder for each generated combination in the /spare/local/logs/param_file/test_name/ and copy the new configs to that folder
+    5) Run Simulator for each folder like /spare/local/logs/param_file/test_name/xxx/, accumulate the perf stats
+    6) Save all the perf stats, and mappings
+    6) Optimize the perf stats for each set of perf stats(corresponding to each test)
+    7) Show the results corresponding to each test
+    """
+
     if len(sys.argv) < 2:
         print "Arguments needed: agg_config_file param_file\nStats Allowed:\n%s\n" % ('\n'.join(stats.keys()))
     
@@ -225,26 +242,28 @@ def main():
     parser.add_argument('-p', nargs=1, help='Plot the param sets versus this stat\nEg: -p sharpe', dest='plot')
     args = parser.parse_args()
 
-    agg_config_file = sys.argv[1].replace("~", os.path.expanduser("~"))
-    param_file = sys.argv[2].replace("~", os.path.expanduser("~"))
-    performance_stats = []
+    agg_config_path = sys.argv[1].replace("~", os.path.expanduser("~"))
+    permutparam_config_path = sys.argv[2].replace("~", os.path.expanduser("~"))
 
-    dest_dir = 'logs/' + os.path.splitext(os.path.basename(param_file))[0]+'/' # directory to store output files
+    dest_dir = '/spare/local/logs/' + os.path.splitext(os.path.basename(permutparam_config_path))[0]+'/' # directory to store output files
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
 
-    config_handles_names = get_config_handles_and_names(agg_config_file, param_file, dest_dir)
-    all_param_names, all_value_combinations = generate_test_combinations(config_handles_names)
-    perf_stats = get_perf_stats(all_param_names, all_value_combinations, config_handles_names[0][1])
-    _param_string = '_'.join([_param_name[2] for _param_name in all_param_names])
+    new_agg_config_path = copy_config_files(agg_config_path, dest_dir)
+    print new_agg_config_path
+    '''
+    test_dirs = generate_test_combinations(base_config_handles) # List of paths to each test directory
+    # perf_stats is a dict from test dir path to list of perf stats
+    perf_stats = get_perf_stats(test_dirs) # TODO distribute this among different machines and collect results
+
     #print perf_stats
-    save_perf_stats(perf_stats, _param_string, all_value_combinations, dest_dir)    
+    save_perf_stats(perf_stats)
     success_indices = impose_constraints(perf_stats, args.greater, args.less)
     if args.less is None and args.greater is None and args.optimize is None:
         args.optimize = ['sharpe']
-    opt_indices = optimize_perf_stats(perf_stats, success_indices, _param_string, all_value_combinations, args.optimize[0])
-
-    if len(opt_indices) == 0:
+    opt_indices = optimize_perf_stats(perf_stats, success_indices, args.optimize[0])
+    '''
+    '''if len(opt_indices) == 0:
         print 'No Params selected'
     else:
         print 'Param Order: %s\n'%(_param_string)
@@ -257,6 +276,7 @@ def main():
                 print (' ').join(all_value_combinations[idx])
     if args.plot is not None:
         plot_perf_stats(perf_stats, all_value_combinations, args.plot[0], dest_dir)
+    '''
 
 if __name__ == '__main__':
     main()
