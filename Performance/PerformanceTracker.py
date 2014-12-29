@@ -456,6 +456,17 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         return yearly_sharpe
 
     def compute_sortino(self, returns):
+        """
+        A modification of the Sharpe ratio that only takes negative deviation from a target return into consideration.
+        The Sortino ratio subtracts the risk-free rate of return from the portfolio’s return, and then divides that by the downside deviation.
+        A large Sortino ratio indicates there is a low probability of a large loss.
+        Target return is taken as 0 in calculating sortino ratio in our implementation.
+
+        Args:
+            returns: daily log returns
+        Returns:
+            Sortino ratio for the given daily log returns series
+        """
         avg_ret = mean(returns)
         # Take all negative returns.
         neg_ret = [ret ** 2 for ret in returns if ret < 0]
