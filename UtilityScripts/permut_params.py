@@ -13,7 +13,7 @@ stats = {'sharpe': ('Sharpe Ratio', '+'),  'ret_dd_ratio': ('Return_drawdown_Rat
 
 final_order = ['Net Returns', 'Total Tradable Days','Sharpe Ratio', 'Return_drawdown_Ratio','Return Var10 ratio','Correlation to VBLTX', 'Correlation to VTSMX', 'Annualized_Returns', 'Annualized_Std_Returns', 'Initial Capital', 'Net PNL', 'Annualized PNL', 'Annualized_Std_PnL', 'Skewness','Kurtosis','DML','MML','QML','YML','Max Drawdown','Drawdown Period','Drawdown Recovery Period','Max Drawdown Dollar','Annualized PNL by drawdown','Yearly_sharpe','Hit Loss Ratio','Gain Pain Ratio','Max num days with no new high','Losing month streak','Turnover','Leverage','Trading Cost','Total Money Transacted','Total Orders Placed','Worst 5 days','Best 5 days','Worst 5 weeks','Best 5 weeks']
 
-dependencies = {} # To account for dependencies between sections
+flatten = lambda lst: reduce(lambda l, i: l + flatten(i) if isinstance(i, (list, tuple)) else l + [i], lst, [])
 
 def parse_results(results):
     """Parses the performance stats(output of Simulator) and returns them as dict
@@ -95,11 +95,24 @@ def parse_variable_values(pattern):
         elif is_list_pattern(_pattern):
             _sub_pattern_vals = process_list_pattern(_pattern)
         else:
+            _pattern = _pattern.translate(None, '\'')
             _sub_pattern_vals = [_pattern] # Value without brackets
         ret_val.append(_sub_pattern_vals)
     ret_val = list(itertools.product(*ret_val))
     for i in range(len(ret_val)):
         ret_val[i] = (' '.join(list(ret_val[i]))).strip()
+    return ret_val
+
+def parse_dep_variable_values(dep_vars, _section, param_string):
+    comb_strings = param_string.split('&')
+    ret_val = []
+    for comb_string in comb_strings:
+        _patterns = comb_string.split('|')
+        if len(_patterns) != len(dep_vars):
+            sys.exit('Something wrong in dependency variable speicifcation')
+        ret_val.append({})
+        for i in range(len(_patterns)):
+            ret_val[-1][(_section, dep_vars[i])] = parse_variable_values(_patterns[i])
     return ret_val
 
 def copy_config_files(agg_config_path, dest_dir):
@@ -151,7 +164,7 @@ def copy_config_files(agg_config_path, dest_dir):
         agg_config.write(configfile)
     return new_agg_config_path
 
-def generate_test_combinations(base_agg_config_path, permutparam_config_path, dest_dir):
+def generate_test_combinations(permutparam_config_path):
     """Reads the permutparams file and generates all the pairs of values to be tested
 
     Args:
@@ -164,6 +177,7 @@ def generate_test_combinations(base_agg_config_path, permutparam_config_path, de
                          Each test dir further contains folders, each folder containing configs with one set of parameter values corresponding to that test 
     """
     test_to_variable_map = {} # Map from test_name to list of params to be changed in this test
+    test_to_combinations_map = {}
     permutparam_config = ConfigParser.ConfigParser() # Read permutparam config
     permutparam_config.optionxform = str
     permutparam_config.readfp(open(permutparam_config_path, 'r'))
@@ -175,11 +189,7 @@ def generate_test_combinations(base_agg_config_path, permutparam_config_path, de
         all_tests['all_combinations'] = '*'
     for test_name in all_tests.keys():
         all_tests[test_name] = all_tests[test_name].split(',')
-    test_to_variable_map = {} # Map from test_name to list of params to be changed in this test
     for test_name in all_tests.keys():
-        test_dir = dest_dir + test_name + '/'
-        if not os.path.exists(test_dir):
-            os.makedirs(test_dir)
         variables = all_tests[test_name]
         processed_variables = []
         for variable in variables:
@@ -196,35 +206,45 @@ def generate_test_combinations(base_agg_config_path, permutparam_config_path, de
             else: # Section has not been specified with the variable.Eg: rebalance_frequency
                 for section in all_sections:
                     processed_variables.append((section, variable))
-        test_to_variable_map[test_name] = (test_dir, processed_variables)
+        test_to_variable_map[test_name] = processed_variables
 
+    # Go through each test and generate its combinations
     for test_name in test_to_variable_map.keys():
-        generate_combinations_for_test(test_to_variable_map[test_name][0], test_to_variable_map[test_name][1], dest_dir + 'base/', os.path.basename(base_agg_config_path), permutparam_config)
+        dep_test_combinations, nondep_test_combinations = generate_combinations_for_test(test_to_variable_map[test_name], permutparam_config)
+        dep_params = []
+        nondep_params = nondep_test_combinations.keys()
+        dep_param_comb = []
+        nondep_param_comb = []
+        all_comb = []
+        all_params = []
+        dep_done = False
+        for i in range(len(dep_test_combinations)):
+            sub_list = dep_test_combinations[i]
+            union_comb = []
+            for _dict in sub_list:
+                comb = []
+                for key in _dict.keys():
+                    if not dep_done:
+                        dep_params.append(key)
+                    comb.append(_dict[key])
+                dep_done = True
+                union_comb.extend(itertools.product(*comb))
+            dep_param_comb.append(union_comb)
+        for key in nondep_test_combinations.keys():
+            nondep_param_comb.append(nondep_test_combinations[key])
+        all_comb = []
+        all_comb.extend(dep_param_comb)
+        all_comb.extend(nondep_param_comb)
+        all_params = []
+        all_params.extend(dep_params)
+        all_params.extend(nondep_params)
+        all_comb = list(itertools.product(*all_comb))
+        all_comb = map(flatten, all_comb)
+        test_to_combinations_map[test_name] = all_comb
+    return test_to_combinations_map
 
-    #print test_to_variable_map
-    return test_to_variable_map
-    '''
-    param_handle = config_handles_names[-1][0]
-    all_param_names = []
-    all_param_values = []
-    if param_handle.has_section('Strategy'):
-        strategy_params = param_handle.options("Strategy")
-        for param in strategy_params:
-            all_param_names.append((config_handles_names[0][0], config_handles_names[0][1], param))
-            _values = param_handle.get('Strategy', param).split('|')
-            all_param_values.append(_values)
-    for i in range(1, len(config_handles_names)-1):
-        _signal_section = 'Signal%d' % i
-        if param_handle.has_section(_signal_section):
-            signal_params = param_handle.options(_signal_section)
-            for param in signal_params:
-                all_param_names.append((config_handles_names[i][0], config_handles_names[i][1], param))
-                _values = param_handle.get(_signal_section, param).split('|')
-                all_param_values.append(_values)
-    all_value_combinations = list(itertools.product(*all_param_values))
-    return all_param_names, all_value_combinations'''
-
-def generate_combinations_for_test(test_dir, variables, _base_dir, base_agg_config_name, permutparam_config):
+def generate_combinations_for_test(variables, permutparam_config):
+    test_combinations = []
     variable_to_combination_map = {}
     for variable in variables:
         if variable[0] == '*':
@@ -232,18 +252,29 @@ def generate_combinations_for_test(test_dir, variables, _base_dir, base_agg_conf
                 if _section == 'Tests':
                     continue
                 for _var in permutparam_config.options(_section):
-                    if permutparam_config.has_option(_section, _var):
+                    if '|' not in _var:
                         variable_to_combination_map[(_section, _var)] = parse_variable_values(permutparam_config.get(_section, _var))
-                    else:
-                        pass
+                    else: # If it is a dependency relation
+                        _vars = _var.split('|')
+                        dep_vars_comb = parse_dep_variable_values(_vars, _section, permutparam_config.get(_section, _var))
+                        test_combinations.append(dep_vars_comb)
         else:
             _section, var  = variable[0], variable[1]
             if permutparam_config.has_option(_section, var): # If variable is directly specified
                 variable_to_combination_map[variable] = parse_variable_values(permutparam_config.get(_section, var))
             else: # Go through each section and check for variable piping
-                pass
-    print variable_to_combination_map
-    return variable_to_combination_map
+                for _section in permutparam_config.sections():
+                    if _section == 'Tests':
+                        continue
+                    for _var in permutparam_config.options(_section):
+                        if '|' in _var and var in _var.split('|'): # If it is a dependency relation
+                            _vars = _var.split('|')
+                            dep_vars_comb = parse_dep_variable_values(_vars, _section, permutparam_config.get(_section, _var))
+                            test_combinations.append(dep_vars_comb)
+    return test_combinations, variable_to_combination_map # TODO give better names
+
+def test_to_agg_config_list_map = generate_test_configs(base_agg_config_path, test_to_combinations_map, dest_dir):
+    pass 
 
 def set_configs(param_names, values):
     """Change the configs to accomodate for this param set"""
@@ -382,11 +413,12 @@ def main():
         os.makedirs(dest_dir)
 
     new_agg_config_path = copy_config_files(agg_config_path, dest_dir)
-    test_dirs = generate_test_combinations(new_agg_config_path, permutparam_config_path, dest_dir) # List of paths to each test directory
-    #print test_dirs
+    test_to_combinations_map = generate_test_combinations(permutparam_config_path)
+    #test_to_agg_config_list_map = generate_test_configs(new_agg_config_path, test_to_combinations_map, dest_dir)
+    #print test_to_agg_config_list_map
     '''
     # perf_stats is a dict from test dir path to list of perf stats
-    perf_stats = get_perf_stats(test_dirs) # TODO distribute this among different machines and collect results
+    perf_stats = get_perf_stats(test_to_agg_config_list_map) # TODO distribute this task among different machines and collect results
 
     #print perf_stats
     save_perf_stats(perf_stats)
