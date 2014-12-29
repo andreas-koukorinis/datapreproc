@@ -2,6 +2,7 @@
 import sys
 import os
 import shutil
+import numpy
 import argparse
 import subprocess
 import itertools
@@ -11,6 +12,8 @@ import matplotlib.pyplot as plt
 stats = {'sharpe': ('Sharpe Ratio', '+'),  'ret_dd_ratio': ('Return_drawdown_Ratio', '+'), 'max_dd': ('Max Drawdown', '-'), 'net_pnl': ('Net PNL', '+'), 'ret_var_ratio': ('Return Var10 ratio', '+'),'ann_ret': ('Annualized_Returns','+'), 'gain_pain_ratio': ('Gain Pain Ratio', '+'), 'hit_loss_ratio': ('Hit Loss Ratio', '+'), 'turnover': ('Turnover', '-'), 'skewness': ('Skewness','?'), 'kurtosis': ('Kurtosis', '?'), 'corr_vbltx': ('Correlation to VBLTX', '?'), 'corr_vtsmx': ('Correlation to VTSMX', '?'), 'ann_std_ret': ('Annualized_Std_Returns', '-'), 'max_dd_dollar': ('Max Drawdown Dollar', '-'), 'ann_pnl': ('Annualized PNL', '+'), 'dml': ('DML', '+'), 'mml': ('MML', '+'), 'qml': ('QML', '+'), 'yml': ('YML', '+'), 'max_num_days_no_new_high' : ('Max num days with no new high', '-')}
 
 final_order = ['Net Returns', 'Total Tradable Days','Sharpe Ratio', 'Return_drawdown_Ratio','Return Var10 ratio','Correlation to VBLTX', 'Correlation to VTSMX', 'Annualized_Returns', 'Annualized_Std_Returns', 'Initial Capital', 'Net PNL', 'Annualized PNL', 'Annualized_Std_PnL', 'Skewness','Kurtosis','DML','MML','QML','YML','Max Drawdown','Drawdown Period','Drawdown Recovery Period','Max Drawdown Dollar','Annualized PNL by drawdown','Yearly_sharpe','Hit Loss Ratio','Gain Pain Ratio','Max num days with no new high','Losing month streak','Turnover','Leverage','Trading Cost','Total Money Transacted','Total Orders Placed','Worst 5 days','Best 5 days','Worst 5 weeks','Best 5 weeks']
+
+dependencies = {} # To account for dependencies between sections
 
 def parse_results(results):
     """Parses the performance stats(output of Simulator) and returns them as dict
@@ -30,6 +33,75 @@ def parse_results(results):
             _dict_results[_name] = _val
     return _dict_results
 
+def is_optional_pattern(pattern):
+    return len(pattern) >= 2 and pattern[0] == '<' and pattern[-1] == '>'
+
+def is_range_pattern(pattern):
+    return len(pattern) >= 2 and pattern[0] == '[' and pattern[-1] == ']'
+
+def is_list_pattern(pattern):
+    return len(pattern) >= 2 and pattern[0] == '{' and pattern[-1] == '}'
+
+def process_optional_pattern(pattern):
+    ret_val = [''] # By default an empty value for an optional pattern
+    pattern = pattern[1:-1] # Skip brackets
+    if is_range_pattern(pattern):
+        ret_val.extend(process_range_pattern(pattern))
+    elif is_list_pattern(pattern):
+        ret_val.extend(process_list_pattern(pattern))
+    else:
+        sys.exit('something wrong')
+    return ret_val    
+
+def process_range_pattern(pattern):
+    pattern = pattern[1:-1] # Skip the brackets
+    values_list = pattern.split(':')
+    if len(values_list) != 3:
+        sys.exit('something wrong in [] specification')
+    if '.' in pattern: # We are dealing with floats  
+        start, end, incr = float(values_list[0]), float(values_list[1]), float(values_list[2])
+    else:        
+        start, end, incr = int(values_list[0]), int(values_list[1]), int(values_list[2])
+    ret_val = list(numpy.arange(start, end + incr, incr)) # to include the end
+    for i in range(len(ret_val)):
+        ret_val[i] = str(ret_val[i])
+    return ret_val
+
+def process_list_pattern(pattern):
+    ret_val = []
+    pattern = pattern[1:-1] # Skip the brackets
+    values_list = pattern.split('\'')
+    values_list = filter(lambda x: x != ',', values_list) # Remove commas
+    if len(values_list) != 1:
+        values_list = filter(lambda x: x != '', values_list) # Remove empty
+        return values_list
+    values_list = filter(lambda x: x != '', values_list) # Remove empty
+    values_list = values_list[0].split(',')
+    for value in values_list:
+        if is_range_pattern(value):
+            ret_val.extend(process_range_pattern(value))
+        else: 
+            ret_val.append(value)   
+    return ret_val
+
+def parse_variable_values(pattern):
+    _patterns = pattern.split(' ')
+    ret_val = []
+    for _pattern in _patterns:
+        if is_optional_pattern(_pattern):
+            _sub_pattern_vals = process_optional_pattern(_pattern)
+        elif is_range_pattern(_pattern):
+            _sub_pattern_vals = process_range_pattern(_pattern)
+        elif is_list_pattern(_pattern):
+            _sub_pattern_vals = process_list_pattern(_pattern)
+        else:
+            _sub_pattern_vals = [_pattern] # Value without brackets
+        ret_val.append(_sub_pattern_vals)
+    ret_val = list(itertools.product(*ret_val))
+    for i in range(len(ret_val)):
+        ret_val[i] = (' '.join(list(ret_val[i]))).strip()
+    return ret_val
+
 def copy_config_files(agg_config_path, dest_dir):
     """Copies the configs(agg and signal(+param, +model)) to the 'base' folder and returns the path to the new agg config
 
@@ -46,6 +118,7 @@ def copy_config_files(agg_config_path, dest_dir):
     new_agg_config_path = dest_dir + os.path.basename(agg_config_path)
     shutil.copyfile(agg_config_path, new_agg_config_path) # Copy aggregator config to new destination
     agg_config = ConfigParser.ConfigParser() # Read aggregator config
+    agg_config.optionxform = str
     agg_config.readfp(open(new_agg_config_path, 'r'))
     if not agg_config.has_option('Strategy','signal_configs'):
         sys.exit('something wrong. Signal config path not present in agg config')
@@ -56,6 +129,7 @@ def copy_config_files(agg_config_path, dest_dir):
         signal_config_paths.append(new_signal_config_path)
         shutil.copyfile(_signal_config_path_, new_signal_config_path) # copy signal configs to new destination
         signal_config = ConfigParser.ConfigParser() # Read signal configs
+        signal_config.optionxform = str
         signal_config.readfp(open(new_signal_config_path, 'r'))
         if not signal_config.has_option('Parameters','paramfilepath'):
             sys.exit('something wrong! No paramfilepath in signal config')
@@ -90,8 +164,8 @@ def generate_test_combinations(base_agg_config_path, permutparam_config_path, de
                          Each test dir further contains folders, each folder containing configs with one set of parameter values corresponding to that test 
     """
     test_to_variable_map = {} # Map from test_name to list of params to be changed in this test
-    test_dirs = []
     permutparam_config = ConfigParser.ConfigParser() # Read permutparam config
+    permutparam_config.optionxform = str
     permutparam_config.readfp(open(permutparam_config_path, 'r'))
     all_sections = permutparam_config.sections()
     if 'Tests' in all_sections:
@@ -104,7 +178,6 @@ def generate_test_combinations(base_agg_config_path, permutparam_config_path, de
     test_to_variable_map = {} # Map from test_name to list of params to be changed in this test
     for test_name in all_tests.keys():
         test_dir = dest_dir + test_name + '/'
-        test_dirs.append(test_dir)
         if not os.path.exists(test_dir):
             os.makedirs(test_dir)
         variables = all_tests[test_name]
@@ -123,9 +196,13 @@ def generate_test_combinations(base_agg_config_path, permutparam_config_path, de
             else: # Section has not been specified with the variable.Eg: rebalance_frequency
                 for section in all_sections:
                     processed_variables.append((section, variable))
-        test_to_variable_map[test_name] = processed_variables
+        test_to_variable_map[test_name] = (test_dir, processed_variables)
+
+    for test_name in test_to_variable_map.keys():
+        generate_combinations_for_test(test_to_variable_map[test_name][0], test_to_variable_map[test_name][1], dest_dir + 'base/', os.path.basename(base_agg_config_path), permutparam_config)
+
     #print test_to_variable_map
-    return test_dirs    
+    return test_to_variable_map
     '''
     param_handle = config_handles_names[-1][0]
     all_param_names = []
@@ -146,6 +223,27 @@ def generate_test_combinations(base_agg_config_path, permutparam_config_path, de
                 all_param_values.append(_values)
     all_value_combinations = list(itertools.product(*all_param_values))
     return all_param_names, all_value_combinations'''
+
+def generate_combinations_for_test(test_dir, variables, _base_dir, base_agg_config_name, permutparam_config):
+    variable_to_combination_map = {}
+    for variable in variables:
+        if variable[0] == '*':
+            for _section in permutparam_config.sections():
+                if _section == 'Tests':
+                    continue
+                for _var in permutparam_config.options(_section):
+                    if permutparam_config.has_option(_section, _var):
+                        variable_to_combination_map[(_section, _var)] = parse_variable_values(permutparam_config.get(_section, _var))
+                    else:
+                        pass
+        else:
+            _section, var  = variable[0], variable[1]
+            if permutparam_config.has_option(_section, var): # If variable is directly specified
+                variable_to_combination_map[variable] = parse_variable_values(permutparam_config.get(_section, var))
+            else: # Go through each section and check for variable piping
+                pass
+    print variable_to_combination_map
+    return variable_to_combination_map
 
 def set_configs(param_names, values):
     """Change the configs to accomodate for this param set"""
@@ -177,7 +275,6 @@ def save_perf_stats(perf_stats, _param_string, all_value_combinations, dest_dir)
     f.write('Order: ' + _param_string + '\n')
     for i in range(len(all_value_combinations)):
         f.write('Param_set: ' + (' ').join(all_value_combinations[i]) + '\n')
-        #print perf_stats[i]
         for elem in final_order:
             if elem in perf_stats[i].keys():
                 f.write(elem + ': ' + perf_stats[i][elem] + '\n')

@@ -20,6 +20,7 @@ class AggregatorIV(TradeAlgorithm):
     
     def init(self, _config):
         self.day = -1
+        self.signals = [] # This is the set of SignalAlgorithm instances
         if _config.has_option('Strategy', 'signal_configs'):
             _signal_configs = [adjust_file_path_for_home_directory(x) for x in _config.get('Strategy', 'signal_configs').split(',')]
             self.volatility_history = 63
@@ -29,7 +30,6 @@ class AggregatorIV(TradeAlgorithm):
             if _config.has_option('Strategy', 'volatility_computation_interval'):
                 self.volatility_computation_interval = _config.getint('Strategy', 'volatility_computation_interval')
             self.last_day_volatility_computed = 0
-            self.signals = []
             for _config_name in _signal_configs:
                 _signal_config = ConfigParser.ConfigParser()
                 _signal_config.readfp(open(_config_name, 'r'))
@@ -40,11 +40,16 @@ class AggregatorIV(TradeAlgorithm):
                 SignalLogic = getattr(import_module('signals.' + _signal_module_name), _signalfile)
                 _signal_instance = SignalLogic(self.all_products, self.start_date, self.end_date, _signal_config, _config)
                 self.signals.append(_signal_instance)
-            self.past_relative_contribution = []
-            for i in range(len(self.signals)):
-                self.past_relative_contribution.append(dict([(_product, 0.0) for _product in self.products]))
         else:
-            sys.exit('Atleast one signal config expected')
+            sys.exit('Strategy::signal_configs is needed in the config file')
+
+        if len(self.signals) < 1:
+            sys.exit('No SignalAlgorithm instances were created. Hence exiting')
+
+        # past_relative_contribution is needed in updating weights, since the rebalancing frequency of different SignalAlgorithm instances could be different.
+        self.past_relative_contribution = []
+        for i in range(len(self.signals)):
+            self.past_relative_contribution.append(dict([(_product, 0.0) for _product in self.products]))
         self.signal_allocations = numpy.array([1.0/float(len(_signal_configs))] * len(_signal_configs)) # Equally weighted by default
 
     def update_signal_allocations_using_volatility(self, _signals):
