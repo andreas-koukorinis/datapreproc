@@ -1,11 +1,12 @@
 import sys
 import re
 from datetime import datetime
-import numpy as np
-from numpy import hstack, vstack
 from os.path import expanduser
+import numpy
+from numpy import hstack, vstack
 from cvxopt import matrix, solvers
 from cvxopt.solvers import qp
+
 from Utils.vector_ops import shift_vec
 
 # Returns the full list of products  with fES_1 and fES_2 treated separately
@@ -120,17 +121,17 @@ def is_margin_product(product):
 def filter_series(dates_returns_1,dates_returns_2):
     dates1 = [item[0] for item in dates_returns_1]
     dates2 = [item[0] for item in dates_returns_2]
-    returns1 = np.array([item[1] for item in dates_returns_1]).astype(float)
-    returns2 = np.array([item[1] for item in dates_returns_2]).astype(float)
+    returns1 = numpy.array([item[1] for item in dates_returns_1]).astype(float)
+    returns2 = numpy.array([item[1] for item in dates_returns_2]).astype(float)
     all_dates = [dates1,dates2]
     all_series = [returns1,returns2]
     intersected_dates = list(set(all_dates[0]).intersection(*all_dates))
     intersected_dates.sort()
     filtered_series = []
     for i in xrange(0,len(all_series)):
-        Indexes = np.sort(np.searchsorted(all_dates[i],intersected_dates))
+        Indexes = numpy.sort(numpy.searchsorted(all_dates[i],intersected_dates))
         filtered_series.append(all_series[i][Indexes])
-    filtered_series = (np.array(filtered_series).T).astype(float)
+    filtered_series = (numpy.array(filtered_series).T).astype(float)
     return (filtered_series[:,0],filtered_series[:,1])
     
 def adjust_file_path_for_home_directory(file_path):
@@ -158,6 +159,30 @@ def dict_to_string(_dict):
 
 def is_float_zero(val):
     return abs(val) < 0.000000001
+
+def adjust_to_desired_l1norm_range(given_weights, minimum_leverage=0.001, maximum_leverage=100):
+    """adjusts the given weights to the desired leverage range
+
+    Arguments:
+    given_weights(1d numpy array - float)
+    minimum_leverage(float)
+    maximum_leverage(gloat)
+    
+    Returns:
+    1d numpy array of floats, which is a scaled version of the given weights to have l1norm or leverage in the desired region
+    
+    Raises:
+    ValueError: if (minimum_leverage < 0.001) or (minimum_leverage > maximum_leverage
+    """
+    if (minimum_leverage < 0.001) or (minimum_leverage > maximum_leverage):
+        raise ValueError("minimum leverage %f should be greater than 0.001 and maximum leverage %f should be greater than minimum leverage" %(minimum_leverage, maximum_leverage))
+    given_leverage = numpy.sum(numpy.abs(given_weights))
+    if (given_leverage > 0.001): # a very hacky way of checking divide by 0 problem !
+        if given_leverage < minimum_leverage:
+            given_weights = given_weights * (minimum_leverage / given_leverage)
+        elif given_leverage > maximum_leverage:
+            given_weights = given_weights * (maximum_leverage / given_leverage)
+    return (given_weights)
 
 def efficient_frontier(expected_returns, covariance, max_leverage, risk_tolerance, max_allocation=0.5):
     """ Function that calculates the efficient frontier
@@ -189,16 +214,16 @@ def efficient_frontier(expected_returns, covariance, max_leverage, risk_toleranc
     # Optimization will be done to find both w and y i.e n+n weights
     # dmat entries for y kept low to not affect minimzing function as much as possible
     # Not kept 0 to still keep Dmat as semi-definite
-    dummy_var_dmat = 0.000001*np.eye(num_prods)
+    dummy_var_dmat = 0.000001*numpy.eye(num_prods)
     dmat = vstack((hstack((covariance, matrix(0., (num_prods, num_prods)))), hstack((matrix(0., (num_prods, num_prods)), dummy_var_dmat))))
     # Constraint:  y1 + y2 + ... + yn <= leverage
     amat = vstack((matrix(0, (num_prods, 1)), matrix(1, (num_prods, 1))))
     bvec = [max_leverage]
     # Constraints:   y1, y2 ,..., yn >= 0
-    amat = hstack((amat, vstack((matrix(0, (num_prods, num_prods)), -1*np.eye(num_prods)))))
+    amat = hstack((amat, vstack((matrix(0, (num_prods, num_prods)), -1*numpy.eye(num_prods)))))
     bvec = bvec + num_prods*[0]
     # Constraints:  y1, y2 ,..., yn <= max_allocation
-    amat = hstack((amat, vstack((matrix(0, (num_prods, num_prods)), np.eye(num_prods)))))
+    amat = hstack((amat, vstack((matrix(0, (num_prods, num_prods)), numpy.eye(num_prods)))))
     bvec = bvec + num_prods*[max_allocation]
     # Constraints:  -w1 <= y1, -w2 <= y2, ..., -wn <= yn
     dummy_wt_constraint1 = [-1] + (num_prods-1)*[0] + [-1] + (num_prods-1)*[0]

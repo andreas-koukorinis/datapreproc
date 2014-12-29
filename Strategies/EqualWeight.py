@@ -1,6 +1,6 @@
 import sys
 from numpy import *
-from Algorithm.trade_algorithm import TradeAlgorithm
+from Strategies.trade_algorithm import TradeAlgorithm
 from Utils.Regular import check_eod
 
 class EqualWeight( TradeAlgorithm ):

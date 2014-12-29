@@ -53,7 +53,7 @@ class RiskManagerPaper(RiskManagerAlgo):
         _capital_allocation_level_vec = [float(x) for x in _capital_allocation_levels] # convert to float
         #check that the last risk level is 0 and first allocation is 100
         if _capital_allocation_level_vec[0] < 100:
-            _capital_allocation_level_vec.insert(0, 0.0) # Highest risk is 100% allocation
+            _capital_allocation_level_vec.insert(0, 100.0) # Highest risk is 100% allocation
         if _capital_allocation_level_vec[-1] > 1:
             _capital_allocation_level_vec.append(0.0) # Liquidate on last level
         #check that the capital allocation levels are in descending order
@@ -127,4 +127,8 @@ class RiskManagerPaper(RiskManagerAlgo):
                 self.current_capital_allocation_level = self.risk_level_vec[self.current_risk_level_index].capital_allocation_level
                 self.last_date_risk_level_change = _date
 
-        return (self.current_capital_allocation_level)
+        _retval = self.current_capital_allocation_level
+        if self.simple_performance_tracker.get_desired_leverage() > self.maximum_allowed_leverage:
+            print ("didn't expect to see desired leverage %f to exceed maximum allowed leverage %f" %(self.simple_performance_tracker.get_desired_leverage(), self.maximum_allowed_leverage))
+            _retval = min (_retval, (self.maximum_allowed_leverage/self.simple_performance_tracker.get_desired_leverage()))
+        return (_retval)

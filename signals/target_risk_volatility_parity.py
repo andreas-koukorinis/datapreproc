@@ -1,17 +1,20 @@
 import sys
 import numpy
+from numpy.linalg import inv
 from importlib import import_module
 from scipy.optimize import minimize
 
 from Utils.Regular import check_eod, adjust_file_path_for_home_directory, is_float_zero, parse_weights, adjust_to_desired_l1norm_range
 from Utils.correct_signs_weights import correct_signs_weights
 from DailyIndicators.Indicator_List import is_valid_daily_indicator,get_module_name_from_indicator_name
-from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
+from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 from signals.signal_algorithm import SignalAlgorithm
 
-class TargetRiskEqualRiskContribution(SignalAlgorithm):
-    """Implementation of the ERC risk balanced strategy
+class TargetRiskVolatilityParity(SignalAlgorithm):
+    """Implementation of the volatility partity algorithm, that assigns weights to each product inversely proportional to its risk.
+    We use stdev computed over a recent period for risk computation.
+    If we assume products are not correlated(or equally correlated), this is an optimal soltuion in terms of risk adjusted returns.
 
     Items read from config :
     target_risk : this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
@@ -65,14 +68,6 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
         else:
             self.correlation_computation_interval = max(2, self.correlation_computation_history/5)
 
-        self.optimization_ftol = 0.0000000000000000000000000001
-        if _config.has_option ('Strategy', 'optimization_ftol'):
-            self.optimization_ftol = _config.getfloat('Strategy', 'optimization_ftol')
-
-        self.optimization_maxiter=100
-        if _config.has_option ('Strategy', 'optimization_maxiter'):
-            self.optimization_maxiter = _config.getint('Strategy', 'optimization_maxiter')
-        
         # Some computational variables
         self.last_date_correlation_matrix_computed = 0
         self.last_date_stdev_computed = 0
@@ -80,11 +75,10 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
         self.erc_weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
         self.erc_weights_optim = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
-        self.stdev_logret = numpy.ones(len(self.products)) # these are the stdev values, with products occuring in the same order as the order in self.products
-
+        self.stdev_logret = numpy.array([1.0]*len(self.products)) # these are the stdev values, with products occuring in the same order as the order in self.products
         # create a diagonal matrix of 1s for correlation matrix
         self.logret_correlation_matrix = numpy.eye(len(self.products))
-
+        
         if is_valid_daily_indicator(self.stdev_computation_indicator):
             _stdev_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator))
             StdevIndicatorClass = getattr(_stdev_indicator_module, self.stdev_computation_indicator)
@@ -102,9 +96,9 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
         # TODO Should we change the design of passing arguments to the indicators from a '.' concatenated list to a variable argument set?
         self.correlation_computation_indicator = CorrelationLogReturns.get_unique_instance("CorrelationLogReturns" + '.' + _portfolio_string + '.' + str(self.correlation_computation_history), self.start_date, self.end_date, _config)
 
-    
+
     def process_param_file(self, _paramfilepath, _config):
-        super(TargetRiskEqualRiskContribution, self).process_param_file(_paramfilepath, _config)
+        super(TargetRiskVolatilityParity, self).process_param_file(_paramfilepath, _config)
 
     def on_events_update(self, events):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
@@ -136,38 +130,10 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
                 # compute covariance matrix from correlation matrix and
                 _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stdev_logret, self.stdev_logret) # we should probably do it when either self.stdev_logret or _correlation_matrix has been updated
 
-                if numpy.sum(numpy.abs(self.erc_weights)) < 0.001:
-                    # Initialize weights
-                    _annualized_risk = 100.0*(numpy.exp(numpy.sqrt(252.0)*self.stdev_logret)-1) # we should do this only when self.stdev_logret has been updated
-                    _expected_sharpe_ratios = self.allocation_signs # switched to self.allocation_signs from not multiplying anything 
-                    zero_corr_risk_parity_weights = (1.0/_annualized_risk) * _expected_sharpe_ratios
-                    self.erc_weights = zero_corr_risk_parity_weights/numpy.sum(numpy.abs(zero_corr_risk_parity_weights))
-                    self.erc_weights_optim = self.erc_weights
-
-                # Using L1 norm here. It does not optimize well if we use L2 norm.
-                def _get_l1_norm_risk_contributions(_given_weights):
-                    """Function to return the L1 norm of the series of { risk_contrib - mean(risk_contrib) },
-                    or sum of absolute values of the series of { risk_contributions - mean(risk_contributions) }
-                    """
-                    _cov_vec = numpy.array(numpy.asmatrix(_cov_mat)*numpy.asmatrix(_given_weights).T)[:, 0]
-                    _trc = _given_weights*_cov_vec
-                    return (numpy.sum(numpy.abs(_trc - numpy.mean(_trc))))
-
-                _constraints = {'type':'eq', 'fun': lambda x: numpy.sum(numpy.abs(x)) - 1}
-                self.erc_weights_optim = minimize(_get_l1_norm_risk_contributions, self.erc_weights_optim, method='SLSQP', constraints=_constraints, options={'ftol': self.optimization_ftol, 'disp': False, 'maxiter':self.optimization_maxiter}).x
-                self.erc_weights = self.erc_weights_optim
-
-                # We check whether weights produced here have the same signs as self.allocation_signs.
-                # Otherwise we try to correct them
-                if sum(numpy.abs(numpy.sign(self.erc_weights)-numpy.sign(self.allocation_signs))) > 0:
-                    # some sign isn't what it shoudl be
-                    _check_sign_of_weights = False # this is sort of a debugging exercise
-                    if _check_sign_of_weights:
-                        print ( "Sign-check-fail: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
-                    _annualized_risk = 100.0*(numpy.exp(numpy.sqrt(252.0)*self.stdev_logret)-1) # we should do this only when self.stdev_logret has been updated
-                    _expected_sharpe_ratios = self.allocation_signs # switched to self.allocation_signs from not multiplying anything 
-                    zero_corr_risk_parity_weights = (1.0/_annualized_risk) * _expected_sharpe_ratios
-                    self.erc_weights = correct_signs_weights(self.erc_weights, zero_corr_risk_parity_weights)
+                _annualized_risk = 100.0*(numpy.exp(numpy.sqrt(252.0)*self.stdev_logret)-1) # we should do this only when self.stdev_logret has been updated
+                _expected_sharpe_ratios = self.allocation_signs # switched to self.allocation_signs from not multiplying anything 
+                zero_corr_risk_parity_weights = (1.0/_annualized_risk) * _expected_sharpe_ratios # what IVWAS would have done 
+                self.erc_weights = zero_corr_risk_parity_weights
 
                 # In the following steps we resize the portfolio to the target risk level.
                 # We have just used stdev as the measure of risk here since it is simple.
