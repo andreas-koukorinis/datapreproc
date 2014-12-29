@@ -4,24 +4,36 @@ import sys
 from importlib import import_module
 import numpy
 from Algorithm.signal_algorithm import SignalAlgorithm
-from Utils.Regular import check_eod, efficient_frontier
+from Utils.Regular import check_eod, efficient_frontier, adjust_file_path_for_home_directory,
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
 
 
 class MeanVarianceOptimization(SignalAlgorithm):
-    """Inherits SignalAlgorithm class to perform mean variance optimization.
-       It returns weights to be allocated in each product everytime on_events_update() is called.
-    """
+    """Implementation of the Rolling Mean Variance Optimization.
+    Weights are assigned to minimize the following quantity:
+    (expected risk) - (risk tolerance) * (expected returns)
 
+    Items read from config:
+    risk_tolerance: constant in the Optimization function
+    max_allocation: maximum allocation to one asset
+    exp_return_computation_inteval: days after which expected returns is recalculated
+    exp_return_computation_history: days over which expected returns is calculated
+    stddev_computation_interval: days after which std dev is recalculated
+    stddev_computation_history: days over which std dev is calculated
+    correlation_computation_interval: days after which correlaion matrix is recalculated
+    correlation_computation_history: days over which correlaion matrix is calculated
+    stdev_computation_indicator : The indicator to use to compute the estimate of ex-ante standard deviation
+    """
     def init(self, _config):
         """Initialize variables with configuration inputs or defaults"""
+        _paramfilepath = "/dev/null"
+        if _config.has_option('Parameters', 'paramfilepath'):
+            _paramfilepath = adjust_file_path_for_home_directory(_config.get('Parameters', 'paramfilepath'))
+        self.process_param_file(_paramfilepath, _config)
+
         self.day = -1
-        # Set leverage
-        self.max_leverage = 1
-        if _config.has_option('Strategy', 'leverage'):
-            self.max_leverage = _config.getfloat('Strategy', 'leverage')
         # Set risk tolerance
         self.risk_tolerance = 0.015
         if _config.has_option('Strategy', 'risk_tolerance'):
@@ -30,10 +42,6 @@ class MeanVarianceOptimization(SignalAlgorithm):
         self.max_allocation = 0.5
         if _config.has_option('Strategy', 'max_allocation'):
             self.max_allocation = _config.getfloat('Strategy', 'max_allocation')
-        # Set rebalance frequency
-        self.rebalance_frequency = 1
-        if _config.has_option('Parameters', 'rebalance_frequency'):
-            self.rebalance_frequency = _config.getint('Parameters', 'rebalance_frequency')
         # Set expected return computation history
         self.exp_return_computation_history = 252
         if _config.has_option('Strategy', 'exp_return_computation_history'):
@@ -99,6 +107,9 @@ class MeanVarianceOptimization(SignalAlgorithm):
         # TODO Should we change the design of passing arguments to the indicators from a '.' concatenated list to a variable argument set?
         self.correlation_computation_indicator = CorrelationLogReturns.get_unique_instance("CorrelationLogReturns" + '.' + _portfolio_string + '.' + str(self.correlation_computation_history), self.start_date, self.end_date, _config)
 
+    def process_param_file(self, _paramfilepath, _config):
+        super(MeanVarianceOptimization, self).process_param_file(_paramfilepath, _config)
+
     def on_events_update(self, events):
         """Implementation of Mean Variance Optimization in the lines of Modern Portfolio Theory.
         It is different from MPT in the sense that the weights can be positive and negative.
@@ -147,7 +158,7 @@ class MeanVarianceOptimization(SignalAlgorithm):
                 _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stddev_logret, self.stddev_logret)  # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
 
                 # Recompute weights
-                self.weights = efficient_frontier(self.exp_log_returns, _cov_mat, self.max_leverage, self.risk_tolerance, self.max_allocation)
+                self.weights = efficient_frontier(self.exp_log_returns, _cov_mat, self.maximum_leverage, self.risk_tolerance, self.max_allocation)
 
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.weights[self.map_product_to_index[_product]]  # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
