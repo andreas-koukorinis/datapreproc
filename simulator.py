@@ -5,7 +5,7 @@ import sys
 from importlib import import_module
 import ConfigParser
 from dispatcher.dispatcher import Dispatcher
-from utils.regular import get_all_products
+from utils.regular import get_all_products, init_logs
 from strategies.strategy_list import is_valid_strategy_name, get_module_name_from_strategy_name
 from utils.global_variables import Globals
 from utils.dbqueries import get_currency_and_conversion_factors
@@ -57,12 +57,16 @@ def __main__() :
         _end_date = _config.get( 'Dates', 'end_date' )
 
     # Read product list from config file
-    _trade_products = _config.get( 'Products', 'trade_products' ).strip().split(",")
-    _all_products = get_all_products( _config )
+    _trade_products = sorted(_config.get( 'Products', 'trade_products' ).strip().split(","))
+    _all_products = sorted(get_all_products(_config))
 
     # Initialize the global variables
     Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency = get_currency_and_conversion_factors(_all_products, _start_date, _end_date)
 
+    # Initialize the log file handles
+    _log_dir = '/spare/local/logs/' + os.path.splitext(_config_file)[0].split('/')[-1] + '/'
+    init_logs(_config, _log_dir, _all_products)
+   
     # Import the strategy class using 'Strategy'->'name' in config file
     _stratfile = _config.get ( 'Strategy', 'name' )  # Remove .py from filename
     if not(is_valid_strategy_name(_stratfile)):
@@ -75,10 +79,10 @@ def __main__() :
     # Instantiate the strategy
     # Strategy is written by the user and it inherits from TradeAlgorithm
     # TradeLogic here is the strategy class name converted to variable.Eg: UnleveredRP
-    _tradelogic_instance = TradeLogic( _trade_products, _all_products, _start_date, _end_date, _config , os.path.splitext(_config_file)[0].split('/')[-1] ) # TODO Should take logfile as terminal arg
+    _tradelogic_instance = TradeLogic(_trade_products, _all_products, _start_date, _end_date, _config) # TODO Should take logfile as terminal arg
 
     # Instantiate the Dispatcher
-    _dispatcher = Dispatcher.get_unique_instance( _all_products, _start_date, _end_date, _config )
+    _dispatcher = Dispatcher.get_unique_instance(_all_products, _start_date, _end_date, _config)
 
     # Run the dispatcher to start the backtesting process
     _dispatcher.run()

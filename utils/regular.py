@@ -1,3 +1,4 @@
+import os
 import sys
 import re
 from datetime import datetime
@@ -7,6 +8,8 @@ from numpy import hstack, vstack
 from cvxopt import matrix, solvers
 from cvxopt.solvers import qp
 from utils.vector_ops import shift_vec
+from utils import defaults
+from global_variables import Globals
 
 # Returns the full list of products  with fES_1 and fES_2 treated separately
 # Products which are not traded but have indicators based on them are also included 
@@ -183,6 +186,25 @@ def adjust_to_desired_l1norm_range(given_weights, minimum_leverage=0.001, maximu
             given_weights = given_weights * (maximum_leverage / given_leverage)
     return (given_weights)
 
+def init_logs(_config, _log_dir, products):
+    if not os.path.exists(_log_dir):
+        os.makedirs(_log_dir)
+    Globals.debug_level = defaults.DEBUG_LEVEL
+    if _config.has_option('Parameters', 'debug_level'):
+        Globals.debug_level = _config.getint('Parameters','debug_level')
+    if Globals.debug_level > 0:
+        Globals.positions_file = open(_log_dir + '/positions.txt', 'w')
+    if Globals.debug_level > 1:
+        Globals.leverage_file = open(_log_dir + '/leverage.txt', 'w')
+        Globals.weights_file = open(_log_dir + '/weights.txt', 'w')
+        Globals.leverage_file.write('date,leverage\n')
+        Globals.weights_file.write('date,%s\n' % ( ','.join(products)))
+    if Globals.debug_level > 2:
+        Globals.amount_transacted_file = open(_log_dir + '/amount_transacted.txt', 'w')
+        Globals.amount_transacted_file.write('date,amount_transacted\n')
+    Globals.returns_file = open(_log_dir + '/returns.txt', 'wb')
+    Globals.stats_file = open(_log_dir + '/stats.txt', 'w')   
+    
 def efficient_frontier(expected_returns, covariance, max_leverage, risk_tolerance, max_allocation=0.5):
     """ Function that calculates the efficient frontier
         by minimizing

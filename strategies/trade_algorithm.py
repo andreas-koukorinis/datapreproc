@@ -30,7 +30,7 @@ class TradeAlgorithm(EventsListener):
     Inherited by: Every strategy
     """
     
-    def __init__( self, _trade_products, _all_products, _startdate, _enddate, _config, _log_filename):
+    def __init__( self, _trade_products, _all_products, _startdate, _enddate, _config):
         """Initializes the required variables, daily_indicators mentioned in the config file.
         Instantiates the performance_tracker,portfolio,simple_performance_tracker and execlogic
         Stores the reference to the required instances like order_manager,execlogic, portfolio,
@@ -44,7 +44,6 @@ class TradeAlgorithm(EventsListener):
             _startdate(date object): The start date of the simulation
             _enddate(date object): The end date of the simulation
             _config(ConfigParser handle): The handle to the config file of the strategy
-            _log_filename(string): The file for logging.To pass to order_manager # TODO move to Globals
         
         Returns: Nothing 
         """   
@@ -69,23 +68,23 @@ class TradeAlgorithm(EventsListener):
                 for indicator in indicators:
                     indicator_name = indicator.strip().split('.')[0]
                     if is_valid_daily_indicator(indicator_name):
-                        _indicator_module = import_module( 'daily_indicators.' + indicator_name )
-                        Indicatorclass = getattr( _indicator_module, indicator_name )
-                        _instance = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
+                        _indicator_module = import_module('daily_indicators.' + indicator_name)
+                        Indicatorclass = getattr(_indicator_module, indicator_name)
+                        _instance = Indicatorclass.get_unique_instance(indicator, _startdate, _enddate, _config)
                         self.daily_indicators[_instance.identifier] = _instance
 
         # TradeAlgorithm might need to access BookBuilders to access market data.
         self.bb_objects = {}
         for product in self.all_products:
-            self.bb_objects[product] = BookBuilder.get_unique_instance ( product, _startdate, _enddate, _config )
+            self.bb_objects[product] = BookBuilder.get_unique_instance (product, _startdate, _enddate, _config)
 
-        self.order_manager = OrderManager.get_unique_instance ( self.all_products, _startdate, _enddate, _config, _log_filename )
+        self.order_manager = OrderManager.get_unique_instance (self.all_products, _startdate, _enddate, _config)
 
         # Give strategy the access to the portfolio instance
-        self.portfolio = Portfolio ( self.all_products, _startdate, _enddate, _config )
+        self.portfolio = Portfolio (self.all_products, _startdate, _enddate, _config)
 
         # Initialize performance tracker with list of products
-        self.performance_tracker = PerformanceTracker( self.all_products, _startdate, _enddate, _config, _log_filename )
+        self.performance_tracker = PerformanceTracker(self.all_products, _startdate, _enddate, _config)
         self.performance_tracker.portfolio = self.portfolio # Give Performance Tracker access to the portfolio     
         self.simple_performance_tracker = SimplePerformanceTracker(self.products, self.all_products, _startdate, _enddate, _config)
 

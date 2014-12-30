@@ -29,14 +29,9 @@ from utils.global_variables import Globals
 '''
 class PerformanceTracker(BackTesterListener, EndOfDayListener):
 
-    def __init__(self, products, _startdate, _enddate, _config, _log_filename):
+    def __init__(self, products, _startdate, _enddate, _config):
         self.products = products
         self.date = get_dt_from_date(_startdate).date()  #The earliest date for which daily stats still need to be computed
-        if _config.has_option('Parameters', 'debug_level'):
-            self.debug_level = _config.getint('Parameters','debug_level')
-        else:
-            self.debug_level = defaults.DEBUG_LEVEL  # Default value of debug level,in case not specified in config file
-        self.init_logs(_log_filename, self.debug_level)
         self.conversion_factor = Globals.conversion_factor
         self.currency_factor = Globals.currency_factor
         self.product_to_currency = Globals.product_to_currency
@@ -105,20 +100,6 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         for product in products:
             BackTester.get_unique_instance(product, _startdate, _enddate, _config).add_listener(self) # Listen to Backtester for filled orders
             self.bb_objects[product] = BookBuilder.get_unique_instance(product, _startdate, _enddate, _config)
-
-    def init_logs(self, _log_filename, debug_level):
-        if debug_level > 0:
-            self.positions_file = '/spare/local/logs/' + _log_filename + '/positions.txt'
-        if debug_level > 1:
-            self.leverage_file = open('/spare/local/logs/' + _log_filename + '/leverage.txt','w')
-            self.weights_file = open('/spare/local/logs/' + _log_filename + '/weights.txt','w')
-            self.leverage_file.write('date,leverage\n')
-            self.weights_file.write('date,%s\n' % ( ','.join(self.products)))
-        if debug_level > 2:
-            self.amount_transacted_file = open('/spare/local/logs/' + _log_filename + '/amount_transacted.txt', 'w')
-            self.amount_transacted_file.write('date,amount_transacted\n')
-        self.returns_file = '/spare/local/logs/'+_log_filename+'/returns.txt'
-        self.stats_file = '/spare/local/logs/'+_log_filename+'/stats.txt'
 
     def on_last_trading_day(self, _base_symbol, future_mappings):
         shift_future_symbols(self.average_trade_price, future_mappings)
@@ -220,32 +201,30 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             _leverage = net_notional_exposure/self.value[-1]
             self.leverage = append(self.leverage, _leverage)
             self.dates.append(self.date)
-            self.print_logs(self.debug_level, notional_amounts, self.todays_amount_transacted)
+            self.print_logs(notional_amounts, self.todays_amount_transacted)
             self.todays_amount_transacted = 0.0
             self.todays_long_amount_transacted = 0.0
             self.todays_short_amount_transacted = 0.0
 
-    def print_logs(self, debug_level, notional_amounts, todays_amount_transacted):
+    def print_logs(self, notional_amounts, todays_amount_transacted):
         # Print snapshot
-        if debug_level > 0:
-            text_file = open(self.positions_file, "a")
+        if Globals.debug_level > 0:
             if self.PnLvector.shape[0] > 0:
                 s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %0.2f\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\nNotional Allocation: %s\nAverage Trade Price: %s\nLeverage: %0.2f\n\n" % (self.date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares), dict_to_string(notional_amounts), dict_to_string(self.average_trade_price), self.leverage[-1])
             else:
                 s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\nNotional Allocation: %s\nAverage Trade Price: %s\nLeverage: %0.2f\n\n" % (self.date, self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares), dict_to_string(notional_amounts), dict_to_string(self.average_trade_price), self.leverage[-1])
-            text_file.write(s)
-            text_file.close()
+            Globals.positions_file.write(s)
         # Print weights, leverage
-        if debug_level > 1:
+        if Globals.debug_level > 1:
             s = str(self.date)
             for _product in self.products:
                 _weight = notional_amounts[_product]/self.value[-1]
                 s = s + ',%0.2f'% (_weight)
-            self.weights_file.write(s + '\n')
-            self.leverage_file.write('%s,%0.2f\n' % (self.date, self.leverage[-1]))
+            Globals.weights_file.write(s + '\n')
+            Globals.leverage_file.write('%s,%0.2f\n' % (self.date, self.leverage[-1]))
         # Print transacted amount
-        if debug_level > 2:
-            self.amount_transacted_file.write('%s,%0.2f\n' % (self.date, todays_amount_transacted))
+        if Globals.debug_level > 2:
+            Globals.amount_transacted_file.write('%s,%0.2f\n' % (self.date, todays_amount_transacted))
 
     # Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value 
     def current_dd(self, returns):
@@ -475,13 +454,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
 
     # non public function to save results to a file
     def _save_results(self):
-        with open(self.returns_file, 'wb') as f:
-            marshal.dump(zip(map(str, self.dates),self.daily_log_returns), f)
-
-    def _save_stats(self, _stats):
-        text_file = open(self.stats_file, "w")
-        text_file.write("%s" % (_stats))
-        text_file.close()
+        marshal.dump(zip(map(str, self.dates),self.daily_log_returns), Globals.returns_file)
 
     def show_results(self):
         self.PnL = sum(self.PnLvector) # final sum of pnl of all trading days
@@ -533,4 +506,4 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         for benchmark in self.benchmarks:
             _stats += 'Correlation to %s = %0.2f\n' % (benchmark, get_monthly_correlation_to_benchmark(self.dates, self.daily_log_returns, benchmark))
         print _stats
-        self._save_stats(_stats)
+        Globals.stats_file.write(_stats)
