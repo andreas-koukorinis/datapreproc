@@ -1,8 +1,8 @@
 import sys
 from datetime import datetime
 from execlogics.execlogic_algorithm import ExecLogicAlgo
-from Utils.Calculate import get_current_prices, get_mark_to_market, get_current_notional_amounts, find_most_recent_price, find_most_recent_price_future
-from Utils.Regular import is_future, is_future_entity, get_base_symbol, get_first_futures_contract, get_next_futures_contract, get_future_mappings, shift_future_symbols
+from utils.calculate import get_current_prices, get_mark_to_market, get_current_notional_amounts, find_most_recent_price, find_most_recent_price_future
+from utils.regular import is_future, is_future_entity, get_base_symbol, get_first_futures_contract, get_next_futures_contract, get_future_mappings, shift_future_symbols
 
 '''This execlogic switches to the next futures contract on the last trading day(based on volume) and places aggressive orders for rollover'''
 class SimpleExecLogic(ExecLogicAlgo):

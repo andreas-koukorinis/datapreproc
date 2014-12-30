@@ -4,8 +4,8 @@ import datetime
 import numpy
 import scipy.stats as ss
 
-from Utils.Regular import get_first_futures_contract, is_future
-from Utils import defaults
+from utils.regular import get_first_futures_contract, is_future
+from utils import defaults
 from bookbuilder.bookbuilder import BookBuilder
 from DailyIndicators.Indicator_Listeners import IndicatorListener
 from DailyIndicators.DailyLogReturns import DailyLogReturns

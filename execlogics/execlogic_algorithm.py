@@ -1,10 +1,10 @@
 import sys
 from datetime import datetime
 from importlib import import_module
-from Utils.Calculate import get_current_prices, get_current_notional_amounts
-from Utils.global_variables import Globals
-from Utils.Regular import is_future, get_base_symbol, get_future_mappings
-from Utils import defaults
+from utils.calculate import get_current_prices, get_current_notional_amounts
+from utils.global_variables import Globals
+from utils.regular import is_future, get_base_symbol, get_future_mappings
+from utils import defaults
 from risk_management.risk_manager_list import is_valid_risk_manager_name, get_module_name_from_risk_manager_name
 
 class ExecLogicAlgo():

@@ -2,7 +2,7 @@ import os
 from importlib import import_module
 from backtester.backtester_listeners import BackTesterListener
 from backtester.backtester import BackTester
-from Utils import defaults
+from utils import defaults
 
 ''' OrderManager listens to the Strategy for any send/cancel orders
  The job of the order manager is to

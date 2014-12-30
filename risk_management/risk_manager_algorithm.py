@@ -1,5 +1,5 @@
 import datetime
-from Utils import defaults
+from utils import defaults
 
 class RiskManagerAlgo(object):
     def __init__(self, performance_tracker, simple_performance_tracker, _config):

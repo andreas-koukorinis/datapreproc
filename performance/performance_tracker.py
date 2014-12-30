@@ -10,12 +10,12 @@ from backtester.backtester_listeners import BackTesterListener
 from backtester.backtester import BackTester
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import EndOfDayListener
-from Utils.Regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string
-from Utils.Calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts, convert_daily_to_monthly_returns
-from Utils.benchmark_comparison import get_monthly_correlation_to_benchmark
-from Utils import defaults
+from utils.regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string
+from utils.calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts, convert_daily_to_monthly_returns
+from utils.benchmark_comparison import get_monthly_correlation_to_benchmark
+from utils import defaults
 from bookbuilder.bookbuilder import BookBuilder
-from Utils.global_variables import Globals
+from utils.global_variables import Globals
 
 # TODO {gchak} PerformanceTracker is probably a class that just pertains to the performance of one strategy
 # We need to change it from listening to executions from BackTester, to being called on from the OrderManager,

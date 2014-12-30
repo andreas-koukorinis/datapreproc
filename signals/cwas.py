@@ -1,6 +1,6 @@
 import sys
 from signals.signal_algorithm import SignalAlgorithm
-from Utils.Regular import check_eod, adjust_file_path_for_home_directory, is_float_zero
+from utils.regular import check_eod, adjust_file_path_for_home_directory, is_float_zero
 
 class CWAS(SignalAlgorithm):
     """Implementation of the constant weight allcation system, that assigns constant weight to each product as specified in the model file

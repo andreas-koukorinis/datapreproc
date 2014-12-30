@@ -1,8 +1,8 @@
 import sys
 import datetime
-from Utils import defaults
+from utils import defaults
 from risk_manager_algorithm import RiskManagerAlgo
-from Utils.Regular import adjust_file_path_for_home_directory
+from utils.regular import adjust_file_path_for_home_directory
 
 class VarLevel(object):
     '''Variables that encapsulate current var level'''

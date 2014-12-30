@@ -1,9 +1,9 @@
 import sys
-import numpy as numpy
+import numpy
 from importlib import import_module
 import ConfigParser
 
-from Utils.Regular import check_eod, adjust_file_path_for_home_directory, is_float_zero
+from utils.regular import check_eod, adjust_file_path_for_home_directory, is_float_zero
 from DailyIndicators.Indicator_List import is_valid_daily_indicator, get_module_name_from_indicator_name
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 from signals.signal_list import is_valid_signal_name, get_module_name_from_signal_name

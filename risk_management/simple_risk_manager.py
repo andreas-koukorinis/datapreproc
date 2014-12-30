@@ -1,7 +1,7 @@
 import sys
 from risk_manager_algorithm import RiskManagerAlgo
-from Utils import defaults
-from Utils.Regular import adjust_file_path_for_home_directory
+from utils import defaults
+from utils.regular import adjust_file_path_for_home_directory
 
 class SimpleRiskManager(RiskManagerAlgo):
     '''In this risk manager deallcation of capital is based on stoploss levels, drawdown levels, maxloss, and max trading cost per year

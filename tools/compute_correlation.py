@@ -3,7 +3,7 @@ import sys
 from numpy import *
 import scipy.stats as ss
 import datetime
-from Utils.Regular import filter_series
+from utils.regular import filter_series
 
 def compute_correlation(dates_returns_1,dates_returns_2,name_1,name_2):
     print '\n\nCalculating correlation between %s and %s'%(name_1,name_2)

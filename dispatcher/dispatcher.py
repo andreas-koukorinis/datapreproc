@@ -2,9 +2,9 @@ import sys
 from datetime import datetime,timedelta
 import heapq
 import MySQLdb
-from Utils.DbQueries import push_all_events
-from Utils.Regular import get_dt_from_date,check_eod
-from Utils import defaults
+from utils.dbqueries import push_all_events
+from utils.regular import get_dt_from_date,check_eod
+from utils import defaults
 
 class Dispatcher (object):
     """Maintains a heap of all the future events, fetches them in chronological order
