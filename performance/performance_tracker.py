@@ -3,7 +3,7 @@ import os
 import datetime
 from numpy import *
 import scipy.stats as ss
-import pickle
+import marshal
 import itertools
 
 from backtester.backtester_listeners import BackTesterListener
@@ -476,7 +476,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
     # non public function to save results to a file
     def _save_results(self):
         with open(self.returns_file, 'wb') as f:
-            pickle.dump(zip(self.dates,self.daily_log_returns), f)
+            marshal.dump(zip(map(str, self.dates),self.daily_log_returns), f)
 
     def _save_stats(self, _stats):
         text_file = open(self.stats_file, "w")
