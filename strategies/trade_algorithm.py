@@ -5,7 +5,7 @@ from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import EventsListener
 from BookBuilder.BookBuilder import BookBuilder
 from OrderManager.OrderManager import OrderManager
-from Portfolio import Portfolio
+from portfolio import Portfolio
 from Utils import defaults
 from Utils.global_variables import Globals
 from Utils.Calculate import get_current_prices, get_mark_to_market, find_most_recent_price, find_most_recent_price_future
