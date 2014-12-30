@@ -2,6 +2,7 @@ import sys
 import datetime
 from Utils import defaults
 from risk_manager_algorithm import RiskManagerAlgo
+from Utils.Regular import adjust_file_path_for_home_directory
 
 class RiskLevel(object):
     '''Variables that encapsulate current risk level'''
@@ -16,10 +17,9 @@ class RiskManagerPaper(RiskManagerAlgo):
     
        Args:
        capital_allocation_levels=100,75,50,25,0
-       drawdown_levels=15,20,25,30
+       drawdown_levels=12,20,30,50
        return_history=252
-       reallocation_hysteris_days=45
-
+       reallocation_hysteris_days=30
     '''
 
     def init(self, _config):
@@ -27,47 +27,40 @@ class RiskManagerPaper(RiskManagerAlgo):
         1. read the parameters: return_history, drawdown_levels, capital_allocation_levels
         2. setup risk_level_vec
         """
+        # Defaults
+        self.drawdown_levels = [12.0, 20.0, 30.0, 50.0]
+        self.return_history = 252
+        self.capital_allocation_levels = [100.0, 75.0, 50.0, 25.0, 0.0]
+        self.reallocation_hysteris_days = 30
         
-        self.return_history = int(defaults.RETURN_HISTORY)
-        if _config.has_option('RiskManagement', 'return_history'):
-            self.return_history = _config.getint('RiskManagement', 'return_history')
+        # Load existing values from riskprofile_file 
+        _riskprofilefilepath = "/dev/null"
+        if _config.has_option('RiskManagement', 'risk_profile'):
+            _riskprofilefilepath = adjust_file_path_for_home_directory(_config.get('RiskManagement', 'risk_profile'))
+        self.process_riskprofile_file(_riskprofilefilepath)
 
-        self.reallocation_hysteris_days = int(defaults.RISK_MANAGER_REALLOCATION_HYSTERISIS_DAYS)
-        if _config.has_option('RiskManagement', 'reallocation_hysteris_days'):
-            self.reallocation_hysteris_days = _config.getint('RiskManagement', 'reallocation_hysteris_days')
-        
-        _drawdown_levels = list(defaults.DRAWDOWN_LEVELS)
-        if _config.has_option('RiskManagement', 'drawdown_levels'):
-            _drawdown_levels = _config.get('RiskManagement', 'drawdown_levels').split(',')
-        self.drawdown_levels = ([float(x) for x in _drawdown_levels])
+        if self.capital_allocation_levels[0] < 100:
+            self.capital_allocation_levels.insert(0, 100.0) # Highest risk is 100% allocation
+        if self.capital_allocation_levels[-1] > 1:
+            self.capital_allocation_levels.append(0.0) # Liquidate on last level
+ 
         #check that drawdown levels are in increasing order
         for i in xrange(1, len(self.drawdown_levels)):
-            if self.drawdown_levels[i-1] >= self.drawdown_levels[i]:
+            if self.drawdown_levels[i-1] > self.drawdown_levels[i]:
                 # something wrong! Drawdown levels shoudl be in ascending order.
-                print("Drawdown levels should be in increasing order. They seem to not be so! %s" %(','.join(_drawdown_levels)))
-                sys.exit(0)
+                sys.exit("Drawdown levels should be in increasing order. They seem to not be so! %s" %(','.join(_drawdown_levels)))
 
-        _capital_allocation_levels = list(defaults.CAPITAL_ALLOCATION_LEVELS)
-        if _config.has_option('RiskManagement', 'capital_allocation_levels'):
-            _capital_allocation_levels = _config.get('RiskManagement', 'capital_allocation_levels').split(',')
-        _capital_allocation_level_vec = [float(x) for x in _capital_allocation_levels] # convert to float
-        #check that the last risk level is 0 and first allocation is 100
-        if _capital_allocation_level_vec[0] < 100:
-            _capital_allocation_level_vec.insert(0, 100.0) # Highest risk is 100% allocation
-        if _capital_allocation_level_vec[-1] > 1:
-            _capital_allocation_level_vec.append(0.0) # Liquidate on last level
         #check that the capital allocation levels are in descending order
-        for i in xrange (1, len(_capital_allocation_level_vec)):
-            if _capital_allocation_level_vec[i-1] <= _capital_allocation_level_vec[i]:
+        for i in xrange (1, len(self.capital_allocation_levels)):
+            if self.capital_allocation_levels[i-1] < self.capital_allocation_levels[i]:
                 # something wrong since the capital_allocation_levels should be in descending order
-                print("Capital allocation levels should be in descending order. They seem to not be so! %s" %(','.join(_capital_allocation_levels)))
-                sys.exit(0)
+                sys.exit("Capital allocation levels should be in descending order. They seem to not be so! %s" %(','.join(self.capital_allocation_levels)))
 
         #setup the risk level array
         self.risk_level_vec = []
         _current_max_drawdown = 100
-        for i in xrange(0,len(_capital_allocation_level_vec)):
-            _capital_allocation_level = _capital_allocation_level_vec[i]
+        for i in xrange(0,len(self.capital_allocation_levels)):
+            _capital_allocation_level = self.capital_allocation_levels[i]
             if i < len(self.drawdown_levels):
                 _current_max_drawdown = self.drawdown_levels[i]
             else:
@@ -78,6 +71,32 @@ class RiskManagerPaper(RiskManagerAlgo):
         self.current_risk_level_index = 0 # highest risk level. Unfortunately the highest risk level has the smallest index
         self.current_capital_allocation_level = 100.0 # Fully allocated initially
         self.last_risk_level_updated_date = datetime.datetime.fromtimestamp(0).date() 
+
+    def process_riskprofile_file(self, _modelfilepath):
+        """Process the riskprofile_file and load the values
+
+        Args:
+            _modelfilepath: the path to the risk profile file
+
+        Returns: Nothing
+        """
+        _model_file_handle = open(_modelfilepath, "r")
+        # We expect lines like:
+        # drawdown_levels 12 20 30 50
+        # return_history 252
+        # capital_allocation_levels 100 75 50 25 0
+        # reallocation_hysteris_days 30
+        for _model_line in _model_file_handle:
+            _model_line_words = _model_line.strip().split(' ')
+            if len(_model_line_words) >= 2:
+                if _model_line_words[0] == 'drawdown_levels':
+                    self.drawdown_levels = [float(x) for x in _model_line_words[1:]]
+                elif _model_line_words[0] == 'reallocation_hysteris_days':
+                    self.reallocation_hysteris_days = float(_model_line_words[1])
+                elif _model_line_words[0] == 'capital_allocation_levels':
+                    self.capital_allocation_levels = [float(x) for x in _model_line_words[1:]]
+                elif _model_line_words[0] == 'return_history':
+                    self.return_history = float(_model_line_words[1])
 
     def get_risk_level_index_from_drawdown(self,_current_drawdown):
         """private function, that returns the correct index of the risk level array based on the current drawdown level"""

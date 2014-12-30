@@ -21,7 +21,7 @@ class OrderManager():
         else:
             self.debug_level = defaults.DEBUG_LEVEL  # Default value of debug level,in case not specified in config file
         if self.debug_level > 0:
-            self.positions_file = 'logs/'+_log_filename+'/positions.txt'
+            self.positions_file = '/spare/local/logs/'+_log_filename+'/positions.txt'
             open( self.positions_file, 'w' ).close()  # Empty the positions_file,if not present create it
         self.all_orders = []  # List of all orders placed till now
         self.order_status = {} # Dict mapping an order id to its status : 0:placed but not filled, 1:placed and filled, 2:placed but cancelled

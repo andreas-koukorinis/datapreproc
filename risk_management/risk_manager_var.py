@@ -2,6 +2,7 @@ import sys
 import datetime
 from Utils import defaults
 from risk_manager_algorithm import RiskManagerAlgo
+from Utils.Regular import adjust_file_path_for_home_directory
 
 class VarLevel(object):
     '''Variables that encapsulate current var level'''
@@ -34,54 +35,47 @@ class RiskManagerVar(RiskManagerAlgo):
         Returns: Nothing
         """
 
-        self.return_history = int(defaults.RETURN_HISTORY)
-        if _config.has_option('RiskManagement', 'return_history'):
-            self.return_history = _config.getint('RiskManagement', 'return_history')
+        # Defaults
+        self.var_levels = [2.0, 1.5, 1.0, 0.0]
+        self.drawdown_levels = [10.0, 15.0, 20.0]
+        self.stoploss_levels = [10.0, 15.0, 20.0]
+        self.return_history = 252
+        self.var_computation_interval = 63
 
-        self.var_computation_interval = int(defaults.VAR_COMPUTATION_INTERVAL)
-        if _config.has_option('RiskManagement', 'var_computation_interval'):
-            self.var_computation_interval = _config.getint('RiskManagement', 'var_computation_interval')
-
-        _drawdown_levels = list(defaults.DRAWDOWN_LEVELS)
-        if _config.has_option('RiskManagement', 'drawdown_levels'):
-            _drawdown_levels = _config.get('RiskManagement', 'drawdown_levels').split(',')
-        self.drawdown_levels = ([float(x) for x in _drawdown_levels])
+        # Load existing values from riskprofile_file 
+        _riskprofilefilepath = "/dev/null"
+        if _config.has_option('RiskManagement', 'risk_profile'):
+            _riskprofilefilepath = adjust_file_path_for_home_directory(_config.get('RiskManagement', 'risk_profile'))
+        self.process_riskprofile_file(_riskprofilefilepath)
+        
         for i in xrange(1, len(self.drawdown_levels)): #check that drawdown levels are in increasing order
-            if self.drawdown_levels[i-1] >= self.drawdown_levels[i]:
+            if self.drawdown_levels[i-1] > self.drawdown_levels[i]:
                 sys.exit("Drawdown levels should be in increasing order. They seem to not be so! %s" %(','.join(_drawdown_levels)))
 
-        _stoploss_levels = list(defaults.STOPLOSS_LEVELS)
-        if _config.has_option('RiskManagement', 'stoploss_levels'):
-            _stoploss_levels = _config.get('RiskManagement', 'stoploss_levels').split(',')
-        self.stoploss_levels = ([float(x) for x in _stoploss_levels])
         for i in xrange(1, len(self.stoploss_levels)): #check that stoploss levels are in increasing order
-            if self.stoploss_levels[i-1] >= self.stoploss_levels[i]:
+            if self.stoploss_levels[i-1] > self.stoploss_levels[i]:
                 sys.exit("Stoploss levels should be in increasing order. They seem to not be so! %s" %(','.join(_drawdown_levels)))
 
-        _var_levels = list(defaults.VAR_LEVELS)
-        if _config.has_option('RiskManagement', 'var_levels'):
-            _var_levels = _config.get('RiskManagement', 'var_levels').split(',')
-        _var_level_vec = [float(x) for x in _var_levels]
         #check that the last var level is 0.0 and first var level is 2.0
-        if _var_level_vec[0] < 2.0:
-            _var_level_vec.insert(0, 2.0) # Highest var level is 2.0
-        if _var_level_vec[-1] > 0.0:
-            _var_level_vec.append(0.0) # Liquidate on last level
+        if self.var_levels[0] < 2.0:
+            self.var_levels.insert(0, 2.0) # Highest var level is 2.0
+        if self.var_levels[-1] > 0.0:
+            self.var_levels.append(0.0) # Liquidate on last level
         #check that the var levels are in descending order
-        for i in xrange (1, len(_var_level_vec)):
-            if _var_level_vec[i-1] <= _var_level_vec[i]:
-                sys.exit("Var levels should be in increasing order. They seem to not be so! %s" %(','.join(_var_levels)))
+        for i in xrange (1, len(self.var_levels)):
+            if self.var_levels[i-1] <= self.var_levels[i]:
+                sys.exit("Var levels should be in increasing order. They seem to not be so! %s" %(','.join(self.var_levels)))
 
         #check that the length of var_level_vec is 1 greater than the length of drawdown_levels, stoploss_levels
-        if len(_var_level_vec) != 1 + len(_drawdown_levels) or len(_var_level_vec) != 1 + len(_stoploss_levels):
+        if len(self.var_levels) != 1 + len(self.drawdown_levels) or len(self.var_levels) != 1 + len(self.stoploss_levels):
             sys.exit("Number of var levels should be 1 greater than the number of drawdown/stoploss levels.Does not hold!")
 
         #setup the var level array
         self.var_level_vec = []
         _current_max_drawdown = 100
         _current_max_stoploss = 100
-        for i in xrange(0,len(_var_level_vec)):
-            _var_level = _var_level_vec[i]
+        for i in xrange(0,len(self.var_levels)):
+            _var_level = self.var_levels[i]
             if i < len(self.drawdown_levels):
                 _current_max_drawdown = self.drawdown_levels[i]
             else:
@@ -98,6 +92,35 @@ class RiskManagerVar(RiskManagerAlgo):
         self.current_capital_allocation_level = 100.0 # Fully allocated initially
         self.last_risk_level_updated_date = datetime.datetime.fromtimestamp(0).date()
         self.last_var_computation_date = datetime.datetime.fromtimestamp(0).date()
+
+    def process_riskprofile_file(self, _modelfilepath):
+        """Process the riskprofile_file and load the values
+
+        Args:
+            _modelfilepath: the path to the risk profile file
+
+        Returns: Nothing
+        """
+        _model_file_handle = open(_modelfilepath, "r")
+        # We expect lines like:
+        # var_levels 2.0 1.5 1.0 0.0
+        # drawdown_levels 10 15 20
+        # stoploss_levels 10 15 20
+        # return_history 252
+        # var_computation_interval 63
+        for _model_line in _model_file_handle:
+            _model_line_words = _model_line.strip().split(' ')
+            if len(_model_line_words) >= 2:
+                if _model_line_words[0] == 'var_levels':
+                    self.var_levels = [float(x) for x in _model_line_words[1:]]
+                elif _model_line_words[0] == 'drawdown_levels':
+                    self.drawdown_levels = [float(x) for x in _model_line_words[1:]]
+                elif _model_line_words[0] == 'stoploss_levels':
+                    self.stoploss_levels = [float(x) for x in _model_line_words[1:]]
+                elif _model_line_words[0] == 'var_computation_interval':
+                    self.var_computation_interval = float(_model_line_words[1])
+                elif _model_line_words[0] == 'return_history':
+                    self.return_history = float(_model_line_words[1])
 
     def get_var_level_index_from_drawdown(self,_current_drawdown):
         """Private function to compute the correct index of the var level array based on the current drawdown level

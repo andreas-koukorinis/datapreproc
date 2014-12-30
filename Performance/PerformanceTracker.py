@@ -108,17 +108,17 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
 
     def init_logs(self, _log_filename, debug_level):
         if debug_level > 0:
-            self.positions_file = 'logs/' + _log_filename + '/positions.txt'
+            self.positions_file = '/spare/local/logs/' + _log_filename + '/positions.txt'
         if debug_level > 1:
-            self.leverage_file = open('logs/' + _log_filename + '/leverage.txt','w')
-            self.weights_file = open('logs/' + _log_filename + '/weights.txt','w')
+            self.leverage_file = open('/spare/local/logs/' + _log_filename + '/leverage.txt','w')
+            self.weights_file = open('/spare/local/logs/' + _log_filename + '/weights.txt','w')
             self.leverage_file.write('date,leverage\n')
             self.weights_file.write('date,%s\n' % ( ','.join(self.products)))
         if debug_level > 2:
-            self.amount_transacted_file = open('logs/' + _log_filename + '/amount_transacted.txt', 'w')
+            self.amount_transacted_file = open('/spare/local/logs/' + _log_filename + '/amount_transacted.txt', 'w')
             self.amount_transacted_file.write('date,amount_transacted\n')
-        self.returns_file = 'logs/'+_log_filename+'/returns.txt'
-        self.stats_file = 'logs/'+_log_filename+'/stats.txt'
+        self.returns_file = '/spare/local/logs/'+_log_filename+'/returns.txt'
+        self.stats_file = '/spare/local/logs/'+_log_filename+'/stats.txt'
 
     def on_last_trading_day(self, _base_symbol, future_mappings):
         shift_future_symbols(self.average_trade_price, future_mappings)

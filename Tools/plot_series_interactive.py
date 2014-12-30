@@ -18,7 +18,7 @@ def plot_returns(_files):
     The files for return series are expected to be in pickle format i.e.
     pickle dump of list(date,return)'''
     theme = _files[0].split('/')[-1].split('.')[0] # returns
-    _out_file = 'logs/svgs/' + theme + '_'
+    _out_file = '/spare/local/logs/svgs/' + theme + '_'
     datey = DateY(x_label_rotation=-25, dots_size=0.1, \
                         y_title='Cumulative Returns', \
                         x_title='Date', legend_font_size=7,\
@@ -41,7 +41,7 @@ def plot_series(_files):
     The files for series are expected to be in csv format i.e.
     date,return'''
     theme = _files[0].split('/')[-1].split('.')[0] # leverage, weights etc
-    _out_file = 'logs/svgs/' + theme + '_'
+    _out_file = '/spare/local/logs/svgs/' + theme + '_'
     datey = DateY(x_label_rotation=-25, dots_size=0.1, \
                         y_title=theme, x_title='Date', \
                         legend_font_size=7, legend_at_bottom=True)
@@ -74,7 +74,7 @@ def plot_series_separately(_files):
                 datey.x_label_format = "%Y-%m-%d"
                 label = column + '_' + _file.split('/')[-2]
                 datey.add(label, zip(df['date'].values, df[column].values))
-                datey.render_to_png(filename='logs/svgs/'+ column + '.svg')
+                datey.render_to_png(filename='/spare/local/logs/svgs/'+ column + '.svg')
 
 def plot_series_separately(_files):
     '''This function plots the interactive graphs(hover and display values)
@@ -93,7 +93,7 @@ def plot_series_separately(_files):
                 datey.x_label_format = "%Y-%m-%d" 
                 label = column + '_' + _file.split('/')[-2]
                 datey.add(label, zip(df['date'].values, df[column].values))
-                datey.render_to_file(filename='logs/svgs/'+ column + '.svg')
+                datey.render_to_file(filename='/spare/local/logs/svgs/'+ column + '.svg')
 
 def plot_returns_separately(_files):
     '''This function plots the interactive graphs(hover and display values)
@@ -114,11 +114,11 @@ def plot_returns_separately(_files):
                 _returns = df[column].values
                 _cumulative_percent_returns = (np.exp(np.cumsum(_returns)) - 1)*100.0
                 datey.add(label, zip(df['date'].values,_cumulative_percent_returns))
-                datey.render_to_file('logs/svgs/'+ column + '.svg')
+                datey.render_to_file('/spare/local/logs/svgs/'+ column + '.svg')
 
 def main():
     if len(sys.argv) > 1:
-        _directory = 'logs/svgs/'
+        _directory = '/spare/local/logs/svgs/'
         if not os.path.exists(_directory):
             os.makedirs(_directory)
         _type = int(sys.argv[1])
