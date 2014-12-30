@@ -17,10 +17,10 @@ final_order = ['Net Returns', 'Total Tradable Days','Sharpe Ratio', 'Return_draw
 flatten = lambda lst: reduce(lambda l, i: l + flatten(i) if isinstance(i, (list, tuple)) else l + [i], lst, [])
 
 def parse_results(results):
-    """Parses the performance stats(output of Simulator) and returns them as dict
+    """Parses the performance stats(output of simulator) and returns them as dict
 
     Args:
-        results(string): The results shown by the Simulator as a single string
+        results(string): The results shown by the simulator as a single string
 
     Returns: Dictionary from stat name to its value
     """
@@ -442,10 +442,10 @@ def generate_test_configs(base_agg_config_path, test_to_combinations_map, dest_d
     return test_dirs, test_to_agg_config_list_map
 
 def get_perf_stats(agg_configs):
-    """For each set of values to be tested,set up the config files and run Simulator to get the perf stats"""
+    """For each set of values to be tested,set up the config files and run simulator to get the perf stats"""
     performance_stats = []
     for agg_config in agg_configs:
-        proc = subprocess.Popen(['python', '-W', 'ignore', 'Simulator.py', agg_config ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        proc = subprocess.Popen(['python', '-W', 'ignore', 'simulator.py', agg_config ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         performance_stats.append(parse_results(proc.communicate()[0])) # TODO parse results should only parse final_order stats
     return performance_stats
 
@@ -533,7 +533,7 @@ def main():
     """Following tasks are performed in order
     1) Make dir 'base' in /spare/local/logs/param_file/ and copy the following configs : agg_config, signal_configs(+param, +model) and get new_agg_config_path
     2) Read Tests section of permutparamfile and for each test generate combinations of all the variables mentioned in the test, make a folder for each generated combination in the /spare/local/logs/param_file/test_name/ and copy the new configs to that folder
-    3) Run Simulator for each folder like /spare/local/logs/param_file/test_name/xxx/, accumulate the perf stats
+    3) Run simulator for each folder like /spare/local/logs/param_file/test_name/xxx/, accumulate the perf stats
     4) Save all the perf stats, and mappings
     5) Optimize the perf stats for each set of perf stats(corresponding to each test)
     6) Show the results corresponding to each test

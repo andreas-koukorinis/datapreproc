@@ -131,7 +131,7 @@ def cross_validate( _config_file, _trade_products, _start_date, _end_date, folds
             print 'Simulating %dth Portfolio'%i
             i=i+1
             change_weights( _config_file, _products_order, x[:,0] )
-            proc = subprocess.Popen(['python', 'Simulator.py', _config_file, test_dates[0], test_dates[1] ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            proc = subprocess.Popen(['python', 'simulator.py', _config_file, test_dates[0], test_dates[1] ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             performance_stats.append( parse_results( proc.communicate()[0] ) )
             
         # Performance stats chosen as SharpeRatio + 0.20*return_dd_ratio

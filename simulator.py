@@ -20,10 +20,10 @@ def __main__() :
         Print the stats to the standard output
 
     Example run1: 
-        python Simulator.py test/IVWAS.cfg
+        python simulator.py test/IVWAS.cfg
     
     Example run2:
-        python Simulator.py test/IVWAS.cfg 2014-01-01 2014-10-31
+        python simulator.py test/IVWAS.cfg 2014-01-01 2014-10-31
 
     Args: config_file_path <start_date> <end_date>
         config_file_path: The relative path to the config file of the strategy

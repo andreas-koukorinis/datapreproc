@@ -1,29 +1,29 @@
 COMMAND TO RUN:
 ---------------
-#Command to run : python -W ignore Simulator.py config_file <start_date end_date>
-#Example1       : python -W ignore Simulator.py test/config_UnleveredRP.cfg
-#Example2       : python Simulator.py test/config_AQRIX.cfg 2014-07-01 2014-08-01
+Command to run : python -W ignore simulator.py config_file <start_date end_date>
+Example1       : python -W ignore simulator.py test/config_UnleveredRP.cfg
+Example2       : python simulator.py test/config_AQRIX.cfg 2014-07-01 2014-08-01
 
 To run LeveredRP with futures,credits and currency forwards:
 ------------------------------------------------------------
-    python Simulator.py test/config_AQRIX.cfg
+    python simulator.py test/config_AQRIX.cfg
 
 To Print Indicators:
 --------------------
-    python GenData.py test/config_PrintIndicators.cfg
+    python gendata.py test/config_PrintIndicators.cfg
 
 For correlation calculation
 ---------------------------------------
     The return series for the config being run will be stored in returns_TargetRiskRP.txt
-    COMMAND: python Tools/compute_correlation.py returns1.txt returns2.txt
+    COMMAND: python tools/compute_correlation.py returns1.txt returns2.txt
 
 For Time Profiling
 ---------------------------------------
-    COMMAND: python -m cProfile -s cumulative Simulator.py test/config_AQRIX.cfg
+    COMMAND: python -m cProfile -s cumulative simulator.py test/config_AQRIX.cfg
 
 For Debugging(using breakpoints)
 --------------------------------
-1) python -m pdb Simulator.py path_to_config
+1) python -m pdb simulator.py path_to_config
 2) To add a specific line of a file as breakpoint : b DailyIndicators/StdDev.py:39
 3) To move control to next breakpoint : continue
 4) To move control to next line : n

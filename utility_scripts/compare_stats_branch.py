@@ -49,7 +49,7 @@ def main():
         print output
         sys.exit('Could not switch to %s.Please commit changes first'%(branch))
     for config in configs:
-        cmd = "python Simulator.py %s" % (config)
+        cmd = "python simulator.py %s" % (config)
         output1.append(parse_results(commands.getoutput(cmd)))
 
     cmd = 'git checkout %s'%(default_branch)
@@ -57,7 +57,7 @@ def main():
     if 'error' in output:
         sys.exit('Could not switch to %s.Please commit changes first'%(default_branch))
     for config in configs:
-        cmd = "python Simulator.py %s" % (config)
+        cmd = "python simulator.py %s" % (config)
         output2.append(parse_results(commands.getoutput(cmd)))
 
     for i in range(len(configs)):

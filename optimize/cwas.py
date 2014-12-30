@@ -33,7 +33,7 @@ def main():
     def rosen(_weights):
         change_weights( _config_file, _trade_products, _weights )
         # Run the strategy on the input weights
-        proc = subprocess.Popen(['python', 'Simulator.py', _config_file, _start_date, _end_date ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        proc = subprocess.Popen(['python', 'simulator.py', _config_file, _start_date, _end_date ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         _results = parse_results( proc.communicate()[0] )
         return ( -_results['Sharpe Ratio'] )
 

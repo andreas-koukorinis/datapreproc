@@ -102,15 +102,15 @@ def main():
 
     performance_stats = []
 
-    proc = subprocess.Popen(['python', '-W', 'ignore', 'Simulator.py', _config_file, str(_ytd_start_date), str(_ytd_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(['python', '-W', 'ignore', 'simulator.py', _config_file, str(_ytd_start_date), str(_ytd_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     performance_stats.append('------------------------------------------------\nYTD Performance : %s to %s'%(_ytd_start_date,_ytd_end_date))
     performance_stats.append(parse_results( proc.communicate()[0] ) )
 
-    proc = subprocess.Popen(['python', '-W', 'ignore', 'Simulator.py', _config_file, str(_mtd_start_date), str(_mtd_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(['python', '-W', 'ignore', 'simulator.py', _config_file, str(_mtd_start_date), str(_mtd_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     performance_stats.append('------------------------------------------------\nMTD Performance : %s to %s'%(_mtd_start_date,_mtd_end_date))
     performance_stats.append(parse_results( proc.communicate()[0] ) )
 
-    proc = subprocess.Popen(['python', '-W', 'ignore', 'Simulator.py', _config_file, str(_yday_start_date), str(_yday_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(['python', '-W', 'ignore', 'simulator.py', _config_file, str(_yday_start_date), str(_yday_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     proc.communicate()
     performance_stats.append('------------------------------------------------\nYDAY Performance : %s to %s'%(_yday_start_date,_yday_end_date))
     performance_stats.append(get_positions(_current_date, _config_file))
