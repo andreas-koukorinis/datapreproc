@@ -5,7 +5,7 @@ from Dispatcher.Dispatcher_Listeners import EventsListener
 from BookBuilder.BookBuilder import BookBuilder
 from Utils import defaults
 from Utils.Regular import get_all_products
-from Performance.simple_performance_tracker import SimplePerformanceTracker
+from performance.simple_performance_tracker import SimplePerformanceTracker
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 
 class SignalAlgorithm(EventsListener): # TODO May be Should listen to events corresponding to own products
