@@ -4,6 +4,7 @@ import os
 import shutil
 import numpy
 import argparse
+import fileinput
 import subprocess
 import itertools
 import ConfigParser
@@ -32,6 +33,27 @@ def parse_results(results):
             _val = _result[1].strip()
             _dict_results[_name] = _val
     return _dict_results
+
+def findAll(file, searchExp):
+    found = False
+    handle = open(file, "r")
+    for line in handle:
+        if searchExp in line:
+            found = True
+            break
+    handle.close()
+    return found
+
+def replaceAll(file, searchExp, replaceExp): # TODO change to efficient one
+    found = False
+    handle = fileinput.input(file, inplace=1)
+    for line in handle:
+        if searchExp in line:
+            line = replaceExp + '\n'
+            found = True
+        sys.stdout.write(line)
+    handle.close()
+    return found
 
 def is_optional_pattern(pattern):
     return len(pattern) >= 2 and pattern[0] == '<' and pattern[-1] == '>'
@@ -164,6 +186,65 @@ def copy_config_files(agg_config_path, dest_dir):
         agg_config.write(configfile)
     return new_agg_config_path
 
+def get_all_param_locations(base_agg_config_path, param_names):
+    # param_location_map : Map from one of these 'Strategy' -> [(idx, section, param_name)],'Signali' to [ [(idx, section, param_name)], [(idx, param_name)], [(idx, param_name)] ]
+    param_location_map = {}
+    agg_config = ConfigParser.ConfigParser() # Read aggregator config
+    agg_config.optionxform = str
+    agg_config.readfp(open(base_agg_config_path, 'r'))
+    signal_config_paths = agg_config.get('Strategy','signal_configs').split(',')
+    signal_configs = []
+    for i in range(len(signal_config_paths)):
+        signal_config = ConfigParser.ConfigParser() # Read aggregator config
+        signal_config.optionxform = str
+        _signal_config_path = signal_config_paths[i].replace("~", os.path.expanduser("~"))
+        signal_config.readfp(open(_signal_config_path, 'r'))
+        if not signal_config.has_option('Strategy', 'modelfilepath'): # TODO modelfile should be optional
+            sys.exit('something wrong! modelfilepath not there in signal config')
+        _model_file_path = signal_config.get('Strategy', 'modelfilepath').replace("~", os.path.expanduser("~"))
+        if not signal_config.has_option('Parameters', 'paramfilepath'):
+            sys.exit('something wrong! paramfilepath not there in signal config')
+        _param_file_path = signal_config.get('Parameters', 'paramfilepath').replace("~", os.path.expanduser("~"))
+        signal_configs.append((signal_config, _param_file_path, _model_file_path))
+
+    idx = 0
+    for section, param in param_names:
+        found = False
+        if section not in param_location_map.keys():
+            if section[0:6] == 'Signal':
+                param_location_map[section] = [[],[],[]]
+            else:
+                param_location_map[section] = []
+        if section == 'Strategy':
+            for _section in agg_config.sections():
+                for _var in agg_config.options(_section):
+                    if _var == param:
+                        param_location_map[section].append((idx, _section, _var))
+                        found = True
+                        break
+                if found: break
+        elif section[0:6] == 'Signal': # TODO change to better way
+            signal_num = int(section[6:]) - 1
+            for _section in signal_configs[signal_num][0].sections():
+                for _var in signal_configs[signal_num][0].options(_section):
+                    if _var == param:
+                        param_location_map[section][0].append((idx, _section, _var))
+                        found = True
+                        break
+                if found: break
+            if not found:
+                found = findAll(signal_configs[signal_num][1], param)
+                if found:
+                    param_location_map[section][1].append((idx, param))
+                else:
+                    found = findAll(signal_configs[signal_num][2], param)
+                    if found:
+                        param_location_map[section][1].append((idx, param))
+        if not found:
+            sys.exit('something wrong! could not find a param anywhere')
+        idx += 1
+    return param_location_map
+
 def generate_test_combinations(permutparam_config_path):
     """Reads the permutparams file and generates all the pairs of values to be tested
 
@@ -240,7 +321,7 @@ def generate_test_combinations(permutparam_config_path):
         all_params.extend(nondep_params)
         all_comb = list(itertools.product(*all_comb))
         all_comb = map(flatten, all_comb)
-        test_to_combinations_map[test_name] = all_comb
+        test_to_combinations_map[test_name] = (all_params, all_comb)
     return test_to_combinations_map
 
 def generate_combinations_for_test(variables, permutparam_config):
@@ -273,8 +354,90 @@ def generate_combinations_for_test(variables, permutparam_config):
                             test_combinations.append(dep_vars_comb)
     return test_combinations, variable_to_combination_map # TODO give better names
 
-def test_to_agg_config_list_map = generate_test_configs(base_agg_config_path, test_to_combinations_map, dest_dir):
-    pass 
+def generate_test_configs(base_agg_config_path, test_to_combinations_map, dest_dir):
+    '''Creates dir for each test and separate folder of each set of params for a given test'''
+    test_to_agg_config_list_map = {}
+    for test_name in test_to_combinations_map.keys():
+        test_dir = dest_dir + test_name + '/'
+        test_to_agg_config_list_map[test_name] = []
+        if not os.path.exists(test_dir):
+            os.makedirs(test_dir)
+
+        # find out the location of params for this test
+        # param_location_map : Map from one of these 'Strategy' -> [(idx, section, param_name)],'Signali' to [ [(idx, section, param_name)], [(idx, param_name)], [(idx, param_name)] ]
+        param_location_map = get_all_param_locations(base_agg_config_path, test_to_combinations_map[test_name][0])
+
+        for i in range(len(test_to_combinations_map[test_name][1])):
+            expt_dir = test_dir + str(i) + '/'
+            if not os.path.exists(expt_dir):
+                os.makedirs(expt_dir)
+            new_agg_config_path = expt_dir + os.path.basename(base_agg_config_path)
+            test_to_agg_config_list_map[test_name].append(new_agg_config_path) # save the agg path
+            shutil.copyfile(base_agg_config_path, new_agg_config_path)
+            agg_config = ConfigParser.ConfigParser() # Read aggregator config
+            agg_config.optionxform = str
+            agg_config.readfp(open(new_agg_config_path, 'r'))
+            if not agg_config.has_option('Strategy','signal_configs'):
+                sys.exit('something wrong. Signal config path not present in agg config')
+            _signal_configs = agg_config.get('Strategy','signal_configs').split(',')
+
+            _signal_config_string = []            
+            for k in range(len(_signal_configs)):
+                _new_signal_path = expt_dir + os.path.basename(_signal_configs[k])
+                _old_signal_path = _signal_configs[k]
+                shutil.copyfile(_old_signal_path, _new_signal_path)
+                _signal_config_string.append(_new_signal_path)
+            _signal_config_string = ','.join(_signal_config_string)
+            agg_config.set('Strategy','signal_configs', _signal_config_string)
+
+            # change variables in agg config
+            if 'Strategy' in param_location_map.keys():
+                for idx, section, param_name in param_location_map['Strategy']:
+                    if not agg_config.has_option(section, param_name):
+                        sys.exit('something wrong in agg config section')
+                    agg_config.set(section, param_name, test_to_combinations_map[test_name][0][i][idx])
+                    # Write the agg config file with modifications
+            with open(new_agg_config_path, 'wb') as configfile:
+                agg_config.write(configfile)
+
+            signal_configs = agg_config.get('Strategy','signal_configs').split(',')
+            for j in range(len(signal_configs)):
+                new_signal_config_path = signal_configs[j]
+                signal_config = ConfigParser.ConfigParser() # Read signal configs
+                signal_config.optionxform = str
+                signal_config.readfp(open(new_signal_config_path, 'r'))
+                if not signal_config.has_option('Parameters','paramfilepath'):
+                    sys.exit('something wrong! No paramfilepath in signal config')
+                _old_paramfilepath = signal_config.get('Parameters','paramfilepath').replace("~", os.path.expanduser("~"))
+                _new_paramfilepath = expt_dir + os.path.splitext(os.path.basename(new_signal_config_path))[0] + '-' + os.path.basename(_old_paramfilepath)
+                shutil.copyfile(_old_paramfilepath, _new_paramfilepath) # copy paramfile of signal config to new destination
+                _old_modelfilepath = signal_config.get('Strategy','modelfilepath').replace("~", os.path.expanduser("~"))
+                _new_modelfilepath = expt_dir + os.path.splitext(os.path.basename(new_signal_config_path))[0] + '-' + os.path.basename(_old_modelfilepath)
+                shutil.copyfile(_old_modelfilepath, _new_modelfilepath) # copy modelfile of signal config to new destination
+                signal_config.set('Parameters', 'paramfilepath', _new_paramfilepath)
+                signal_config.set('Strategy', 'modelfilepath', _new_modelfilepath)
+                signal_section = 'Signal%d' % (j+1)
+                with open(new_signal_config_path, 'wb') as configfile:
+                    signal_config.write(configfile)
+                if signal_section in param_location_map.keys(): 
+                    for idx, section, param_name in param_location_map[signal_section][0]: # Signal config params
+                        if not signal_config.has_option(section, param_name):
+                            sys.exit('something wrong in signal config section')
+                        signal_config.set(section, param_name, test_to_combinations_map[test_name][1][i][idx]) 
+                    for idx, param_name in param_location_map[signal_section][1]: # Signal paramfile params
+                        new_line = '%s %s' % (param_name, test_to_combinations_map[test_name][1][i][idx])
+                        status = replaceAll(_new_paramfilepath, param_name, new_line)
+                        if not status:
+                            sys.exit('something wrong! could not find param in paramfile')
+                    for idx, param_name in param_location_map[signal_section][2]: # Signal modelfile params
+                        new_line = '%s %s' % (param_name, test_to_combinations_map[test_name][1][i][idx])
+                        status = replaceAll(_new_modelfilepath, param_name, new_line)
+                        if not status:
+                            sys.exit('something wrong! could not find param in modelfile')
+                # Write the signal file with modifications at the end
+                with open(new_signal_config_path, 'wb') as configfile:
+                    signal_config.write(configfile)
+    return test_to_agg_config_list_map
 
 def set_configs(param_names, values):
     """Change the configs to accomodate for this param set"""
@@ -414,8 +577,8 @@ def main():
 
     new_agg_config_path = copy_config_files(agg_config_path, dest_dir)
     test_to_combinations_map = generate_test_combinations(permutparam_config_path)
-    #test_to_agg_config_list_map = generate_test_configs(new_agg_config_path, test_to_combinations_map, dest_dir)
-    #print test_to_agg_config_list_map
+    test_to_agg_config_list_map = generate_test_configs(new_agg_config_path, test_to_combinations_map, dest_dir)
+    print test_to_agg_config_list_map
     '''
     # perf_stats is a dict from test dir path to list of perf stats
     perf_stats = get_perf_stats(test_to_agg_config_list_map) # TODO distribute this task among different machines and collect results
