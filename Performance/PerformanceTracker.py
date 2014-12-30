@@ -459,23 +459,18 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         """A modification of the Sharpe ratio that only takes negative deviation from a target return into consideration.
         The Sortino ratio subtracts the risk-free rate of return from the portfolios return, and then divides that by the downside deviation.
         A large Sortino ratio indicates there is a low probability of a large loss.
-        Target return is taken as 0 in calculating sortino ratio in our implementation.
+        Target return and risk free rate are taken as 0 in calculating sortino ratio in our implementation.
 
         Args:
             returns: daily log returns
         Returns:
             Sortino ratio for the given daily log returns series
         """
-        avg_ret = mean(returns)
-        # Take all negative returns.
-        neg_ret = where(returns < 0, returns**2, 0)
-        #neg_ret = [ret ** 2 for ret in returns if ret < 0]
-        # Downside risk as deviation from 0 in the negative 
-        #down_risk = sqrt(sum(neg_ret)/len(returns))
-        down_risk = sqrt(mean(neg_ret))
+        neg_ret_sq = where(returns < 0, returns**2, 0) # Take square of all -ve returns, 0 for +ve returns.
+        down_risk = sqrt(mean(neg_ret)) # Downside risk as deviation from 0 in the negative
         sortino = 0
         if not is_float_zero(down_risk):
-            sortino = (exp(252.0 * avg_ret) - 1) / (exp(sqrt(252.0) * down_risk) -1)
+            sortino = (exp(252.0 * mean(returns)) - 1) / (exp(sqrt(252.0) * down_risk) -1)
         return sortino
 
     # non public function to save results to a file
