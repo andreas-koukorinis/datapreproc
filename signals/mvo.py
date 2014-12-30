@@ -9,22 +9,21 @@ from daily_indicators.Indicator_List import is_valid_daily_indicator
 from daily_indicators.portfolio_utils import make_portfolio_string_from_products
 from daily_indicators.correlation_log_returns import CorrelationLogReturns
 
-
 class MeanVarianceOptimization(SignalAlgorithm):
     """Implementation of the Rolling Mean Variance Optimization.
     Weights are assigned to minimize the following quantity:
     (expected risk) - (risk tolerance) * (expected returns)
 
     Items read from config:
-    risk_tolerance: constant in the Optimization function
-    max_allocation: maximum allocation to one asset
-    exp_return_computation_inteval: days after which expected returns is recalculated
-    exp_return_computation_history: days over which expected returns is calculated
-    stddev_computation_interval: days after which std dev is recalculated
-    stddev_computation_history: days over which std dev is calculated
-    correlation_computation_interval: days after which correlaion matrix is recalculated
-    correlation_computation_history: days over which correlaion matrix is calculated
-    stdev_computation_indicator : The indicator to use to compute the estimate of ex-ante standard deviation
+        risk_tolerance: constant in the Optimization function
+        max_allocation: maximum allocation to one asset
+        exp_return_computation_inteval: days after which expected returns is recalculated
+        exp_return_computation_history: days over which expected returns is calculated
+        stddev_computation_interval: days after which std dev is recalculated
+        stddev_computation_history: days over which std dev is calculated
+        correlation_computation_interval: days after which correlaion matrix is recalculated
+        correlation_computation_history: days over which correlaion matrix is calculated
+        stdev_computation_indicator : The indicator to use to compute the estimate of ex-ante standard deviation
     """
     def init(self, _config):
         """Initialize variables with configuration inputs or defaults"""
