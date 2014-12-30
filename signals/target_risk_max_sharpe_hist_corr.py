@@ -117,7 +117,7 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
                         idx += 2
 
         if is_valid_daily_indicator(self.stdev_computation_indicator_name):
-            _stdev_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator_name))
+            _stdev_indicator_module = import_module('daily_indicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator_name))
             StdDevIndicatorClass = getattr(_stdev_indicator_module, self.stdev_computation_indicator_name)
         else:
             sys.exit( "stdev_computation_indicator string %s is invalid" %(self.stdev_computation_indicator_name) )

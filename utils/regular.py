@@ -6,8 +6,7 @@ import numpy
 from numpy import hstack, vstack
 from cvxopt import matrix, solvers
 from cvxopt.solvers import qp
-
-from Utils.vector_ops import shift_vec
+from utils.vector_ops import shift_vec
 
 # Returns the full list of products  with fES_1 and fES_2 treated separately
 # Products which are not traded but have indicators based on them are also included 

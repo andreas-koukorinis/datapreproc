@@ -3,8 +3,8 @@ import ConfigParser
 import numpy
 from importlib import import_module
 from utils.regular import check_eod, adjust_file_path_for_home_directory, is_float_zero
-from DailyIndicators.Indicator_List import is_valid_daily_indicator, get_module_name_from_indicator_name
-from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
+from daily_indicators.indicator_list import is_valid_daily_indicator, get_module_name_from_indicator_name
+from daily_indicators.portfolio_utils import make_portfolio_string_from_products
 from signals.signal_list import is_valid_signal_name, get_module_name_from_signal_name
 from strategies.trade_algorithm import TradeAlgorithm
 

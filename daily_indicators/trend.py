@@ -1,7 +1,7 @@
 import sys
 import numpy as numpy
-from DailyIndicators.Indicator_Listeners import IndicatorListener
-from DailyIndicators.DailyLogReturns import DailyLogReturns
+from daily_indicators.indicator_listeners import IndicatorListener
+from daily_indicators.daily_log_returns import DailyLogReturns
 
 
 class Trend(IndicatorListener):

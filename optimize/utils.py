@@ -17,7 +17,7 @@ def get_logreturns( _config_file, _trade_products, _start_date, _end_date, _retu
     _config = ConfigParser.ConfigParser()
     _config.readfp( open( _new_config_file, 'r' ) )
     s = 'DailyLogReturns.' + (' DailyLogReturns.').join(_trade_products)
-    _config.set("DailyIndicators", "names", s)
+    _config.set("daily_indicators", "names", s)
     with open(_new_config_file, 'wb') as configfile:
         _config.write(configfile)
     # Run gendata on the new config to generate the indicator file

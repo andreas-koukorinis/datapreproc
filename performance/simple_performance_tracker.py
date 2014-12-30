@@ -8,7 +8,7 @@ from utils.regular import get_first_futures_contract, is_future
 from utils import defaults
 from bookbuilder.bookbuilder import BookBuilder
 from daily_indicators.indicator_listeners import IndicatorListener
-from daily_indicators.DailyLogReturns import DailyLogReturns
+from daily_indicators.daily_log_returns import DailyLogReturns
 
 class SimplePerformanceTracker(IndicatorListener):
     '''SimplePerformanceTracker listens to the Dispatcher for concurrent events and keeps track of daily_log_returns irrespective of whether the strategy is running or not'''

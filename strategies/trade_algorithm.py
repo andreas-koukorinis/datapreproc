@@ -69,7 +69,7 @@ class TradeAlgorithm(EventsListener):
                 for indicator in indicators:
                     indicator_name = indicator.strip().split('.')[0]
                     if is_valid_daily_indicator(indicator_name):
-                        _indicator_module = import_module( 'DailyIndicators.' + indicator_name )
+                        _indicator_module = import_module( 'daily_indicators.' + indicator_name )
                         Indicatorclass = getattr( _indicator_module, indicator_name )
                         _instance = Indicatorclass.get_unique_instance( indicator, _startdate, _enddate, _config )
                         self.daily_indicators[_instance.identifier] = _instance

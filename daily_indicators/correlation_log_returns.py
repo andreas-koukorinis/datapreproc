@@ -1,8 +1,8 @@
 import numpy as np
 from datetime import datetime
-from Utils.Regular import get_dt_from_date
-from Indicator_Listeners import IndicatorListener
-from DailyLogReturns import DailyLogReturns
+from utils.regular import get_dt_from_date
+from indicator_listeners import IndicatorListener
+from daily_log_returns import DailyLogReturns
 from portfolio_utils import get_products_from_portfolio_string,make_portfolio_string_from_products
 
 class CorrelationLogReturns(IndicatorListener):

@@ -8,7 +8,7 @@ from dispatcher.dispatcher import Dispatcher
 from utils.regular import get_all_products
 from strategies.strategy_list import is_valid_strategy_name, get_module_name_from_strategy_name
 from utils.global_variables import Globals
-from utils.DbQueries import get_currency_and_conversion_factors
+from utils.dbqueries import get_currency_and_conversion_factors
 
 def __main__() :
     """ Performs the backtesting of the strategy

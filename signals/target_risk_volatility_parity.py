@@ -6,9 +6,9 @@ from scipy.optimize import minimize
 
 from utils.regular import check_eod, adjust_file_path_for_home_directory, is_float_zero, parse_weights, adjust_to_desired_l1norm_range
 from utils.correct_signs_weights import correct_signs_weights
-from DailyIndicators.Indicator_List import is_valid_daily_indicator,get_module_name_from_indicator_name
-from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
-from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
+from daily_indicators.indicator_list import is_valid_daily_indicator,get_module_name_from_indicator_name
+from daily_indicators.portfolio_utils import make_portfolio_string_from_products
+from daily_indicators.correlation_log_returns import CorrelationLogReturns
 from signals.signal_algorithm import SignalAlgorithm
 
 class TargetRiskVolatilityParity(SignalAlgorithm):
@@ -117,7 +117,7 @@ class TargetRiskVolatilityParity(SignalAlgorithm):
                         idx += 2
 
         if is_valid_daily_indicator(self.stdev_computation_indicator_name):
-            _stdev_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator_name))
+            _stdev_indicator_module = import_module('daily_indicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator_name))
             StdDevIndicatorClass = getattr(_stdev_indicator_module, self.stdev_computation_indicator_name)
         else:
             sys.exit( "stdev_computation_indicator string %s is invalid" %(self.stdev_computation_indicator_name) )

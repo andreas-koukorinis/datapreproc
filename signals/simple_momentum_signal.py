@@ -3,8 +3,8 @@ import numpy
 from importlib import import_module
 
 from utils.regular import check_eod, adjust_file_path_for_home_directory, is_float_zero, parse_weights, adjust_to_desired_l1norm_range
-from DailyIndicators.Indicator_List import is_valid_daily_indicator,get_module_name_from_indicator_name
-from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
+from daily_indicators.indicator_list import is_valid_daily_indicator,get_module_name_from_indicator_name
+from daily_indicators.portfolio_utils import make_portfolio_string_from_products
 from signals.signal_algorithm import SignalAlgorithm
 
 class SimpleMomentumSignal( SignalAlgorithm ):
@@ -97,14 +97,14 @@ class SimpleMomentumSignal( SignalAlgorithm ):
                                 _map_product_to_trend_computation_history = _computation_words[1:]
 
         if is_valid_daily_indicator(self.stdev_computation_indicator_name):
-            _stdev_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator_name))
+            _stdev_indicator_module = import_module('daily_indicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator_name))
             StdDevIndicatorClass = getattr(_stdev_indicator_module, self.stdev_computation_indicator_name)
         else:
             print ( "stdev_computation_indicator string %s is invalid" %(self.stdev_computation_indicator_name) )
             sys.exit(0)
 
         if is_valid_daily_indicator(self.trend_computation_indicator_name):
-            _trend_indicator_module = import_module('DailyIndicators.' + get_module_name_from_indicator_name(self.trend_computation_indicator_name))
+            _trend_indicator_module = import_module('daily_indicators.' + get_module_name_from_indicator_name(self.trend_computation_indicator_name))
             TrendIndicatorClass = getattr(_trend_indicator_module, self.trend_computation_indicator_name)
         else:
             print ( "stdev_computation_indicator string %s is invalid" %(self.trend_computation_indicator_name) )

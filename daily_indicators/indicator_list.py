@@ -11,23 +11,23 @@ def is_valid_daily_indicator ( _daily_indicator_module_name ) :
 def get_module_name_from_indicator_name ( indicator_name ) :
     if is_valid_daily_indicator ( indicator_name ):
         if indicator_name == "AverageDiscretizedTrend":
-            return ("AverageDiscretizedTrend")
+            return ("average_discretized_trend")
         if indicator_name == "AverageStdDev":
-            return ("AverageStdDev")
+            return ("average_stddev")
         if indicator_name == "CorrelationLogReturns":
-            return ("CorrelationLogReturns")
+            return ("correlation_log_returns")
         if indicator_name == "DailyLogReturns":
-            return ("DailyLogReturns")
+            return ("daily_log_returns")
         if indicator_name == "MovingAverage":
-            return ("MovingAverage")
+            return ("moving_average")
         if indicator_name == "StdDevCrossover":
-            return ("StdDevCrossover")
+            return ("stddev_crossover")
         if indicator_name == "StdDev":
-            return ("StdDev")
+            return ("stddev")
         if indicator_name == "Trend":
-            return ("Trend")
+            return ("trend")
         if indicator_name == "ExpectedReturns":
-            return ("ExpectedReturns")
+            return ("expected_returns")
         return (indicator_name)
     else:
         print ( "get_module_name_from_indicator_name called with bad indicator_name %s" %(indicator_name) )

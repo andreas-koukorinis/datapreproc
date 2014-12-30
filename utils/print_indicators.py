@@ -17,11 +17,11 @@ class PrintIndicators(IndicatorListener):
         self.latest_indicator_values = {}
         self.all_indicator_values = {}
         # Read indicator list from config file
-        self.identifiers = sorted(_config.get('DailyIndicators', 'names').strip().split(" "))
+        self.identifiers = sorted(_config.get('daily_indicators', 'names').strip().split(" "))
         #Instantiate daily indicator objects
         for identifier in self.identifiers:
             indicator_name = identifier.strip().split('.')[0]
-            module = import_module('DailyIndicators.' + indicator_name)
+            module = import_module('daily_indicators.' + indicator_name)
             _indicator_class = getattr(module, indicator_name)
             _indicator_class.get_unique_instance(identifier, _startdate, _enddate, _config).add_listener(self)
             self.latest_indicator_values[identifier] = 0.0 # Default value for each indicator

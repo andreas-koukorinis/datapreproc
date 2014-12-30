@@ -1,8 +1,8 @@
 from numpy import *
-from Indicator_Listeners import IndicatorListener
+from indicator_listeners import IndicatorListener
 from bookbuilder.bookbuilder import BookBuilder
 from bookbuilder.bookbuilder_listeners import DailyBookListener
-from Utils.Regular import get_first_futures_contract,is_future_entity
+from utils.regular import get_first_futures_contract,is_future_entity
 
 # Track the standard deviation of log returns for the product
 # In the config file this indicator will be specfied as : MovingAverage1.product.period

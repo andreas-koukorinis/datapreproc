@@ -5,9 +5,9 @@ from importlib import import_module
 import numpy
 from signals.signal_algorithm import SignalAlgorithm
 from utils.regular import check_eod, efficient_frontier, adjust_file_path_for_home_directory
-from DailyIndicators.Indicator_List import is_valid_daily_indicator
-from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
-from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
+from daily_indicators.Indicator_List import is_valid_daily_indicator
+from daily_indicators.portfolio_utils import make_portfolio_string_from_products
+from daily_indicators.correlation_log_returns import CorrelationLogReturns
 
 
 class MeanVarianceOptimization(SignalAlgorithm):
@@ -89,14 +89,14 @@ class MeanVarianceOptimization(SignalAlgorithm):
             self.expreturns_indicator = 'ExpectedReturns'
             indicator = self.expreturns_indicator + '.' + product + '.' + str(self.exp_return_computation_history)
             if is_valid_daily_indicator(self.expreturns_indicator):
-                module = import_module('DailyIndicators.' + self.expreturns_indicator)
+                module = import_module('daily_indicators.' + self.expreturns_indicator)
                 Indicatorclass = getattr(module, self.expreturns_indicator)
                 self.daily_indicators[indicator] = Indicatorclass.get_unique_instance(indicator, self.start_date, self.end_date, _config)
         # Set indicator for stddev_computation_indicator
         if is_valid_daily_indicator(self.stddev_computation_indicator):
             for product in self.products:
                 _orig_indicator_name = self.stddev_computation_indicator + '.' + product + '.' + str(self.stddev_computation_history)  # this would be something like StdDev.fTY.252
-                module = import_module('DailyIndicators.' + self.stddev_computation_indicator)
+                module = import_module('daily_indicators.' + self.stddev_computation_indicator)
                 Indicatorclass = getattr(module, self.stddev_computation_indicator)
                 self.daily_indicators[_orig_indicator_name] = Indicatorclass.get_unique_instance(_orig_indicator_name, self.start_date, self.end_date, _config)
         else:

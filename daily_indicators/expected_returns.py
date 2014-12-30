@@ -1,6 +1,6 @@
 from numpy import *
-from Indicator_Listeners import IndicatorListener
-from DailyLogReturns import DailyLogReturns
+from indicator_listeners import IndicatorListener
+from daily_log_returns import DailyLogReturns
 
 
 # Track the expected value of log returns for the product

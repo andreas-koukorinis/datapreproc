@@ -3,8 +3,8 @@ from numpy import *
 import datetime
 from bookbuilder.bookbuilder_listeners import DailyBookListener
 from bookbuilder.bookbuilder import BookBuilder
-from Utils.Regular import get_next_futures_contract,get_first_futures_contract,is_future_entity,is_future
-from Utils.global_variables import Globals
+from utils.regular import get_next_futures_contract,get_first_futures_contract,is_future_entity,is_future
+from utils.global_variables import Globals
 from datetime import timedelta
 
 # Track the daily log returns for the product
