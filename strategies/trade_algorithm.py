@@ -6,13 +6,13 @@ from dispatcher.dispatcher_listeners import EventsListener
 from bookbuilder.bookbuilder import BookBuilder
 from order_manager.order_manager import OrderManager
 from portfolio import Portfolio
-from Utils import defaults
-from Utils.global_variables import Globals
-from Utils.Calculate import get_current_prices, get_mark_to_market, find_most_recent_price, find_most_recent_price_future
-from Utils.Regular import is_future, get_next_futures_contract, get_weights_for_trade_products
+from utils import defaults
+from utils.global_variables import Globals
+from utils.calculate import get_current_prices, get_mark_to_market, find_most_recent_price, find_most_recent_price_future
+from utils.regular import is_future, get_next_futures_contract, get_weights_for_trade_products
 from performance.performance_tracker import PerformanceTracker
 from performance.simple_performance_tracker import SimplePerformanceTracker
-from DailyIndicators.Indicator_List import is_valid_daily_indicator
+from daily_indicators.indicator_list import is_valid_daily_indicator
 from execlogics.execlogic_list import is_valid_execlogic_name, get_module_name_from_execlogic_name
 
 class TradeAlgorithm(EventsListener):

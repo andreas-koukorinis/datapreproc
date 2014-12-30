@@ -3,7 +3,7 @@ import datetime
 import MySQLdb
 import heapq
 import numpy as np
-from Regular import is_future,get_base_symbol
+from regular import is_future,get_base_symbol
 
 #Connect to the database and return the db cursor if the connection is successful
 def db_connect():

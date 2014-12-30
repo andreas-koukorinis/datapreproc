@@ -3,10 +3,10 @@ from importlib import import_module
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import EventsListener
 from bookbuilder.bookbuilder import BookBuilder
-from Utils import defaults
-from Utils.Regular import get_all_products
+from utils import defaults
+from utils.regular import get_all_products
 from performance.simple_performance_tracker import SimplePerformanceTracker
-from DailyIndicators.Indicator_List import is_valid_daily_indicator
+from daily_indicators.indicator_list import is_valid_daily_indicator
 
 class SignalAlgorithm(EventsListener): # TODO May be Should listen to events corresponding to own products
     """Base class for signal development

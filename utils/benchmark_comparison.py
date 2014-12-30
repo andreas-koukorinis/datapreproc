@@ -1,9 +1,9 @@
 from datetime import timedelta
 import numpy as np
 import scipy.stats as ss
-from DbQueries import fetch_prices
-from Regular import filter_series
-from Calculate import convert_daily_to_monthly_returns
+from dbqueries import fetch_prices
+from regular import filter_series
+from calculate import convert_daily_to_monthly_returns
 
 benchmarks = { 'VBLTX' : 'daily_prices' , 'VTSMX' : 'daily_prices' }
 

@@ -3,8 +3,8 @@ specified in the config file
 The module is used by gendata.py for research framework'''
 import os
 from importlib import import_module
-from Utils.Regular import get_dt_from_date
-from DailyIndicators.Indicator_Listeners import IndicatorListener
+from utils.regular import get_dt_from_date
+from daily_indicators.indicator_listeners import IndicatorListener
 
 class PrintIndicators(IndicatorListener):
 
