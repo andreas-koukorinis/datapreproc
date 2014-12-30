@@ -467,7 +467,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             Sortino ratio for the given daily log returns series
         """
         neg_ret_sq = where(returns < 0, returns**2, 0) # Take square of all -ve returns, 0 for +ve returns.
-        down_risk = sqrt(mean(neg_ret)) # Downside risk as deviation from 0 in the negative
+        down_risk = sqrt(mean(neg_ret_sq)) # Downside risk as deviation from 0 in the negative
         sortino = 0
         if not is_float_zero(down_risk):
             sortino = (exp(252.0 * mean(returns)) - 1) / (exp(sqrt(252.0) * down_risk) -1)
