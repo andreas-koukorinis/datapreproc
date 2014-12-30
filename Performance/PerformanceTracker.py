@@ -10,7 +10,7 @@ from BackTester.BackTester_Listeners import BackTesterListener
 from BackTester.BackTester import BackTester
 from Dispatcher.Dispatcher import Dispatcher
 from Dispatcher.Dispatcher_Listeners import EndOfDayListener
-from Utils.Regular import check_eod, get_dt_from_date, get_next_futures_contract, is_future, shift_future_symbols, is_margin_product, dict_to_string
+from Utils.Regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string
 from Utils.Calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts, convert_daily_to_monthly_returns
 from Utils.benchmark_comparison import get_monthly_correlation_to_benchmark
 from Utils import defaults
@@ -456,9 +456,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         return yearly_sharpe
 
     def compute_sortino(self, returns):
-        """
-        A modification of the Sharpe ratio that only takes negative deviation from a target return into consideration.
-        The Sortino ratio subtracts the risk-free rate of return from the portfolio’s return, and then divides that by the downside deviation.
+        """A modification of the Sharpe ratio that only takes negative deviation from a target return into consideration.
+        The Sortino ratio subtracts the risk-free rate of return from the portfolios return, and then divides that by the downside deviation.
         A large Sortino ratio indicates there is a low probability of a large loss.
         Target return is taken as 0 in calculating sortino ratio in our implementation.
 
@@ -469,14 +468,16 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         """
         avg_ret = mean(returns)
         # Take all negative returns.
-        neg_ret = [ret ** 2 for ret in returns if ret < 0]
+        neg_ret = where(returns < 0, returns**2, 0)
+        #neg_ret = [ret ** 2 for ret in returns if ret < 0]
         # Downside risk as deviation from 0 in the negative 
-        down_risk = sqrt(sum(neg_ret)/len(returns))
-        if down_risk > 0.0001:
+        #down_risk = sqrt(sum(neg_ret)/len(returns))
+        down_risk = sqrt(mean(neg_ret))
+        sortino = 0
+        if not is_float_zero(down_risk):
             sortino = (exp(252.0 * avg_ret) - 1) / (exp(sqrt(252.0) * down_risk) -1)
-        else:
-            sortino = 0
         return sortino
+
     # non public function to save results to a file
     def _save_results(self):
         with open(self.returns_file, 'wb') as f:
