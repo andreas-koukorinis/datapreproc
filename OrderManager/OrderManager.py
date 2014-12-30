@@ -1,7 +1,7 @@
 import os
 from importlib import import_module
-from BackTester.BackTester_Listeners import BackTesterListener
-from BackTester.BackTester import BackTester
+from backtester.backtester_listeners import BackTesterListener
+from backtester.backtester import BackTester
 from Utils import defaults
 
 ''' OrderManager listens to the Strategy for any send/cancel orders

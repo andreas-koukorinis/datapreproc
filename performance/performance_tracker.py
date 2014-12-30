@@ -6,10 +6,10 @@ import scipy.stats as ss
 import pickle
 import itertools
 
-from BackTester.BackTester_Listeners import BackTesterListener
-from BackTester.BackTester import BackTester
-from Dispatcher.Dispatcher import Dispatcher
-from Dispatcher.Dispatcher_Listeners import EndOfDayListener
+from backtester.backtester_listeners import BackTesterListener
+from backtester.backtester import BackTester
+from dispatcher.dispatcher import Dispatcher
+from dispatcher.dispatcher_listeners import EndOfDayListener
 from Utils.Regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string
 from Utils.Calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts, convert_daily_to_monthly_returns
 from Utils.benchmark_comparison import get_monthly_correlation_to_benchmark

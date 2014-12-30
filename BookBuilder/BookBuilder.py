@@ -1,5 +1,5 @@
-from Dispatcher.Dispatcher import Dispatcher
-from Dispatcher.Dispatcher_Listeners import DailyEventListener
+from dispatcher.dispatcher import Dispatcher
+from dispatcher.dispatcher_listeners import DailyEventListener
 from Utils.Regular import get_all_products
 
 '''BookBuilder listens to the dispatcher for daily update of its product

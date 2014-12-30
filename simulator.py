@@ -4,7 +4,7 @@ import os
 import sys
 from importlib import import_module
 import ConfigParser
-from Dispatcher.Dispatcher import Dispatcher
+from dispatcher.dispatcher import Dispatcher
 from Utils.Regular import get_all_products
 from strategies.strategy_list import is_valid_strategy_name, get_module_name_from_strategy_name
 from Utils.global_variables import Globals

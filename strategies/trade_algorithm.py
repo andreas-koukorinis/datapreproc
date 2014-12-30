@@ -1,8 +1,8 @@
 import sys
 from importlib import import_module
 
-from Dispatcher.Dispatcher import Dispatcher
-from Dispatcher.Dispatcher_Listeners import EventsListener
+from dispatcher.dispatcher import Dispatcher
+from dispatcher.dispatcher_listeners import EventsListener
 from BookBuilder.BookBuilder import BookBuilder
 from OrderManager.OrderManager import OrderManager
 from portfolio import Portfolio
