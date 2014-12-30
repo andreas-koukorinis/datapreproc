@@ -16,15 +16,15 @@ class MeanVarianceOptimization(SignalAlgorithm):
     (expected risk) - (risk tolerance) * (expected returns)
 
     Items read from config:
-    risk_tolerance: constant in the Optimization function
-    max_allocation: maximum allocation to one asset
-    exp_return_computation_inteval: days after which expected returns is recalculated
-    exp_return_computation_history: days over which expected returns is calculated
-    stddev_computation_interval: days after which std dev is recalculated
-    stddev_computation_history: days over which std dev is calculated
-    correlation_computation_interval: days after which correlaion matrix is recalculated
-    correlation_computation_history: days over which correlaion matrix is calculated
-    stdev_computation_indicator : The indicator to use to compute the estimate of ex-ante standard deviation
+        risk_tolerance: constant in the Optimization function
+        max_allocation: maximum allocation to one asset
+        exp_return_computation_inteval: days after which expected returns is recalculated
+        exp_return_computation_history: days over which expected returns is calculated
+        stddev_computation_interval: days after which std dev is recalculated
+        stddev_computation_history: days over which std dev is calculated
+        correlation_computation_interval: days after which correlaion matrix is recalculated
+        correlation_computation_history: days over which correlaion matrix is calculated
+        stdev_computation_indicator : The indicator to use to compute the estimate of ex-ante standard deviation
     """
     def init(self, _config):
         """Initialize variables with configuration inputs or defaults"""
