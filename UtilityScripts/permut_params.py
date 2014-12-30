@@ -239,7 +239,7 @@ def get_all_param_locations(base_agg_config_path, param_names):
                 else:
                     found = findAll(signal_configs[signal_num][2], param)
                     if found:
-                        param_location_map[section][1].append((idx, param))
+                        param_location_map[section][2].append((idx, param))
         if not found:
             sys.exit('something wrong! could not find a param anywhere')
         idx += 1
@@ -395,7 +395,7 @@ def generate_test_configs(base_agg_config_path, test_to_combinations_map, dest_d
                 for idx, section, param_name in param_location_map['Strategy']:
                     if not agg_config.has_option(section, param_name):
                         sys.exit('something wrong in agg config section')
-                    agg_config.set(section, param_name, test_to_combinations_map[test_name][0][i][idx])
+                    agg_config.set(section, param_name, test_to_combinations_map[test_name][1][i][idx])
                     # Write the agg config file with modifications
             with open(new_agg_config_path, 'wb') as configfile:
                 agg_config.write(configfile)
