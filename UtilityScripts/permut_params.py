@@ -441,29 +441,26 @@ def generate_test_configs(base_agg_config_path, test_to_combinations_map, dest_d
                     signal_config.write(configfile)
     return test_dirs, test_to_agg_config_list_map
 
-def get_perf_stats(test_to_agg_config_list_map):
+def get_perf_stats(agg_configs):
     """For each set of values to be tested,set up the config files and run Simulator to get the perf stats"""
-    performance_stats = {}
-    for test_name in test_to_agg_config_list_map.keys():
-        performance_stats[test_name] = []
-        for agg_config in test_to_agg_config_list_map[test_name]:
-            proc = subprocess.Popen(['python', '-W', 'ignore', 'Simulator.py', agg_config ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            performance_stats[test_name].append(parse_results(proc.communicate()[0])) # TODO parse results should only parse final_order stats
+    performance_stats = []
+    for agg_config in agg_configs:
+        proc = subprocess.Popen(['python', '-W', 'ignore', 'Simulator.py', agg_config ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        performance_stats.append(parse_results(proc.communicate()[0])) # TODO parse results should only parse final_order stats
     return performance_stats
 
-def save_perf_stats(test_dirs, perf_stats):
+def save_perf_stats(test_dir, perf_stats):
     """Save the perf stats corresponding to each param set to a file"""
-    for test_name in test_dirs.keys():
-        f = open(test_dirs[test_name] + 'stats', 'w')
-        for i in range(len(perf_stats[test_name])):
-            f.write('Expt %d:\n' % i)
-            for elem in final_order: # TODO should output directly
-                if elem in perf_stats[i].keys():
-                    f.write(elem + ': ' + perf_stats[i][elem] + '\n')
-                else:
-                    print "Something wrong! missing %s"%elem
-            f.write('\n\n')
-        f.close()
+    f = open(test_dir + 'stats', 'w')
+    for i in range(len(perf_stats)):
+        f.write('Expt %d:\n' % i)
+        for elem in final_order: # TODO should output directly
+            if elem in perf_stats[i].keys():
+                f.write(elem + ': ' + perf_stats[i][elem] + '\n')
+            else:
+                print "Something wrong! missing %s"%elem
+        f.write('\n\n')
+    f.close()
 
 def print_perf_stats(perf_stats):
     """Print out the perf stats in specified order to terminal"""
@@ -495,7 +492,7 @@ def impose_constraints(perf_stats, cons_greater, cons_less):
             success_indices.append(j)
     return success_indices
 
-def optimize_perf_stats(perf_stats, success_indices, _param_string, all_value_combinations, stat):
+def optimize_perf_stats(perf_stats, success_indices, stat):
     """Select optimum parameter set based in performance of 'stat' """
     if stat is None:
         return success_indices
@@ -520,17 +517,15 @@ def optimize_perf_stats(perf_stats, success_indices, _param_string, all_value_co
             opt_idx.append(idx)
     return opt_idx
 
-def plot_perf_stats(perf_stats, all_value_combinations, stat, dest_dir):
+def plot_perf_stats(perf_stats, stat, dest_dir):
     x = []
     y = []
     key = stats[stat][0]
     for i in range(len(perf_stats)):
-        x.append(' '.join(all_value_combinations[i]))
         y.append(float(perf_stats[i][key].strip(' ').strip('%').strip('\n')))
-    x1 = range(len(x))
-    plt.xticks(x1,x)
-    plt.scatter(x1,y)
-    plt.xlabel("Param set")
+    x = range(len(y))
+    plt.scatter(x,y)
+    plt.xlabel("Expt No.")
     plt.ylabel(stat)
     plt.savefig(dest_dir + 'plot.png')
 
@@ -568,30 +563,27 @@ def main():
     new_agg_config_path = copy_config_files(agg_config_path, dest_dir)
     test_to_combinations_map = generate_test_combinations(permutparam_config_path)
     test_dirs, test_to_agg_config_list_map = generate_test_configs(new_agg_config_path, test_to_combinations_map, dest_dir)
-    print test_to_agg_config_list_map
-    # perf_stats is a dict from test dir path to list of perf stats
-    perf_stats = get_perf_stats(test_to_agg_config_list_map) # TODO distribute this task among different machines and collect results
-    #print perf_stats
-    save_perf_stats(test_dirs, perf_stats)
-    '''success_indices = impose_constraints(perf_stats, args.greater, args.less)
-    if args.less is None and args.greater is None and args.optimize is None:
-        args.optimize = ['sharpe']
-    opt_indices = optimize_perf_stats(perf_stats, success_indices, args.optimize[0])
-    '''
-    '''if len(opt_indices) == 0:
-        print 'No Params selected'
-    else:
-        print 'Param Order: %s\n'%(_param_string)
-        if len(opt_indices) == 1:
-            print 'Selected Param_set: %s\n' % ((' ').join(all_value_combinations[opt_indices[0]]))
-            print_perf_stats(perf_stats[opt_indices[0]])
+    for test_name in test_to_agg_config_list_map.keys(): # Select the best operf stat for each test
+        perf_stats = get_perf_stats(test_to_agg_config_list_map[test_name])
+        save_perf_stats(test_dirs[test_name], perf_stats)
+        _param_string = [str(elem0) + ':' + str(elem1) for elem0,elem1 in test_to_combinations_map[test_name][0]]
+        _test_results = 'Test Name %s\nParam Order: %s\n' % (test_name, _param_string)
+        success_indices = impose_constraints(perf_stats, args.greater, args.less)
+        if args.less is None and args.greater is None and args.optimize is None:
+            args.optimize = ['sharpe']
+        opt_indices = optimize_perf_stats(perf_stats, success_indices, args.optimize[0])
+        if len(opt_indices) == 0:
+            _test_results += 'No Params selected\n'
         else:
-            print 'Selected Param_sets:\n'
+            _test_results += 'Selected Expt Nos: %s\n' % (opt_indices)
             for idx in opt_indices:
-                print (' ').join(all_value_combinations[idx])
-    if args.plot is not None:
-        plot_perf_stats(perf_stats, all_value_combinations, args.plot[0], dest_dir)
-    '''
+                _test_results += 'Expt %d Param Values: %s\n' % (idx, test_to_combinations_map[test_name][1][idx])
+        print _test_results + '\n'
+        f = open(test_dirs[test_name] + 'results', 'w')
+        f.write(_test_results)
+        f.close()
+        if args.plot is not None:
+            plot_perf_stats(perf_stats, args.plot[0], test_dirs[test_name])
 
 if __name__ == '__main__':
     main()
