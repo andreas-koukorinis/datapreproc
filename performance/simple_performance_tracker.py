@@ -6,7 +6,7 @@ import scipy.stats as ss
 
 from Utils.Regular import get_first_futures_contract, is_future
 from Utils import defaults
-from BookBuilder.BookBuilder import BookBuilder
+from bookbuilder.bookbuilder import BookBuilder
 from DailyIndicators.Indicator_Listeners import IndicatorListener
 from DailyIndicators.DailyLogReturns import DailyLogReturns
 

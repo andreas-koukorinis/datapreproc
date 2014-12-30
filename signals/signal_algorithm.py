@@ -2,7 +2,7 @@ import sys
 from importlib import import_module
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import EventsListener
-from BookBuilder.BookBuilder import BookBuilder
+from bookbuilder.bookbuilder import BookBuilder
 from Utils import defaults
 from Utils.Regular import get_all_products
 from performance.simple_performance_tracker import SimplePerformanceTracker

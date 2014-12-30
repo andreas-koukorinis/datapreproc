@@ -1,6 +1,6 @@
-from BookBuilder.BookBuilder_Listeners import DailyBookListener
-from BookBuilder.BookBuilder import BookBuilder
-from CommissionManager import CommissionManager
+from bookbuilder.bookbuilder_listeners import DailyBookListener
+from bookbuilder.bookbuilder import BookBuilder
+from commission_manager import CommissionManager
 from Utils.global_variables import Globals
 
 # Backtester listens to the Book builder for daily updates

@@ -3,7 +3,7 @@ from importlib import import_module
 
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import EventsListener
-from BookBuilder.BookBuilder import BookBuilder
+from bookbuilder.bookbuilder import BookBuilder
 from order_manager.order_manager import OrderManager
 from portfolio import Portfolio
 from Utils import defaults

@@ -14,7 +14,7 @@ from Utils.Regular import check_eod, get_dt_from_date, get_next_futures_contract
 from Utils.Calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts, convert_daily_to_monthly_returns
 from Utils.benchmark_comparison import get_monthly_correlation_to_benchmark
 from Utils import defaults
-from BookBuilder.BookBuilder import BookBuilder
+from bookbuilder.bookbuilder import BookBuilder
 from Utils.global_variables import Globals
 
 # TODO {gchak} PerformanceTracker is probably a class that just pertains to the performance of one strategy
