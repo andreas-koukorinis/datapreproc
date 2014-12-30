@@ -4,7 +4,7 @@ import sys
 from importlib import import_module
 import numpy
 from Algorithm.signal_algorithm import SignalAlgorithm
-from Utils.Regular import check_eod, efficient_frontier, adjust_file_path_for_home_directory,
+from Utils.Regular import check_eod, efficient_frontier, adjust_file_path_for_home_directory
 from DailyIndicators.Indicator_List import is_valid_daily_indicator
 from DailyIndicators.portfolio_utils import make_portfolio_string_from_products
 from DailyIndicators.CorrelationLogReturns import CorrelationLogReturns
