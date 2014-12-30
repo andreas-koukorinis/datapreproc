@@ -357,9 +357,11 @@ def generate_combinations_for_test(variables, permutparam_config):
 def generate_test_configs(base_agg_config_path, test_to_combinations_map, dest_dir):
     '''Creates dir for each test and separate folder of each set of params for a given test'''
     test_to_agg_config_list_map = {}
+    test_dirs = {}
     for test_name in test_to_combinations_map.keys():
         test_dir = dest_dir + test_name + '/'
         test_to_agg_config_list_map[test_name] = []
+        test_dirs[test_name] = test_dir
         if not os.path.exists(test_dir):
             os.makedirs(test_dir)
 
@@ -437,45 +439,31 @@ def generate_test_configs(base_agg_config_path, test_to_combinations_map, dest_d
                 # Write the signal file with modifications at the end
                 with open(new_signal_config_path, 'wb') as configfile:
                     signal_config.write(configfile)
-    return test_to_agg_config_list_map
+    return test_dirs, test_to_agg_config_list_map
 
-def set_configs(param_names, values):
-    """Change the configs to accomodate for this param set"""
-    for i in range(len(param_names)):
-        _handle = param_names[i][0]
-        _config_name = param_names[i][1]
-        _param = param_names[i][2]
-        for _section in _handle.sections(): # TODO should not go through all sections
-            if _handle.has_option(_section, _param):
-                _handle.set(_section, _param, values[i])
-                break
-            else:
-                pass # TODO Add in some section
-        with open(_config_name, 'wb') as configfile:
-            _handle.write(configfile)
-
-def get_perf_stats(all_param_names, all_value_combinations, agg_config):
+def get_perf_stats(test_to_agg_config_list_map):
     """For each set of values to be tested,set up the config files and run Simulator to get the perf stats"""
-    performance_stats = []
-    for i in range(len(all_value_combinations)):
-        set_configs(all_param_names, all_value_combinations[i])
-        proc = subprocess.Popen(['python', '-W', 'ignore', 'Simulator.py', agg_config ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        performance_stats.append(parse_results(proc.communicate()[0]))
+    performance_stats = {}
+    for test_name in test_to_agg_config_list_map.keys():
+        performance_stats[test_name] = []
+        for agg_config in test_to_agg_config_list_map[test_name]:
+            proc = subprocess.Popen(['python', '-W', 'ignore', 'Simulator.py', agg_config ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            performance_stats[test_name].append(parse_results(proc.communicate()[0])) # TODO parse results should only parse final_order stats
     return performance_stats
 
-def save_perf_stats(perf_stats, _param_string, all_value_combinations, dest_dir):
+def save_perf_stats(test_dirs, perf_stats):
     """Save the perf stats corresponding to each param set to a file"""
-    f = open(dest_dir + 'stats', 'w')
-    f.write('Order: ' + _param_string + '\n')
-    for i in range(len(all_value_combinations)):
-        f.write('Param_set: ' + (' ').join(all_value_combinations[i]) + '\n')
-        for elem in final_order:
-            if elem in perf_stats[i].keys():
-                f.write(elem + ': ' + perf_stats[i][elem] + '\n')
-            else:
-                print "Something wrong! missing %s"%elem
-        f.write('\n\n')
-    f.close()
+    for test_name in test_dirs.keys():
+        f = open(test_dirs[test_name] + 'stats', 'w')
+        for i in range(len(perf_stats[test_name])):
+            f.write('Expt %d:\n' % i)
+            for elem in final_order: # TODO should output directly
+                if elem in perf_stats[i].keys():
+                    f.write(elem + ': ' + perf_stats[i][elem] + '\n')
+                else:
+                    print "Something wrong! missing %s"%elem
+            f.write('\n\n')
+        f.close()
 
 def print_perf_stats(perf_stats):
     """Print out the perf stats in specified order to terminal"""
@@ -575,17 +563,17 @@ def main():
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
 
+    # TODO empty directory before starting
+    # TODO use ordered dict
     new_agg_config_path = copy_config_files(agg_config_path, dest_dir)
     test_to_combinations_map = generate_test_combinations(permutparam_config_path)
-    test_to_agg_config_list_map = generate_test_configs(new_agg_config_path, test_to_combinations_map, dest_dir)
+    test_dirs, test_to_agg_config_list_map = generate_test_configs(new_agg_config_path, test_to_combinations_map, dest_dir)
     print test_to_agg_config_list_map
-    '''
     # perf_stats is a dict from test dir path to list of perf stats
     perf_stats = get_perf_stats(test_to_agg_config_list_map) # TODO distribute this task among different machines and collect results
-
     #print perf_stats
-    save_perf_stats(perf_stats)
-    success_indices = impose_constraints(perf_stats, args.greater, args.less)
+    save_perf_stats(test_dirs, perf_stats)
+    '''success_indices = impose_constraints(perf_stats, args.greater, args.less)
     if args.less is None and args.greater is None and args.optimize is None:
         args.optimize = ['sharpe']
     opt_indices = optimize_perf_stats(perf_stats, success_indices, args.optimize[0])
