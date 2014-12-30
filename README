@@ -35,13 +35,13 @@ For Debugging(using breakpoints)
 
 To calculate performance stats from returns file
 ------------------------------------------------
-    COMMAND: python Tools/compute_stats.py logs/config_name/returns.txt
+    COMMAND: python tools/compute_stats.py /spare/local/logs/config_name/returns.txt
 
 To plot graphs(svg file for graph will be stored in logs/svgs/)
 --------------
-    COMMAND: python Tools/plot_series_interactive.py 0 logs/config_name_1/returns.txt logs/config_name_2/returns.txt logs/config_name_n/returns.txt
-    COMMAND: python Tools/plot_series_interactive.py 1 logs/config_name_1/weights.txt logs/config_name_2/weights.txt logs/config_name_n/weights.txt
-    COMMAND: python Tools/plot_series_interactive.py 1 logs/config_name_1/leverage.txt logs/config_name_2/leverage.txt logs/config_name_n/leverage.txt
+    COMMAND: python tools/plot_series_interactive.py 0 /spare/local/logs/config_name_1/returns.txt /spare/local/logs/config_name_2/returns.txt /spare/local/logs/config_name_n/returns.txt
+    COMMAND: python tools/plot_series_interactive.py 1 /spare/local/logs/config_name_1/weights.txt /spare/local/logs/config_name_2/weights.txt /spare/local/logs/config_name_n/weights.txt
+    COMMAND: python tools/plot_series_interactive.py 1 /spare/local/logs/config_name_1/leverage.txt /spare/local/logs/config_name_2/leverage.txt /spare/local/logs/config_name_n/leverage.txt
 
 
 ASSUMPTIONS/PENDING

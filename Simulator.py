@@ -6,7 +6,7 @@ from importlib import import_module
 import ConfigParser
 from Dispatcher.Dispatcher import Dispatcher
 from Utils.Regular import get_all_products
-from Strategies.strategy_list import is_valid_strategy_name, get_module_name_from_strategy_name
+from strategies.strategy_list import is_valid_strategy_name, get_module_name_from_strategy_name
 from Utils.global_variables import Globals
 from Utils.DbQueries import get_currency_and_conversion_factors
 
@@ -70,7 +70,7 @@ def __main__() :
         sys.exit()
 
     strategy_module_name = get_module_name_from_strategy_name(_stratfile)
-    TradeLogic = getattr(import_module('Strategies.' + strategy_module_name), _stratfile)  # Get the strategy class from the imported module
+    TradeLogic = getattr(import_module('strategies.' + strategy_module_name), _stratfile)  # Get the strategy class from the imported module
 
     # Instantiate the strategy
     # Strategy is written by the user and it inherits from TradeAlgorithm
