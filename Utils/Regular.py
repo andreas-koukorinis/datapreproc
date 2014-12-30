@@ -186,8 +186,10 @@ def adjust_to_desired_l1norm_range(given_weights, minimum_leverage=0.001, maximu
 
 def efficient_frontier(expected_returns, covariance, max_leverage, risk_tolerance, max_allocation=0.5):
     """ Function that calculates the efficient frontier
-        by minimizing (Variance - risk tolerance * expected returns)
-        with a given lerverage and risk tolance
+        by minimizing
+        (Variance - risk tolerance * expected returns)
+        with a given leverage and risk tolerance
+        
         Args:
             returns(matrix) - matrix containing log daily returns for n securities
             covariance(matrix) - matrix containing covariance of the n securities
@@ -196,7 +198,7 @@ def efficient_frontier(expected_returns, covariance, max_leverage, risk_toleranc
             max_allocation(float) - maximum weight to be allocated to one security
                                     (set low threshold to diversify)
         Returns:
-            matrix of optimal weights performance stats exp.returns, std.dev, sharpe ratio
+            portfolios(array) - portfolio of optimal weights
     """
     num_prods = expected_returns.shape[0]  # Number of products
 
