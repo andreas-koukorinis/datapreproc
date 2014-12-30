@@ -4,7 +4,7 @@ from importlib import import_module
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import EventsListener
 from BookBuilder.BookBuilder import BookBuilder
-from OrderManager.OrderManager import OrderManager
+from order_manager.order_manager import OrderManager
 from portfolio import Portfolio
 from Utils import defaults
 from Utils.global_variables import Globals
