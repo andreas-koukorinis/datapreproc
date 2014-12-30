@@ -3,7 +3,7 @@ import sys
 import ConfigParser
 from numpy import *
 from sklearn import linear_model
-from Utils.ProcessData import load_data_for_regression
+from utils.process_data import load_data_for_regression
 
 def __main__():
 
