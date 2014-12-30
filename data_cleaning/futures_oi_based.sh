@@ -14,14 +14,14 @@ ls
 rm $1__0000.csv
 rm $1_0000.csv
 
->/home/cvdev/combination/stratdev/DataCleaning/Data/$1-oi1.csv
->/home/cvdev/combination/stratdev/DataCleaning/Data/$1-oi2.csv
+>/home/cvdev/combination/stratdev/data_cleaning/data/$1-oi1.csv
+>/home/cvdev/combination/stratdev/data_cleaning/data/$1-oi2.csv
 
 #exit 0
 
 for dd_ in `cat *csv | sort -g | awk -F, '{ print $1 }' | uniq `;
 do
-    echo `grep $dd_ *csv | sort -k7,7 -rg -t, | head -n1 | sed 's/:/,/'` >> /home/cvdev/combination/stratdev/DataCleaning/Data/$1-oi1.csv
+    echo `grep $dd_ *csv | sort -k7,7 -rg -t, | head -n1 | sed 's/:/,/'` >> /home/cvdev/combination/stratdev/data_cleaning/data/$1-oi1.csv
 done
 
 #exit 0
@@ -54,7 +54,7 @@ done
 #        fi
 #        num_=$((year_*100+month_))
 #        if [ $num_ -gt $firstnum_ ]; then
-#            echo `grep -H $dd_ $file_ | sed 's/:/,/'` >> /home/cvdev/combination/stratdev/DataCleaning/Data/$1-oi2.csv
+#            echo `grep -H $dd_ $file_ | sed 's/:/,/'` >> /home/cvdev/combination/stratdev/data_cleaning/data/$1-oi2.csv
 #            break
 #        fi
 #    done

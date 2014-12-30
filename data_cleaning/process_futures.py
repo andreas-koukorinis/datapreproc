@@ -35,7 +35,7 @@ def process_futures(num_contracts,product,to_name,folder):
     
     exchange_symbol_manager = ExchangeSymbolManager()
     path = '/apps/data/csi/history_part'+folder+'/'
-    output_path = '/home/cvdev/stratdev/DataCleaning/Data/'
+    output_path = '/home/cvdev/stratdev/data_cleaning/data/'
     dateparse = lambda x: datetime.strptime(x, '%Y%m%d').date() # Parse dates in format required by mysql i.e. YYYY-MM-DD
     directory = path + product + '/'
     generic_tickers = []

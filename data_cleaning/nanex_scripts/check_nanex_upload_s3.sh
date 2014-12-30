@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd /home/cvdev/stratdev/DataCleaning/nanex_scripts/
+cd /home/cvdev/stratdev/data_cleaning/nanex_scripts/
 
 #fname="20141103.YC.nxc"
 var='s3cmd ls s3://cvquantdata/nanex/rawdata/'

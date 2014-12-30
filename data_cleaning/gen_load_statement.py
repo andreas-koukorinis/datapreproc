@@ -11,7 +11,7 @@ def __main__() :
         for i in range(2,len(sys.argv)):
             products.append(sys.argv[i])
         for product in products:
-            print "LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/DataCleaning/Data/%s.csv' INTO TABLE %s FIELDS TERMINATED BY ',' IGNORE 1 LINES;"%(product,table_name)
+            print "LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/Data/%s.csv' INTO TABLE %s FIELDS TERMINATED BY ',' IGNORE 1 LINES;"%(product,table_name)
     else:
         print 'python gen_load_statement.py table_name product1 product2 product3... productn'
         sys.exit(0)

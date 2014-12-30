@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd /home/cvdev/stratdev/DataCleaning/csi_scripts/
+cd /home/cvdev/stratdev/data_cleaning/csi_scripts/
 echo "S3 DUMP CSI FILES STATUS:\n" >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
 python fetch_ftp.py canada.`date +%Y%m%d -d "yesterday"`.gz f-indices.`date +%Y%m%d -d "yesterday"`.gz funds.`date +%Y%m%d -d "yesterday"`.gz futures.`date +%Y%m%d -d "yesterday"`.gz indices.`date +%Y%m%d -d "yesterday"`.gz uk-stocks.`date +%Y%m%d -d "yesterday"`.gz us-stocks.`date +%Y%m%d -d "yesterday"`.gz >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
 

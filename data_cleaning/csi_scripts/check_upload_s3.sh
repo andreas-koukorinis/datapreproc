@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd /home/cvdev/stratdev/DataCleaning/csi_scripts/
+cd /home/cvdev/stratdev/data_cleaning/csi_scripts/
 
 echo "S3 DUMP CSI FILES CHECKSUM VERIFY STATUS:\n" >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
 

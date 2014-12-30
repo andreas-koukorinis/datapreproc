@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import datetime
 
 def process_for_dump( products, product_type ):
-    path = '/home/cvdev/stratdev/DataCleaning/Data/'
+    path = '/home/cvdev/stratdev/data_cleaning/data/'
     dateparse = lambda x: datetime.strptime(x, '%Y%m%d').date() # Parse dates in format required by mysql i.e. YYYY-MM-DD
 
     for product in products:

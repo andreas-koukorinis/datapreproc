@@ -67,7 +67,7 @@ def get_contract_number(date, _base_symbol, YYMM ):
 def get_file(filename,k):
     filename = filename +'.' + (datetime.now() - timedelta(days=k)).strftime('%Y%m%d')
     print filename
-    path = '/home/cvdev/stratdev/DataCleaning/'
+    path = '/home/cvdev/stratdev/data_cleaning/'
     if not os.path.isfile(path+filename): #If the file is not present,download it
         _file = filename+'.gz'
         is_in_s3 = subprocess.Popen(['s3cmd', 'ls', 's3://cvquantdata/csi/rawdata/'+_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]

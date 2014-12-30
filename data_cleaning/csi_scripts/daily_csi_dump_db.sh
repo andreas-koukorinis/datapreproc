@@ -1,5 +1,5 @@
 #!/bin/sh
-cd /home/cvdev/stratdev/DataCleaning/csi_scripts/
+cd /home/cvdev/stratdev/data_cleaning/csi_scripts/
 echo "DB DUMP CSI DAT FOR ETF's AND FUNDS STATUS:\n" >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
 python daily_update.py us-stocks 1 VTI VTV VOE VBR VEA VWO VXUS VT IEMG TIP VTIP BND MUB LQD BNDX VWOB SHV >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
 python daily_update.py funds 1 AQRIX AQMIX QGMIX SRPFX ABRZX VBLTX VTSMX>> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
