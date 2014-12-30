@@ -32,7 +32,7 @@ def main():
         _start_date = _config.get( 'Dates', 'start_date' )
         _end_date = _config.get( 'Dates', 'end_date' )
 
-    #Run GenData to get the logreturn matrix
+    #Run gendata to get the logreturn matrix
     ( _logret_matrix, products_order ) = get_logreturns( _config_file, _trade_products, _start_date, _end_date, 'Data/returns.csv' )
 
     _cov_mat = cov( _logret_matrix.T )

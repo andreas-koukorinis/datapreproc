@@ -1,6 +1,6 @@
 '''Module to print the indicator values for all the indicators
 specified in the config file
-The module is used by GenData.py for research framework'''
+The module is used by gendata.py for research framework'''
 import os
 from importlib import import_module
 from Utils.Regular import get_dt_from_date
@@ -35,7 +35,7 @@ class PrintIndicators(IndicatorListener):
 
     def print_all_indicators(self):
         '''After the Simulation has been done, this function
-           is called by GenData.py for printing the indicator
+           is called by gendata.py for printing the indicator
            values to csv file'''
         if not os.path.exists(os.path.dirname(self.indicators_file)):
             os.makedirs(os.path.dirname(self.indicators_file))

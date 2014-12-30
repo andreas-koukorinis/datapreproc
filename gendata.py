@@ -3,15 +3,15 @@
 import os
 import sys
 import ConfigParser
-from Dispatcher.Dispatcher import Dispatcher
-from Utils.PrintIndicators import PrintIndicators
-from Utils.Regular import get_all_products
+from dispatcher.dispatcher import Dispatcher
+from utils.print_indicators import PrintIndicators
+from utils.regular import get_all_products
 
 def __main__():
-    # Command to run : python -W ignore GenData.py config_file <startdate enddate> <output_file>
+    # Command to run : python -W ignore gendata.py config_file <startdate enddate> <output_file>
     # Examples :
-    # ./GenData.py test/config_PrintIndicators.cfg 2010-01-01 2013-12-31 ~/Downloads/temp.csv
-    # ./GenData.py test/config_PrintIndicators.cfg # would take arguments from config file and create file in Data
+    # ./gendata.py test/config_PrintIndicators.cfg 2010-01-01 2013-12-31 ~/Downloads/temp.csv
+    # ./gendata.py test/config_PrintIndicators.cfg # would take arguments from config file and create file in Data
 
     if len(sys.argv) < 2:
         print "config_file <trading-startdate trading-enddate> <indicator_file>"

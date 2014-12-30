@@ -20,8 +20,8 @@ def get_logreturns( _config_file, _trade_products, _start_date, _end_date, _retu
     _config.set("DailyIndicators", "names", s)
     with open(_new_config_file, 'wb') as configfile:
         _config.write(configfile)
-    # Run GenData on the new config to generate the indicator file
-    proc = subprocess.Popen(['python', 'GenData.py', _new_config_file, _start_date, _end_date, _returns_data_filename ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # Run gendata on the new config to generate the indicator file
+    proc = subprocess.Popen(['python', 'gendata.py', _new_config_file, _start_date, _end_date, _returns_data_filename ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     proc.communicate()
     os.remove(_new_config_file)
     df = pd.DataFrame.from_csv(_returns_data_filename)
