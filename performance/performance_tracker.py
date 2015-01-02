@@ -57,6 +57,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.yearly_sotino = []
         self.daily_returns = empty(shape=(0))
         self.daily_log_returns = empty(shape=(0))
+        self.cum_log_returns = empty(shape=(0))
+        self.max_cum_log_return = -1000 # Read as -inf
         self.net_log_return = 0
         self._monthly_nominal_returns_percent = empty(shape=(0))
         self._quarterly_nominal_returns_percent = empty(shape=(0))
@@ -193,7 +195,13 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
                 _logret_today = log(self.value[-1]/self.value[-2])
             self.daily_log_returns = append(self.daily_log_returns, _logret_today)
             self.net_log_return += self.daily_log_returns[-1]
-            self.current_drawdown = abs((exp(self.current_dd(self.daily_log_returns)) - 1)* 100)
+            if self.cum_log_returns.shape[0] == 0: # If we are inserting the first element
+                _cum_log_return = _logret_today
+            else:
+                _cum_log_return = self.cum_log_returns[-1] + _logret_today
+            self.cum_log_returns = append(self.cum_log_returns, _cum_log_return)
+            self.max_cum_log_return = max(self.max_cum_log_return, self.cum_log_returns[-1])
+            self.current_drawdown = abs((exp(self.current_dd(self.max_cum_log_return, self.cum_log_returns)) - 1)* 100)
             self.current_loss = abs(min(0.0, (exp(self.net_log_return) - 1)*100.0))
             self.amount_long_transacted.append(self.todays_long_amount_transacted)
             self.amount_short_transacted.append(self.todays_short_amount_transacted)
@@ -227,11 +235,10 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
             Globals.amount_transacted_file.write('%s,%0.2f\n' % (self.date, todays_amount_transacted))
 
     # Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value 
-    def current_dd(self, returns):
-        if returns.shape[0] < 2:
+    def current_dd(self, max_cum_return, cum_returns):
+        if cum_returns.shape[0] < 2:
             return 0.0
-        cum_returns = returns.cumsum()
-        return -1.0*(max(cum_returns) - cum_returns[-1]) 
+        return -1.0*(max_cum_return - cum_returns[-1])
 
     # Calculates the global maximum drawdown i.e. the maximum drawdown till now
     def drawdown(self, returns):
@@ -240,11 +247,10 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         cum_returns = returns.cumsum()
         return -1.0*max(maximum.accumulate(cum_returns) - cum_returns) # Will return a negative value
 
-    def drawdown_period_and_recovery_period(self, dates, returns):
-        if returns.shape[0] < 2:
+    def drawdown_period_and_recovery_period(self, dates, _cum_returns):
+        if _cum_returns.shape[0] < 2:
             _epoch = datetime.datetime.fromtimestamp(0).date()
             return ((_epoch, _epoch), (_epoch, _epoch))
-        _cum_returns = returns.cumsum()
         _end_idx_max_drawdown = argmax(maximum.accumulate(_cum_returns) - _cum_returns) # end of the period
         _start_idx_max_drawdown = argmax(_cum_returns[:_end_idx_max_drawdown+1]) # start of period
         _recovery_idx = -1
@@ -484,7 +490,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.kurtosis = ss.kurtosis(self.daily_log_returns)
         max_dd_log = self.drawdown(self.daily_log_returns)
         self.max_drawdown_percent = abs((exp(max_dd_log) - 1) * 100)
-        self.drawdown_period, self.recovery_period = self.drawdown_period_and_recovery_period(self.dates, self.daily_log_returns)
+        self.drawdown_period, self.recovery_period = self.drawdown_period_and_recovery_period(self.dates, self.cum_log_returns)
         self.max_drawdown_dollar = abs(self.drawdown(self.PnLvector))
         self.return_by_maxdrawdown = self._annualized_returns_percent/self.max_drawdown_percent
         self._annualized_pnl_by_max_drawdown_dollar = self.annualized_PnL/self.max_drawdown_dollar

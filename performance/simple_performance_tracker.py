@@ -22,6 +22,8 @@ class SimplePerformanceTracker(IndicatorListener):
             self.map_product_to_index[_product] = _product_index
             _product_index = _product_index + 1 
         self.daily_log_returns = numpy.empty(shape=(0))
+        self.cum_log_returns = numpy.empty(shape=(0))
+        self.max_cum_log_return = -1000 # Read as -inf
         self.latest_log_returns = numpy.zeros(len(self.products))     
         self.net_log_return = 0.0
         self.cash = 1.0
@@ -65,6 +67,12 @@ class SimplePerformanceTracker(IndicatorListener):
             sys.exit("Lost all the money!")
         _logret = numpy.log(_new_portfolio_value/_old_portfolio_value)
         self.daily_log_returns = numpy.append(self.daily_log_returns, _logret)
+        if self.cum_log_returns.shape[0] == 0: # If we are inserting the first element
+            _cum_log_return = _logret
+        else:
+            _cum_log_return = self.cum_log_returns[-1] + _logret
+        self.cum_log_returns = numpy.append(self.cum_log_returns, _cum_log_return)
+        self.max_cum_log_return = max(self.max_cum_log_return, self.cum_log_returns[-1])
         self.net_log_return += self.daily_log_returns[-1]
         self.log_return_history = numpy.vstack((self.log_return_history, self.latest_log_returns))
         self.latest_log_returns *= 0.0
@@ -97,7 +105,7 @@ class SimplePerformanceTracker(IndicatorListener):
         self.date = date
         self.compute_todays_log_return(date)
         self.update_rebalanced_weights_for_trading_products(date) # Read as order executed
-        _current_dd_log = self.current_dd(self.daily_log_returns)
+        _current_dd_log = self.current_dd(self.max_cum_log_return, self.cum_log_returns)
         self.current_drawdown = abs((numpy.exp(_current_dd_log) - 1)* 100.0)
         self.current_loss = abs(min(0.0, (numpy.exp(self.net_log_return) - 1)*100.0))
 
@@ -109,12 +117,11 @@ class SimplePerformanceTracker(IndicatorListener):
         """returns current loss"""
         return self.current_loss
     
-    def current_dd(self, returns):
-        """Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value"""
-        if returns.shape[0] < 2:
+    # Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value
+    def current_dd(self, max_cum_return, cum_returns):
+        if cum_returns.shape[0] < 2:
             return 0.0
-        cum_returns = returns.cumsum()
-        return -1.0*(max(cum_returns) - cum_returns[-1])
+        return -1.0*(max_cum_return - cum_returns[-1])
 
     def compute_paper_returns(self, return_history): # TODO change to online computation
         if self.daily_log_returns.shape[0] < return_history: # for insufficient history return 0.0
