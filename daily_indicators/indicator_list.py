@@ -1,6 +1,6 @@
 
 def is_valid_daily_indicator ( _daily_indicator_module_name ) :
-    _indicator_module_names_list = ['DailyLogReturns', 'StdDev', 'Trend','DailyPrice','AverageStdDev','MovingAverage','MovingAverage1','StdDevCrossover','CorrelationLogReturns','AverageDiscretizedTrend','ExpectedReturns']
+    _indicator_module_names_list = ['DailyLogReturns', 'StdDev', 'Trend','DailyPrice','AverageStdDev','MovingAverage','Crossover','StdDevCrossover','CorrelationLogReturns','AverageDiscretizedTrend','ExpectedReturns']
     _retval = False;
     if _daily_indicator_module_name in _indicator_module_names_list :
         _retval = True;
@@ -20,6 +20,8 @@ def get_module_name_from_indicator_name ( indicator_name ) :
             return ("daily_log_returns")
         if indicator_name == "MovingAverage":
             return ("moving_average")
+        if indicator_name == "Crossover":
+            return ("crossover")
         if indicator_name == "StdDevCrossover":
             return ("stddev_crossover")
         if indicator_name == "StdDev":

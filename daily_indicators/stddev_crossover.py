@@ -3,14 +3,13 @@ from numpy import *
 from Indicator_Listeners import IndicatorListener
 from DailyLogReturns import DailyLogReturns
 from MovingAverage import MovingAverage
-from Utils.Regular import get_dt_from_date
 
 # In the config file this indicator will be specfied as StdDevCrossover.product.stddev_period.crossover_short_period.crossover_long_period
-class StdDevCrossover( IndicatorListener ):
+class StdDevCrossover(IndicatorListener):
 
     instances = {}
 
-    def __init__( self, identifier, _startdate, _enddate, _config ):
+    def __init__(self, identifier, _startdate, _enddate, _config):
         self.values = () # Tuple of the form (dt,value)
         self.identifier = identifier
         params = identifier.strip().split('.')
@@ -22,15 +21,18 @@ class StdDevCrossover( IndicatorListener ):
         self.dailylogreturn_identifier = 'DailyLogReturns.' + self.product
         self.crossover_short_identifier = 'MovingAverage.' + self.product + '.' + params[3]
         self.crossover_long_identifier = 'MovingAverage.' + self.product + '.' + params[4]
-        DailyLogReturns.get_unique_instance(self.dailylogreturn_identifier, _startdate, _enddate, _config).add_listener(self) 
+        DailyLogReturns.get_unique_instance(self.dailylogreturn_identifier, _startdate, _enddate, _config).add_listener(self)
         MovingAverage.get_unique_instance(self.crossover_short_identifier, _startdate, _enddate, _config).add_listener(self)
         MovingAverage.get_unique_instance(self.crossover_long_identifier, _startdate, _enddate, _config).add_listener(self)
         self.num_listening = 3
         self.num_updates = 0
-        self.current_logret = 0.0
-        self.logrets = empty(shape=(0))
         self.current_mv_short = 0.0
         self.current_mv_long = 0.0
+        # To maintain running stdDev
+        self.current_sum = 0.0 # Sum of log returns in the window
+        self.current_num = 0.0 # Number of elements in the window
+        self.current_pow_sum = 0.0 # Sum of squares of log returns in the window
+        self.signal_values = []
         self.listeners = []
 
     def add_listener(self, listener):
@@ -38,12 +40,11 @@ class StdDevCrossover( IndicatorListener ):
 
     @staticmethod
     def get_unique_instance(identifier, _startdate, _enddate, _config):
-        if identifier not in StdDevCrossover.instances.keys() :
-            new_instance = StdDevCrossover(identifier, _startdate, _enddate, _config)
-            StdDevCrossover.instances[identifier] = new_instance
-        return StdDevCrossover.instances[identifier]
+        if identifier not in MovingAverageCrossover.instances.keys() :
+            new_instance = MovingAverageCrossover(identifier, _startdate, _enddate, _config)
+            MovingAverageCrossover.instances[identifier] = new_instance
+        return MovingAverageCrossover.instances[identifier]
 
-    # TODO can optimize std
     def on_indicator_update(self, identifier, values):
         self.num_updates += 1 # Received another update
         if identifier == self.dailylogreturn_identifier:
@@ -55,15 +56,28 @@ class StdDevCrossover( IndicatorListener ):
         elif identifier == self.crossover_long_identifier:
             self.current_mv_long = values[1]
             self.date = values[0]
-        else:
-            sys.exit('Unhandled case in StdDevCrossover')
         if self.num_updates == self.num_listening: # If we have received all updates
-            self.num_updates = 0
-            signal = sign(self.current_mv_short - self.current_mv_long)
-            logret = signal*self.current_logret
-            self.logrets = append(self.logrets,logret)
-            if self.logrets.shape[0] > self.stddev_period:
-                self.logrets = delete(self.logrets, 0)
-            self.values = (self.date, std(self.logrets))
+            self.num_updates = 0            
+            _signal = sign(self.current_mv_short - self.current_mv_long) * self.current_logret
+            self.signal_values.append(_signal)
+            n = len(self.signal_values)
+            if n > self.stddev_period:
+                self.current_sum =  self.current_sum - self.signal_values[-self.period-1] + self.signal_values[-1]
+                self.current_pow_sum =  self.current_pow_sum - pow(self.signal_values[-self.period-1], 2) + pow(self.signal_values[-1], 2)
+                val = sqrt(self.current_pow_sum/self.current_num - pow(self.current_sum/self.current_num, 2) )
+            elif n < 2:
+                val = 0 # Dummy value for insufficient lookback period(case where only 1 log return)
+                if n == 1:
+                    self.current_sum = self.signal_values[-1]
+                    self.current_pow_sum = pow(self.signal_values[-1], 2)
+                    self.current_num = 1
+            else:
+                self.current_sum = self.current_sum + self.signal_values[-1]
+                self.current_pow_sum =  self.current_pow_sum + pow(self.signal_values[-1], 2)
+                self.current_num += 1
+                val = sqrt(self.current_pow_sum/self.current_num - pow(self.current_sum/self.current_num, 2))
+            if isnan(val):
+                print ("something wrong")
+            self.values = (self.date, val)
             for listener in self.listeners: 
                 listener.on_indicator_update(self.identifier, self.values)

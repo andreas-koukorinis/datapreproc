@@ -79,11 +79,9 @@ class StdDev( IndicatorListener ):
         """ 
         n = len(daily_log_returns_dt)
         if n > self.period:
-            _new_sum =  self.current_sum - daily_log_returns_dt[n-self.period-1][1] + daily_log_returns_dt[n-1][1] 
-            _new_pow_sum =  self.current_pow_sum - pow(daily_log_returns_dt[n-self.period-1][1],2) + pow(daily_log_returns_dt[n-1][1],2)
-            val = sqrt( _new_pow_sum/self.current_num - pow(_new_sum/self.current_num,2) )
-            self.current_sum = _new_sum
-            self.current_pow_sum = _new_pow_sum
+            self.current_sum =  self.current_sum - daily_log_returns_dt[n-self.period-1][1] + daily_log_returns_dt[n-1][1] 
+            self.current_pow_sum =  self.current_pow_sum - pow(daily_log_returns_dt[n-self.period-1][1],2) + pow(daily_log_returns_dt[n-1][1],2)
+            val = sqrt( self.current_pow_sum/self.current_num - pow(self.current_sum/self.current_num,2) )
         elif n < 2:
             val = 0.001 # Dummy value for insufficient lookback period(case where only 1 log return)
             if n == 1:
@@ -91,14 +89,12 @@ class StdDev( IndicatorListener ):
                 self.current_pow_sum = pow(daily_log_returns_dt[n-1][1],2)
                 self.current_num = 1
         else:
-            _new_sum = self.current_sum + daily_log_returns_dt[n-1][1]
-            _new_pow_sum =  self.current_pow_sum + pow(daily_log_returns_dt[n-1][1],2)
+            self.current_sum = self.current_sum + daily_log_returns_dt[n-1][1]
+            self.current_pow_sum =  self.current_pow_sum + pow(daily_log_returns_dt[n-1][1],2)
             self.current_num += 1
-            val = sqrt( _new_pow_sum/self.current_num - pow(_new_sum/self.current_num,2) )
-            self.current_sum = _new_sum
-            self.current_pow_sum = _new_pow_sum
+            val = sqrt(self.current_pow_sum/self.current_num - pow(self.current_sum/self.current_num,2))
         if isnan(val):
             print ("something wrong")
-        self.values = ( daily_log_returns_dt[-1][0], val )
+        self.values = (daily_log_returns_dt[-1][0], val)
         for listener in self.listeners: 
-            listener.on_indicator_update( self.identifier, self.values )
+            listener.on_indicator_update(self.identifier, self.values)
