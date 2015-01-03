@@ -8,19 +8,16 @@ from daily_indicators.portfolio_utils import make_portfolio_string_from_products
 from signals.signal_algorithm import SignalAlgorithm
 
 class CTAM( SignalAlgorithm ):
-    """Implement a simple momentum strategy on multiple products.
-    The estimated return on each product is a sum of the discretized returns in the past durations.
-    For instance if we are provided the TrendIndicator as Trend
-    and TrendComputationParameters for fES: 5 63 252
-    We will interpret this as we need to create two instances of Trend indicator with arguments 63 and 252
+    """Implement a crossover momentum strategy on multiple products.
+    The estimated return on each product is the sign of the crossover signal(mvavg(short) - mvavg(long))
+    For instance if we are provided the CrossoverIndicator as Crossover
+    and CrossoverComputationParameters for fES: 5 50 200
+    We will interpret this as we need to create two instances of Moving average indicator with arguments 50 and 200
     and recompute them every 5 days.
-    On every recomputation day, we will take the sign of the values of the indicators.
-    We will sum them up, and divide by the maximum positive score.
-    Hence we have a normalized expected return for each product.
-    We have an estimate of risk, StdDev for each product.
+    On every recomputation day, we will take the sign of MA(short)- MA(long)
+    We have an estimate of risk of the crossover signal associated with each product, StdDevCrossover for each product.
     Based on Kelly Breiman bet sizing, we aim to take a position propotional to the ( expected return / expected risk )
-    in each prodct. These weights are normalized to have a full capital usage at all times in this version,
-    hence the name Unlevered.
+    in each product. These weights are normalized to have a leverage of 1 in this version
     """
     
     def init( self, _config ):
