@@ -1,8 +1,8 @@
 import sys
 from numpy import *
-from Indicator_Listeners import IndicatorListener
-from DailyLogReturns import DailyLogReturns
-from MovingAverage import MovingAverage
+from indicator_listeners import IndicatorListener
+from daily_log_returns import DailyLogReturns
+from moving_average import MovingAverage
 
 # In the config file this indicator will be specfied as StdDevCrossover.product.stddev_period.crossover_short_period.crossover_long_period
 class Crossover(IndicatorListener):
@@ -42,7 +42,7 @@ class Crossover(IndicatorListener):
         self.current_mv_long = 0.0
         self.listeners = []
 
-    def get_stdev(self):
+    def get_crossover(self):
         if len(self.values) >= 2:
             return (self.values[1])
         else:
@@ -84,6 +84,6 @@ class Crossover(IndicatorListener):
             _val = sign(self.current_mv_short - self.current_mv_long)
             if isnan(_val):
                 print ("something wrong")
-            self.values = (self.date, _val)
+            self.values = (values[0], _val)
             for listener in self.listeners: 
                 listener.on_indicator_update(self.identifier, self.values)

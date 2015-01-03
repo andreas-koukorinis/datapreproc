@@ -1,8 +1,10 @@
 import sys
 import numpy
-from Indicator_Listeners import IndicatorListener
+from datetime import datetime
+from indicator_listeners import IndicatorListener
 from daily_log_returns import DailyLogReturns
 from crossover import Crossover
+from utils.regular import is_float_zero
 
 # In the config file this indicator will be specfied as StdDevCrossover.product.stddev_period.crossover_short_period.crossover_long_period
 class StdDevCrossover(IndicatorListener):
@@ -33,7 +35,7 @@ class StdDevCrossover(IndicatorListener):
         params = identifier.strip().split('.')
         self.product = params[1]
         self.stddev_period = int(params[2])
-        self.date = get_dt_from_date(_startdate).date()
+        self.date = datetime.fromtimestamp(0).date()
         self.dailylogreturn_identifier = 'DailyLogReturns.' + self.product
         self.crossover_identifier = 'Crossover.' + self.product + '.' + params[3] + '.' + params[4]
         DailyLogReturns.get_unique_instance(self.dailylogreturn_identifier, _startdate, _enddate, _config).add_listener(self)
@@ -52,7 +54,7 @@ class StdDevCrossover(IndicatorListener):
         if len(self.values) >= 2:
             return (self.values[1])
         else:
-            return 1
+            return 1.0
 
     def add_listener(self, listener):
         """Used by other classes to register as on_indicator_update listener of the dispatcher
@@ -92,11 +94,11 @@ class StdDevCrossover(IndicatorListener):
             self.signal_values.append(_signal)
             n = len(self.signal_values)
             if n > self.stddev_period:
-                self.current_sum =  self.current_sum - self.signal_values[-self.period-1] + self.signal_values[-1]
-                self.current_pow_sum =  self.current_pow_sum - pow(self.signal_values[-self.period-1], 2) + pow(self.signal_values[-1], 2)
-                _val = sqrt(self.current_pow_sum/self.current_num - pow(self.current_sum/self.current_num, 2) )
+                self.current_sum =  self.current_sum - self.signal_values[-self.stddev_period-1] + self.signal_values[-1]
+                self.current_pow_sum =  self.current_pow_sum - pow(self.signal_values[-self.stddev_period-1], 2) + pow(self.signal_values[-1], 2)
+                _val = numpy.sqrt(self.current_pow_sum/self.current_num - pow(self.current_sum/self.current_num, 2) )
             elif n < 2:
-                _val = 0 # Dummy value for insufficient lookback period(case where only 1 log return)
+                _val = 1.0 # Dummy value for insufficient lookback period(case where only 1 log return)
                 if n == 1:
                     self.current_sum = self.signal_values[-1]
                     self.current_pow_sum = pow(self.signal_values[-1], 2)
@@ -105,9 +107,11 @@ class StdDevCrossover(IndicatorListener):
                 self.current_sum = self.current_sum + self.signal_values[-1]
                 self.current_pow_sum =  self.current_pow_sum + pow(self.signal_values[-1], 2)
                 self.current_num += 1
-                _val = sqrt(self.current_pow_sum/self.current_num - pow(self.current_sum/self.current_num, 2))
-            if isnan(_val):
+                _val = numpy.sqrt(self.current_pow_sum/self.current_num - pow(self.current_sum/self.current_num, 2))
+            if numpy.isnan(_val):
                 print ("something wrong")
+            if is_float_zero(_val):
+                _val = 1.0 #TODO check
             self.values = (self.date, _val)
             for listener in self.listeners: 
                 listener.on_indicator_update(self.identifier, self.values)
