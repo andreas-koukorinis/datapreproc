@@ -48,7 +48,7 @@ class StdDevCrossover(IndicatorListener):
         self.signal_values = []
         self.listeners = []
 
-    def get_stddev_crossover(self):
+    def get_crossover_volatility(self):
         if len(self.values) >= 2:
             return (self.values[1])
         else:
