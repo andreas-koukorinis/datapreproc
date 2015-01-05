@@ -69,7 +69,7 @@ def backfill_each_product(df_prod_bf, prod, product_type):
     # Concat the backfilled dataframe and the available dataframe for prod_bf
     df_prod_bf = pd.concat([df_backfilled.iloc[::-1][:-1],df_prod_bf])
 
-    return df_prod_bf, starting_index
+    return df_prod_bf, starting_date
 
 
 def backfill(prod_backfill, prod_list, product_types, plot_option):
@@ -100,26 +100,27 @@ def backfill(prod_backfill, prod_list, product_types, plot_option):
     adjust_for_splits([prod_backfill], 'etf')
     df_prod_bf = pd.read_csv(path+prod_backfill+'_split_adjusted.csv')
     
-    starting_indices = []
+    starting_dates = []
     for prod in zip(prod_list,product_types):
-        df_prod_bf,temp_ind = backfill_each_product(df_prod_bf, prod[0], prod[1])
-        starting_indices.append(temp_ind)
+        df_prod_bf,temp_dt = backfill_each_product(df_prod_bf, prod[0], prod[1])
+        starting_dates.append(temp_dt)
 
     # Output to file
     df_prod_bf.to_csv(output_path+prod_backfill+'_backfilled'+'.csv',index=False)
-
+    df_prod_bf = pd.read_csv(output_path+prod_backfill+'_backfilled'+'.csv')
     if plot_option.lower() == 'y':
         # ax = df_prod.plot(y='backward_adjusted_close',use_index=False,legend=False)
         # patches1, labels1 = ax.get_legend_handles_labels()
         # ax2 = df_prod_bf.plot(y='close',ax=ax,use_index=False,secondary_y=True,legend=False)
         ax = df_prod_bf.plot(y='close',use_index=False)
-        for starting_index in starting_indices:
+        for starting_date in starting_dates:
             # prod_file = path+prod+'_backward_dividend_adjusted.csv'
             # df_prod = pd.read_csv(prod_file)
             # ax2 = df_prod.plot(y='close',ax=ax,use_index=False,secondary_y=True)
             # patches2, labels2 = ax2.get_legend_handles_labels()
             # my_labels = [prod,prod_backfill+"(Right)"]
             # ax.legend(patches1 + patches2,my_labels,loc='best')
+            starting_index = df_prod_bf[df_prod_bf['date']==int(starting_date)].index[0]
             ax.axvline(x=starting_index)
         plt.savefig(output_path+"plot_"+prod_backfill+".png")
 
