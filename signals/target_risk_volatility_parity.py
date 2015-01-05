@@ -49,8 +49,8 @@ class TargetRiskVolatilityParity(SignalAlgorithm):
         self.process_model_file(_modelfilepath, _config)
 
         # Some computational variables
-        self.last_date_correlation_matrix_computed = 0
-        self.last_date_stdev_computed = 0
+        self.last_date_correlation_matrix_computed = -100000
+        self.last_date_stdev_computed = -100000
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products]) # map from product to weight, which will be passed downstream
         self.erc_weights = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
         self.erc_weights_optim = numpy.array([0.0]*len(self.products)) # these are the weights, with products occuring in the same order as the order in self.products
