@@ -5,7 +5,7 @@ from importlib import import_module
 import numpy
 from signals.signal_algorithm import SignalAlgorithm
 from utils.regular import check_eod, efficient_frontier, adjust_file_path_for_home_directory
-from daily_indicators.Indicator_List import is_valid_daily_indicator
+from daily_indicators.indicator_list import is_valid_daily_indicator, get_module_name_from_indicator_name
 from daily_indicators.portfolio_utils import make_portfolio_string_from_products
 from daily_indicators.correlation_log_returns import CorrelationLogReturns
 
@@ -27,88 +27,140 @@ class MeanVarianceOptimization(SignalAlgorithm):
     """
     def init(self, _config):
         """Initialize variables with configuration inputs or defaults"""
-        _paramfilepath = "/dev/null"
+        _paramfilepath="/dev/null"
         if _config.has_option('Parameters', 'paramfilepath'):
-            _paramfilepath = adjust_file_path_for_home_directory(_config.get('Parameters', 'paramfilepath'))
+            _paramfilepath=adjust_file_path_for_home_directory(_config.get('Parameters', 'paramfilepath'))
         self.process_param_file(_paramfilepath, _config)
 
+        _modelfilepath="/dev/null"
+        if _config.has_option('Strategy','modelfilepath'):
+            _modelfilepath=adjust_file_path_for_home_directory(_config.get('Strategy','modelfilepath'))
+        self.process_model_file(_modelfilepath, _config)
+
         self.day = -1
-        # Set risk tolerance
-        self.risk_tolerance = 0.015
-        if _config.has_option('Strategy', 'risk_tolerance'):
-            self.risk_tolerance = _config.getfloat('Strategy', 'risk_tolerance')
-        # Set maximum allocation
-        self.max_allocation = 0.5
-        if _config.has_option('Strategy', 'max_allocation'):
-            self.max_allocation = _config.getfloat('Strategy', 'max_allocation')
-        # Set expected return computation history
-        self.exp_return_computation_history = 252
-        if _config.has_option('Strategy', 'exp_return_computation_history'):
-            self.exp_return_computation_history = _config.getint('Strategy', 'exp_return_computation_history')
-        # Set expected return computation inteval
-        self.exp_return_computation_interval = self.exp_return_computation_history / 5
-        if _config.has_option('Strategy', 'exp_return_computation_interval'):
-            self.exp_return_computation_history = _config.getint('Strategy', 'exp_return_computation_interval')
-        # Set StdDev indicator name
-        self.stddev_computation_indicator = 'StdDev'
-        if _config.has_option('Strategy', 'stddev_computation_indicator'):
-            self.stddev_computation_indicator = _config.get('Strategy', 'stddev_computation_indicator')
-        # Set StdDev computation history
-        self.stddev_computation_history = 252
-        if _config.has_option('Strategy', 'stddev_computation_history'):
-            self.stddev_computation_history = max(2, _config.getint('Strategy', 'stddev_computation_history'))
-        # Set StdDev computation interval
-        if _config.has_option('Strategy', 'stddev_computation_interval'):
-            self.stddev_computation_interval = max(1, _config.getint('Strategy', 'stddev_computation_interval'))
-        else:
-            self.stddev_computation_interval = max(1, self.stddev_computation_history/5)
-        # Set correlation computation hisory
-        self.correlation_computation_history = 252
-        if _config.has_option('Strategy', 'correlation_computation_history'):
-            self.correlation_computation_history = max(2, _config.getint('Strategy', 'correlation_computation_history'))
-        # Set correlation computation interval
-        if _config.has_option('Strategy', 'correlation_computation_interval'):
-            self.correlation_computation_interval = max(1, _config.getint('Strategy', 'correlation_computation_interval'))
-        else:
-            self.correlation_computation_interval = max(2, self.correlation_computation_history/5)
         # Set computational variables
         self.last_date_correlation_matrix_computed = 0
         self.last_date_stdev_computed = 0
         self.last_date_exp_return_computed = 0
         self.last_rebalanced_day = -1
-        self.stdev_computation_indicator_mapping = {}  # map from product to the indicator to get the stddev value
         self.exp_log_returns = numpy.array([0.0]*len(self.products))
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products])  # map from product to weight, which will be passed downstream
         self.weights = numpy.array([0.0]*len(self.products))  # these are the weights, with products occuring in the same order as the order in self.products
         self.stddev_logret = numpy.array([1.0]*len(self.products))  # these are the stddev values, with products occuring in the same order as the order in self.products
         # Create a diagonal matrix of 1s for correlation matrix
         self.logret_correlation_matrix = numpy.eye(len(self.products))
+        
+    def process_param_file(self, _paramfilepath, _config):
+        super(MeanVarianceOptimization, self).process_param_file(_paramfilepath, _config)
+    
+    def process_model_file(self, _modelfilepath, _config):
+        _model_file_handle = open( _modelfilepath, "r" )
+        _map_product_to_crossover_computation_history = {}
+        _map_product_to_crossover_volatility_computation_history = {}
+
+        # Set risk tolerance
+        self.risk_tolerance = 0.015
+        # Set maximum allocation
+        self.max_allocation = 0.5
+        # Set expected returns indicator
+        self.exp_return_indicator = 'ExpectedReturns'
+        # Set expected return computation history
+        self.exp_return_computation_history = 252
+        # Set expected return computation inteval
+        self.exp_return_computation_interval = 21
+        # Set StdDev indicator name
+        self.stddev_computation_indicator = 'StdDev'
+        # Set StdDev computation history
+        self.stddev_computation_history = 252
+        # Set StdDev computation interval
+        self.stddev_computation_interval = 21
+        # Set Correlation computation indicator
+        self.correlation_computation_indicator = 'CorrelationLogReturns'
+        # Set correlation computation hisory
+        self.correlation_computation_history = 252
+        # Set correlation computation interval
+        self.correlation_computation_interval = 21
+
+        for _model_line in _model_file_handle:
+            # We expect lines like:
+            # Default StdDevIndicator StdDev
+            # Default StdDevComputationParameters 252 21
+            # Default ExpectedReturnsIndicator ExpectedReturns
+            # Default ExpectedReturnsComputationParameters 252 21
+            _model_line_words = _model_line.strip().split(' ')
+            if (len(_model_line_words) >= 3):
+                if (_model_line_words[0] == 'Default'):
+                    if _model_line_words[1] == 'StdDevIndicator':
+                        self.stddev_computation_indicator = _model_line_words[2]
+                    elif _model_line_words[1] == 'StdDevComputationParameters':
+                        _computation_words = _model_line_words[2:]
+                        if len(_computation_words) == 2:
+                            self.stddev_computation_history = int(_computation_words[0])
+                            self.stddev_computation_interval = int(_computation_words[1])
+                    elif _model_line_words[1] == 'ExpectedReturnsIndicator':
+                        self.exp_return_indicator = _model_line_words[2]
+                    elif _model_line_words[1] == 'ExpectedReturnsComputationParameters':
+                        _computation_words = _model_line_words[2:]
+                        if len(_computation_words) == 2:
+                            self.exp_return_computation_history = int(_computation_words[0])
+                            self.exp_return_computation_interval = int(_computation_words[1])
+                    elif _model_line_words[1] == 'CorrelationLogReturnsIndicator':
+                        self.correlation_computation_indicator = _model_line_words[2]
+                    elif _model_line_words[1] == 'CorrelationLogReturnsComputationParameters':
+                        _computation_words = _model_line_words[2:]
+                        if len(_computation_words) == 2:
+                            self.correlation_computation_history = int(_computation_words[0])
+                            self.correlation_computation_interval = int(_computation_words[1])
+                    elif _model_line_words[1] == 'RiskTolerance':
+                        self.risk_tolerance = float(_model_line_words[2])
+                    elif _model_line_words[1] == 'MaxAllocation':
+                        self.max_allocation = float(_model_line_words[2])
+                # else:
+                #     _product=_model_line_words[0]
+                #     if _product in self.products:
+                #         if _model_line_words[1] == 'CrossoverComputationParameters':
+                #             _computation_words = _model_line_words[2:]
+                #             if len(_computation_words) == 3:
+                #                 #set the refreshing interval to the minimum of current and previous values
+                #                 self.crossover_computation_interval = min(self.crossover_computation_interval, int(_computation_words[0])) 
+                #                 _map_product_to_crossover_computation_history[_product] = _computation_words[1:]
+                #         elif _model_line_words[1] == 'CrossoverVolatilityComputationParameters':
+                #             _computation_words = _model_line_words[2:]
+                #             if len(_computation_words) == 2:
+                #                 #set the refreshing interval to the minimum of current and previous values
+                #                 self.crossover_volatility_computation_interval = min(self.crossover_volatility_computation_interval, int(_computation_words[0]))   
+                #                 _map_product_to_crossover_volatility_computation_history[_product] = _computation_words[1]
+
         # Set indicator for ExpectedReturns
-        for product in self.products:
-            self.expreturns_indicator = 'ExpectedReturns'
-            indicator = self.expreturns_indicator + '.' + product + '.' + str(self.exp_return_computation_history)
-            if is_valid_daily_indicator(self.expreturns_indicator):
-                module = import_module('daily_indicators.' + self.expreturns_indicator)
-                Indicatorclass = getattr(module, self.expreturns_indicator)
+        if is_valid_daily_indicator(self.exp_return_indicator):
+            module = import_module('daily_indicators.' + get_module_name_from_indicator_name(self.exp_return_indicator))
+            Indicatorclass = getattr(module, self.exp_return_indicator)
+            for product in self.products:
+                indicator = self.exp_return_indicator + '.' + product + '.' + str(self.exp_return_computation_history)        
                 self.daily_indicators[indicator] = Indicatorclass.get_unique_instance(indicator, self.start_date, self.end_date, _config)
+        else:
+            print "Expected returns computation indicator %s invalid!" % self.exp_return_indicator
+            sys.exit(0)
         # Set indicator for stddev_computation_indicator
         if is_valid_daily_indicator(self.stddev_computation_indicator):
+            module = import_module('daily_indicators.' + get_module_name_from_indicator_name(self.stddev_computation_indicator))
+            Indicatorclass = getattr(module, self.stddev_computation_indicator)
             for product in self.products:
                 _orig_indicator_name = self.stddev_computation_indicator + '.' + product + '.' + str(self.stddev_computation_history)  # this would be something like StdDev.fTY.252
-                module = import_module('daily_indicators.' + self.stddev_computation_indicator)
-                Indicatorclass = getattr(module, self.stddev_computation_indicator)
                 self.daily_indicators[_orig_indicator_name] = Indicatorclass.get_unique_instance(_orig_indicator_name, self.start_date, self.end_date, _config)
         else:
             print "Stdev computation indicator %s invalid!" % self.stddev_computation_indicator
             sys.exit(0)
         # Set correlation computation indicator
-        _portfolio_string = make_portfolio_string_from_products(self.products)  # this allows us to pass a portfolio to the CorrelationLogReturns indicator.
-        # TODO Should we change the design of passing arguments to the indicators from a '.' concatenated list to a variable argument set?
-        self.correlation_computation_indicator = CorrelationLogReturns.get_unique_instance("CorrelationLogReturns" + '.' + _portfolio_string + '.' + str(self.correlation_computation_history), self.start_date, self.end_date, _config)
+        if is_valid_daily_indicator(self.correlation_computation_indicator):
+            _portfolio_string = make_portfolio_string_from_products(self.products)  # this allows us to pass a portfolio to the CorrelationLogReturns indicator.
+            # TODO Should we change the design of passing arguments to the indicators from a '.' concatenated list to a variable argument set?
+            self.correlation_computation_indicator = CorrelationLogReturns.get_unique_instance(self.correlation_computation_indicator + '.' + _portfolio_string + '.' + str(self.correlation_computation_history), self.start_date, self.end_date, _config)
+        else:
+            print "Correlation computation indicator %s invalid!" % self.stddev_computation_indicator
+            sys.exit(0)    
 
-    def process_param_file(self, _paramfilepath, _config):
-        super(MeanVarianceOptimization, self).process_param_file(_paramfilepath, _config)
-
+       
     def on_events_update(self, events):
         """Implementation of Mean Variance Optimization in the lines of Modern Portfolio Theory.
         It is different from MPT in the sense that the weights can be positive and negative.
@@ -120,7 +172,6 @@ class MeanVarianceOptimization(SignalAlgorithm):
         all_eod = check_eod(events)  # Check if all events are ENDOFDAY
         if all_eod:
             self.day += 1  # Track the current day number
-
         
         if all_eod:
             _need_to_recompute_weights = False  # By default we don't need to change weights unless some input has changed
@@ -147,7 +198,7 @@ class MeanVarianceOptimization(SignalAlgorithm):
             if self.day >= (self.last_date_exp_return_computed + self.exp_return_computation_interval):
                 # Get the expected log return values values from the expected returns indicators
                 for _product in self.products:
-                    self.exp_log_returns[self.map_product_to_index[_product]] = self.daily_indicators[self.expreturns_indicator + '.' + _product + '.' + str(self.exp_return_computation_history)].values[1]
+                    self.exp_log_returns[self.map_product_to_index[_product]] = self.daily_indicators[self.exp_return_indicator + '.' + _product + '.' + str(self.exp_return_computation_history)].values[1]
                 _need_to_recompute_weights = True
                 self.last_date_exp_return_computed = self.day
 
