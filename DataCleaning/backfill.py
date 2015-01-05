@@ -9,7 +9,7 @@ from adjust_split import adjust_for_splits
 from backward_dividend_adjust import backward_adjust_dividends
 
 ipath = '/apps/data/csi/CVHISTORICAL_STOCKS/'
-path = '/home/debi/deedee/backfill/stratdev/DataCleaning/Data/'
+path = '/home/deedee/backfill/stratdev/DataCleaning/Data/'
 output_path = '/home/deedee/backfill/'
 plot_path = '/home/deedee/backfill/'
 
@@ -94,12 +94,11 @@ def backfill(prod_backfill, prod_list, product_types, plot_option):
         the product being backfilled.
     """
 
-    columns = ['date','open','high','low','close','volume','dividend']
-    
+       
     # Read data from file
     prod_backfill_file = ipath+prod_backfill[0]+'/'+prod_backfill+'.csv'
     adjust_for_splits([prod_backfill], 'etf')
-    df_prod_bf = pd.read_csv(path+prod_backfill+'_split_adjusted.csv',names=columns)
+    df_prod_bf = pd.read_csv(path+prod_backfill+'_split_adjusted.csv')
     
     starting_indices = []
     for prod in zip(prod_list,product_types):

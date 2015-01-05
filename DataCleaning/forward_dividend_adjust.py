@@ -5,7 +5,7 @@ import sys
 import pandas as pd
 
 def forward_adjust_dividends( products, product_type ):
-    path = '/home/cvdev/stratdev/DataCleaning/Data/'
+    path = '/home/deedee/backfill/stratdev/DataCleaning/Data/'
     for product in products:
         prices_file = path+product+'_backward_dividend_adjusted.csv'
         df = pd.read_csv(prices_file,header=0)
@@ -25,7 +25,7 @@ def forward_adjust_dividends( products, product_type ):
             for index, row in df1.iterrows(): # For each of the payouts               
                 dividend_factor = 1 + ( row['dividend'] + row['capital_gain'] ) / row['close'] # Calculate the dividend factor
                 df.loc[ (df.date >= row['date']) ,'forward_adjusted_close'] *= dividend_factor # Multiply all prices after(including) this payout by the dividend factor
-                df.loc[ (df.date >= row['date']) ,'forward_adjusted_open'] *= dividend_factor # Multiply all prices after(including) this payout by the dividend factor
+
         
         df.to_csv(path+product+'_forward_dividend_adjusted'+'.csv',index=False) # Save result to csv 
 
