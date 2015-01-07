@@ -18,3 +18,8 @@ class EndOfDayListener:
     @abstractmethod
     def on_end_of_day(self,date): pass
 
+class TaxPaymentDayListener:
+    __metaclass__=ABCMeta
+
+    @abstractmethod
+    def on_tax_payment_day(self): pass
