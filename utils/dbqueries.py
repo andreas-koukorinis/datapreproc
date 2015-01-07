@@ -52,7 +52,7 @@ def get_last_trading_dates( products, _startdate, _enddate ):
     db_close(db)
     return _last_trading_days
 
-def push_all_events( heap, products, _startdate, _enddate ):
+def push_all_end_of_day_events( heap, products, _startdate, _enddate ):
     products = [ product.lstrip('f') for product in products ]
     (db,db_cursor) = db_connect()
     _format_strings = ','.join(['%s'] * len(products))
@@ -61,6 +61,7 @@ def push_all_events( heap, products, _startdate, _enddate ):
     rows = db_cursor.fetchall()
     tables = {}
     types = {}
+    close_time = datetime.time(23,30,0,0) # For sequencing of events
     for row in rows:
         tables[row['table']] = []
         types[row['product']] = row['type']
@@ -94,6 +95,18 @@ def push_all_events( heap, products, _startdate, _enddate ):
                 _event = {'product': 'f' + row['product'],'price': _price, 'type':'ENDOFDAY', 'dt':_dt,'product_type': types[row['product']], 'is_last_trading_day': _is_last_trading_day}                
             heapq.heappush ( heap, ( _dt, _event ) ) 
     db_close(db)
+
+def push_all_tax_payment_events(heap, start_date, end_date):
+    y1 = start_date.year
+    y2 = end_date.year
+    tax_payment_time = datetime.time(23,31,0,0) # For sequencing of events
+    for y in range(y1, y2):
+        dt = datetime.datetime.combine(datetime.date(y,12,31), tax_payment_time)
+        _event = {'dt': dt, 'type': 'TAXPAYMENTDAY'}
+        heapq.heappush(heap, (dt, _event)) 
+    dt = datetime.datetime.combine(end_date, tax_payment_time)
+    _event = {'dt': dt, 'type': 'TAXPAYMENTDAY'}
+    heapq.heappush(heap, (dt, _event))
 
 def get_currency_and_conversion_factors(products, start_date, end_date):
     conv_factor = {}
