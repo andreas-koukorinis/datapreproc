@@ -501,11 +501,11 @@ def optimize_perf_stats(perf_stats, success_indices, stat):
     opt_val = -1000000000000
 
     for idx in success_indices:
+        fstat = stat
         for key in stats.keys():
-            stat.replace(key, "float(perf_stats["+idx+"]["+key+"].strip(' ').strip('%').strip('\n')))"
+            fstat = fstat.replace(key, "float(perf_stats["+str(idx)+"]['"+stats[key][0]+"'].strip(' ').strip('%').rstrip())")
     
-        print stat
-        val = eval(stat)
+        val = eval(fstat)
         if val > opt_val:
             opt_idx = [idx]
             opt_val = val
