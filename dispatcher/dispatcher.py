@@ -131,7 +131,7 @@ class Dispatcher (object):
                 if(event['type']=='INTRADAY'):  # This is an intraday event
                     pass  # TODO:call intradaybookbuilder and push next
 
-                if event['type'] == 'TAXPAYEMNTDAY':
+                if event['type'] == 'TAXPAYMENTDAY':
                     for listener in self.tax_payment_day_listeners:
                         listener.on_tax_payment_day()
 

@@ -103,9 +103,11 @@ def push_all_tax_payment_events(heap, start_date, end_date):
     for y in range(y1, y2):
         dt = datetime.datetime.combine(datetime.date(y,12,31), tax_payment_time)
         _event = {'dt': dt, 'type': 'TAXPAYMENTDAY'}
+        print _event
         heapq.heappush(heap, (dt, _event)) 
     dt = datetime.datetime.combine(end_date, tax_payment_time)
     _event = {'dt': dt, 'type': 'TAXPAYMENTDAY'}
+    print _event
     heapq.heappush(heap, (dt, _event))
 
 def get_currency_and_conversion_factors(products, start_date, end_date):
@@ -115,6 +117,7 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
     currency_factor = {}
     dummy_value = {}
     product_type = {}
+    _product_type = {}
     _is_usd_present = False     
     products = [ product.lstrip('f') for product in products ]
     (db,db_cursor) = db_connect()
@@ -128,6 +131,7 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
         else:
             _symbol = row['product']
         conv_factor[_symbol] = float(row['conversion_factor'])
+        _product_type[_symbol] = row['type']
         if row['currency'] != 'USD':
             _currency = row['currency'] + 'USD'
             currencies.append(_currency)
@@ -162,7 +166,7 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
                 currency_factor[_currency][_date] = _currency_val
                 dummy_value[_currency] = _currency_val
         _date += delta
-    return conv_factor, currency_factor, product_to_currency
+    return conv_factor, currency_factor, product_to_currency, _product_type
 
 def fetch_prices(product, _startdate, _enddate):
     product = product.lstrip('f')
