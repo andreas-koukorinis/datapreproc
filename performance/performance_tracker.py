@@ -99,13 +99,14 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.correlation_to_agg = 0.0
 
         # For tax adjusted returns
-        self.short_term_tax_rate = _config.getfloat('Parameters', 'short_term_tax_rate')/100.0 # 39.6%
-        self.long_term_tax_rate = _config.getfloat('Parameters', 'long_term_tax_rate')/100.0 # 19.6%
+        self.short_term_tax_rate = .396 # 39.6%
+        self.long_term_tax_rate = .196
+        if _config.has_option('Parameters', 'short_term_tax_rate'):
+            self.short_term_tax_rate = _config.getfloat('Parameters', 'short_term_tax_rate')/100.0
+        if _config.has_option('Parameters', 'long_term_tax_rate'):
+            self.long_term_tax_rate = _config.getfloat('Parameters', 'long_term_tax_rate')/100.0
         self.short_term_tax_liability = 0.0
         self.long_term_tax_liability = 0.0
-        self.post_tax_portfolio_value = self.initial_capital
-        self.running_post_tax_portfolio_value = array([self.initial_capital])
-        self.post_tax_daily_log_returns = empty(shape=(0))
         self.long_orders = {}
         self.product_type = Globals.product_type
         for product in self.products:
@@ -214,32 +215,21 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
 
     # Called by Dispatcher
     def on_end_of_day(self, date):
-        _short_term_gain = 0.0
-        _long_term_gain = 0.0
         for _currency in self.currency_factor.keys():
             self.portfolio.cash += self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
-            _short_term_gain += 0.4 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date] # Assuming that we calculate tax in USD on realization date itself 
-            _long_term_gain += 0.6 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
+            self.short_term_tax_liability += 0.4 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date] 
+            # Assuming that we calculate tax in USD on realization date itself 
+            self.long_term_tax_liability += 0.6 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
             self.todays_realized_pnl[_currency] = 0
         self.update_open_equity(date)
         self.compute_daily_stats(date)
-        if self.daily_log_returns.shape[0] > 0:
-            _actual_short_term_gain = _short_term_gain * (self.post_tax_portfolio_value/self.value[-1])
-            _actual_long_term_gain = _long_term_gain * (self.post_tax_portfolio_value/self.value[-1])
-            self.short_term_tax_liability += _actual_short_term_gain
-            self.long_term_tax_liability += _actual_long_term_gain
-            self.post_tax_portfolio_value = self.post_tax_portfolio_value * exp(self.daily_log_returns[-1])
-            _running_post_tax_portfolio_value = self.post_tax_portfolio_value - max(0.0, self.short_term_tax_liability)*self.short_term_tax_rate - max(0.0, self.long_term_tax_liability)*self.long_term_tax_rate
-            self.running_post_tax_portfolio_value = append(self.running_post_tax_portfolio_value, _running_post_tax_portfolio_value)
-            self.post_tax_daily_log_returns = append(self.post_tax_daily_log_returns, log(self.running_post_tax_portfolio_value[-1]/self.running_post_tax_portfolio_value[-2]))
-            print date, self.value[-1], self.running_post_tax_portfolio_value[-1], self.PnLvector[-1], _actual_short_term_gain, self.short_term_tax_liability, _actual_long_term_gain, self.long_term_tax_liability
 
     def on_tax_payment_day(self):
         if self.short_term_tax_liability > 0:
-            self.post_tax_portfolio_value -= self.short_term_tax_liability * self.short_term_tax_rate
+            self.portfolio.cash -= self.short_term_tax_liability * self.short_term_tax_rate
             self.short_term_tax_liability = 0
         if self.long_term_tax_liability > 0:
-            self.post_tax_portfolio_value -= self.long_term_tax_liability * self.long_term_tax_rate
+            self.portfolio.cash -= self.long_term_tax_liability * self.long_term_tax_rate
             self.long_term_tax_liability = 0 
 
     # Computes the daily stats for the most recent trading day prior to 'date'
@@ -247,7 +237,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
     def compute_daily_stats(self, date):
         self.date = date
         if self.total_orders > 0: # If no orders have been filled,it implies trading has not started yet
-            todaysValue = self.compute_mark_to_market(self.date)
+            todaysValue = self.compute_mark_to_market(self.date) - self.long_term_tax_liability*self.long_term_tax_rate - self.short_term_tax_liability*self.short_term_tax_rate
             self.value = append(self.value, todaysValue)
             self.PnLvector = append(self.PnLvector, (self.value[-1] - self.value[-2]))  # daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
             if self.value[-1] <= 0:
@@ -569,20 +559,9 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
             _leverage_params = (0, 0, 0, 0)
         self._save_results()
 
-        # PRE TAX STATS
-        _stats = '\nPRE-TAX STATS\n____________\n' + _extreme_days + _extreme_weeks 
+        _stats = _extreme_days + _extreme_weeks 
         _stats += ("\nInitial Capital = %.2f\nNet PNL = %.2f \nTrading Cost = %.2f\nNet Returns = %.2f%%\nAnnualized PNL = %.2f\nAnnualized_Std_PnL = %.2f\nAnnualized_Returns = %.2f%% \nAnnualized_Std_Returns = %.2f%% \nSharpe Ratio = %.2f \nSortino Ratio = %.2f\nSkewness = %.2f\nKurtosis = %.2f\nDML = %.2f%%\nMML = %.2f%%\nQML = %.2f%%\nYML = %.2f%%\nMax Drawdown = %.2f%% \nDrawdown Period = %s to %s\nDrawdown Recovery Period = %s to %s\nMax Drawdown Dollar = %.2f \nAnnualized PNL by drawdown = %.2f \nReturn_drawdown_Ratio = %.2f\nReturn Var10 ratio = %.2f\nYearly_sharpe = " + _print_yearly_sharpe + "\nHit Loss Ratio = %0.2f\nGain Pain Ratio = %0.2f\nMax num days with no new high = %d from %s to %s\nLosing month streak = Lost %0.2f%% in %d months from %s to %s\nTurnover = %0.2f%%\nLeverage = Min : %0.2f, Max : %0.2f, Average : %0.2f, Stddev : %0.2f\nTrading Cost = %0.2f\nTotal Money Transacted = %0.2f\nTotal Orders Placed = %d\n") % (self.initial_capital, self.PnL, self.trading_cost, self.net_returns, self.annualized_PnL, self.annualized_stdev_PnL, self._annualized_returns_percent, self.annualized_stddev_returns, self.sharpe, self.sortino, self.skewness, self.kurtosis, self.dml, self.mml, self._worst_10pc_quarterly_returns, self._worst_10pc_yearly_returns, self.max_drawdown_percent, self.drawdown_period[0], self.drawdown_period[1], self.recovery_period[0], self.recovery_period[1], self.max_drawdown_dollar, self._annualized_pnl_by_max_drawdown_dollar, self.return_by_maxdrawdown, self.ret_var10, self.hit_loss_ratio, self.gain_pain_ratio, self.max_num_days_no_new_high[0], self.max_num_days_no_new_high[1], self.max_num_days_no_new_high[2], self.losing_month_streak[1], self.losing_month_streak[0], self.losing_month_streak[2], self.losing_month_streak[3], self.turnover_percent, _leverage_params[0], _leverage_params[1], _leverage_params[2], _leverage_params[3], self.trading_cost, self.total_amount_transacted, self.total_orders)
         for benchmark in self.benchmarks:
             _stats += 'Correlation to %s = %0.2f\n' % (benchmark, get_monthly_correlation_to_benchmark(self.dates, self.daily_log_returns, benchmark))
-
-        #POST TAX STATS
-        _net_returns = (exp(sum(self.post_tax_daily_log_returns)) - 1) * 100.0
-        _ann_returns = (exp(252.0 * mean(self.post_tax_daily_log_returns)) - 1) * 100.0
-        _ann_std_returns = (exp(sqrt(252.0) * std(self.post_tax_daily_log_returns)) - 1) * 100.0
-        _sharpe = _ann_returns/_ann_std_returns
-        _sortino = self.compute_sortino(self.post_tax_daily_log_returns)
-        _drawdown = abs((exp(self.drawdown(self.post_tax_daily_log_returns)) - 1) * 100)
-        _ret_dd_ratio = _ann_returns/_drawdown
-        _stats += '\nPOST-TAX STATS\n____________\nNet Returns = %.2f%%\nAnnualized_Returns = %.2f%% \nAnnualized_Std_Returns = %.2f%% \nSharpe Ratio = %.2f \nSortino Ratio = %.2f\nMax Drawdown = %.2f%%\nReturn_drawdown_Ratio = %.2f\n' % (_net_returns, _ann_returns, _ann_std_returns, _sharpe, _sortino, _drawdown, _ret_dd_ratio)
         print _stats
         Globals.stats_file.write(_stats)

@@ -496,25 +496,22 @@ def optimize_perf_stats(perf_stats, success_indices, stat):
     """Select optimum parameter set based in performance of 'stat' """
     if stat is None:
         return success_indices
+    
     opt_idx = []
-    sign = stats[stat][1]
-    key = stats[stat][0]
-    if sign == '+':
-        opt_val = -1000000000000
-    elif sign == '-':
-        opt_val = 1000000000000
-    else:
-        sys.exit('Cannot optimize this stat')
+    opt_val = -1000000000000
+
     for idx in success_indices:
-        val = float(perf_stats[idx][key].strip(' ').strip('%').strip('\n'))
-        if sign == '+' and val > opt_val:
-            opt_idx = [idx]
-            opt_val = val
-        elif sign == '-' and val < opt_val:
+        fstat = stat
+        for key in stats.keys():
+            fstat = fstat.replace(key, "float(perf_stats["+str(idx)+"]['"+stats[key][0]+"'].strip(' ').strip('%').rstrip())")
+    
+        val = eval(fstat)
+        if val > opt_val:
             opt_idx = [idx]
             opt_val = val
         elif val == opt_val:
             opt_idx.append(idx)
+    
     return opt_idx
 
 def plot_perf_stats(perf_stats, stat, dest_dir):
@@ -546,6 +543,7 @@ def main():
     parser.add_argument('agg_config_file')
     parser.add_argument('param_file')
     parser.add_argument('-o', nargs=1, help='Optimize this parameter\nEg: -o sharpe', dest='optimize')
+    #parser.add_argument('-odef', nargs=1, help='Define new optimization function\nEg: -odef sharpe-max_dd', dest='optimize_definition')
     parser.add_argument('-ge', nargs='*', help='Greater than equal to parameter constraint\nEg: -gt sharpe 1 ann_ret 4', dest='greater')
     parser.add_argument('-le', nargs='*', help='Less than equal to parameter constraint\nEg: -lt max_dd 10', dest='less')
     parser.add_argument('-p', nargs=1, help='Plot the param sets versus this stat\nEg: -p sharpe', dest='plot')
