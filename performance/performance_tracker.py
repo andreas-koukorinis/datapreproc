@@ -5,6 +5,7 @@ from numpy import *
 import scipy.stats as ss
 import marshal
 import itertools
+from collections import deque
 
 from backtester.backtester_listeners import BackTesterListener
 from backtester.backtester import BackTester
@@ -98,14 +99,19 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.correlation_to_agg = 0.0
 
         # For tax adjusted returns
-        self.short_term_tax_rate = 0.396 # 39.6%
-        self.long_term_tax_rate = 0.196 # 19.6%
+        self.short_term_tax_rate = _config.getfloat('Parameters', 'short_term_tax_rate')/100.0 # 39.6%
+        self.long_term_tax_rate = _config.getfloat('Parameters', 'long_term_tax_rate')/100.0 # 19.6%
         self.short_term_tax_liability = 0.0
         self.long_term_tax_liability = 0.0
         self.post_tax_portfolio_value = self.initial_capital
         self.running_post_tax_portfolio_value = array([self.initial_capital])
         self.post_tax_daily_log_returns = empty(shape=(0))
-
+        self.long_orders = {}
+        self.product_type = Globals.product_type
+        for product in self.products:
+            if self.product_type[product] in ['etf', 'fund', 'stock']:
+                self.long_orders[product] = deque()
+                
         # Listens to end of day combined event to be able to compute the market ovement based effect on PNL
         _dispatcher = Dispatcher.get_unique_instance(products, _startdate, _enddate, _config)
         _dispatcher.add_end_of_day_listener(self)
@@ -120,6 +126,27 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
 
     def on_order_update(self, filled_orders, dt):
         for order in filled_orders:
+            _product = order['product']
+            if self.product_type[_product] in ['etf', 'fund', 'stock']: # Assuming long only portfolios for these product types to calculate tax adjusted returns
+                if order['amount'] > 0:
+                    self.long_orders[_product].append((order['dt'], order['fill_price'], order['amount']))    
+                else:
+                    current_short_amount = - order['amount']
+                    while current_short_amount > 0:
+                        matched_order = self.long_orders[_product][0]
+                        if matched_order[2] > current_short_amount:
+                            _closed_amount = current_short_amount
+                        else:
+                            _closed_amount = matched_order[2]
+                            self.long_orders[product].popleft()
+                        current_short_amount -= _closed_amount
+                        _profit = _closed_amount * (order['fill_price'] - matched_order[1])
+                        time_diff = order['dt'] - matched_order[0]
+                        time_diff_in_years = (time_diff.days + time_diff.seconds/86400.0)/365.2425
+                        if time_diff_in_years < 1.0: # Short term gain
+                            self.short_term_tax_liability += _profit
+                        else: # Long Term gain
+                            self.long_term_tax_liability += _profit
             self.update_average_trade_price_and_portfolio(order)
             self.num_shares_traded[order['product']] = self.num_shares_traded[order['product']] + abs(order['amount'])
             self.trading_cost = self.trading_cost + order['cost']
@@ -187,10 +214,12 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
 
     # Called by Dispatcher
     def on_end_of_day(self, date):
+        _short_term_gain = 0.0
+        _long_term_gain = 0.0
         for _currency in self.currency_factor.keys():
             self.portfolio.cash += self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
-            _short_term_gain = 0.4 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date] # Assuming that we calculate tax in USD on the realization date itself 
-            _long_term_gain = 0.6 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
+            _short_term_gain += 0.4 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date] # Assuming that we calculate tax in USD on realization date itself 
+            _long_term_gain += 0.6 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
             self.todays_realized_pnl[_currency] = 0
         self.update_open_equity(date)
         self.compute_daily_stats(date)
@@ -200,9 +229,10 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
             self.short_term_tax_liability += _actual_short_term_gain
             self.long_term_tax_liability += _actual_long_term_gain
             self.post_tax_portfolio_value = self.post_tax_portfolio_value * exp(self.daily_log_returns[-1])
-            _running_post_tax_portfolio_value = self.running_post_tax_portfolio_value[-1] * exp(self.daily_log_returns[-1]) - _actual_short_term_gain - _actual_long_term_gain # TODO check with gchak 
+            _running_post_tax_portfolio_value = self.post_tax_portfolio_value - max(0.0, self.short_term_tax_liability)*self.short_term_tax_rate - max(0.0, self.long_term_tax_liability)*self.long_term_tax_rate
             self.running_post_tax_portfolio_value = append(self.running_post_tax_portfolio_value, _running_post_tax_portfolio_value)
             self.post_tax_daily_log_returns = append(self.post_tax_daily_log_returns, log(self.running_post_tax_portfolio_value[-1]/self.running_post_tax_portfolio_value[-2]))
+            print date, self.value[-1], self.running_post_tax_portfolio_value[-1], self.PnLvector[-1], _actual_short_term_gain, self.short_term_tax_liability, _actual_long_term_gain, self.long_term_tax_liability
 
     def on_tax_payment_day(self):
         if self.short_term_tax_liability > 0:
@@ -546,7 +576,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
             _stats += 'Correlation to %s = %0.2f\n' % (benchmark, get_monthly_correlation_to_benchmark(self.dates, self.daily_log_returns, benchmark))
 
         #POST TAX STATS
-        _net_returns = exp(sum(self.post_tax_daily_log_returns) - 1) * 100.0
+        _net_returns = (exp(sum(self.post_tax_daily_log_returns)) - 1) * 100.0
         _ann_returns = (exp(252.0 * mean(self.post_tax_daily_log_returns)) - 1) * 100.0
         _ann_std_returns = (exp(sqrt(252.0) * std(self.post_tax_daily_log_returns)) - 1) * 100.0
         _sharpe = _ann_returns/_ann_std_returns
