@@ -264,4 +264,4 @@ def efficient_frontier(expected_returns, covariance, max_leverage, risk_toleranc
     # Optimize
     solvers.options['show_progress'] = False
     portfolios = qp(dmat, -1*risk_tolerance*dvec, amat, bvec)['x']
-    return portfolios
+    return portfolios[0:num_prods].T
