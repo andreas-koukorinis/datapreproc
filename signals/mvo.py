@@ -39,10 +39,9 @@ class MeanVarianceOptimization(SignalAlgorithm):
 
         self.day = -1
         # Set computational variables
-        self.last_date_correlation_matrix_computed = 0
-        self.last_date_stdev_computed = 0
-        self.last_date_exp_return_computed = 0
-        self.last_rebalanced_day = -1
+        self.last_date_correlation_matrix_computed = -100000
+        self.last_date_stdev_computed = -100000
+        self.last_date_exp_return_computed = -100000
         self.exp_log_returns = numpy.array([0.0]*len(self.products))
         self.map_product_to_weight = dict([(product, 0.0) for product in self.products])  # map from product to weight, which will be passed downstream
         self.weights = numpy.array([0.0]*len(self.products))  # these are the weights, with products occuring in the same order as the order in self.products

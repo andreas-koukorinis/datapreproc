@@ -7,8 +7,8 @@ import numpy
 from numpy import hstack, vstack
 from cvxopt import matrix, solvers
 from cvxopt.solvers import qp
-from utils.vector_ops import shift_vec
-from utils import defaults
+from vector_ops import shift_vec
+import defaults
 from global_variables import Globals
 
 # Returns the full list of products  with fES_1 and fES_2 treated separately
