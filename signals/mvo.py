@@ -219,8 +219,7 @@ class MeanVarianceOptimization(SignalAlgorithm):
                 # TODO improve risk calculation
                 _annualized_stdev_of_portfolio = 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(self.weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.weights).T))[0, 0]) - 1)
                 self.weights = self.weights*(self.target_risk/_annualized_stdev_of_portfolio)
-                self.weights = adjust_to_desired_l1norm_range (self.weights, self.minimum_leverage, self.maximum_leverage)
-               
+                #self.weights = adjust_to_desired_l1norm_range (self.weights, self.minimum_leverage, self.maximum_leverage)   
 
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.weights[self.map_product_to_index[_product]]  # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
