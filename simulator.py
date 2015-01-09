@@ -55,11 +55,11 @@ class Simulator:
             os.makedirs(self._directory)
         
         # Read product list from config file
-        Globals.trade_products = get_trade_products(_config)
+        Globals.trade_products = get_trade_products(self._config)
         self._all_products = sorted(get_all_products(self._config))
 
         # Initialize the global variables
-        Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency = get_currency_and_conversion_factors(self._all_products, self._start_date, self._end_date)
+        Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, Globals.product_type = get_currency_and_conversion_factors(self._all_products, self._start_date, self._end_date)
 
         # Initialize the log file handles
         self._log_dir = os.path.expanduser("~") + "/logs/" + os.path.splitext(_config_file)[0].split('/')[-1] + '/'
@@ -77,7 +77,7 @@ class Simulator:
         # Instantiate the strategy
         # Strategy is written by the user and it inherits from TradeAlgorithm
         # TradeLogic here is the strategy class name converted to variable.Eg: UnleveredRP
-        self._tradelogic_instance = self.TradeLogic(self._trade_products, self._all_products, self._start_date, self._end_date, self._config) # TODO Should take logfile as terminal arg
+        self._tradelogic_instance = self.TradeLogic(Globals.trade_products, self._all_products, self._start_date, self._end_date, self._config) # TODO Should take logfile as terminal arg
 
         # Instantiate the Dispatcher
         self._dispatcher = Dispatcher.get_unique_instance(self._all_products, self._start_date, self._end_date, self._config)
