@@ -105,8 +105,10 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
             self.short_term_tax_rate = _config.getfloat('Parameters', 'short_term_tax_rate')/100.0
         if _config.has_option('Parameters', 'long_term_tax_rate'):
             self.long_term_tax_rate = _config.getfloat('Parameters', 'long_term_tax_rate')/100.0
-        self.short_term_tax_liability = 0.0
-        self.long_term_tax_liability = 0.0
+        self.short_term_tax_liability_realized = 0.0
+        self.short_term_tax_liability_unrealized = 0.0
+        self.long_term_tax_liability_realized = 0.0
+        self.long_term_tax_liability_unrealized = 0.0
         self.long_orders = {}
         self.product_type = Globals.product_type
         for product in self.products:
@@ -128,6 +130,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
     def on_order_update(self, filled_orders, dt):
         for order in filled_orders:
             _product = order['product']
+            print _product, self.product_type[_product]
             if self.product_type[_product] in ['etf', 'fund', 'stock']: # Assuming long only portfolios for these product types to calculate tax adjusted returns
                 if order['amount'] > 0:
                     self.long_orders[_product].append((order['dt'], order['fill_price'], order['amount']))    
@@ -145,9 +148,9 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
                         time_diff = order['dt'] - matched_order[0]
                         time_diff_in_years = (time_diff.days + time_diff.seconds/86400.0)/365.2425
                         if time_diff_in_years < 1.0: # Short term gain
-                            self.short_term_tax_liability += _profit
+                            self.short_term_tax_liability_realized += _profit
                         else: # Long Term gain
-                            self.long_term_tax_liability += _profit
+                            self.long_term_tax_liability_realized += _profit
             self.update_average_trade_price_and_portfolio(order)
             self.num_shares_traded[order['product']] = self.num_shares_traded[order['product']] + abs(order['amount'])
             self.trading_cost = self.trading_cost + order['cost']
@@ -217,27 +220,32 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
     def on_end_of_day(self, date):
         for _currency in self.currency_factor.keys():
             self.portfolio.cash += self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
-            self.short_term_tax_liability += 0.4 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date] 
+            self.short_term_tax_liability_realized += 0.4 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date] 
             # Assuming that we calculate tax in USD on realization date itself 
-            self.long_term_tax_liability += 0.6 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
+            self.long_term_tax_liability_realized += 0.6 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
             self.todays_realized_pnl[_currency] = 0
         self.update_open_equity(date)
+        self.short_term_tax_liability_unrealized = 0.0
+        self.long_term_tax_liability_unrealized = 0.0
+        for _product in self.products:
+            self.short_term_tax_liability_unrealized += 0.4 * self.portfolio.open_equity[_product]
+            self.long_term_tax_liability_unrealized += 0.6 * self.portfolio.open_equity[_product]
         self.compute_daily_stats(date)
 
     def on_tax_payment_day(self):
-        if self.short_term_tax_liability > 0:
-            self.portfolio.cash -= self.short_term_tax_liability * self.short_term_tax_rate
-            self.short_term_tax_liability = 0
-        if self.long_term_tax_liability > 0:
-            self.portfolio.cash -= self.long_term_tax_liability * self.long_term_tax_rate
-            self.long_term_tax_liability = 0 
+        if self.short_term_tax_liability_realized > 0:
+            self.portfolio.cash -= self.short_term_tax_liability_realized * self.short_term_tax_rate
+            self.short_term_tax_liability_realized = 0
+        if self.long_term_tax_liability_realized > 0:
+            self.portfolio.cash -= self.long_term_tax_liability_realized * self.long_term_tax_rate
+            self.long_term_tax_liability_realized = 0 
 
     # Computes the daily stats for the most recent trading day prior to 'date'
     # TOASK {gchak} Do we ever expect to run this function without current date ?
     def compute_daily_stats(self, date):
         self.date = date
         if self.total_orders > 0: # If no orders have been filled,it implies trading has not started yet
-            todaysValue = self.compute_mark_to_market(self.date) - self.long_term_tax_liability*self.long_term_tax_rate - self.short_term_tax_liability*self.short_term_tax_rate
+            todaysValue = self.compute_mark_to_market(self.date) - (self.long_term_tax_liability_realized + self.long_term_tax_liability_unrealized)*self.long_term_tax_rate - (self.short_term_tax_liability_realized + self.short_term_tax_liability_unrealized)*self.short_term_tax_rate
             self.value = append(self.value, todaysValue)
             self.PnLvector = append(self.PnLvector, (self.value[-1] - self.value[-2]))  # daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
             if self.value[-1] <= 0:
@@ -516,6 +524,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
     def show_results(self):
         self.PnL = sum(self.PnLvector) # final sum of pnl of all trading days
         self.net_returns = (self.PnL*100.0)/self.initial_capital # final sum of pnl / initial capital
+        print (exp(sum(self.daily_log_returns)) -1)*100.0
         self.annualized_PnL = 252.0 * mean(self.PnLvector)
         self.annualized_stdev_PnL = sqrt(252.0) * std(self.PnLvector)
         self.daily_returns = self.PnLvector * 100.0/self.value[0:self.value.shape[0] - 1]
