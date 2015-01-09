@@ -23,3 +23,9 @@ class TaxPaymentDayListener:
 
     @abstractmethod
     def on_tax_payment_day(self): pass
+
+class DistributionDayListener:
+    __metaclass__=ABCMeta
+
+    @abstractmethod
+    def on_distribution_day(self, event): pass

@@ -62,6 +62,7 @@ def push_all_end_of_day_events( heap, products, _startdate, _enddate ):
     tables = {}
     types = {}
     close_time = datetime.time(23,30,0,0) # For sequencing of events
+    distribution_time = datetime.time(0,1,0,0) # assume that dividend is distributed at the start of the day
     for row in rows:
         tables[row['table']] = []
         types[row['product']] = row['type']
@@ -73,20 +74,34 @@ def push_all_end_of_day_events( heap, products, _startdate, _enddate ):
         db_cursor.execute(query ,tuple(tables[table]))
         rows = db_cursor.fetchall()
         for row in rows:
-            _dt = datetime.datetime.combine ( row['date'], datetime.datetime.max.time() )
+            _dt = datetime.datetime.combine(row['date'], close_time)
             _product_type = types[row['product']]
             if _product_type == 'etf':
-                _event = {'product':row['product'], 'open': float(row['open']), 'high': float(row['high']),'low': float(row['low']), 'close': float(row['close']), 'volume': float(row['volume']),'dividend': float(row['dividend']), 'type':'ENDOFDAY', 'dt':_dt,'product_type': types[row['product']], 'is_last_trading_day': False}
+                _event = {'product':row['product'], 'open': float(row['open']), 'high': float(row['high']),'low': float(row['low']), 'close': float(row['close']), 'volume': float(row['volume']), 'type':'ENDOFDAY', 'dt': _dt,'product_type': types[row['product']], 'is_last_trading_day': False}
+                _dividend = float(row['dividend'])
+                if _dividend > 0 and row['date'] >= _startdate:
+                    _distribution_event = {'product': row['product'], 'type': 'DISTRIBUTIONDAY','distribution_type': 'DIVIDEND', 'dt': datetime.datetime.combine(row['date'], distribution_time), 'quote': float(row['dividend'])}
+                    heapq.heappush(heap,(_distribution_event['dt'], _distribution_event))
+
             elif _product_type == 'fund':
-                _event = {'product':row['product'],'close': float(row['close']),'asking_price': float(row['asking_price']),'forward_adjusted_close': float(row['forward_adjusted_close']),'backward_adjusted_price': float(row['backward_adjusted_price']), 'dividend': float(row['dividend']), 'capital_gain': float(row['capital_gain']), 'type':'ENDOFDAY', 'dt':_dt,'product_type': types[row['product']], 'is_last_trading_day': False}
+                _event = {'product':row['product'],'close': float(row['close']),'asking_price': float(row['asking_price']),'forward_adjusted_close': float(row['forward_adjusted_close']),'backward_adjusted_price': float(row['backward_adjusted_price']), 'type':'ENDOFDAY', 'dt': _dt,'product_type': types[row['product']], 'is_last_trading_day': False}
+                _dividend = float(row['dividend'])
+                _capital_gain = float(row['capital_gain'])
+                if _dividend > 0 and row['date'] >= _startdate:
+                    _distribution_event = {'product': row['product'], 'type': 'DISTRIBUTIONDAY','distribution_type': 'DIVIDEND', 'dt': datetime.datetime.combine(row['date'], distribution_time), 'quote': _dividend}
+                    heapq.heappush(heap,(_distribution_event['dt'], _distribution_event))
+                if _capital_gain > 0 and row['date'] >= _startdate:
+                    _distribution_event = {'product': row['product'], 'type': 'DISTRIBUTIONDAY','distribution_type': 'CAPITALGAIN', 'dt': datetime.datetime.combine(row['date'], distribution_time), 'quote': _capital_gain}
+                    heapq.heappush(heap,(_distribution_event['dt'], _distribution_event))
+            
             elif _product_type == 'future':
                 _price = float(row['close'])
                 if float(row['is_last_trading_day'])==0:
                     _is_last_trading_day = False
                 else:
                     _is_last_trading_day = True
-                _event = {'product': 'f' + row['product'],'open': float(row['open']), 'high': float(row['high']),'low': float(row['low']), 'close': float(row['close']),'contract_volume': float(row['contract_volume']), 'contract_oi': float(row['contract_oi']),'total_volume': float(row['total_volume']),'total_oi': float(row['total_oi']), 'type':'ENDOFDAY', 'dt':_dt,'product_type': types[row['product']], 'is_last_trading_day': _is_last_trading_day}
-            heapq.heappush ( heap, ( _dt, _event ) ) 
+                _event = {'product': 'f' + row['product'],'open': float(row['open']), 'high': float(row['high']),'low': float(row['low']), 'close': float(row['close']), 'contract_volume': float(row['contract_volume']), 'contract_oi': float(row['contract_oi']), 'total_volume': float(row['total_volume']), 'total_oi': float(row['total_oi']), 'type':'ENDOFDAY', 'dt': _dt, 'product_type': types[row['product']], 'is_last_trading_day': _is_last_trading_day}
+            heapq.heappush(heap,(_dt, _event)) 
     db_close(db)
 
 def push_all_tax_payment_events(heap, start_date, end_date):

@@ -10,8 +10,7 @@ from collections import deque
 from backtester.backtester_listeners import BackTesterListener
 from backtester.backtester import BackTester
 from dispatcher.dispatcher import Dispatcher
-from dispatcher.dispatcher_listeners import EndOfDayListener
-from dispatcher.dispatcher_listeners import TaxPaymentDayListener
+from dispatcher.dispatcher_listeners import EndOfDayListener, TaxPaymentDayListener, DistributionDayListener
 from utils.regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string
 from utils.calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts, convert_daily_to_monthly_returns
 from utils.benchmark_comparison import get_monthly_correlation_to_benchmark
@@ -29,7 +28,7 @@ from utils.global_variables import Globals
  It outputs the list of [dates,dailyreturns] to returns_file for later analysis
  It outputs the portfolio snapshots and orders in the positions_file for debugging
 '''
-class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayListener):
+class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayListener, DistributionDayListener):
 
     def __init__(self, products, _startdate, _enddate, _config):
         self.products = products
@@ -99,12 +98,15 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.correlation_to_agg = 0.0
 
         # For tax adjusted returns
-        self.short_term_tax_rate = .396 # 39.6%
-        self.long_term_tax_rate = .196
+        self.short_term_tax_rate = .396 #39.6%
+        self.long_term_tax_rate = .196 #19.6%
+        self.dividend_tax_rate = 0.4 #40%
         if _config.has_option('Parameters', 'short_term_tax_rate'):
             self.short_term_tax_rate = _config.getfloat('Parameters', 'short_term_tax_rate')/100.0
         if _config.has_option('Parameters', 'long_term_tax_rate'):
             self.long_term_tax_rate = _config.getfloat('Parameters', 'long_term_tax_rate')/100.0
+        if _config.has_option('Parameters', 'dividend_tax_rate'):
+            self.dividend_tax_rate = _config.getfloat('Parameters', 'dividend_tax_rate')/100.0
         self.short_term_tax_liability_realized = 0.0
         self.short_term_tax_liability_unrealized = 0.0
         self.long_term_tax_liability_realized = 0.0
@@ -119,6 +121,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         _dispatcher = Dispatcher.get_unique_instance(products, _startdate, _enddate, _config)
         _dispatcher.add_end_of_day_listener(self)
         _dispatcher.add_tax_payment_day_listener(self)
+        _dispatcher.add_distribution_day_listener(self)
         self.bb_objects = {}
         for product in products:
             BackTester.get_unique_instance(product, _startdate, _enddate, _config).add_listener(self) # Listen to Backtester for filled orders
@@ -238,6 +241,25 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         if self.long_term_tax_liability_realized > 0:
             self.portfolio.cash -= self.long_term_tax_liability_realized * self.long_term_tax_rate
             self.long_term_tax_liability_realized = 0 
+
+    def on_distribution_day(self, event):
+        """On a distribution day, calculate the net payout after taxes and add the money to portfolio cash
+           The assumption is that for funds, capital gain is equally distributed betweeb shoirt term and long term
+
+           Args:
+               event(dict) : contains info about the distribution event
+        """
+        _product = event['product']
+        _dt = event['dt']
+        _type = event['distribution_type']
+        _distribution = event['quote']
+        if _type == 'DIVIDEND':
+            _after_tax_net_payout = _distribution*self.portfolio.num_shares[_product]*(1 - self.dividend_tax_rate)
+        elif _type == 'CAPITALGAIN': # TODO split into short term and long term based on bbg data
+            _after_tax_net_payout = _distribution*self.portfolio.num_shares[_product]*(1 - (self.long_term_tax_rate + self.short_term_tax_rate)/2.0)
+            self.short_term_tax_liability_realized += _after_tax_net_payout/2.0
+            self.long_term_tax_liability_realized += _after_tax_net_payout/2.0 
+        self.portfolio.cash += _after_tax_net_payout
 
     # Computes the daily stats for the most recent trading day prior to 'date'
     # TOASK {gchak} Do we ever expect to run this function without current date ?
@@ -523,7 +545,6 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
     def show_results(self):
         self.PnL = sum(self.PnLvector) # final sum of pnl of all trading days
         self.net_returns = (self.PnL*100.0)/self.initial_capital # final sum of pnl / initial capital
-        print (exp(sum(self.daily_log_returns)) -1)*100.0
         self.annualized_PnL = 252.0 * mean(self.PnLvector)
         self.annualized_stdev_PnL = sqrt(252.0) * std(self.PnLvector)
         self.daily_returns = self.PnLvector * 100.0/self.value[0:self.value.shape[0] - 1]

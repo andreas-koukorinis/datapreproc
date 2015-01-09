@@ -38,7 +38,7 @@ class BookBuilder(DailyEventListener):
     # Update the daily book with closing price and timestamp
     def on_daily_event_update(self, event):
         if Globals.product_type[self.product] == 'etf':
-            self.dailybook.append((event['dt'], event['backward_adjusted_close'], event['is_last_trading_day'], event['open']))
+            self.dailybook.append((event['dt'], event['close'], event['is_last_trading_day'], event['open']))
         elif Globals.product_type[self.product] == 'fund':
             self.dailybook.append((event['dt'], event['close'], event['is_last_trading_day'], event['close']))
         elif Globals.product_type[self.product] == 'future':

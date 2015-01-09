@@ -6,8 +6,10 @@ from utils.global_variables import Globals
 from utils.regular import is_future, get_base_symbol, get_future_mappings
 from utils import defaults
 from risk_management.risk_manager_list import is_valid_risk_manager_name, get_module_name_from_risk_manager_name
+from dispatcher.dispatcher import Dispatcher
+from dispatcher.dispatcher_listeners import DistributionDayListener
 
-class ExecLogicAlgo():
+class ExecLogicAlgo(DistributionDayListener):
     def __init__(self, trade_products, all_products, order_manager, portfolio, bb_objects, performance_tracker, simple_performance_tracker, _startdate, _enddate, _config):
         self.trade_products = trade_products
         self.all_products = all_products
@@ -37,9 +39,14 @@ class ExecLogicAlgo():
         else:
             self.debug_level = defaults.DEBUG_LEVEL  # Default value of debug level,in case not specified in config file
         self.orders_to_place = {} # The net order amount(in number of shares) which are to be placed on the next trading day
+        self.distributions_to_reinvest = dict([(product, 0.0) for product in self.trade_products if Globals.product_type[product] == 'etf' or Globals.product_type[product] == 'future' or Globals.product_type[product] == 'stock'])
         for product in all_products:
             self.orders_to_place[product] = 0 # Initially there is no pending order for any product
+        Dispatcher.get_unique_instance(all_products, _startdate, _enddate, _config).add_distribution_day_listener(self)
         self.init(_config)
+
+    def on_distribution_day(self, event):
+        pass
 
     # Place pending (self.orders_to_place) and rollover orders
     # This function should be implemented by the execlogic class
