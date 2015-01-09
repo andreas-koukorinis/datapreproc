@@ -103,11 +103,9 @@ def push_all_tax_payment_events(heap, start_date, end_date):
     for y in range(y1, y2):
         dt = datetime.datetime.combine(datetime.date(y,12,31), tax_payment_time)
         _event = {'dt': dt, 'type': 'TAXPAYMENTDAY'}
-        print _event
         heapq.heappush(heap, (dt, _event)) 
     dt = datetime.datetime.combine(end_date, tax_payment_time)
     _event = {'dt': dt, 'type': 'TAXPAYMENTDAY'}
-    print _event
     heapq.heappush(heap, (dt, _event))
 
 def get_currency_and_conversion_factors(products, start_date, end_date):
