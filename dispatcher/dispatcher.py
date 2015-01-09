@@ -2,7 +2,7 @@ import sys
 from datetime import datetime,timedelta
 import heapq
 import MySQLdb
-from utils.dbqueries import push_all_events
+from utils.dbqueries import push_all_end_of_day_events, push_all_tax_payment_events
 from utils.regular import get_dt_from_date,check_eod
 from utils import defaults
 
@@ -56,6 +56,8 @@ class Dispatcher (object):
         self.event_listeners = dict([(product,[]) for product in self.products])  # For each product,maintain a list of listeners
         self.events_listeners = []  # These are the listeners which receive all the concurrent events at once.Here Strategy only
         self.end_of_day_listeners = []  # These are the listeners called on eand of each trading day.Here Performance Tracker
+        self.tax_payment_day_listeners = [] # These are the listeners called on the tax payment day(typically end of year).Here Performance Tracker
+        self.distribution_day_listeners = [] # These are the listeners called on the day when a distribution(dividend/capital_gain) is paid out
 
     @staticmethod
     def get_unique_instance( products, _startdate, _enddate, _config ):
@@ -65,7 +67,7 @@ class Dispatcher (object):
             Dispatcher.instance.append( new_instance )
         return Dispatcher.instance[0]
 
-    def add_event_listener( self, listener, product ):  # For Bookbuilders
+    def add_event_listener(self, listener, product):  # For Bookbuilders
         """Used by classes to register as event_listener of the dispatcher
 
            Args:
@@ -74,9 +76,9 @@ class Dispatcher (object):
 
            Returns: Nothing       
         """
-        self.event_listeners[product].append( listener )
+        self.event_listeners[product].append(listener)
 
-    def add_events_listener( self, listener ):  # For strategy,signals
+    def add_events_listener(self, listener):  # For strategy,signals
         """Used by classes to register as events_listener of the dispatcher
 
            Args:
@@ -84,9 +86,9 @@ class Dispatcher (object):
 
            Returns: Nothing       
         """
-        self.events_listeners.append( listener )
+        self.events_listeners.append(listener)
 
-    def add_end_of_day_listener( self, listener ): # For Performance Tracker
+    def add_end_of_day_listener(self, listener): # For Performance Tracker
         """Used by classes to register as end_of_day_listener of the dispatcher
 
            Args:
@@ -94,7 +96,27 @@ class Dispatcher (object):
 
            Returns: Nothing       
         """
-        self.end_of_day_listeners.append( listener )
+        self.end_of_day_listeners.append(listener)
+
+    def add_tax_payment_day_listener(self, listener): # For Performance Tracker
+        """Used by classes to register as end_of_day_listener of the dispatcher
+
+           Args:
+               listener(object): The object of the class which wants to listen
+
+           Returns: Nothing       
+        """
+        self.tax_payment_day_listeners.append(listener)
+
+    def add_distribution_day_listener(self, listener):
+        """Used by classes to register as end_of_day_listener of the dispatcher
+
+           Args:
+               listener(object): The object of the class which wants to listen
+
+           Returns: Nothing       
+        """
+        self.distribution_day_listeners.append(listener)
 
     # ASSUMPTION:All ENDOFDAY events have same time
     def run(self):
@@ -113,14 +135,22 @@ class Dispatcher (object):
                 event = tup[1]
                 concurrent_events.append(event)
             for event in concurrent_events:
-                if(event['type']=='ENDOFDAY'): # This is an endofday event
+                if event['type']=='ENDOFDAY': # This is an endofday event
                     for listener in self.event_listeners[event['product']]:
                         listener.on_daily_event_update(event)
 
-                if(event['type']=='INTRADAY'):  # This is an intraday event
+                if event['type']=='INTRADAY':  # This is an intraday event
                     pass  # TODO:call intradaybookbuilder and push next
 
-            if( current_dt.date() >= self.start_dt.date() ):  # If warmupdays are over
+                if event['type'] == 'TAXPAYMENTDAY':
+                    for listener in self.tax_payment_day_listeners:
+                        listener.on_tax_payment_day()
+
+                if event['type'] == 'DISTRIBUTIONDAY':
+                    for listener in self.distribution_day_listeners:
+                        listener.on_distribution_day(event)
+
+            if( current_dt.date() >= self.start_dt.date() and check_eod(concurrent_events)):  # If warmupdays are over
                 for listener in self.events_listeners:
                     listener.on_events_update(concurrent_events)
                 self.trading_days=self.trading_days+1
@@ -142,4 +172,5 @@ class Dispatcher (object):
 
            Returns: Nothing      
         """
-        push_all_events(self.heap, products, self.sim_start_dt.date(), self.end_dt.date())     
+        push_all_end_of_day_events(self.heap, products, self.sim_start_dt.date(), self.end_dt.date())
+        push_all_tax_payment_events(self.heap, self.start_dt.date(), self.end_dt.date())

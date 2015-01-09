@@ -13,6 +13,7 @@ class SimpleExecLogic(ExecLogicAlgo):
     def rollover(self, dt):
         self.current_date = dt.date()
         current_prices = get_current_prices(self.bb_objects)
+        self.reinvest_pending_distributions(dt, self.distributions_to_reinvest, current_prices)
         _orders_to_place = dict( [ ( product, 0 ) for product in self.all_products ] )
         _old_risk_level = self.risk_level
         _new_risk_level = self.risk_manager.get_current_risk_level(self.current_date)
@@ -118,3 +119,20 @@ class SimpleExecLogic(ExecLogicAlgo):
                 _notional_value_product = 0.0
             weights[_product] = _notional_value_product/_net_portfolio_value
         return weights
+
+    def reinvest_pending_distributions(self, dt, distributions_to_reinvest, current_prices):
+        for _product in distributions_to_reinvest.keys():
+            if distributions_to_reinvest[_product] > 0:
+                self.place_order(dt, _product, distributions_to_reinvest[_product]/current_prices[_product])
+                self.distributions_to_reinvest[_product] = 0
+
+    def on_distribution_day(self, event):
+        _product = event['product']
+        _dt = event['dt']
+        _type = event['distribution_type']
+        _distribution = event['quote']
+        if _type == 'DIVIDEND':
+            _after_tax_net_payout = _distribution*self.portfolio.num_shares[_product]*(1-self.performance_tracker.dividend_tax_rate)
+        elif _type == 'CAPITALGAIN': # TODO split into short term and long term based on bbg data
+            _after_tax_net_payout = _distribution*self.portfolio.num_shares[_product]*(1-(self.performance_tracker.long_term_tax_rate + self.performance_tracker.short_term_tax_rate)/2.0)
+        self.distributions_to_reinvest[_product] += _after_tax_net_payout

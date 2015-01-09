@@ -92,7 +92,8 @@ class TargetRiskVolatilityParity(SignalAlgorithm):
                     idx = 0
                     while idx < len(_sign_words):
                         _product, _sign = _sign_words[idx], float(_sign_words[idx+1])
-                        self.allocation_signs[self.map_product_to_index[_product]] = _sign
+                        if _product in self.products:
+                            self.allocation_signs[self.map_product_to_index[_product]] = _sign
                         idx += 2
                 else:
                     _product = _model_line_words[0]
@@ -113,7 +114,8 @@ class TargetRiskVolatilityParity(SignalAlgorithm):
                     idx = 0
                     while idx < len(_sign_words):
                         _product, _sign = _sign_words[idx], float(_sign_words[idx+1])
-                        self.allocation_signs[self.map_product_to_index[_product]] = _sign
+                        if _product in self.products:
+                            self.allocation_signs[self.map_product_to_index[_product]] = _sign
                         idx += 2
 
         if is_valid_daily_indicator(self.stdev_computation_indicator_name):

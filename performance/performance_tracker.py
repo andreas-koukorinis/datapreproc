@@ -5,11 +5,12 @@ from numpy import *
 import scipy.stats as ss
 import marshal
 import itertools
+from collections import deque
 
 from backtester.backtester_listeners import BackTesterListener
 from backtester.backtester import BackTester
 from dispatcher.dispatcher import Dispatcher
-from dispatcher.dispatcher_listeners import EndOfDayListener
+from dispatcher.dispatcher_listeners import EndOfDayListener, TaxPaymentDayListener, DistributionDayListener
 from utils.regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string
 from utils.calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts, convert_daily_to_monthly_returns
 from utils.benchmark_comparison import get_monthly_correlation_to_benchmark
@@ -27,7 +28,7 @@ from utils.global_variables import Globals
  It outputs the list of [dates,dailyreturns] to returns_file for later analysis
  It outputs the portfolio snapshots and orders in the positions_file for debugging
 '''
-class PerformanceTracker(BackTesterListener, EndOfDayListener):
+class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayListener, DistributionDayListener):
 
     def __init__(self, products, _startdate, _enddate, _config):
         self.products = products
@@ -96,8 +97,31 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         self.correlation_to_spx = 0.0
         self.correlation_to_agg = 0.0
 
+        # For tax adjusted returns
+        self.short_term_tax_rate = .396 #39.6%
+        self.long_term_tax_rate = .196 #19.6%
+        self.dividend_tax_rate = 0.4 #40%
+        if _config.has_option('Parameters', 'short_term_tax_rate'):
+            self.short_term_tax_rate = _config.getfloat('Parameters', 'short_term_tax_rate')/100.0
+        if _config.has_option('Parameters', 'long_term_tax_rate'):
+            self.long_term_tax_rate = _config.getfloat('Parameters', 'long_term_tax_rate')/100.0
+        if _config.has_option('Parameters', 'dividend_tax_rate'):
+            self.dividend_tax_rate = _config.getfloat('Parameters', 'dividend_tax_rate')/100.0
+        self.short_term_tax_liability_realized = 0.0
+        self.short_term_tax_liability_unrealized = 0.0
+        self.long_term_tax_liability_realized = 0.0
+        self.long_term_tax_liability_unrealized = 0.0
+        self.long_orders = {}
+        self.product_type = Globals.product_type
+        for product in self.products:
+            if self.product_type[product] in ['etf', 'fund', 'stock']:
+                self.long_orders[product] = deque()
+                
         # Listens to end of day combined event to be able to compute the market ovement based effect on PNL
-        Dispatcher.get_unique_instance(products, _startdate, _enddate, _config).add_end_of_day_listener(self)
+        _dispatcher = Dispatcher.get_unique_instance(products, _startdate, _enddate, _config)
+        _dispatcher.add_end_of_day_listener(self)
+        _dispatcher.add_tax_payment_day_listener(self)
+        _dispatcher.add_distribution_day_listener(self)
         self.bb_objects = {}
         for product in products:
             BackTester.get_unique_instance(product, _startdate, _enddate, _config).add_listener(self) # Listen to Backtester for filled orders
@@ -108,6 +132,27 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
 
     def on_order_update(self, filled_orders, dt):
         for order in filled_orders:
+            _product = order['product']
+            if self.product_type[_product] in ['etf', 'fund', 'stock']: # Assuming long only portfolios for these product types to calculate tax adjusted returns
+                if order['amount'] > 0:
+                    self.long_orders[_product].append((order['dt'], order['fill_price'], order['amount']))    
+                else:
+                    current_short_amount = - order['amount']
+                    while current_short_amount > 0:
+                        matched_order = self.long_orders[_product][0]
+                        if matched_order[2] > current_short_amount:
+                            _closed_amount = current_short_amount
+                        else:
+                            _closed_amount = matched_order[2]
+                            self.long_orders[product].popleft()
+                        current_short_amount -= _closed_amount
+                        _profit = _closed_amount * (order['fill_price'] - matched_order[1])
+                        time_diff = order['dt'] - matched_order[0]
+                        time_diff_in_years = (time_diff.days + time_diff.seconds/86400.0)/365.2425
+                        if time_diff_in_years < 1.0: # Short term gain
+                            self.short_term_tax_liability_realized += _profit
+                        else: # Long Term gain
+                            self.long_term_tax_liability_realized += _profit
             self.update_average_trade_price_and_portfolio(order)
             self.num_shares_traded[order['product']] = self.num_shares_traded[order['product']] + abs(order['amount'])
             self.trading_cost = self.trading_cost + order['cost']
@@ -177,16 +222,51 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
     def on_end_of_day(self, date):
         for _currency in self.currency_factor.keys():
             self.portfolio.cash += self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
+            self.short_term_tax_liability_realized += 0.4 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date] 
+            # Assuming that we calculate tax in USD on realization date itself 
+            self.long_term_tax_liability_realized += 0.6 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
             self.todays_realized_pnl[_currency] = 0
         self.update_open_equity(date)
+        self.short_term_tax_liability_unrealized = 0.0
+        self.long_term_tax_liability_unrealized = 0.0
+        for _product in self.products:
+            self.short_term_tax_liability_unrealized += 0.4 * self.portfolio.open_equity[_product]
+            self.long_term_tax_liability_unrealized += 0.6 * self.portfolio.open_equity[_product]
         self.compute_daily_stats(date)
+
+    def on_tax_payment_day(self):
+        if self.short_term_tax_liability_realized > 0:
+            self.portfolio.cash -= self.short_term_tax_liability_realized * self.short_term_tax_rate
+            self.short_term_tax_liability_realized = 0
+        if self.long_term_tax_liability_realized > 0:
+            self.portfolio.cash -= self.long_term_tax_liability_realized * self.long_term_tax_rate
+            self.long_term_tax_liability_realized = 0 
+
+    def on_distribution_day(self, event):
+        """On a distribution day, calculate the net payout after taxes and add the money to portfolio cash
+           The assumption is that for funds, capital gain is equally distributed betweeb shoirt term and long term
+
+           Args:
+               event(dict) : contains info about the distribution event
+        """
+        _product = event['product']
+        _dt = event['dt']
+        _type = event['distribution_type']
+        _distribution = event['quote']
+        if _type == 'DIVIDEND':
+            _after_tax_net_payout = _distribution*self.portfolio.num_shares[_product]*(1 - self.dividend_tax_rate)
+        elif _type == 'CAPITALGAIN': # TODO split into short term and long term based on bbg data
+            _after_tax_net_payout = _distribution*self.portfolio.num_shares[_product]*(1 - (self.long_term_tax_rate + self.short_term_tax_rate)/2.0)
+            self.short_term_tax_liability_realized += _after_tax_net_payout/2.0
+            self.long_term_tax_liability_realized += _after_tax_net_payout/2.0 
+        self.portfolio.cash += _after_tax_net_payout
 
     # Computes the daily stats for the most recent trading day prior to 'date'
     # TOASK {gchak} Do we ever expect to run this function without current date ?
     def compute_daily_stats(self, date):
         self.date = date
         if self.total_orders > 0: # If no orders have been filled,it implies trading has not started yet
-            todaysValue = self.compute_mark_to_market(self.date)
+            todaysValue = self.compute_mark_to_market(self.date) - (self.long_term_tax_liability_realized + self.long_term_tax_liability_unrealized)*self.long_term_tax_rate - (self.short_term_tax_liability_realized + self.short_term_tax_liability_unrealized)*self.short_term_tax_rate
             self.value = append(self.value, todaysValue)
             self.PnLvector = append(self.PnLvector, (self.value[-1] - self.value[-2]))  # daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
             if self.value[-1] <= 0:
@@ -507,6 +587,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener):
         else:
             _leverage_params = (0, 0, 0, 0)
         self._save_results()
+
         _stats = _extreme_days + _extreme_weeks 
         _stats += ("\nInitial Capital = %.2f\nNet PNL = %.2f \nTrading Cost = %.2f\nNet Returns = %.2f%%\nAnnualized PNL = %.2f\nAnnualized_Std_PnL = %.2f\nAnnualized_Returns = %.2f%% \nAnnualized_Std_Returns = %.2f%% \nSharpe Ratio = %.2f \nSortino Ratio = %.2f\nSkewness = %.2f\nKurtosis = %.2f\nDML = %.2f%%\nMML = %.2f%%\nQML = %.2f%%\nYML = %.2f%%\nMax Drawdown = %.2f%% \nDrawdown Period = %s to %s\nDrawdown Recovery Period = %s to %s\nMax Drawdown Dollar = %.2f \nAnnualized PNL by drawdown = %.2f \nReturn_drawdown_Ratio = %.2f\nReturn Var10 ratio = %.2f\nYearly_sharpe = " + _print_yearly_sharpe + "\nHit Loss Ratio = %0.2f\nGain Pain Ratio = %0.2f\nMax num days with no new high = %d from %s to %s\nLosing month streak = Lost %0.2f%% in %d months from %s to %s\nTurnover = %0.2f%%\nLeverage = Min : %0.2f, Max : %0.2f, Average : %0.2f, Stddev : %0.2f\nTrading Cost = %0.2f\nTotal Money Transacted = %0.2f\nTotal Orders Placed = %d\n") % (self.initial_capital, self.PnL, self.trading_cost, self.net_returns, self.annualized_PnL, self.annualized_stdev_PnL, self._annualized_returns_percent, self.annualized_stddev_returns, self.sharpe, self.sortino, self.skewness, self.kurtosis, self.dml, self.mml, self._worst_10pc_quarterly_returns, self._worst_10pc_yearly_returns, self.max_drawdown_percent, self.drawdown_period[0], self.drawdown_period[1], self.recovery_period[0], self.recovery_period[1], self.max_drawdown_dollar, self._annualized_pnl_by_max_drawdown_dollar, self.return_by_maxdrawdown, self.ret_var10, self.hit_loss_ratio, self.gain_pain_ratio, self.max_num_days_no_new_high[0], self.max_num_days_no_new_high[1], self.max_num_days_no_new_high[2], self.losing_month_streak[1], self.losing_month_streak[0], self.losing_month_streak[2], self.losing_month_streak[3], self.turnover_percent, _leverage_params[0], _leverage_params[1], _leverage_params[2], _leverage_params[3], self.trading_cost, self.total_amount_transacted, self.total_orders)
         for benchmark in self.benchmarks:
