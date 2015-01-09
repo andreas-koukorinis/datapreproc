@@ -6,6 +6,7 @@ from utils.regular import check_eod, adjust_file_path_for_home_directory, is_flo
 from daily_indicators.indicator_list import is_valid_daily_indicator,get_module_name_from_indicator_name
 from daily_indicators.portfolio_utils import make_portfolio_string_from_products
 from signals.signal_algorithm import SignalAlgorithm
+from daily_indicators.correlation_log_returns import CorrelationLogReturns
 
 class SimpleMomentumSignal( SignalAlgorithm ):
     """Implement a simple momentum strategy on multiple products.
@@ -24,12 +25,23 @@ class SimpleMomentumSignal( SignalAlgorithm ):
     """
     
     def init( self, _config ):
+        # Set target risk
+        self.target_risk = 10.0
         self.stdev_computation_indicator_name = "AverageStdDev"
         self.stdev_computation_history = ['63', '252']
         self.stdev_computation_interval = 5
         self.trend_computation_indicator_name = "AverageDiscretizedTrend"
         self.trend_computation_history = ['21', '63', '252']
         self.trend_computation_interval = 5
+         # Set Correlation computation indicator
+        self.correlation_computation_indicator = 'CorrelationLogReturns'
+        # Set correlation computation hisory
+        self.correlation_computation_history = 252
+        # Set correlation computation interval
+        self.correlation_computation_interval = 21
+        # create a diagonal matrix of 1s for correlation matrix
+        self.logret_correlation_matrix = numpy.eye(len(self.products))
+
 
         self.trend_indicator_vec = []
         self.stdev_indicator_vec = []
@@ -80,6 +92,13 @@ class SimpleMomentumSignal( SignalAlgorithm ):
                         if len(_computation_words) >= 2:
                             self.trend_computation_interval = int(_computation_words[0])
                             self.trend_computation_history = _computation_words[1:]
+                    elif _model_line_words[1] == 'CorrelationLogReturnsIndicator':
+                        self.correlation_computation_indicator = _model_line_words[2]
+                    elif _model_line_words[1] == 'CorrelationLogReturnsComputationParameters':
+                        _computation_words = _model_line_words[2:]
+                        if len(_computation_words) == 2:
+                            self.correlation_computation_history = int(_computation_words[0])
+                            self.correlation_computation_interval = int(_computation_words[1])
                 else:
                     _product=_model_line_words[0]
                     if _product in self.products:
@@ -95,6 +114,9 @@ class SimpleMomentumSignal( SignalAlgorithm ):
                                 #set the refreshing interval to the minimum of current and previous values
                                 self.trend_computation_interval=numpy.min(self.trend_computation_interval,int(_computation_words[0]))
                                 _map_product_to_trend_computation_history = _computation_words[1:]
+            elif len(_model_line_words) == 2:
+                if _model_line_words[0] == 'TargetRisk':
+                    self.target_risk = float(_model_line_words[1])
 
         if is_valid_daily_indicator(self.stdev_computation_indicator_name):
             _stdev_indicator_module = import_module('daily_indicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator_name))
@@ -118,12 +140,29 @@ class SimpleMomentumSignal( SignalAlgorithm ):
             _identifier = self.trend_computation_indicator_name + '.' + _product + '.' + '.'.join(_map_product_to_stdev_computation_history.get(_product, self.stdev_computation_history))
             self.trend_indicator_vec.append(TrendIndicatorClass.get_unique_instance(_identifier,self.start_date, self.end_date, _config))
 
+        # Set correlation computation indicator
+        if is_valid_daily_indicator(self.correlation_computation_indicator):
+            _portfolio_string = make_portfolio_string_from_products(self.products)  # this allows us to pass a portfolio to the CorrelationLogReturns indicator.
+            # TODO Should we change the design of passing arguments to the indicators from a '.' concatenated list to a variable argument set?
+            self.correlation_computation_indicator = CorrelationLogReturns.get_unique_instance(self.correlation_computation_indicator + '.' + _portfolio_string + '.' + str(self.correlation_computation_history), self.start_date, self.end_date, _config)
+        else:
+            print "Correlation computation indicator %s invalid!" % self.correlation_computation_indicator
+            sys.exit(0)
+
+
     def on_events_update(self,events):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
         if all_eod: self.day += 1  # Track the current day number
         
         if all_eod:
             _need_to_recompute_dmf_weights = False # By default we don't need to change weights unless some input has changed
+            if self.day % self.correlation_computation_interval == 0:
+                # we need to recompute the correlation matrix
+                self.logret_correlation_matrix = self.correlation_computation_indicator.get_correlation_matrix() # this command will not do anything if the values have been already computed. else it will
+                # TODO Add tests here for the correlation matrix to make sense.
+                # If it fails, do not overwrite previous values, or throw an error
+                _need_to_recompute_erc_weights = True
+                self.last_date_correlation_matrix_computed = self.day
             if (self.day % self.stdev_computation_interval) == 0:
                 # we need to recompute risk estimate
                 for i in xrange(len(self.expected_risk_vec)):
@@ -136,7 +175,13 @@ class SimpleMomentumSignal( SignalAlgorithm ):
                 _need_to_recompute_dmf_weights = True
 
             if _need_to_recompute_dmf_weights:
+                # Calculate weights to assign to each product using indicators
+                # compute covariance matrix from correlation matrix and
+                _cov_mat = self.logret_correlation_matrix * numpy.outer(self.expected_risk_vec, self.expected_risk_vec) # we should probably do it when either self.stdev_logret or _correlation_matrix has been updated
+
                 self.dmf_weights = self.expected_return_vec/self.expected_risk_vec
+                _annualized_stdev_of_portfolio = 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(self.dmf_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.dmf_weights).T))[0, 0]) - 1)
+                self.dmf_weights= self.dmf_weights*(self.target_risk/_annualized_stdev_of_portfolio)
                 self.dmf_weights = adjust_to_desired_l1norm_range (self.dmf_weights, self.minimum_leverage, self.maximum_leverage)
 
                 for _product in self.products:

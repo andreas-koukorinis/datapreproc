@@ -58,7 +58,7 @@ class MeanVarianceOptimization(SignalAlgorithm):
         _map_product_to_crossover_volatility_computation_history = {}
 
         # Set target risk
-        self.target_risk = 10.0
+        self.target_risk = 5.0
         # Set risk tolerance
         self.risk_tolerance = 0.015
         # Set maximum allocation
@@ -161,7 +161,7 @@ class MeanVarianceOptimization(SignalAlgorithm):
             # TODO Should we change the design of passing arguments to the indicators from a '.' concatenated list to a variable argument set?
             self.correlation_computation_indicator = CorrelationLogReturns.get_unique_instance(self.correlation_computation_indicator + '.' + _portfolio_string + '.' + str(self.correlation_computation_history), self.start_date, self.end_date, _config)
         else:
-            print "Correlation computation indicator %s invalid!" % self.stddev_computation_indicator
+            print "Correlation computation indicator %s invalid!" % self.correlation_computation_indicator
             sys.exit(0)    
 
        
@@ -219,7 +219,7 @@ class MeanVarianceOptimization(SignalAlgorithm):
                 # TODO improve risk calculation
                 _annualized_stdev_of_portfolio = 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(self.weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.weights).T))[0, 0]) - 1)
                 self.weights = self.weights*(self.target_risk/_annualized_stdev_of_portfolio)
-                #self.weights = adjust_to_desired_l1norm_range (self.weights, self.minimum_leverage, self.maximum_leverage)   
+                self.weights = adjust_to_desired_l1norm_range (self.weights, self.minimum_leverage, self.maximum_leverage)   
 
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.weights[self.map_product_to_index[_product]]  # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
