@@ -76,23 +76,16 @@ def push_all_end_of_day_events( heap, products, _startdate, _enddate ):
             _dt = datetime.datetime.combine ( row['date'], datetime.datetime.max.time() )
             _product_type = types[row['product']]
             if _product_type == 'etf':
-                _price = float(row['backward_adjusted_close'])
-                _dividend = float(row['dividend']) 
-                _event = {'product':row['product'],'price': _price, 'dividend': _dividend, 'type':'ENDOFDAY', 'dt':_dt,'product_type': types[row['product']], 'is_last_trading_day': False}
+                _event = {'product':row['product'], 'open': float(row['open']), 'high': float(row['high']),'low': float(row['low']), 'close': float(row['close']), 'volume': float(row['volume']),'dividend': float(row['dividend']), 'type':'ENDOFDAY', 'dt':_dt,'product_type': types[row['product']], 'is_last_trading_day': False}
             elif _product_type == 'fund':
-                _price = float(row['backward_adjusted_close'])
-                #_price = float(row['close'])
-                _dividend = float(row['dividend'])
-                _capital_gain = float(row['capital_gain'])
-                _event = {'product':row['product'],'price': _price, 'dividend': _dividend, 'capital_gain':_capital_gain, 'type':'ENDOFDAY', 'dt':_dt,'product_type': types[row['product']], 'is_last_trading_day': False}
+                _event = {'product':row['product'],'close': float(row['close']),'asking_price': float(row['asking_price']),'forward_adjusted_close': float(row['forward_adjusted_close']),'backward_adjusted_price': float(row['backward_adjusted_price']), 'dividend': float(row['dividend']), 'capital_gain': float(row['capital_gain']), 'type':'ENDOFDAY', 'dt':_dt,'product_type': types[row['product']], 'is_last_trading_day': False}
             elif _product_type == 'future':
                 _price = float(row['close'])
                 if float(row['is_last_trading_day'])==0:
                     _is_last_trading_day = False
                 else:
                     _is_last_trading_day = True
-               
-                _event = {'product': 'f' + row['product'],'price': _price, 'type':'ENDOFDAY', 'dt':_dt,'product_type': types[row['product']], 'is_last_trading_day': _is_last_trading_day}                
+                _event = {'product': 'f' + row['product'],'open': float(row['open']), 'high': float(row['high']),'low': float(row['low']), 'close': float(row['close']),'contract_volume': float(row['contract_volume']), 'contract_oi': float(row['contract_oi']),'total_volume': float(row['total_volume']),'total_oi': float(row['total_oi']), 'type':'ENDOFDAY', 'dt':_dt,'product_type': types[row['product']], 'is_last_trading_day': _is_last_trading_day}
             heapq.heappush ( heap, ( _dt, _event ) ) 
     db_close(db)
 

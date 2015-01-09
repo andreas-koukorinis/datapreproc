@@ -130,7 +130,6 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
     def on_order_update(self, filled_orders, dt):
         for order in filled_orders:
             _product = order['product']
-            print _product, self.product_type[_product]
             if self.product_type[_product] in ['etf', 'fund', 'stock']: # Assuming long only portfolios for these product types to calculate tax adjusted returns
                 if order['amount'] > 0:
                     self.long_orders[_product].append((order['dt'], order['fill_price'], order['amount']))    

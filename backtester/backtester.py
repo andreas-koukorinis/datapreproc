@@ -62,7 +62,7 @@ class BackTester(DailyBookListener):
         updated_pending_orders = []
         for order in self.pending_orders:
             if True :  # Should check if order can be filled based on current book,if yes remove from pending_list and add to filled_list
-                fill_price = dailybook[-1][1]
+                fill_price = dailybook[-1][3]
                 order['value'] = fill_price * order['amount'] * self.conversion_factor * self.currency_factor[_date] # +ve for buy,-ve for sell
                 cost = self.commission_manager.getcommission(order, dailybook)
                 filled_orders.append( { 'id': order['id'], 'dt' : order['dt'], 'product' : order['product'], 'amount' : order['amount'], 'cost' : cost, 'value' : order['value'], 'fill_price' : fill_price , 'type' : 'normal'} )
