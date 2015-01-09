@@ -26,6 +26,7 @@ def test_mvo_config1():
     """
     # Set config file path
     _config_file = os.path.expanduser("~") + "/modeling/IVWAS/A1_MVO_all_rb1_l20_rt016_max0625_hist252.1.cfg"
+
     # Run simulator
     sim1 = Simulator(_config_file)
     sim1.run()

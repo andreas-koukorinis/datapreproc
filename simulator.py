@@ -50,7 +50,7 @@ class Simulator:
         else:
             self._end_date = _end_date
     
-        self._directory = '/spare/local/logs/'+os.path.splitext(os.path.basename(_config_file))[0]+'/' # directory to store log files like positions,returns file
+        self._directory = os.path.expanduser("~") + "/logs/" + os.path.splitext(os.path.basename(_config_file))[0]+'/' # directory to store log files like positions,returns file
         if not os.path.exists(self._directory):
             os.makedirs(self._directory)
         
@@ -62,7 +62,7 @@ class Simulator:
         Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency = get_currency_and_conversion_factors(self._all_products, self._start_date, self._end_date)
 
         # Initialize the log file handles
-        self._log_dir = '/spare/local/logs/' + os.path.splitext(_config_file)[0].split('/')[-1] + '/'
+        self._log_dir = os.path.expanduser("~") + "/logs/" + os.path.splitext(_config_file)[0].split('/')[-1] + '/'
         init_logs(self._config, self._log_dir, self._all_products)
        
         # Import the strategy class using 'Strategy'->'name' in config file
