@@ -15,10 +15,9 @@ def test_trvp_config1():
     # Set config file path
     _config_file = os.path.expanduser("~") + "/modeling/strategies/A1_TRVP_all_rb1_model1_rmp_profile1.cfg"
     # Run simulator
-    print Globals.currency_factor
     sim1 = Simulator(_config_file)
     sim1.run()
-    print Globals.currency_factor
-    assert round(sim1._tradelogic_instance.performance_tracker.net_returns,2) == 262.97
-    assert round(sim1._tradelogic_instance.performance_tracker.sharpe,2) == 0.85
-    assert round(sim1._tradelogic_instance.performance_tracker.sortino,2) == 1.21
+    assert round(sim1._tradelogic_instance.performance_tracker.net_returns,2) == 161.08
+    assert round(sim1._tradelogic_instance.performance_tracker.sharpe,2) == 0.84
+    assert round(sim1._tradelogic_instance.performance_tracker.sortino,2) == 1.20
+
