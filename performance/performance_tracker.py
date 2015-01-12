@@ -266,7 +266,13 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
     def compute_daily_stats(self, date):
         self.date = date
         if self.total_orders > 0: # If no orders have been filled,it implies trading has not started yet
+            # TODO check with gchak
             todaysValue = self.compute_mark_to_market(self.date) - (self.long_term_tax_liability_realized + self.long_term_tax_liability_unrealized)*self.long_term_tax_rate - (self.short_term_tax_liability_realized + self.short_term_tax_liability_unrealized)*self.short_term_tax_rate
+            '''todaysValue = self.compute_mark_to_market(self.date)
+            if self.long_term_tax_liability_realized + self.long_term_tax_liability_unrealized > 0:
+                todaysValue -= (self.long_term_tax_liability_realized + self.long_term_tax_liability_unrealized) * self.long_term_tax_rate 
+            if self.long_term_tax_liability_realized + self.long_term_tax_liability_unrealized > 0:
+                todaysValue -= (self.short_term_tax_liability_realized + self.short_term_tax_liability_unrealized) * self.short_term_tax_rate'''
             self.value = append(self.value, todaysValue)
             self.PnLvector = append(self.PnLvector, (self.value[-1] - self.value[-2]))  # daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
             if self.value[-1] <= 0:
