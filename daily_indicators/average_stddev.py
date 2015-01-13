@@ -11,7 +11,7 @@ class AverageStdDev( IndicatorListener ):
     instances = {}
 
     def __init__( self, identifier, _startdate, _enddate, _config ):
-        self.indicator_values = () # Tuple of the form (dt,value)
+        self.values = (0.0,1) # Tuple of the form (dt,value) #TODO better init for default dt
         self.identifier = identifier # e.g. AverageStdDev.fES.63.252
         params = identifier.strip().split('.')
         if len(params) <= 2:
@@ -32,8 +32,8 @@ class AverageStdDev( IndicatorListener ):
         self.listeners = []
 
     def get_stdev(self):
-        if len(self.indicator_values) >= 2:
-            return (self.indicator_values[1])
+        if len(self.values) >= 2:
+            return (self.values[1])
         else:
             return 1
     
@@ -66,6 +66,6 @@ class AverageStdDev( IndicatorListener ):
         self.stdev_vec[_index] = values[1]
         if self._have_we_received_all_updates():
             val = numpy.sum(self.stdev_vec)/float(self.stdev_vec_len) # Compute the average of stdevs
-            self.indicator_values = ( values[0], val )
+            self.values = ( values[0], val )
             for listener in self.listeners: 
-                listener.on_indicator_update( self.identifier, self.indicator_values )
+                listener.on_indicator_update( self.identifier, self.values )
