@@ -141,8 +141,8 @@ class RiskManagerPaper(RiskManagerAlgo):
             # if so then change the risk level
             if (_date - self.last_date_risk_level_change).days >= self.reallocation_hysteris_days:
                 # Now we are allowed to switch to the higher risk level
-                print ("%s switching to higher risk level %d (level:%d) since current dd= %f" %( _date, _target_risk_level_index, self.risk_level_vec[_target_risk_level_index].capital_allocation_level, _current_drawdown ))
                 self.current_risk_level_index = self.current_risk_level_index - 1 #only raise one risk level at a time
+                print ("%s switching to higher risk level %d (level:%d) since current dd= %f" %( _date, self.current_risk_level_index, self.risk_level_vec[self.current_risk_level_index].capital_allocation_level, _current_drawdown ))
                 self.current_capital_allocation_level = self.risk_level_vec[self.current_risk_level_index].capital_allocation_level
                 self.last_date_risk_level_change = _date
 
