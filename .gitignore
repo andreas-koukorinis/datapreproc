@@ -67,3 +67,4 @@ docs/_build/
 *.png
 *.svg
 positions_*.txt
+*.c
