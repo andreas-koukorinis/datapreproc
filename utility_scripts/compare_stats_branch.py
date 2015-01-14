@@ -40,7 +40,8 @@ def main():
     default_branch = "beta"
     output1 = []
     output2 = []
-    configs = ["~/modeling/IVWAS/A1_TRVP_all_rb1_tr10_std21.5_corr252.30_rmp.cfg", "~/modeling/IVWAS/A1_TRMSHC_all_rb5_tr10_std63.5_corr252.30.cfg", "~/modeling/IVWAS/A1_TRERC_all_rb5_tr10_std63.2_corr252.30_maxiter100_rmp.cfg"]
+    configs = ["~/modeling/strategies/A1_TRVP_all_rb1_model1_rmsim_profile1.cfg", "~/modeling/strategies/A1_TRMSHC_all_rb5_model1_rmp_profile1.cfg", "~/modeling/strategies/A1_TRMSHC_all_rb5_model1_rmp_profile1.cfg"]
+
     if len(sys.argv) >= 3:
         configs = load_configfile_paths(sys.argv[2])
     cmd = 'git checkout %s'%(branch)
@@ -49,7 +50,7 @@ def main():
         print output
         sys.exit('Could not switch to %s.Please commit changes first'%(branch))
     for config in configs:
-        cmd = "python simulator.py %s" % (config)
+        cmd = "python run_simulator.py %s" % (config)
         output1.append(parse_results(commands.getoutput(cmd)))
 
     cmd = 'git checkout %s'%(default_branch)
@@ -57,7 +58,7 @@ def main():
     if 'error' in output:
         sys.exit('Could not switch to %s.Please commit changes first'%(default_branch))
     for config in configs:
-        cmd = "python simulator.py %s" % (config)
+        cmd = "python run_simulator.py %s" % (config)
         output2.append(parse_results(commands.getoutput(cmd)))
 
     for i in range(len(configs)):
