@@ -1,6 +1,6 @@
 # cython: profile=True
 WARMUP_DAYS=60
-DEBUG_LEVEL=-1
+DEBUG_LEVEL=3
 RISK_MANAGER='SimpleRiskManager'
 EXECLOGIC='SimpleExecLogic'
 STOPLOSS_LEVELS=10,15,20
