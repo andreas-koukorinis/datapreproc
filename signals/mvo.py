@@ -191,7 +191,7 @@ class MeanVarianceOptimization(SignalAlgorithm):
             if self.day >= (self.last_date_stdev_computed + self.stddev_computation_interval):
                 # Get the stdev values from the stddev indicators
                 for _product in self.products:
-                     # earlier this was self.stddev_computation_indicator[_product] but due to error, switched to this
+                    # earlier this was self.stddev_computation_indicator[_product] but due to error, switched to this
                     self.stddev_logret[self.map_product_to_index[_product]] = self.daily_indicators[self.stddev_computation_indicator + '.' + _product + '.' + str(self.stddev_computation_history)].values[1]
                     # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.

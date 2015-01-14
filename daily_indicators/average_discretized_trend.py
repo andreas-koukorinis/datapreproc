@@ -11,7 +11,7 @@ class AverageDiscretizedTrend( IndicatorListener ):
     instances = {}
 
     def __init__( self, identifier, _startdate, _enddate, _config ):
-        self.indicator_values = () # Tuple of the form (dt,value)
+        self.values = (0.0,1) # Tuple of the form (dt,value) #TODO better init for default dt
         self.identifier = identifier # e.g. AverageDiscretizedTrend.fES.63.252
         params = identifier.strip().split('.')
         if len(params) <= 2:
@@ -35,8 +35,8 @@ class AverageDiscretizedTrend( IndicatorListener ):
         self.listeners.append( listener )
 
     def get_trend(self):
-        if len(self.indicator_values) >= 2:
-            return (self.indicator_values[1])
+        if len(self.values) >= 2:
+            return (self.values[1])
         else:
             return 0
 
@@ -65,6 +65,6 @@ class AverageDiscretizedTrend( IndicatorListener ):
         self.trend_vec[_index] = numpy.sign(values[1]) # very rudimentary form of discretization
         if self._have_we_received_all_updates():
             val = numpy.sum(self.trend_vec)/float(self.trend_vec_len) # Compute the average of trends
-            self.indicator_values = ( values[0], val )
+            self.values = ( values[0], val )
             for listener in self.listeners: 
-                listener.on_indicator_update( self.identifier, self.indicator_values )
+                listener.on_indicator_update( self.identifier, self.values )
