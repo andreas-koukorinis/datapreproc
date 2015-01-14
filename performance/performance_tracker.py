@@ -353,9 +353,14 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
 
     def rollsum(self, series, period):
         n = series.shape[0]
-        if n < period:
-            return array([]) #empty array
-        return array([sum(series[i:i+period]) for i in xrange(0, n-period+1)]).astype(float)
+        _ret = array([])
+        if n >= period:
+            _cur_sum = sum(series[0:period])
+            _ret = append(_ret, _cur_sum)
+            for i in range(1, n-period+1):
+                _cur_sum = _cur_sum - series[i-1] + series[i+period-1]
+                _ret = append(_ret, _cur_sum)
+        return _ret
 
     def mean_lowest_k_percent(self, series, k):
         sorted_series = sort(series)
