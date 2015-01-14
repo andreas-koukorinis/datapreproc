@@ -1,4 +1,4 @@
-from numpy import *
+import math
 from indicator_listeners import IndicatorListener
 from daily_log_returns import DailyLogReturns
 
@@ -80,20 +80,20 @@ class StdDev( IndicatorListener ):
         n = len(daily_log_returns_dt)
         if n > self.period:
             self.current_sum =  self.current_sum - daily_log_returns_dt[n-self.period-1][1] + daily_log_returns_dt[n-1][1] 
-            self.current_pow_sum =  self.current_pow_sum - pow(daily_log_returns_dt[n-self.period-1][1],2) + pow(daily_log_returns_dt[n-1][1],2)
-            val = sqrt( self.current_pow_sum/self.current_num - pow(self.current_sum/self.current_num,2) )
+            self.current_pow_sum =  self.current_pow_sum - daily_log_returns_dt[n-self.period-1][1]*daily_log_returns_dt[n-self.period-1][1] + daily_log_returns_dt[n-1][1]*daily_log_returns_dt[n-1][1]
+            val = math.sqrt(self.current_pow_sum/self.current_num - (self.current_sum/self.current_num)*(self.current_sum/self.current_num))
         elif n < 2:
             val = 0.001 # Dummy value for insufficient lookback period(case where only 1 log return)
             if n == 1:
                 self.current_sum = daily_log_returns_dt[n-1][1]
-                self.current_pow_sum = pow(daily_log_returns_dt[n-1][1],2)
+                self.current_pow_sum = daily_log_returns_dt[n-1][1]*daily_log_returns_dt[n-1][1]
                 self.current_num = 1
         else:
             self.current_sum = self.current_sum + daily_log_returns_dt[n-1][1]
-            self.current_pow_sum =  self.current_pow_sum + pow(daily_log_returns_dt[n-1][1],2)
+            self.current_pow_sum =  self.current_pow_sum + daily_log_returns_dt[n-1][1]*daily_log_returns_dt[n-1][1]
             self.current_num += 1
-            val = sqrt(self.current_pow_sum/self.current_num - pow(self.current_sum/self.current_num,2))
-        if isnan(val):
+            val = sqrt(self.current_pow_sum/self.current_num - (self.current_sum/self.current_num)*(self.current_sum/self.current_num))
+        if math.isnan(val):
             print ("something wrong")
         self.values = (daily_log_returns_dt[-1][0], val)
         for listener in self.listeners: 

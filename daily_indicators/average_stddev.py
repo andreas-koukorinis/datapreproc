@@ -1,4 +1,4 @@
-import numpy as numpy
+import numpy
 from indicator_listeners import IndicatorListener
 from stddev import StdDev
 

@@ -1,5 +1,5 @@
 import sys
-import numpy as numpy
+import numpy
 from daily_indicators.indicator_listeners import IndicatorListener
 from daily_indicators.daily_log_returns import DailyLogReturns
 

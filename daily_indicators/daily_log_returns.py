@@ -1,5 +1,5 @@
 import sys
-from numpy import *
+import math
 import datetime
 from bookbuilder.bookbuilder_listeners import DailyBookListener
 from bookbuilder.bookbuilder import BookBuilder
@@ -117,20 +117,11 @@ class DailyLogReturns( DailyBookListener ):
             p2 = self.prices[1]
         if _updated:
             if p2 != 0:
-                logret = log(p1/p2)
-                '''if is_future(product):
-                    _product = self.product1
-                else:
-                    _product = self.product
-                c1 = self.currency_factor[self.product_to_currency[_product]].get(dailybook[-1][0].date(), 1.0) # default 1.0
-                c2 = self.currency_factor[self.product_to_currency[_product]].get(dailybook[-1][0].date()+timedelta(days=-1), c1)
-                #print c1,c2
-                logret = log((p1*c1)/(p2*c2))'''
+                logret = math.log(p1/p2)
             else:
                 logret = 0.0  # If last two prices not available for a product,let logreturn = 0
-            if isnan(logret) or isinf(logret):
-                print ("something wrong in DailyLogReturns")
-                sys.exit(0)
+            if math.isnan(logret) or math.isinf(logret):
+                sys.exit("something wrong in DailyLogReturns")
             self.values.append((dailybook[-1][0].date(), logret))
             for listener in self.listeners: # Pass the dailylogreturn history onto the listeners
                 listener.on_indicator_update( self.identifier, self.values )
