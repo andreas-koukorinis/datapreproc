@@ -1,3 +1,4 @@
+# cython: profile=True
 import sys
 import numpy
 from daily_indicators.indicator_listeners import IndicatorListener

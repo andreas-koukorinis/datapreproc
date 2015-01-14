@@ -1,3 +1,4 @@
+# cython: profile=True
 import sys
 from signals.signal_algorithm import SignalAlgorithm
 from utils.regular import check_eod, adjust_file_path_for_home_directory, is_float_zero

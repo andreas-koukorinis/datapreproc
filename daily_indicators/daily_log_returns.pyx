@@ -1,3 +1,4 @@
+# cython: profile=True
 import sys
 import math
 import datetime
@@ -44,9 +45,10 @@ class DailyLogReturns( DailyBookListener ):
         self.identifier = _identifier
         params = self.identifier.strip().split('.')
         self.product = params[1]
+        self.is_future_product = is_future(self.product)
         self.currency_factor = Globals.currency_factor
         self.product_to_currency = Globals.product_to_currency
-        if is_future( self.product ):
+        if self.is_future_product:
             if is_future_entity( self.product ):
                 _product1 = get_first_futures_contract( self.product )
             else:
@@ -91,7 +93,7 @@ class DailyLogReturns( DailyBookListener ):
            Returns: Nothing
         """ 
         _updated = False
-        if is_future( self.product ):
+        if self.is_future_product:
             if product == self.product1 : 
                 self.prices[1] = self.prices[0]
                 self.prices[0] = dailybook[-1][1]

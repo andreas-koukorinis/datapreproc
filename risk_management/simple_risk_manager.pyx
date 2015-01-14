@@ -1,3 +1,4 @@
+# cython: profile=True
 import sys
 from risk_manager_algorithm import RiskManagerAlgo
 from utils import defaults

@@ -1,3 +1,4 @@
+# cython: profile=True
 
 # TODO move this to a config file
 def get_products_from_portfolio_string ( portfolio_string ):

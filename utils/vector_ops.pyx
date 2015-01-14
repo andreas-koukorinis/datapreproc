@@ -1,3 +1,4 @@
+# cython: profile=True
 """
 Utilities related to vector operations.
 As of now has elper functions to succinctly represent constraints for optimizer

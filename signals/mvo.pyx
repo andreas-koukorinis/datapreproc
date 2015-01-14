@@ -1,3 +1,4 @@
+# cython: profile=True
 """ Implementation of Rolling Mean Variance Optimization in the lines of Modern Portfolio Theory."""
 
 import sys

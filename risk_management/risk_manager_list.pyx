@@ -1,3 +1,4 @@
+# cython: profile=True
 def is_valid_risk_manager_name ( _risk_manager_name ) :
     _risk_manager_name_list = ['SimpleRiskManager', 'RiskManagerPaper', 'RiskManagerVar']
     _retval = False

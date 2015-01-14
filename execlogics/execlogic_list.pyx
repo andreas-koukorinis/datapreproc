@@ -1,3 +1,4 @@
+# cython: profile=True
 def is_valid_execlogic_name ( _execlogic_name ) :
     _execlogic_name_list = ['SimpleExecLogic']
     _retval = False

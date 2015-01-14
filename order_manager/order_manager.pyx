@@ -1,3 +1,4 @@
+# cython: profile=True
 import os
 from importlib import import_module
 from backtester.backtester_listeners import BackTesterListener

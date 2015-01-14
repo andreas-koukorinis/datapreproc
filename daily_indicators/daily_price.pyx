@@ -1,3 +1,4 @@
+# cython: profile=True
 import datetime
 from bookbuilder.bookbuilder_listeners import DailyBookListener
 from bookbuilder.bookbuilder import BookBuilder

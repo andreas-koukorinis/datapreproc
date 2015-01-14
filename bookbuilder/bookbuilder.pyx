@@ -1,3 +1,4 @@
+# cython: profile=True
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import DailyEventListener
 from utils.regular import get_all_products

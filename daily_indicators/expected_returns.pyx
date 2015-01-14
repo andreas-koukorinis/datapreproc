@@ -1,3 +1,4 @@
+# cython: profile=True
 import math
 from indicator_listeners import IndicatorListener
 from daily_log_returns import DailyLogReturns

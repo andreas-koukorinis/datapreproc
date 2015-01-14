@@ -1,3 +1,4 @@
+# cython: profile=True
 import numpy
 def correct_signs_weights(_current_erc_weights, _zc_weight_vector):
     """Given two numpy arrays of equal length return the vector closest to the first that has the same signs as the second

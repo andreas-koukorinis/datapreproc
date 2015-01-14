@@ -1,3 +1,4 @@
+# cython: profile=True
 '''Module to print the indicator values for all the indicators
 specified in the config file
 The module is used by gendata.py for research framework'''

@@ -1,3 +1,4 @@
+# cython: profile=True
 def is_valid_signal_name(_signal_name):
     _signal_name_list = ['TargetRiskVolatilityParity', 'TargetRiskEqualRiskContribution', 'TargetRiskMaxSharpeHistCorr', 'MeanVarianceOptimization', 'SimpleMomentumSignal', 'CWAS', 'CTAM']
     _retval = False

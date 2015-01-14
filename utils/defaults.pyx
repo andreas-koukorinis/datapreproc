@@ -1,3 +1,4 @@
+# cython: profile=True
 WARMUP_DAYS=60
 DEBUG_LEVEL=-1
 RISK_MANAGER='SimpleRiskManager'

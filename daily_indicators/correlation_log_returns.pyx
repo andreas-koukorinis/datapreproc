@@ -1,3 +1,4 @@
+# cython: profile=True
 import numpy as np
 from datetime import datetime
 from utils.regular import get_dt_from_date

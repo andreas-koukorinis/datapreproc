@@ -1,3 +1,4 @@
+# cython: profile=True
 def is_valid_strategy_name ( _strategy_name ) :
     _strategy_name_list = ['AggregatorCWAS', 'AggregatorIV']
     _retval = False

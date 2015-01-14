@@ -1,3 +1,4 @@
+# cython: profile=True
 import sys
 from datetime import datetime
 from execlogics.execlogic_algorithm import ExecLogicAlgo

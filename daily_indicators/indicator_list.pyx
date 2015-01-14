@@ -1,3 +1,4 @@
+# cython: profile=True
 import sys
 
 def is_valid_daily_indicator ( _daily_indicator_module_name ) :

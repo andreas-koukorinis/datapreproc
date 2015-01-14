@@ -1,3 +1,4 @@
+# cython: profile=True
 
 class CommissionManager:
     def getcommission(self,order,book):							#should check book

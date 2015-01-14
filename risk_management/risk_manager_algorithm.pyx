@@ -1,3 +1,4 @@
+# cython: profile=True
 import datetime
 from utils import defaults
 

@@ -1,3 +1,4 @@
+# cython: profile=True
 from abc import ABCMeta,abstractmethod
 
 class IndicatorListener:

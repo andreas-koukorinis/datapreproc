@@ -1,3 +1,4 @@
+# cython: profile=True
 from bookbuilder.bookbuilder_listeners import DailyBookListener
 from bookbuilder.bookbuilder import BookBuilder
 from commission_manager import CommissionManager
