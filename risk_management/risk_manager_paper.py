@@ -48,7 +48,7 @@ class RiskManagerPaper(RiskManagerAlgo):
         for i in xrange(1, len(self.drawdown_levels)):
             if self.drawdown_levels[i-1] > self.drawdown_levels[i]:
                 # something wrong! Drawdown levels shoudl be in ascending order.
-                sys.exit("Drawdown levels should be in increasing order. They seem to not be so! %s" %(','.join(_drawdown_levels)))
+                sys.exit("Drawdown levels should be in increasing order. They seem to not be so! %s" %(','.join(self.drawdown_levels)))
 
         #check that the capital allocation levels are in descending order
         for i in xrange (1, len(self.capital_allocation_levels)):

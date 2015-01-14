@@ -1,5 +1,6 @@
 import sys
-from numpy import *
+import numpy
+import math
 from indicator_listeners import IndicatorListener
 from daily_log_returns import DailyLogReturns
 from moving_average import MovingAverage
@@ -81,8 +82,8 @@ class Crossover(IndicatorListener):
             self.current_mv_long = values[1]
         if self.num_updates == self.num_listening: # If we have received all updates
             self.num_updates = 0
-            _val = sign(self.current_mv_short - self.current_mv_long)
-            if isnan(_val):
+            _val = numpy.sign(self.current_mv_short - self.current_mv_long)
+            if math.isnan(_val):
                 print ("something wrong")
             self.values = (values[0], _val)
             for listener in self.listeners: 

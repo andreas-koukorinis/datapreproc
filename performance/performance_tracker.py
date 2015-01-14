@@ -145,7 +145,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
                             _closed_amount = current_short_amount
                         else:
                             _closed_amount = matched_order[2]
-                            self.long_orders[product].popleft()
+                            self.long_orders[_product].popleft()
                         current_short_amount -= _closed_amount
                         _profit = _closed_amount * (order['fill_price'] - matched_order[1])
                         time_diff = order['dt'] - matched_order[0]

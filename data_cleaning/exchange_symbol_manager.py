@@ -125,12 +125,12 @@ class ExchangeSymbolManager():
         if _basename == "IBV": # IBV contract months are 2,4,6,8,10,12
             return ( _this_month % 2 ) == 0
         if _basename in ['ZW', 'XW', 'ZC']:
-	    if _this_month in [3,5,7,9,12]: 
+            if _this_month in [3,5,7,9,12]: 
                 return True
-	    else:
+            else:
                 return False
         if _basename == "ZS":
-	    if _this_month in [1,3,5,7,8,9,11]:
+            if _this_month in [1,3,5,7,8,9,11]:
                 return True
             else:
                 return False

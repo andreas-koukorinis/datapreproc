@@ -1,4 +1,5 @@
-import numpy as numpy
+import sys
+import numpy
 from indicator_listeners import IndicatorListener
 from trend import Trend
 

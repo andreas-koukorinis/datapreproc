@@ -1,3 +1,4 @@
+import sys
 
 def is_valid_daily_indicator ( _daily_indicator_module_name ) :
     _indicator_module_names_list = ['DailyLogReturns', 'StdDev', 'Trend','DailyPrice','AverageStdDev','MovingAverage','Crossover','StdDevCrossover','CorrelationLogReturns','AverageDiscretizedTrend','ExpectedReturns']

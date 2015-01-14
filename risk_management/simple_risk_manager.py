@@ -90,7 +90,7 @@ class SimpleRiskManager(RiskManagerAlgo):
                 elif _model_line_words[0] == 'reallocation_returns':
                     self.reallocation_returns = [float(x) for x in _model_line_words[1:]]
                 elif _model_line_words[0] == 'return_history':
-                    self.return_history = float(_model_line_words[1])
+                    self.return_history = int(_model_line_words[1])
           
     def get_current_risk_level(self, _date):
         if self.last_risk_level_updated_date == _date:

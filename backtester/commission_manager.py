@@ -1,4 +1,3 @@
-from numpy import *
 
 class CommissionManager:
     def getcommission(self,order,book):							#should check book

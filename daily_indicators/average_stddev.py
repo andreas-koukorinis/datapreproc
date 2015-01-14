@@ -1,3 +1,4 @@
+import sys
 import numpy
 from indicator_listeners import IndicatorListener
 from stddev import StdDev

@@ -1,4 +1,3 @@
-from numpy import *
 from indicator_listeners import IndicatorListener
 from bookbuilder.bookbuilder import BookBuilder
 from bookbuilder.bookbuilder_listeners import DailyBookListener

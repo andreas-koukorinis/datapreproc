@@ -51,7 +51,7 @@ def get_dict(_str):
     return _new_dict 
 
 def process_snapshot(_snapshot):
-    if len(_sanpshot) == 0:
+    if len(_snapshot) == 0:
         return ''
     _snap = _snapshot.split('\n')
     _header = _snap[0] + '\t' + _snap[1] + '\t' + _snap[2] + '\t' + _snap[3] + '\t' + _snap[8]

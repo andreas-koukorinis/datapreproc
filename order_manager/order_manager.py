@@ -58,7 +58,7 @@ class OrderManager():
         self.order_id += 1
 
     def cancel_order(self, current_dt, order_id):
-        order = get_order_by_id(order_id)
+        order = self.get_order_by_id(order_id)
         self.backtesters[order['product']].cancel_order(order_id)
         if Globals.debug_level > 0:
             self.print_cancelled_order(current_dt, order)

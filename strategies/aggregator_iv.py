@@ -63,7 +63,7 @@ class AggregatorIV(TradeAlgorithm):
             for _product in self.products:
                 if is_float_zero(_new_portfolio_abs_weights[_product]):
                     self.past_relative_contribution[i][_product] = 0
-                elif (not is_float_zero(_new_portfolio_abs_weights[_product]) and is_float_zero(_new_portfolio_weights[_product]):
+                elif (not is_float_zero(_new_portfolio_abs_weights[_product])) and is_float_zero(_new_portfolio_weights[_product]):
                     self.past_relative_contribution[i][_product] = _new_signal_contributions[i][_product]
                 else:
                     self.past_relative_contribution[i][_product] = _new_signal_contributions[i][_product]/_new_portfolio_weights[_product]
@@ -87,7 +87,7 @@ class AggregatorIV(TradeAlgorithm):
                     _new_portfolio_abs_weights[_product] += abs(_new_signal_contributions[i][_product])
             else:
                 for _product in self.products:
-                    if is_float_zero(_current_portfolio_weights[_product]) and (not is_float_zero(self.past_relative_contribution[i][_product]):
+                    if is_float_zero(_current_portfolio_weights[_product]) and (not is_float_zero(self.past_relative_contribution[i][_product])):
                         _new_signal_contributions[i][_product] = self.past_relative_contribution[i][_product]
                     else:
                         _new_signal_contributions[i][_product] = _current_portfolio_weights[_product] * self.past_relative_contribution[i][_product]

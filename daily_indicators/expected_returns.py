@@ -1,4 +1,4 @@
-from numpy import *
+import math
 from indicator_listeners import IndicatorListener
 from daily_log_returns import DailyLogReturns
 
@@ -47,7 +47,7 @@ class ExpectedReturns( IndicatorListener ):
             self.current_sum = self.current_sum + daily_log_returns_dt[n-1][1]
             self.current_num += 1
             val = self.current_sum/self.current_num
-        if isnan(val):
+        if math.isnan(val):
             print ("something wrong")
         self.values = ( daily_log_returns_dt[-1][0], val )
         for listener in self.listeners: 

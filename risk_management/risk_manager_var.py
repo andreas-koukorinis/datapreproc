@@ -50,11 +50,11 @@ class RiskManagerVar(RiskManagerAlgo):
         
         for i in xrange(1, len(self.drawdown_levels)): #check that drawdown levels are in increasing order
             if self.drawdown_levels[i-1] > self.drawdown_levels[i]:
-                sys.exit("Drawdown levels should be in increasing order. They seem to not be so! %s" %(','.join(_drawdown_levels)))
+                sys.exit("Drawdown levels should be in increasing order. They seem to not be so! %s" %(','.join(self.drawdown_levels)))
 
         for i in xrange(1, len(self.stoploss_levels)): #check that stoploss levels are in increasing order
             if self.stoploss_levels[i-1] > self.stoploss_levels[i]:
-                sys.exit("Stoploss levels should be in increasing order. They seem to not be so! %s" %(','.join(_drawdown_levels)))
+                sys.exit("Stoploss levels should be in increasing order. They seem to not be so! %s" %(','.join(self.stoploss_levels)))
 
         #check that the last var level is 0.0 and first var level is 2.0
         if self.var_levels[0] < 2.0:
