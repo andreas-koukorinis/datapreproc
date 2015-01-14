@@ -445,7 +445,7 @@ def get_perf_stats(agg_configs):
     """For each set of values to be tested,set up the config files and run simulator to get the perf stats"""
     performance_stats = []
     for agg_config in agg_configs:
-        proc = subprocess.Popen(['python', '-W', 'ignore', 'simulator.py', agg_config ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        proc = subprocess.Popen(['python', '-W', 'ignore', 'run_simulator.py', agg_config ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         performance_stats.append(parse_results(proc.communicate()[0])) # TODO parse results should only parse final_order stats
     return performance_stats
 
