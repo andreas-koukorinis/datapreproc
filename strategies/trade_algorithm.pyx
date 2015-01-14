@@ -123,32 +123,6 @@ class TradeAlgorithm(EventsListener):
         """
         pass
 
-    def get_current_portfolio_weights(self, date):
-        """Returns the current portfolio weights based on the notional amounts in each product.
-           This function is currently used on by aggregator strategies
-        Args: 
-            date(date object): The current date on which the weights are to be computed #TODO move to watch
-
-        Note: 1) Even though the portfolio is on the all_products, returns weights are on trade_products(hence the call get_weights_for_trade_products)
-
-        Returns: Nothing
-        """
-        # TODO should not recompute
-        _net_portfolio_value = get_mark_to_market(date, get_current_prices(self.bb_objects), Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, self.performance_tracker, self.portfolio.get_portfolio())
-        weights = {}
-        for _product in self.portfolio.num_shares.keys():
-            _desired_num_shares = self.portfolio.num_shares[_product] + self.order_manager.to_be_filled[_product]
-            if _desired_num_shares != 0:
-                if is_future(_product):
-                    _price = find_most_recent_price_future(self.bb_objects[_product].dailybook, self.bb_objects[get_next_futures_contract(_product)].dailybook, date)
-                else:
-                    _price = find_most_recent_price(self.bb_objects[_product].dailybook, date)
-                _notional_value_product = _price * _desired_num_shares * Globals.conversion_factor[_product] * Globals.currency_factor[Globals.product_to_currency[_product]][date]
-            else:
-                _notional_value_product = 0.0
-            weights[_product] = _notional_value_product/_net_portfolio_value
-        return get_weights_for_trade_products(self.products, weights)
-
     def update_positions(self, dt, weights):
         """Updates the performance and then weights of simple_performance_tracker
            Calls the exelogic to place orders such that the new weights are observed
