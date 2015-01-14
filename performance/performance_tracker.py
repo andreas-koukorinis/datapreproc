@@ -62,9 +62,6 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.cum_log_returns = numpy.empty(shape=(0))
         self.max_cum_log_return = -1000 # Read as -inf
         self.net_log_return = 0
-        self._monthly_nominal_returns_percent = numpy.empty(shape=(0))
-        self._quarterly_nominal_returns_percent = numpy.empty(shape=(0))
-        self._yearly_nominal_returns_percent = numpy.empty(shape=(0))
         self.dml = 0
         self.mml = 0
         self._worst_10pc_quarterly_returns = 0
@@ -338,7 +335,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         if _cum_returns.shape[0] < 2:
             _epoch = datetime.datetime.fromtimestamp(0).date()
             return ((_epoch, _epoch), (_epoch, _epoch))
-        _end_idx_max_drawdown = numpy.argmax(maximum.accumulate(_cum_returns) - _cum_returns) # end of the period
+        _end_idx_max_drawdown = numpy.argmax(numpy.maximum.accumulate(_cum_returns) - _cum_returns) # end of the period
         _start_idx_max_drawdown = numpy.argmax(_cum_returns[:_end_idx_max_drawdown+1]) # start of period
         _recovery_idx = -1
         _peak_value = _cum_returns[_start_idx_max_drawdown]
@@ -563,9 +560,6 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         monthly_log_returns = self.rollsum(self.daily_log_returns, 21)
         quarterly_log_returns = self.rollsum(self.daily_log_returns, 63)
         yearly_log_returns = self.rollsum(self.daily_log_returns, 252)
-        self._monthly_nominal_returns_percent = (math.exp(monthly_log_returns) - 1) * 100
-        self._quarterly_nominal_returns_percent = (math.exp(quarterly_log_returns) - 1) * 100
-        self._yearly_nominal_returns_percent = (math.exp(yearly_log_returns) - 1) * 100
         self.dml = (math.exp(self.mean_lowest_k_percent(self.daily_log_returns, 10)) - 1)*100.0
         self.mml = (math.exp(self.mean_lowest_k_percent(monthly_log_returns, 10)) - 1)*100.0
         self._worst_10pc_quarterly_returns = (math.exp(self.mean_lowest_k_percent(quarterly_log_returns, 10)) - 1) * 100.0

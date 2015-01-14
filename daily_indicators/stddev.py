@@ -92,7 +92,7 @@ class StdDev( IndicatorListener ):
             self.current_sum = self.current_sum + daily_log_returns_dt[n-1][1]
             self.current_pow_sum =  self.current_pow_sum + daily_log_returns_dt[n-1][1]*daily_log_returns_dt[n-1][1]
             self.current_num += 1
-            val = sqrt(self.current_pow_sum/self.current_num - (self.current_sum/self.current_num)*(self.current_sum/self.current_num))
+            val = math.sqrt(self.current_pow_sum/self.current_num - (self.current_sum/self.current_num)*(self.current_sum/self.current_num))
         if math.isnan(val):
             print ("something wrong")
         self.values = (daily_log_returns_dt[-1][0], val)
