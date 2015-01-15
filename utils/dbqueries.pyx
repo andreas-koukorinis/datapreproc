@@ -190,12 +190,13 @@ def fetch_prices(product, _startdate, _enddate):
     rows = db_cursor.fetchall()
     dates = []
     prices = []
+    _price = 0.0
     for row in rows:
         if product_type == 'etf' or product_type == 'fund':
-            price = float(row['backward_adjusted_close'])
+            _price = float(row['backward_adjusted_close'])
         elif product_type == 'future':
-            price = float(row['close'])
+            _price = float(row['close'])
         dates.append(row['date'])
-        prices.append(price)
+        prices.append(_price)
     db_close(db)
     return np.array(dates), np.array(prices)

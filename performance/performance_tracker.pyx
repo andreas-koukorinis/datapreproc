@@ -14,12 +14,12 @@ from backtester.backtester import BackTester
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import EndOfDayListener, TaxPaymentDayListener, DistributionDayListener
 from utils.regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string
-from utils.calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts, convert_daily_returns_to_yyyymm_monthly_returns_pair
+from utils.calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts
 from utils.benchmark_comparison import get_benchmark_stats
 from utils import defaults
 from bookbuilder.bookbuilder import BookBuilder
 from utils.global_variables import Globals
-from performance_utils import drawdown
+from performance_utils import drawdown, current_dd, drawdown_period_and_recovery_period, rollsum, mean_lowest_k_percent, turnover, get_extreme_days, get_extreme_weeks, compute_max_num_days_no_new_high, compute_yearly_sharpe, compute_sortino, compute_losing_month_streak
 
 # TODO {gchak} PerformanceTracker is probably a class that just pertains to the performance of one strategy
 # We need to change it from listening to executions from BackTester, to being called on from the OrderManager,
@@ -27,7 +27,6 @@ from performance_utils import drawdown
 
 '''Performance tracker listens to the Dispatcher for concurrent events so that it can record the daily returns
  It also listens to the Backtester for any new filled orders
- At the end it shows the results and plot the cumulative PnL graph
  It outputs the list of [dates,dailyreturns] to returns_file for later analysis
  It outputs the portfolio snapshots and orders in the positions_file for debugging
 '''
@@ -268,11 +267,6 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         if self.total_orders > 0: # If no orders have been filled,it implies trading has not started yet
             # TODO check with gchak
             todaysValue = self.compute_mark_to_market(self.date) - (self.long_term_tax_liability_realized + self.long_term_tax_liability_unrealized)*self.long_term_tax_rate - (self.short_term_tax_liability_realized + self.short_term_tax_liability_unrealized)*self.short_term_tax_rate
-            '''todaysValue = self.compute_mark_to_market(self.date)
-            if self.long_term_tax_liability_realized + self.long_term_tax_liability_unrealized > 0:
-                todaysValue -= (self.long_term_tax_liability_realized + self.long_term_tax_liability_unrealized) * self.long_term_tax_rate 
-            if self.long_term_tax_liability_realized + self.long_term_tax_liability_unrealized > 0:
-                todaysValue -= (self.short_term_tax_liability_realized + self.short_term_tax_liability_unrealized) * self.short_term_tax_rate'''
             self.value = numpy.append(self.value, todaysValue)
             self.PnLvector = numpy.append(self.PnLvector, (self.value[-1] - self.value[-2]))  # daily PnL = Value of portfolio on last day - Value of portfolio on 2nd last day
             if self.value[-1] <= 0:
@@ -287,7 +281,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
                 _cum_log_return = self.cum_log_returns[-1] + _logret_today
             self.cum_log_returns = numpy.append(self.cum_log_returns, _cum_log_return)
             self.max_cum_log_return = max(self.max_cum_log_return, self.cum_log_returns[-1])
-            self.current_drawdown = abs((math.exp(self.current_dd(self.max_cum_log_return, self.cum_log_returns)) - 1)* 100)
+            self.current_drawdown = abs((math.exp(current_dd(self.max_cum_log_return, self.cum_log_returns)) - 1)* 100)
             self.current_loss = abs(min(0.0, (math.exp(self.net_log_return) - 1)*100.0))
             self.amount_long_transacted.append(self.todays_long_amount_transacted)
             self.amount_short_transacted.append(self.todays_short_amount_transacted)
@@ -320,229 +314,6 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         if Globals.debug_level > 2:
             Globals.amount_transacted_file.write('%s,%0.2f\n' % (self.date, todays_amount_transacted))
 
-    # Calculates the current drawdown i.e. the maximum drawdown with end point as the latest return value 
-    def current_dd(self, max_cum_return, cum_returns):
-        if cum_returns.shape[0] < 2:
-            return 0.0
-        return -1.0*(max_cum_return - cum_returns[-1])
-
-
-    def drawdown_period_and_recovery_period(self, dates, _cum_returns):
-        if _cum_returns.shape[0] < 2:
-            _epoch = datetime.datetime.fromtimestamp(0).date()
-            return ((_epoch, _epoch), (_epoch, _epoch))
-        _end_idx_max_drawdown = numpy.argmax(numpy.maximum.accumulate(_cum_returns) - _cum_returns) # end of the period
-        _start_idx_max_drawdown = numpy.argmax(_cum_returns[:_end_idx_max_drawdown+1]) # start of period
-        _recovery_idx = -1
-        _peak_value = _cum_returns[_start_idx_max_drawdown]
-        _candidate_idx = numpy.argmax(_cum_returns[_end_idx_max_drawdown:] >= _peak_value) + _end_idx_max_drawdown
-        if _cum_returns[_candidate_idx] >= _peak_value:
-            _recovery_idx = _candidate_idx
-        drawdown_period = (dates[_start_idx_max_drawdown], dates[_end_idx_max_drawdown])
-        if _recovery_idx != -1:
-            recovery_period = (dates[_end_idx_max_drawdown], dates[_recovery_idx])
-        else:
-            recovery_period = (dates[_end_idx_max_drawdown], datetime.date(2050,1,1)) # Never recovered
-        return (drawdown_period, recovery_period)
-
-    def rollsum(self, series, period):
-        n = series.shape[0]
-        _ret = numpy.array([])
-        if n >= period:
-            _cur_sum = sum(series[0:period])
-            _ret = numpy.append(_ret, _cur_sum)
-            for i in range(1, n-period+1):
-                _cur_sum = _cur_sum - series[i-1] + series[i+period-1]
-                _ret = numpy.append(_ret, _cur_sum)
-        return _ret
-
-    def mean_lowest_k_percent(self, series, k):
-        sorted_series = numpy.sort(series)
-        n = sorted_series.shape[0]
-        _retval = 0
-        if n <= 0 :
-            _retval = 0
-        else:
-            _index_of_worst_k_percent = int((k/100.0)*n)
-            if _index_of_worst_k_percent <= 0:
-                _retval = sorted_series[0]
-            else:
-                _retval = numpy.mean(sorted_series[0:_index_of_worst_k_percent])
-        return _retval
-
-    def turnover(self, dates, amount_long_transacted, amount_short_transacted):
-        if len(dates) < 1:
-            return 0.0
-        turnover_sum = 0.0
-        turnover_years_count = 0.0
-        amount_long_transacted_this_year = 0.0
-        amount_short_transacted_this_year = 0.0
-        num_days_in_year = 0.0
-        for i in range(min(len(dates)-1, 5), len(dates)): # Initial buying not to be considered as turnover
-            amount_long_transacted_this_year += amount_long_transacted[i]
-            amount_short_transacted_this_year += amount_short_transacted[i]
-            num_days_in_year += 1.0
-            if i == len(dates)-1 or dates[i+1].year != dates[i].year:
-                if num_days_in_year < 252:
-                    turnover_sum += (252.0/num_days_in_year)*min(amount_long_transacted_this_year, amount_short_transacted_this_year)/self.value[i+1] # Size of value array is 1 more than number of tradable days
-                else:
-                    turnover_sum += min(amount_long_transacted_this_year, amount_short_transacted_this_year)/self.value[i+1]
-                turnover_years_count += 1.0
-                amount_long_transacted_this_year = 0.0
-                amount_short_transacted_this_year = 0.0
-                num_days_in_year = 0.0
-        return turnover_sum*100/turnover_years_count
-
-    # Prints the returns for k worst and k best days
-    def extreme_days(self, k):
-        _extreme_days = ''
-        _dates_returns = zip(self.dates, self.daily_log_returns)
-        _sorted_returns = sorted(_dates_returns, key=lambda x: x[1]) # Sort by returns
-        n = len(_sorted_returns)
-        _num_worst_days = 0
-        _worst_day_idx = 0
-        _num_best_days = 0
-        _best_day_idx = n-1
-        if n > 0:
-            _extreme_days += 'Worst %d days =   '%k
-            while _num_worst_days < k and _worst_day_idx < n:
-                _num_worst_days += 1
-                _return = (math.exp(_sorted_returns[_worst_day_idx][1])-1)*100.0
-                _extreme_days += str(_sorted_returns[_worst_day_idx][0]) + (' : %0.2f%%   ' % _return)
-                _worst_day_idx += 1
-            _extreme_days += '\nBest %d days =   '%k
-            while _num_best_days < k and _best_day_idx >= 0:
-                _num_best_days += 1
-                _return = (math.exp(_sorted_returns[_best_day_idx][1])-1)*100.0
-                _extreme_days += str(_sorted_returns[_best_day_idx][0]) + (' : %0.2f%%   ' % _return)
-                _best_day_idx -= 1     
-        return _extreme_days + '\n'
-
-    def extreme_weeks(self, _dates, _returns, k):
-        _extreme_weeks = ''
-        _dated_weekly_returns = zip(_dates[0:len(_dates)-4], self.rollsum(_returns, 5))
-        _sorted_returns = sorted(_dated_weekly_returns, key=lambda x: x[1]) # Sort by returns
-        n = len(_sorted_returns)
-        _num_worst_weeks = 0
-        _worst_week_idx = 0
-        _num_best_weeks = 0
-        _best_week_idx = n-1
-        _worst_start_dates_used = []
-        _best_start_dates_used = []
-
-        def _date_not_used(_date, _used_dates, interval = 5):
-            _not_used = True
-            for _used_date in _used_dates:
-                if abs((_date - _used_date).days) < interval:
-                    _not_used = False
-                    break
-            return _not_used    
-
-        if n > 0:
-            _extreme_weeks += 'Worst %d weeks =   '%k
-            while _num_worst_weeks < k and _worst_week_idx < n:
-                if (not _worst_start_dates_used) or _date_not_used(_sorted_returns[_worst_week_idx][0], _worst_start_dates_used, 5):
-                    _num_worst_weeks += 1
-                    _return = (math.exp(_sorted_returns[_worst_week_idx][1]) - 1)*100.0
-                    _extreme_weeks += str(_sorted_returns[_worst_week_idx][0]) + (' : %0.2f%%   ' % _return)
-                    _worst_start_dates_used.append(_sorted_returns[_worst_week_idx][0])
-                _worst_week_idx += 1
-            _extreme_weeks += '\nBest %d weeks =   '%k
-            while _num_best_weeks < k and _best_week_idx >= 0:
-                if (not _worst_start_dates_used) or _date_not_used(_sorted_returns[_best_week_idx][0], _best_start_dates_used, 5):
-                    _num_best_weeks += 1
-                    _return = (math.exp(_sorted_returns[_best_week_idx][1]) - 1)*100.0
-                    _extreme_weeks += str(_sorted_returns[_best_week_idx][0]) + (' : %0.2f%%   ' % _return)
-                    _best_start_dates_used.append(_sorted_returns[_best_week_idx][0])
-                _best_week_idx -= 1     
-        return _extreme_weeks+'\n'
-
-    def compute_max_num_days_no_new_high(self, dates, PnLvector):
-        """This function returns the maximum number of days the strategy did not make a new high"""
-        if PnLvector.shape[0] < 1:
-            return (0.0, '', '')
-        current_num_days_no_new_high = 0
-        current_start_idx = -1
-        current_high = 0.0
-        max_num_days_no_new_high = 0
-        max_start_idx = -1
-        max_end_idx = -1
-        cum_PnL = PnLvector.cumsum()
-        for i in xrange(len(cum_PnL)):
-            if cum_PnL[i] >= current_high:
-                #new high
-                current_num_days_no_new_high = 0
-                current_high = cum_PnL[i]
-                current_start_idx = i
-            else:
-                current_num_days_no_new_high += 1
-                if current_num_days_no_new_high > max_num_days_no_new_high:
-                    max_num_days_no_new_high = current_num_days_no_new_high
-                    max_start_idx = current_start_idx + 1
-                    max_end_idx = i
-        if max_start_idx == -1 or max_end_idx == -1:
-            return (0.0, '', '')
-        else:
-            return (max_num_days_no_new_high, dates[max_start_idx], dates[max_end_idx])
-
-    def compute_losing_month_streak(self, dates, returns):
-        monthly_returns = convert_daily_returns_to_yyyymm_monthly_returns_pair(dates, returns)
-        # Find max length -ve number subarray
-        global_start_idx = -1
-        global_end_idx = -1
-        current_start_idx = 0
-        current_end_idx = 0
-        current_idx = 0
-        global_max_length = 0
-        while current_idx < len(monthly_returns):
-            while current_idx < len(monthly_returns) and monthly_returns[current_idx][1] >= 0:
-                current_idx += 1
-            if current_idx < len(monthly_returns):
-                current_start_idx = current_idx
-                current_idx += 1
-                while current_idx < len(monthly_returns) and monthly_returns[current_idx][1] < 0:
-                    current_idx += 1
-                current_end_idx = current_idx - 1
-                if global_max_length < current_end_idx - current_start_idx + 1:
-                    global_max_length = current_end_idx - current_start_idx + 1
-                    global_start_idx = current_start_idx
-                    global_end_idx = current_end_idx
-                 
-        if global_end_idx == -1 or global_start_idx == -1:
-            return (0, 0, '', '')
-        else:
-            percent_returns_in_streak = (math.exp(sum(x[1] for x in monthly_returns[global_start_idx : global_end_idx +1])) - 1)*100.0
-            return (global_max_length, percent_returns_in_streak, monthly_returns[global_start_idx][0], monthly_returns[global_end_idx][0])       
-
-    def compute_yearly_sharpe(self, dates, returns):
-        yyyy = [ date.strftime("%Y") for date in dates]
-        yyyy_returns = zip(yyyy, returns)
-        yearly_sharpe = []
-        for key, rows in itertools.groupby(yyyy_returns, lambda x : x[0]):
-            _returns = numpy.array([x[1] for x in rows])
-            _ann_returns = (math.exp(252.0 * numpy.mean(_returns)) - 1) * 100.0
-            _ann_std = (math.exp(math.sqrt(252.0) * numpy.std(_returns)) - 1) * 100.0
-            yearly_sharpe.append((key, _ann_returns/_ann_std ))
-        return yearly_sharpe
-
-    def compute_sortino(self, returns):
-        """A modification of the Sharpe ratio that only takes negative deviation from a target return into consideration.
-        The Sortino ratio subtracts the risk-free rate of return from the portfolios return, and then divides that by the downside deviation.
-        A large Sortino ratio indicates there is a low probability of a large loss.
-        Target return and risk free rate are taken as 0 in calculating sortino ratio in our implementation.
-
-        Args:
-            returns: daily log returns
-        Returns:
-            Sortino ratio for the given daily log returns series
-        """
-        neg_ret_sq = numpy.where(returns < 0, returns**2, 0) # Take square of all -ve returns, 0 for +ve returns.
-        down_risk = math.sqrt(numpy.mean(neg_ret_sq)) # Downside risk as deviation from 0 in the negative
-        sortino = 0
-        if not is_float_zero(down_risk):
-            sortino = (math.exp(252.0 * numpy.mean(returns)) - 1) / (math.exp(math.sqrt(252.0) * down_risk) -1)
-        return sortino
-
     # non public function to save results to a file
     def _save_results(self):
         marshal.dump(zip(map(str, self.dates),self.daily_log_returns), Globals.returns_file)
@@ -553,18 +324,18 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.annualized_PnL = 252.0 * numpy.mean(self.PnLvector)
         self.annualized_stdev_PnL = math.sqrt(252.0) * numpy.std(self.PnLvector)
         self.daily_returns = self.PnLvector * 100.0/self.value[0:self.value.shape[0] - 1]
-        monthly_log_returns = self.rollsum(self.daily_log_returns, 21)
-        quarterly_log_returns = self.rollsum(self.daily_log_returns, 63)
-        yearly_log_returns = self.rollsum(self.daily_log_returns, 252)
-        self.dml = (math.exp(self.mean_lowest_k_percent(self.daily_log_returns, 10)) - 1)*100.0
-        self.mml = (math.exp(self.mean_lowest_k_percent(monthly_log_returns, 10)) - 1)*100.0
-        self._worst_10pc_quarterly_returns = (math.exp(self.mean_lowest_k_percent(quarterly_log_returns, 10)) - 1) * 100.0
-        self._worst_10pc_yearly_returns = (math.exp(self.mean_lowest_k_percent(yearly_log_returns, 10)) - 1) * 100.0
+        monthly_log_returns = rollsum(self.daily_log_returns, 21)
+        quarterly_log_returns = rollsum(self.daily_log_returns, 63)
+        yearly_log_returns = rollsum(self.daily_log_returns, 252)
+        self.dml = (math.exp(mean_lowest_k_percent(self.daily_log_returns, 10)) - 1)*100.0
+        self.mml = (math.exp(mean_lowest_k_percent(monthly_log_returns, 10)) - 1)*100.0
+        self._worst_10pc_quarterly_returns = (math.exp(mean_lowest_k_percent(quarterly_log_returns, 10)) - 1) * 100.0
+        self._worst_10pc_yearly_returns = (math.exp(mean_lowest_k_percent(yearly_log_returns, 10)) - 1) * 100.0
         self._annualized_returns_percent = (math.exp(252.0 * numpy.mean(self.daily_log_returns)) - 1) * 100.0
         self.annualized_stddev_returns = (math.exp(math.sqrt(252.0) * numpy.std(self.daily_log_returns)) - 1) * 100.0
         self.sharpe = self._annualized_returns_percent/self.annualized_stddev_returns
-        self.yearly_sharpe = self.compute_yearly_sharpe(self.dates, self.daily_log_returns)
-        self.sortino = self.compute_sortino(self.daily_log_returns)
+        self.yearly_sharpe = compute_yearly_sharpe(self.dates, self.daily_log_returns)
+        self.sortino = compute_sortino(self.daily_log_returns)
         _format_strings = ','.join([' %s : %0.2f'] * len(self.yearly_sharpe))
         _yearly_sharpe_tuple = tuple(list(itertools.chain(*self.yearly_sharpe)))
         _print_yearly_sharpe = _format_strings%_yearly_sharpe_tuple
@@ -572,18 +343,18 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.kurtosis = ss.kurtosis(self.daily_log_returns)
         max_dd_log = drawdown(self.daily_log_returns)
         self.max_drawdown_percent = abs((math.exp(max_dd_log) - 1) * 100)
-        self.drawdown_period, self.recovery_period = self.drawdown_period_and_recovery_period(self.dates, self.cum_log_returns)
+        self.drawdown_period, self.recovery_period = drawdown_period_and_recovery_period(self.dates, self.cum_log_returns)
         self.max_drawdown_dollar = abs(drawdown(self.PnLvector))
         self.return_by_maxdrawdown = self._annualized_returns_percent/self.max_drawdown_percent
         self._annualized_pnl_by_max_drawdown_dollar = self.annualized_PnL/self.max_drawdown_dollar
         self.ret_var10 = abs(self._annualized_returns_percent/self.dml)
-        self.turnover_percent = self.turnover(self.dates, self.amount_long_transacted, self.amount_short_transacted)
+        self.turnover_percent = turnover(self.dates, self.amount_long_transacted, self.amount_short_transacted, self.value)
         self.hit_loss_ratio = numpy.sum(numpy.where(self.daily_log_returns > 0, 1.0, 0.0))/numpy.sum(numpy.where(self.daily_log_returns < 0, 1.0, 0.0))
         self.gain_pain_ratio = numpy.sum(self.daily_log_returns)/numpy.sum(numpy.where(self.daily_log_returns < 0, -self.daily_log_returns, 0.0))
-        self.max_num_days_no_new_high = self.compute_max_num_days_no_new_high(self.dates, self.PnLvector)
-        self.losing_month_streak = self.compute_losing_month_streak(self.dates, self.daily_log_returns)
-        _extreme_days = self.extreme_days(5)
-        _extreme_weeks = self.extreme_weeks(self.dates, self.daily_log_returns, 5)
+        self.max_num_days_no_new_high = compute_max_num_days_no_new_high(self.dates, self.PnLvector)
+        self.losing_month_streak = compute_losing_month_streak(self.dates, self.daily_log_returns)
+        _extreme_days = get_extreme_days(self.dates, self.daily_log_returns, 5)
+        _extreme_weeks = get_extreme_weeks(self.dates, self.daily_log_returns, 5)
         if len(self.leverage) > 0:
             _leverage_params = (min(self.leverage), max(self.leverage), numpy.mean(self.leverage), numpy.std(self.leverage))
         else:
