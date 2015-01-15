@@ -1,8 +1,10 @@
 # cython: profile=True
 import sys
+import numpy
 import datetime
 import itertools
-from regular import is_future, get_next_futures_contract, is_margin_product
+import scipy.stats as ss
+from regular import is_future, get_next_futures_contract, is_margin_product, filter_series
 
 def get_current_prices( bb_objects ):
     current_prices = {}
@@ -39,13 +41,27 @@ def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, curre
         net_notional_exposure += abs(notional_amount[product])
     return (notional_amount, net_notional_exposure)
 
-def convert_daily_to_monthly_returns(dates, returns):
+def convert_daily_returns_to_yyyymm_monthly_returns_pair(dates, returns):
     yyyymm = [ date.strftime("%Y") + '-' + date.strftime("%m") for date in dates]
     yyyymm_returns = zip(yyyymm, returns)
     monthly_returns = []
     for key, rows in itertools.groupby(yyyymm_returns, lambda x : x[0]):
         monthly_returns.append( (key, sum(x[1] for x in rows) ) )
     return monthly_returns
+
+def compute_correlation(labels_and_returns_1, labels_and_returns_2):
+    if labels_and_returns_1.shape[0] < 1 or labels_and_returns_2.shape[0] < 1:
+        return 0
+    filtered_labels_and_returns_1, filtered_labels_and_returns_2 = filter_series(labels_and_returns_1, labels_and_returns_2)
+    if len(filtered_labels_and_returns_1) != len(labels_and_returns_1) or len(filtered_labels_and_returns_2) != len(labels_and_returns_2): # If some records were filtered out
+        pass#print '%d vs %d vs %d vs %d'%(len(filtered_labels_and_returns_1), len(labels_and_returns_1), len(filtered_labels_and_returns_2), len(labels_and_returns_2))
+    if len(filtered_labels_and_returns_1) <= 1 or len(filtered_labels_and_returns_2) <= 1:
+        return 0
+    corr = ss.stats.pearsonr(filtered_labels_and_returns_1, filtered_labels_and_returns_2)
+    return corr[0]
+
+def compute_daily_log_returns(prices):
+    return numpy.log(prices[1:]/prices[:-1])
 
 #Find the latest price prior to 'date'
 def find_most_recent_price(book, date):

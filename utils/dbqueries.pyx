@@ -197,7 +197,3 @@ def fetch_prices(product, _startdate, _enddate):
         dates.append(row['date'])
         prices.append(price)
     return np.array(dates), np.array(prices)
-
-#conv_factor, currency_factor = get_currency_conversion_factors(['ES_1','FGBL_1','SXF_1'], '2014-01-01', '2014-01-30')
-#for key in sorted(currency_factor['EURUSD'].keys()):
-#    print key,currency_factor['EURUSD'][key]

@@ -1,32 +1,23 @@
 # cython: profile=True
+import math
+import numpy
 from datetime import timedelta
-import numpy as np
-import scipy.stats as ss
 from dbqueries import fetch_prices
-from regular import filter_series
-from calculate import convert_daily_to_monthly_returns
+from calculate import compute_daily_log_returns, convert_daily_returns_to_yyyymm_monthly_returns_pair, compute_correlation
+from performance.performance_utils import drawdown
 
-benchmarks = { 'VBLTX' : 'daily_prices' , 'VTSMX' : 'daily_prices' }
+benchmarks = { 'VBLTX' : 'daily_prices' , 'VTSMX' : 'daily_prices', 'AQRIX' : 'daily_prices' }
 
-def compute_daily_log_returns(prices):
-    return np.log(prices[1:]/prices[:-1])
-
-def get_monthly_correlation_to_benchmark(dates, daily_log_returns, benchmark_name):
-    if daily_log_returns.shape[0] < 1:
-        return 0
-    benchmark_monthly_returns = get_benchmark_monthly_returns(dates[0], dates[-1], benchmark_name) #TODO start_date off by 1
-    strategy_monthly_returns = convert_daily_to_monthly_returns(dates, daily_log_returns)
-    filtered_benchmark_monthly_returns, filtered_strategy_monthly_returns = filter_series(benchmark_monthly_returns, strategy_monthly_returns)
-    if len(filtered_benchmark_monthly_returns) != len(benchmark_monthly_returns) or len(filtered_benchmark_monthly_returns) != strategy_monthly_returns: # If we skipped some months
-        pass#print '%d vs %d vs %d vs %d'%(len(strategy_monthly_returns), len(benchmark_monthly_returns), len(filtered_strategy_monthly_returns), len(filtered_benchmark_monthly_returns))
-    if len(filtered_benchmark_monthly_returns) <= 1:
-        return 0
-    corr = ss.stats.pearsonr(filtered_benchmark_monthly_returns, filtered_strategy_monthly_returns)
-    return corr[0]
-
-# For some benchmarks we may have to load monthly returns directly
-def get_benchmark_monthly_returns(start_date, end_date, product):
-    if benchmarks[product] == 'daily_prices':
-        dates, prices = fetch_prices(product, str(start_date), str(end_date))
-        daily_log_returns = compute_daily_log_returns(prices)
-        return convert_daily_to_monthly_returns(dates[1:], daily_log_returns)
+def get_benchmark_stats(dates_strategy, daily_log_returns_strategy, benchmark): # TODO change to combined query for fetching all benchmarks data at once
+    '''Returns the following benchmark stats: sharpe, drawdown, correlation to strategy'''
+    if benchmarks[benchmark] == 'daily_prices': # If we have daily prices for this benchmark in db
+        dates_benchmark, prices_benchmark = fetch_prices(benchmark, str(dates_strategy[0]), str(dates_strategy[-1])) # fetch the dates and corresponding prices
+        daily_log_returns_benchmark = compute_daily_log_returns(prices_benchmark) 
+        sharpe_benchmark = (math.exp(252.0 * numpy.mean(daily_log_returns_benchmark)) - 1)/(math.exp(math.sqrt(252.0) * numpy.std(daily_log_returns_benchmark)) - 1)
+        drawdown_benchmark = drawdown(daily_log_returns_benchmark)
+        # skip one date because extra date fetched to compute log_ret on start_date
+        labels_monthly_log_returns_benchmark = convert_daily_returns_to_yyyymm_monthly_returns_pair(dates_benchmark[1:], daily_log_returns_benchmark)
+        labels_monthly_log_returns_strategy = convert_daily_returns_to_yyyymm_monthly_returns_pair(dates_strategy, daily_log_returns_strategy)
+        monthly_correlation = compute_correlation(labels_monthly_log_returns_benchmark, labels_monthly_log_returns_strategy)
+        stats = '%s_sharpe = %0.2f\n%s_drawdown = %0.2f\n%s_correlation = %0.2f\n' % (sharpe_benchmark, drawdown_benchmark, monthly_correlation)
+    return stats

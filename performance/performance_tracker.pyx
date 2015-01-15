@@ -14,11 +14,12 @@ from backtester.backtester import BackTester
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import EndOfDayListener, TaxPaymentDayListener, DistributionDayListener
 from utils.regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string
-from utils.calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts, convert_daily_to_monthly_returns
-from utils.benchmark_comparison import get_monthly_correlation_to_benchmark
+from utils.calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts, convert_daily_returns_to_yyyymm_monthly_returns_pair
+from utils.benchmark_comparison import get_benchmark_stats
 from utils import defaults
 from bookbuilder.bookbuilder import BookBuilder
 from utils.global_variables import Globals
+from performance_utils import drawdown
 
 # TODO {gchak} PerformanceTracker is probably a class that just pertains to the performance of one strategy
 # We need to change it from listening to executions from BackTester, to being called on from the OrderManager,
@@ -325,12 +326,6 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
             return 0.0
         return -1.0*(max_cum_return - cum_returns[-1])
 
-    # Calculates the global maximum drawdown i.e. the maximum drawdown till now
-    def drawdown(self, returns):
-        if returns.shape[0] < 2:
-            return 0.0
-        cum_returns = returns.cumsum()
-        return -1.0*max(numpy.maximum.accumulate(cum_returns) - cum_returns) # Will return a negative value
 
     def drawdown_period_and_recovery_period(self, dates, _cum_returns):
         if _cum_returns.shape[0] < 2:
@@ -491,7 +486,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
             return (max_num_days_no_new_high, dates[max_start_idx], dates[max_end_idx])
 
     def compute_losing_month_streak(self, dates, returns):
-        monthly_returns = convert_daily_to_monthly_returns(dates, returns)
+        monthly_returns = convert_daily_returns_to_yyyymm_monthly_returns_pair(dates, returns)
         # Find max length -ve number subarray
         global_start_idx = -1
         global_end_idx = -1
@@ -575,10 +570,10 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         _print_yearly_sharpe = _format_strings%_yearly_sharpe_tuple
         self.skewness = ss.skew(self.daily_log_returns)
         self.kurtosis = ss.kurtosis(self.daily_log_returns)
-        max_dd_log = self.drawdown(self.daily_log_returns)
+        max_dd_log = drawdown(self.daily_log_returns)
         self.max_drawdown_percent = abs((math.exp(max_dd_log) - 1) * 100)
         self.drawdown_period, self.recovery_period = self.drawdown_period_and_recovery_period(self.dates, self.cum_log_returns)
-        self.max_drawdown_dollar = abs(self.drawdown(self.PnLvector))
+        self.max_drawdown_dollar = abs(drawdown(self.PnLvector))
         self.return_by_maxdrawdown = self._annualized_returns_percent/self.max_drawdown_percent
         self._annualized_pnl_by_max_drawdown_dollar = self.annualized_PnL/self.max_drawdown_dollar
         self.ret_var10 = abs(self._annualized_returns_percent/self.dml)
@@ -598,6 +593,6 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         _stats = _extreme_days + _extreme_weeks 
         _stats += ("\nInitial Capital = %.2f\nNet PNL = %.2f \nTrading Cost = %.2f\nNet Returns = %.2f%%\nAnnualized PNL = %.2f\nAnnualized_Std_PnL = %.2f\nAnnualized_Returns = %.2f%% \nAnnualized_Std_Returns = %.2f%% \nSharpe Ratio = %.2f \nSortino Ratio = %.2f\nSkewness = %.2f\nKurtosis = %.2f\nDML = %.2f%%\nMML = %.2f%%\nQML = %.2f%%\nYML = %.2f%%\nMax Drawdown = %.2f%% \nDrawdown Period = %s to %s\nDrawdown Recovery Period = %s to %s\nMax Drawdown Dollar = %.2f \nAnnualized PNL by drawdown = %.2f \nReturn_drawdown_Ratio = %.2f\nReturn Var10 ratio = %.2f\nYearly_sharpe = " + _print_yearly_sharpe + "\nHit Loss Ratio = %0.2f\nGain Pain Ratio = %0.2f\nMax num days with no new high = %d from %s to %s\nLosing month streak = Lost %0.2f%% in %d months from %s to %s\nTurnover = %0.2f%%\nLeverage = Min : %0.2f, Max : %0.2f, Average : %0.2f, Stddev : %0.2f\nTrading Cost = %0.2f\nTotal Money Transacted = %0.2f\nTotal Orders Placed = %d\n") % (self.initial_capital, self.PnL, self.trading_cost, self.net_returns, self.annualized_PnL, self.annualized_stdev_PnL, self._annualized_returns_percent, self.annualized_stddev_returns, self.sharpe, self.sortino, self.skewness, self.kurtosis, self.dml, self.mml, self._worst_10pc_quarterly_returns, self._worst_10pc_yearly_returns, self.max_drawdown_percent, self.drawdown_period[0], self.drawdown_period[1], self.recovery_period[0], self.recovery_period[1], self.max_drawdown_dollar, self._annualized_pnl_by_max_drawdown_dollar, self.return_by_maxdrawdown, self.ret_var10, self.hit_loss_ratio, self.gain_pain_ratio, self.max_num_days_no_new_high[0], self.max_num_days_no_new_high[1], self.max_num_days_no_new_high[2], self.losing_month_streak[1], self.losing_month_streak[0], self.losing_month_streak[2], self.losing_month_streak[3], self.turnover_percent, _leverage_params[0], _leverage_params[1], _leverage_params[2], _leverage_params[3], self.trading_cost, self.total_amount_transacted, self.total_orders)
         for benchmark in self.benchmarks:
-            _stats += 'Correlation to %s = %0.2f\n' % (benchmark, get_monthly_correlation_to_benchmark(self.dates, self.daily_log_returns, benchmark))
+            _stats += get_benchmark_stats(self.dates, self.daily_log_returns, benchmark) # Returns a string of benchmark stats
         print _stats
         Globals.stats_file.write(_stats)

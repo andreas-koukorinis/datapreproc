@@ -103,8 +103,8 @@ def todays_return(snapshot):
 def send_mail(_subject, _body):
     _server = "localhost"
     _from = "sanchit.gupta@tworoads.co.in"
-    _to = "cvquant@circulumvite.com"
-    #_to = "sanchit.gupta@tworoads.co.in"
+    #_to = "cvquant@circulumvite.com"
+    _to = "sanchit.gupta@tworoads.co.in"
      # Prepare actual message
     message = "From: {0}\nTo: {1}\nSubject: {2}\n\n{3}".format(_from, _to, _subject, _body)
     # Send the mail
@@ -113,7 +113,7 @@ def send_mail(_subject, _body):
     server.quit()
 
 def get_positions(_current_date, _config_file):
-    positions_file = '/spare/local/logs/'+os.path.splitext(_config_file)[0].split('/')[-1]+'/positions.txt'
+    positions_file = home_path + '/logs/'+os.path.splitext(_config_file)[0].split('/')[-1]+'/positions.txt'
     placed_orders = re.compile(r'ORDER PLACED ON %s.*'%str(_current_date))
     filled_orders = re.compile(r"ORDER FILLED ON %s.*"%str(_current_date))
     snapshot = re.compile(r"Portfolio snapshot at EndOfDay %s\n.*PnL for today.*\nPortfolio Value.*\nCash.*\nOpen Equity.*\nPositions.*\nNotional Allocation.*\nAverage Trade Price.*\nLeverage.*"%_current_date)
