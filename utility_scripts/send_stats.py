@@ -1,9 +1,9 @@
-#!/usr/bin/env/python
+#!/usr/bin/env python
 import re
 import sys
 import os
 import subprocess
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 import smtplib
 from email.mime.text import MIMEText
 from prettytable import PrettyTable
@@ -21,7 +21,7 @@ def parse_results(results):
             _name = _result[0].strip()
             _val = _result[1].strip()
             _dict_results[_name] = _val
-    _final_order = ['Net Returns', 'Total Tradable Days','Sharpe Ratio', 'Return_drawdown_Ratio','Return Var10 ratio','Correlation to VBLTX', 'Correlation to VTSMX', 'Annualized_Returns', 'Annualized_Std_Returns', 'Initial Capital', 'Net PNL', 'Annualized PNL', 'Annualized_Std_PnL', 'Skewness','Kurtosis','DML','MML','QML','YML','Max Drawdown','Drawdown Period','Drawdown Recovery Period','Max Drawdown Dollar','Annualized PNL by drawdown','Yearly_sharpe','Hit Loss Ratio','Gain Pain Ratio','Max num days with no new high','Losing month streak','Turnover','Leverage','Trading Cost','Total Money Transacted','Total Orders Placed','Worst 5 days','Best 5 days','Worst 5 weeks','Best 5 weeks']
+    _final_order = ['Net Returns', 'Total Tradable Days','Sharpe Ratio', 'Return_drawdown_Ratio','Return Var10 ratio', 'Annualized_Returns', 'Annualized_Std_Returns', 'Initial Capital', 'Net PNL', 'Annualized PNL', 'Annualized_Std_PnL','VBLTX_sharpe','VBLTX_drawdown','VBLTX_correlation','VTSMX_sharpe','VTSMX_drawdown','VTSMX_correlation','AQRIX_sharpe','AQRIX_drawdown','AQRIX_correlation', 'Skewness','Kurtosis','DML','MML','QML','YML','Max Drawdown','Drawdown Period','Drawdown Recovery Period','Max Drawdown Dollar','Annualized PNL by drawdown','Yearly_sharpe','Hit Loss Ratio','Gain Pain Ratio','Max num days with no new high','Losing month streak','Turnover','Leverage','Trading Cost','Total Money Transacted','Total Orders Placed','Worst 5 days','Best 5 days','Worst 5 weeks','Best 5 weeks']
     _print_results = ''
     for _elem in _final_order:
         if _elem in _dict_results.keys():
@@ -136,11 +136,14 @@ def get_positions(_current_date, _config_file):
 
 def main():
     if len(sys.argv) < 2:
-        print "Arguments needed: config_file"
+        print "Arguments needed: config_file <date=TODAY> <send=1>"
         sys.exit(0)
     _config_file = sys.argv[1]
-    _current_date = date.today() + timedelta(days=-1)
-    #print _current_date
+    if (len(sys.argv) >= 3) and (sys.argv[2] != "TODAY"):
+        _current_date = datetime.strptime( sys.argv[2], "%Y%m%d").date()
+    else:
+        _current_date = date.today() + timedelta(days=-1)
+
     _ytd_start_date = date(_current_date.year, 1, 1)
     _ytd_end_date = _current_date
     _mtd_start_date = date(_current_date.year, _current_date.month, 1)
@@ -172,8 +175,11 @@ def main():
 
     subject = '%s up %0.2f%% on %s' % ('_'.join(_config_file.rsplit('/')[-1].split('_')[0:2]), todays_return, _yday_end_date)
     body = 'Config File: %s\nBenchmark Returns on %s: %s\n\n'%(_config_file.rsplit('/')[-1], _current_date, _print_benchmark_returns)  + '\n\n'.join(performance_stats)
-    #print subject, body
-    send_mail(subject, body)
+
+    if ( len(sys.argv) >= 4 ) and ( int(sys.argv[3]) == -1 ):
+        print subject, body
+    else:
+        send_mail(subject, body)
 
 if __name__ == '__main__':
     main()
