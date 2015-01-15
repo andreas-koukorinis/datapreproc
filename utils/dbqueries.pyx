@@ -174,6 +174,7 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
                 currency_factor[_currency][_date] = _currency_val
                 dummy_value[_currency] = _currency_val
         _date += delta
+    db_close(db)
     return conv_factor, currency_factor, product_to_currency, _product_type
 
 def fetch_prices(product, _startdate, _enddate):
@@ -196,4 +197,5 @@ def fetch_prices(product, _startdate, _enddate):
             price = float(row['close'])
         dates.append(row['date'])
         prices.append(price)
+    db_close(db)
     return np.array(dates), np.array(prices)
