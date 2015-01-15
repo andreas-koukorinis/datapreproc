@@ -21,11 +21,18 @@ def parse_results(results):
             _name = _result[0].strip()
             _val = _result[1].strip()
             _dict_results[_name] = _val
-    _final_order = ['Net Returns', 'Total Tradable Days','Sharpe Ratio', 'Return_drawdown_Ratio','Return Var10 ratio', 'Annualized_Returns', 'Annualized_Std_Returns', 'Initial Capital', 'Net PNL', 'Annualized PNL', 'Annualized_Std_PnL','VBLTX_sharpe','VBLTX_drawdown','VBLTX_correlation','VTSMX_sharpe','VTSMX_drawdown','VTSMX_correlation','AQRIX_sharpe','AQRIX_drawdown','AQRIX_correlation', 'Skewness','Kurtosis','DML','MML','QML','YML','Max Drawdown','Drawdown Period','Drawdown Recovery Period','Max Drawdown Dollar','Annualized PNL by drawdown','Yearly_sharpe','Hit Loss Ratio','Gain Pain Ratio','Max num days with no new high','Losing month streak','Turnover','Leverage','Trading Cost','Total Money Transacted','Total Orders Placed','Worst 5 days','Best 5 days','Worst 5 weeks','Best 5 weeks']
+    _final_order = ['Net Returns', 'Total Tradable Days','Sharpe Ratio', 'Return_drawdown_Ratio','Return Var10 ratio', 'Annualized_Returns', 'Annualized_Std_Returns', 'Initial Capital', 'Net PNL', 'Annualized PNL', 'Annualized_Std_PnL', 'Skewness','Kurtosis','DML','MML','QML','YML','Max Drawdown','Drawdown Period','Drawdown Recovery Period','Max Drawdown Dollar','Annualized PNL by drawdown','Yearly_sharpe','Hit Loss Ratio','Gain Pain Ratio','Max num days with no new high','Losing month streak','Turnover','Leverage','Trading Cost','Total Money Transacted','Total Orders Placed','Worst 5 days','Best 5 days','Worst 5 weeks','Best 5 weeks']
+    _benchmarks = ['VBLTX_sharpe','VBLTX_net_returns','VBLTX_drawdown','VBLTX_correlation','VTSMX_sharpe','VTSMX_net_returns','VTSMX_drawdown','VTSMX_correlation','AQRIX_sharpe','AQRIX_net_returns','AQRIX_drawdown','AQRIX_correlation']
+
     _print_results = ''
     for _elem in _final_order:
         if _elem in _dict_results.keys():
             _print_results += _elem + ' = ' + _dict_results[_elem] + '\n'
+    if len(_benchmarks) > 0:
+        _print_results += '\nBenchmarks:\n'
+        for _elem in _benchmarks:
+            if _elem in _dict_results.keys():
+                _print_results += _elem + ' = ' + _dict_results[_elem] + '\n'
     return _print_results
 
 def get_todays_benchmark_returns(benchmarks, current_date):
