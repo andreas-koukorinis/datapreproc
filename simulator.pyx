@@ -63,7 +63,7 @@ class Simulator:
         Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, Globals.product_type = get_currency_and_conversion_factors(self._all_products, self._start_date, self._end_date)
 
         # Initialize the log file handles
-        self._log_dir =  os.path.dirname(os.getcwd()) + "/logs/" + os.path.splitext(_config_file)[0].split('/')[-1] + '/'
+        self._log_dir =  os.path.expanduser('~') + "/logs/" + os.path.splitext(_config_file)[0].split('/')[-1] + '/'
         init_logs(self._config, self._log_dir, self._all_products)
        
         # Import the strategy class using 'Strategy'->'name' in config file
