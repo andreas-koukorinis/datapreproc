@@ -6,6 +6,7 @@ import numpy
 import math
 import scipy.stats as ss
 import marshal
+import cPickle
 import itertools
 from collections import deque
 
@@ -316,7 +317,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
 
     # non public function to save results to a file
     def _save_results(self):
-        marshal.dump(zip(map(str, self.dates),self.daily_log_returns), Globals.returns_file)
+        cPickle.dump(self.dates, Globals.returns_file)
+        cPickle.dump(self.daily_log_returns, Globals.returns_file)
 
     def show_results(self):
         self.PnL = sum(self.PnLvector) # final sum of pnl of all trading days
