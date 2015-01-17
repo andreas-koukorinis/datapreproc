@@ -3,6 +3,7 @@
 
 import os
 import sys
+import shutil
 from importlib import import_module
 import ConfigParser
 from dispatcher.dispatcher import Dispatcher
@@ -52,8 +53,9 @@ class Simulator:
             self._end_date = _end_date
     
         self._directory =  os.path.dirname(os.getcwd()) + "/logs/" + os.path.splitext(os.path.basename(_config_file))[0]+'/' # directory to store log files like positions,returns file
-        if not os.path.exists(self._directory):
-            os.makedirs(self._directory)
+        if os.path.exists(self._directory):
+            shutil.rmtree(self._directory)
+        os.makedirs(self._directory)
         
         # Read product list from config file
         Globals.trade_products = get_trade_products(self._config)
