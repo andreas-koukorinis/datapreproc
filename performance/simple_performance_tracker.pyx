@@ -2,6 +2,7 @@
 import sys
 import os
 import datetime
+import math
 import numpy
 import scipy.stats as ss
 
@@ -49,7 +50,7 @@ class SimplePerformanceTracker(IndicatorListener):
 
     def get_desired_leverage(self):
         """returns the currently desired leverage of the strategy"""
-        return numpy.sum(numpy.abs(self.rebalance_weights))
+        return numpy.sum(abs(self.rebalance_weights))
     
     def on_indicator_update(self, identifier, daily_log_returns_dt):
         _product = identifier.split('.')[1]
@@ -64,9 +65,9 @@ class SimplePerformanceTracker(IndicatorListener):
         _new_portfolio_value = sum(_new_money_allocation) + self.cash
         _old_portfolio_value = sum(self.money_allocation) + self.cash
         self.money_allocation = _new_money_allocation
-        if (_old_portfolio_value <= 0.01) or numpy.isnan(_old_portfolio_value):
+        if (_old_portfolio_value <= 0.01) or math.isnan(_old_portfolio_value):
             sys.exit("Lost all the money!")
-        _logret = numpy.log(_new_portfolio_value/_old_portfolio_value)
+        _logret = math.log(_new_portfolio_value/_old_portfolio_value)
         self.daily_log_returns = numpy.append(self.daily_log_returns, _logret)
         if self.cum_log_returns.shape[0] == 0: # If we are inserting the first element
             _cum_log_return = _logret
@@ -107,8 +108,8 @@ class SimplePerformanceTracker(IndicatorListener):
         self.compute_todays_log_return(date)
         self.update_rebalanced_weights_for_trading_products(date) # Read as order executed
         _current_dd_log = self.current_dd(self.max_cum_log_return, self.cum_log_returns)
-        self.current_drawdown = abs((numpy.exp(_current_dd_log) - 1)* 100.0)
-        self.current_loss = abs(min(0.0, (numpy.exp(self.net_log_return) - 1)*100.0))
+        self.current_drawdown = abs((math.exp(_current_dd_log) - 1)* 100.0)
+        self.current_loss = abs(min(0.0, (math.exp(self.net_log_return) - 1)*100.0))
 
     def get_current_drawdown(self):
         """returns current drawdown"""
@@ -128,7 +129,7 @@ class SimplePerformanceTracker(IndicatorListener):
         if self.daily_log_returns.shape[0] < return_history: # for insufficient history return 0.0
             return 0.0
         else:
-            return (numpy.exp(numpy.mean(self.daily_log_returns[-return_history:]) * 252) - 1) * 100
+            return (math.exp(numpy.mean(self.daily_log_returns[-return_history:]) * 252) - 1) * 100
 
     def compute_historical_volatility(self, _volatility_history): # TODO change to online computation
         _recent_log_ret_anlualized_stdev = 100.0 # need this to be a default
@@ -136,10 +137,21 @@ class SimplePerformanceTracker(IndicatorListener):
             _recent_log_ret_anlualized_stdev = 100.0 # need this to be a default
         else:
             _start_idx = max(0, self.daily_log_returns.shape[0] - _volatility_history)
-            _recent_log_ret_anlualized_stdev = (numpy.exp(numpy.std(self.daily_log_returns[_start_idx : _start_idx + _volatility_history]) * numpy.sqrt(252.0)) - 1) * 100
+            _recent_log_ret_anlualized_stdev = (math.exp(numpy.std(self.daily_log_returns[_start_idx : _start_idx + _volatility_history]) * math.sqrt(252.0)) - 1) * 100
             _recent_log_ret_anlualized_stdev = min ( 100.0, _recent_log_ret_anlualized_stdev )
             _recent_log_ret_anlualized_stdev = max ( 1.0, _recent_log_ret_anlualized_stdev )
         return (_recent_log_ret_anlualized_stdev)
+
+    def compute_historical_sharpe(self, _sharpe_history): # TODO change to online computation
+        _recent_sharpe = 1.0 # need this to be a default
+        if self.daily_log_returns.shape[0] < _sharpe_history: # for insufficient history return 100.0 (same for each strategy)
+            _recent_sharpe = 1.0 # need this to be a default
+        else:
+            _recent_ann_ret = (math.exp(numpy.mean(self.daily_log_returns[-_sharpe_history:]) * 252.0) - 1) * 100
+            _recent_ann_stdev = (math.exp(numpy.std(self.daily_log_returns[-_sharpe_history:]) * math.sqrt(252.0)) - 1) * 100
+            _recent_ann_stdev = max(1.0, min(100.0, _recent_ann_stdev))
+            _recent_sharpe = _recent_ann_ret/_recent_ann_stdev
+        return (_recent_sharpe)
 
     def compute_current_var_estimate(self, return_history):
         """Computes an estimate of daily VAR10 of the strategy based on daily rebalanced CWAS
@@ -153,10 +165,10 @@ class SimplePerformanceTracker(IndicatorListener):
         if self.log_return_history.shape[0] < return_history:
             return 0.001 # Low value for complete allocation
         _log_returns = self.log_return_history[-return_history:,:]
-        _cwas_log_return_series = numpy.log(1 + numpy.sum((numpy.exp(_log_returns) -1)*self.rebalance_weights, axis=1)) #TODO consider changing to actual weights
+        _cwas_log_return_series = math.log(1 + numpy.sum((math.exp(_log_returns) -1)*self.rebalance_weights, axis=1)) #TODO consider changing to actual weights
         _sorted_cwas_log_return_series = numpy.sort(_cwas_log_return_series)
         n = _sorted_cwas_log_return_series.shape[0]
         _end_index = min(n-1, int(0.1*n)) # Considering the worst 10% days
         _Var10_log = numpy.mean(_sorted_cwas_log_return_series[0:_end_index])
-        _Var10 = abs((numpy.exp(_Var10_log) - 1)*100.0) # +ve value for VAR
+        _Var10 = abs((math.exp(_Var10_log) - 1)*100.0) # +ve value for VAR
         return max(0.001, _Var10) # To ensure that we dont return 0
