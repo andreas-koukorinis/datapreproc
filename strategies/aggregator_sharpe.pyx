@@ -11,11 +11,11 @@ from signals.signal_list import is_valid_signal_name, get_module_name_from_signa
 from strategies.trade_algorithm import TradeAlgorithm
 
 class AggregatorSharpe(TradeAlgorithm):
-    """Implement an aggregator strategy which combines multiple signals using IVAS
+    """Implement an aggregator strategy which combines multiple signals weighted accroding to their historical realized sharpe ranking
        For example: If the config of the aggregator contains:    signal_configs=test/IVWAS_rb1.cfg,test/IVWAS_rb21.cfg 
-                                                                 volatility_history=63
-                                                                 volatility_computation_interval=126
-       This aggregator will recompute the relative allocations to the strategies every 6 months based on past 3 month volatility
+                                                                 sharpe_history=252
+                                                                 sharpe_computation_interval=63
+       This aggregator will recompute the relative allocations to the strategies every 3 months based on past 1 year sharpe
        and assign weights based on the latest rebalanced weights and new relative allocations
        Note that the relative allocations will be positive numbers summing to 1 
     """
