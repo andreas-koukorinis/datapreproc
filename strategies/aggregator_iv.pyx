@@ -13,8 +13,8 @@ class AggregatorIV(TradeAlgorithm):
     """Implement an aggregator strategy which combines multiple signals using IVAS
        For example: If the config of the aggregator contains:    signal_configs=test/IVWAS_rb1.cfg,test/IVWAS_rb21.cfg 
                                                                  volatility_history=63
-                                                                 volatility_computation_interval=126
-       This aggregator will recompute the relative allocations to the strategies every 6 months based on past 3 month volatility
+                                                                 volatility_computation_interval=21
+       This aggregator will recompute the relative allocations to the strategies every 1 month based on past 3 month volatility
        and assign weights based on the latest rebalanced weights and new relative allocations
        Note that the relative allocations will be positive numbers summing to 1 
     """
