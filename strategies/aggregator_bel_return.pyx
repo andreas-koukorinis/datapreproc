@@ -2,6 +2,7 @@
 import sys
 import ConfigParser
 import numpy
+import scipy.stats as ss
 from importlib import import_module
 from utils.regular import check_eod, adjust_file_path_for_home_directory
 from daily_indicators.indicator_list import is_valid_daily_indicator, get_module_name_from_indicator_name
@@ -60,6 +61,7 @@ class AggregatorBELReturn(TradeAlgorithm):
         for i in range(len(_signals)):
             _this_signal_return = _signals[i].simple_performance_tracker.compute_historical_return(self.return_history)
             self.signal_allocations[i] = _this_signal_return
+        #self.signal_allocations = ss.rankdata(self.signal_allocations) # TODO check with gchak
         self.signal_allocations = numpy.exp(self.signal_allocations) # Best expert learning assigns weights as exp of utility function (here expected returns)
         self.signal_allocations = self.signal_allocations/numpy.sum(self.signal_allocations) # Normalize, dont need abs since all values are positive
  
