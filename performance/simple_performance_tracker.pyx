@@ -132,26 +132,33 @@ class SimplePerformanceTracker(IndicatorListener):
             return (math.exp(numpy.mean(self.daily_log_returns[-return_history:]) * 252) - 1) * 100
 
     def compute_historical_volatility(self, _volatility_history): # TODO change to online computation
-        _recent_log_ret_anlualized_stdev = 100.0 # need this to be a default
+        _recent_ann_stdev = 100.0 # need this to be a default
         if self.daily_log_returns.shape[0] < 2: # for insufficient history return 100.0 (same for each strategy)
-            _recent_log_ret_anlualized_stdev = 100.0 # need this to be a default
+            _recent_ann_stdev = 100.0 # need this to be a default
         else:
             _start_idx = max(0, self.daily_log_returns.shape[0] - _volatility_history)
-            _recent_log_ret_anlualized_stdev = (math.exp(numpy.std(self.daily_log_returns[_start_idx : _start_idx + _volatility_history]) * math.sqrt(252.0)) - 1) * 100
-            _recent_log_ret_anlualized_stdev = min ( 100.0, _recent_log_ret_anlualized_stdev )
-            _recent_log_ret_anlualized_stdev = max ( 1.0, _recent_log_ret_anlualized_stdev )
-        return (_recent_log_ret_anlualized_stdev)
+            _recent_ann_stdev = (math.exp(numpy.std(self.daily_log_returns[_start_idx : _start_idx + _volatility_history]) * math.sqrt(252.0)) - 1) * 100
+            _recent_ann_stdev = max(1.0, min(100.0, _recent_ann_stdev))
+        return _recent_ann_stdev
 
     def compute_historical_sharpe(self, _sharpe_history): # TODO change to online computation
         _recent_sharpe = 1.0 # need this to be a default
         if self.daily_log_returns.shape[0] < _sharpe_history: # for insufficient history return 100.0 (same for each strategy)
             _recent_sharpe = 1.0 # need this to be a default
         else:
-            _recent_ann_ret = (math.exp(numpy.mean(self.daily_log_returns[-_sharpe_history:]) * 252.0) - 1) * 100
-            _recent_ann_stdev = (math.exp(numpy.std(self.daily_log_returns[-_sharpe_history:]) * math.sqrt(252.0)) - 1) * 100
-            _recent_ann_stdev = max(1.0, min(100.0, _recent_ann_stdev))
-            _recent_sharpe = _recent_ann_ret/_recent_ann_stdev
-        return (_recent_sharpe)
+            _recent_ann_return = self.compute_historical_return(_sharpe_history)
+            _recent_ann_stdev = self.compute_historical_volatility(_sharpe_history)
+            _recent_sharpe = _recent_ann_return/_recent_ann_stdev
+        return _recent_sharpe
+
+    def compute_historical_return(self, _return_history): # TODO change to online computation
+        _recent_ann_return = 1.0 # need this to be a default
+        if self.daily_log_returns.shape[0] < _return_history: # for insufficient history return 100.0 (same for each strategy)
+            _recent_ann_return = 1.0 # need this to be a default
+        else:
+            _recent_ann_return = (math.exp(numpy.mean(self.daily_log_returns[-_return_history:]) * 252.0) - 1) * 100
+            _recent_ann_return = max(1.0, min(50.0, _recent_ann_return)) # TODO check min max
+        return _recent_ann_return
 
     def compute_current_var_estimate(self, return_history):
         """Computes an estimate of daily VAR10 of the strategy based on daily rebalanced CWAS
