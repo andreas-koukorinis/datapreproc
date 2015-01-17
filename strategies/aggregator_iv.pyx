@@ -28,7 +28,7 @@ class AggregatorIV(TradeAlgorithm):
             self.volatility_history = 63
             if _config.has_option('Strategy', 'volatility_history'):
                 self.volatility_history = _config.getint('Strategy', 'volatility_history')
-            self.volatility_computation_interval = 63
+            self.volatility_computation_interval = 21
             if _config.has_option('Strategy', 'volatility_computation_interval'):
                 self.volatility_computation_interval = _config.getint('Strategy', 'volatility_computation_interval')
             self.last_day_volatility_computed = 0
