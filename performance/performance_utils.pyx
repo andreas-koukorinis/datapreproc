@@ -239,7 +239,7 @@ def get_all_stats(dates, daily_log_returns):
     net_returns = (math.exp(numpy.sum(daily_log_returns)) - 1) * 100.0 
     monthly_log_returns = rollsum(daily_log_returns, 21)
     quarterly_log_returns = rollsum(daily_log_returns, 63)
-    yearly_log_returns = rollsum(self.daily_log_returns, 252)
+    yearly_log_returns = rollsum(daily_log_returns, 252)
     worst_10pc_daily_returns = (math.exp(mean_lowest_k_percent(daily_log_returns, 10)) - 1)*100.0
     worst_10pc_monthly_returns = (math.exp(mean_lowest_k_percent(monthly_log_returns, 10)) - 1)*100.0
     worst_10pc_quarterly_returns = (math.exp(mean_lowest_k_percent(quarterly_log_returns, 10)) - 1) * 100.0
@@ -269,4 +269,6 @@ def get_all_stats(dates, daily_log_returns):
     #        _leverage_params = (min(self.leverage), max(self.leverage), numpy.mean(self.leverage), numpy.std(self.leverage))
     #    else:
     #        _leverage_params = (0, 0, 0, 0)
-    
+    _stats = extreme_days + extreme_weeks 
+    _stats += ("\nNet Returns = %.2f%%\nAnnualized_Returns = %.2f%% \nAnnualized_Std_Returns = %.2f%% \nSharpe Ratio = %.2f \nSortino Ratio = %.2f\nSkewness = %.2f\nKurtosis = %.2f\nDML = %.2f%%\nMML = %.2f%%\nQML = %.2f%%\nYML = %.2f%%\nMax Drawdown = %.2f%% \nDrawdown Period = %s to %s\nDrawdown Recovery Period = %s to %s\nReturn_drawdown_Ratio = %.2f\nReturn Var10 ratio = %.2f\nYearly_sharpe = " + _print_yearly_sharpe + "\nHit Loss Ratio = %0.2f\nGain Pain Ratio = %0.2f\nMax num days with no new high = %d from %s to %s\nLosing month streak = Lost %0.2f%% in %d months from %s to %s\n") % (net_returns, annualized_returns_percent, annualized_stddev_returns, sharpe, sortino, skewness, kurtosis, worst_10pc_daily_returns, worst_10pc_monthly_returns, worst_10pc_quarterly_returns, worst_10pc_yearly_returns, max_drawdown_percent, drawdown_period[0], drawdown_period[1], recovery_period[0], recovery_period[1], return_by_maxdrawdown, ret_var10, hit_loss_ratio, gain_pain_ratio, max_num_days_no_new_high[0], max_num_days_no_new_high[1], max_num_days_no_new_high[2], losing_month_streak[1], losing_month_streak[0], losing_month_streak[2], losing_month_streak[3])
+    return _stats 
