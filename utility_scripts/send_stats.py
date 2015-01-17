@@ -3,14 +3,25 @@ import re
 import sys
 import os
 import subprocess
+import argparse
 from datetime import datetime, date, timedelta
 import smtplib
 from email.mime.text import MIMEText
 from prettytable import PrettyTable
-
 home_path = os.path.expanduser("~")
-sys.path.append(home_path + '/stratdev/utils/')
-from dbqueries import fetch_prices
+sys.path.append(home_path + '/stratdev/')
+from performance.performance_utils import get_all_stats
+from utils.benchmark_comparison import get_benchmark_stats
+from utils.regular import get_dates_returns
+from utils.dbqueries import fetch_prices
+
+def get_date_index(date, dates):
+    idx = 0
+    while idx < len(dates):
+        if dates[idx] >= date:
+            return idx
+        idx += 1
+    return -1
 
 def parse_results(results):
     results = results.split('\n')
@@ -142,15 +153,14 @@ def get_positions(_current_date, _config_file):
     return _return, _result
 
 def main():
-    if len(sys.argv) < 2:
-        print "Arguments needed: config_file <date=TODAY> <send=1>"
-        sys.exit(0)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config_file')
+    parser.add_argument('-s', type=int, help='Mail send or print\nEg: -s 0\n will print the mail body without sending mail', default=1,dest='mail_send')
+    parser.add_argument('-sd', type=str, help='Sim Start date\nEg: -sd 2014-06-01\n Default is 2014-01-01',default='2014-01-01', dest='sim_start_date')
+    parser.add_argument('-ed', type=str, help='Sim End date\nEg: -ed 2015-01-01\n Default is Yesterday date',default=str(date.today() + timedelta(days=-1)), dest='sim_end_date')
+    args = parser.parse_args()
     _config_file = sys.argv[1]
-    if (len(sys.argv) >= 3) and (sys.argv[2] != "TODAY"):
-        _current_date = datetime.strptime( sys.argv[2], "%Y%m%d").date()
-    else:
-        _current_date = date.today() + timedelta(days=-1)
-
+    _current_date = datetime.strptime(args.sim_end_date, "%Y-%m-%d").date()
     _ytd_start_date = date(_current_date.year, 1, 1)
     _ytd_end_date = _current_date
     _mtd_start_date = date(_current_date.year, _current_date.month, 1)
@@ -158,23 +168,38 @@ def main():
     _yday_start_date = date(_current_date.year , _current_date.month, 1)
     _yday_end_date = _current_date
 
-    benchmarks = ['VBLTX', 'VTSMX']
+    _sim_start_date = datetime.strptime(args.sim_start_date, "%Y-%m-%d").date()
+    _sim_end_date = _current_date
+
+    benchmarks = ['VBLTX', 'VTSMX', 'AQRIX']
     performance_stats = []
 
-    proc = subprocess.Popen(['python', '-W', 'ignore', 'run_simulator.py', _config_file, str(_yday_start_date), str(_yday_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(['python', '-W', 'ignore', 'run_simulator.py', _config_file, str(_sim_start_date), str(_sim_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     proc.communicate()
-    performance_stats.append('------------------------------------------------\nYDAY Performance : %s to %s'%(_yday_start_date,_yday_end_date))
+    performance_stats.append('------------------------------------------------\nYDAY Performance:')
     todays_return, todays_performance = get_positions(_current_date, _config_file)
     performance_stats.append(todays_performance)
    
-    proc = subprocess.Popen(['python', '-W', 'ignore', 'run_simulator.py', _config_file, str(_mtd_start_date), str(_mtd_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    performance_stats.append('------------------------------------------------\nMTD Performance : %s to %s'%(_mtd_start_date,_mtd_end_date))
-    performance_stats.append(parse_results(proc.communicate()[0]))
+    returns_file = home_path + '/logs/'+os.path.splitext(_config_file)[0].split('/')[-1]+'/returns.txt' 
+    dates, returns = get_dates_returns(returns_file) 
+    performance_stats.append('------------------------------------------------\nMTD Performance:')
+    _month_start_idx = get_date_index(_mtd_start_date, dates)
+    _month_end_idx = len(dates)
+    mtd_performance = get_all_stats(dates[_month_start_idx:_month_end_idx], returns[_month_start_idx:_month_end_idx])
+    mtd_performance += '\nBenchmarks:\n'
+    for benchmark in benchmarks:
+        mtd_performance += get_benchmark_stats(dates[_month_start_idx:_month_end_idx], returns[_month_start_idx:_month_end_idx], benchmark) # Returns a string of benchmark stats
+    performance_stats.append(mtd_performance)
 
-    proc = subprocess.Popen(['python', '-W', 'ignore', 'run_simulator.py', _config_file, str(_ytd_start_date), str(_ytd_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    performance_stats.append('------------------------------------------------\nYTD Performance : %s to %s'%(_ytd_start_date,_ytd_end_date))
-    performance_stats.append(parse_results(proc.communicate()[0]))
- 
+    performance_stats.append('------------------------------------------------\nYTD Performance:')
+    _year_start_idx = get_date_index(_ytd_start_date, dates)
+    _year_end_idx = len(dates)
+    ytd_performance = get_all_stats(dates[_year_start_idx:_year_end_idx], returns[_year_start_idx:_year_end_idx])
+    ytd_performance += '\nBenchmarks:\n'
+    for benchmark in benchmarks:
+        ytd_performance += get_benchmark_stats(dates[_year_start_idx:_year_end_idx], returns[_year_start_idx:_year_end_idx], benchmark) # Returns a string of benchmark stats
+    performance_stats.append(ytd_performance)
+
     benchmark_returns = get_todays_benchmark_returns(benchmarks, _current_date)
     _print_benchmark_returns = ''
     for item in benchmark_returns:
@@ -183,10 +208,10 @@ def main():
     subject = '%s up %0.2f%% on %s' % ('_'.join(_config_file.rsplit('/')[-1].split('_')[0:2]), todays_return, _yday_end_date)
     body = 'Config File: %s\nBenchmark Returns on %s: %s\n\n'%(_config_file.rsplit('/')[-1], _current_date, _print_benchmark_returns)  + '\n\n'.join(performance_stats)
 
-    if ( len(sys.argv) >= 4 ) and ( int(sys.argv[3]) == -1 ):
-        print subject, body
-    else:
+    if args.mail_send == 1:
         send_mail(subject, body)
+    else:
+        print subject, body
 
 if __name__ == '__main__':
     main()
