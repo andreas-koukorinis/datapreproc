@@ -187,8 +187,17 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
                     _trc = _given_weights*_cov_vec
                     return (numpy.sum(numpy.abs(_trc - numpy.mean(_trc))))
 
+                _bounds = []
+                # Bounds ensure that we follow the mandate sign of the product
+                for i in range(self.erc_weights.shape[0]):
+                    if self.erc_weights[i] > 0:
+                        _bounds.append((0, None))
+                    else:
+                        _bounds.append((None, 0))
+                _bounds = list(_bounds)
+
                 _constraints = {'type':'eq', 'fun': lambda x: numpy.sum(numpy.abs(x)) - 1}
-                self.erc_weights_optim = minimize(_get_l1_norm_risk_contributions, self.erc_weights_optim, method='SLSQP', constraints=_constraints, options={'ftol': self.optimization_ftol, 'disp': False, 'maxiter':self.optimization_maxiter}).x
+                self.erc_weights_optim = minimize(_get_l1_norm_risk_contributions, self.erc_weights_optim, method='SLSQP',bounds = _bounds, constraints=_constraints, options={'ftol': self.optimization_ftol, 'disp': False, 'maxiter':self.optimization_maxiter}).x
                 self.erc_weights = self.erc_weights_optim
 
                 # We check whether weights produced here have the same signs as self.allocation_signs.
