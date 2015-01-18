@@ -12,7 +12,10 @@ from daily_indicators.portfolio_utils import make_portfolio_string_from_products
 from signals.signal_algorithm import SignalAlgorithm
 
 class TargetRiskEqualRiskContributionJessop(SignalAlgorithm):
-    """Implementation of the ERC risk balanced strategy
+    """Implementation of the ERC risk balanced strategy based on Jessop's approach : 
+    The objective function is : 
+        Max[ Sum(log(|wi|)) ] 
+        subject to wT*cov*w <= self.target_risk and weight bounds according to mandate sign
 
     Items read from config :
     target_risk : this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
