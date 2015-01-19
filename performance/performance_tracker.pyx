@@ -230,8 +230,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.short_term_tax_liability_unrealized = 0.0
         self.long_term_tax_liability_unrealized = 0.0
         for _product in self.products:
-            self.short_term_tax_liability_unrealized += 0.4 * self.portfolio.open_equity[_product]
-            self.long_term_tax_liability_unrealized += 0.6 * self.portfolio.open_equity[_product]
+            self.short_term_tax_liability_unrealized += 0.4 * self.portfolio.open_equity[_product] * self.currency_factor[_currency][date]
+            self.long_term_tax_liability_unrealized += 0.6 * self.portfolio.open_equity[_product] * self.currency_factor[_currency][date]
         self.compute_daily_stats(date)
 
     def on_tax_payment_day(self):
