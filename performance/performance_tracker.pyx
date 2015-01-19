@@ -20,7 +20,7 @@ from utils.benchmark_comparison import get_benchmark_stats
 from utils import defaults
 from bookbuilder.bookbuilder import BookBuilder
 from utils.global_variables import Globals
-from performance_utils import drawdown, current_dd, drawdown_period_and_recovery_period, rollsum, mean_lowest_k_percent, turnover, get_extreme_days, get_extreme_weeks, compute_max_num_days_no_new_high, compute_yearly_sharpe, compute_sortino, compute_losing_month_streak
+from performance_utils import drawdown, current_dd, drawdown_period_and_recovery_period, rollsum, mean_lowest_k_percent, turnover, get_extreme_days, get_extreme_weeks, compute_max_num_days_no_new_high, compute_yearly_sharpe, compute_sortino, compute_losing_month_streak, annualized_returns, annualized_stdev
 
 # TODO {gchak} PerformanceTracker is probably a class that just pertains to the performance of one strategy
 # We need to change it from listening to executions from BackTester, to being called on from the OrderManager,
@@ -299,9 +299,9 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         # Print snapshot
         if Globals.debug_level > 0:
             if self.PnLvector.shape[0] > 0:
-                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %0.2f\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\nNotional Allocation: %s\nAverage Trade Price: %s\nLeverage: %0.2f\n\n" % (self.date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares), dict_to_string(notional_amounts), dict_to_string(self.average_trade_price), self.leverage[-1])
+                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %0.2f\nPortfolio Value: %0.2f\nCash: %0.2f\nShort Term Tax Realized: %0.2f\nLong Term Tax Realized: %0.2f\nShort Term Tax Unrealized: %0.2f\nLong Term Tax Unrealized: %0.2f\nOpen Equity: %s\nPositions: %s\nNotional Allocation: %s\nAverage Trade Price: %s\nLeverage: %0.2f\n\n" % (self.date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, self.short_term_tax_liability_realized, self.long_term_tax_liability_realized, self.short_term_tax_liability_unrealized, self.long_term_tax_liability_unrealized, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares), dict_to_string(notional_amounts), dict_to_string(self.average_trade_price), self.leverage[-1])
             else:
-                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\nNotional Allocation: %s\nAverage Trade Price: %s\nLeverage: %0.2f\n\n" % (self.date, self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares), dict_to_string(notional_amounts), dict_to_string(self.average_trade_price), self.leverage[-1])
+                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value: %0.2f\nCash: %0.2f\nShort Term Tax Realized: %0.2f\nLong Term Tax Realized: %0.2f\nShort Term Tax Unrealized: %0.2f\nLong Term Tax Unrealized: %0.2f\nOpen Equity: %s\nPositions: %s\nNotional Allocation: %s\nAverage Trade Price: %s\nLeverage: %0.2f\n\n" % (self.date, self.value[-1], self.portfolio.cash, self.short_term_tax_liability_realized, self.long_term_tax_liability_realized, self.short_term_tax_liability_unrealized, self.long_term_tax_liability_unrealized, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares), dict_to_string(notional_amounts), dict_to_string(self.average_trade_price), self.leverage[-1])
             Globals.positions_file.write(s)
         # Print weights, leverage
         if Globals.debug_level > 1:
@@ -333,8 +333,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.mml = (math.exp(mean_lowest_k_percent(monthly_log_returns, 10)) - 1)*100.0
         self._worst_10pc_quarterly_returns = (math.exp(mean_lowest_k_percent(quarterly_log_returns, 10)) - 1) * 100.0
         self._worst_10pc_yearly_returns = (math.exp(mean_lowest_k_percent(yearly_log_returns, 10)) - 1) * 100.0
-        self._annualized_returns_percent = (math.exp(252.0 * numpy.mean(self.daily_log_returns)) - 1) * 100.0
-        self.annualized_stddev_returns = (math.exp(math.sqrt(252.0) * numpy.std(self.daily_log_returns)) - 1) * 100.0
+        self.annualized_returns_percent = annualized_returns(self.daily_log_returns)
+        self.annualized_stddev_returns = annualized_stdev(self.daily_log_returns)
         self.sharpe = self._annualized_returns_percent/self.annualized_stddev_returns
         self.yearly_sharpe = compute_yearly_sharpe(self.dates, self.daily_log_returns)
         self.sortino = compute_sortino(self.daily_log_returns)
@@ -347,7 +347,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.max_drawdown_percent = abs((math.exp(max_dd_log) - 1) * 100)
         self.drawdown_period, self.recovery_period = drawdown_period_and_recovery_period(self.dates, self.cum_log_returns)
         self.max_drawdown_dollar = abs(drawdown(self.PnLvector))
-        self.return_by_maxdrawdown = self._annualized_returns_percent/self.max_drawdown_percent
+        self.return_by_maxdrawdown = self._annualized_returns_percent/self.max_drawdown_percent if not is_float_zero(self.max_drawdown_percent) else float('NaN')
         self._annualized_pnl_by_max_drawdown_dollar = self.annualized_PnL/self.max_drawdown_dollar
         self.ret_var10 = abs(self._annualized_returns_percent/self.dml)
         self.turnover_percent = turnover(self.dates, self.amount_long_transacted, self.amount_short_transacted, self.value)
