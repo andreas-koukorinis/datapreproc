@@ -90,7 +90,7 @@ def process_futures(product, to_name):
         in_dir = dir1
     else:
         in_dir = dir2
-    out_dir = 'Data/'
+    out_dir = 'data/'
 
     # Remove 0000 file
     _aux_file1 = in_dir + product + '_0000.csv'
@@ -111,6 +111,7 @@ def process_futures(product, to_name):
 
     # Load the first contract data and check for flips 
     oi_1 = pd.read_csv(out_file_aux1, names=['contract_filename', 'date','open','high','low','close','contract_volume','contract_oi','total_volume','total_oi'])
+    oi_1 = oi_1[oi_1['contract_oi'] > 0] # Filter out dates with oi = 0 
     oi_1['specific_ticker'] = oi_1.apply(lambda row: get_specific_ticker_from_filename(row['contract_filename'], product), axis=1)
     if flips_present(oi_1):
         oi_1 = fix_flips(in_dir, oi_1)
