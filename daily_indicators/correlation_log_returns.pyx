@@ -76,7 +76,9 @@ class CorrelationLogReturns(IndicatorListener):
             if self.logret_matrix.shape[0] >= 2:
                 self.covariance_matrix = np.cov(self.logret_matrix.T)
                 # TODO, probably this can be made more efficient, since we already have the covariance matrix
-                self.correlation_matrix = np.corrcoef(self.logret_matrix.T) 
+                self.correlation_matrix = np.corrcoef(self.logret_matrix.T)
                 self.stddev_logret = np.std(self.logret_matrix,axis=0,ddof=1)
                 self.correlation_matrix_already_computed = True
+        if np.isnan(np.sum(self.correlation_matrix)): # If atleast 1 value is nan, use identity matrix as correlation matrix.One usecase is for single product
+            self.correlation_matrix = np.eye(len(self.products)) 
         return(self.correlation_matrix)
