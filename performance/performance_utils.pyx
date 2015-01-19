@@ -6,6 +6,22 @@ import scipy.stats as ss
 from utils.calculate import convert_daily_returns_to_yyyymm_monthly_returns_pair
 from utils.regular import is_float_zero
 
+def annualized_returns(daily_log_returns):
+    if daily_log_returns.shape[0] < 1:
+        annualized_returns = 1.0
+    else:
+        annualized_returns = (math.exp(numpy.mean(daily_log_returns) * 252.0) - 1) * 100
+        annualized_returns = max(1.0, min(50.0, annualized_returns)) # TODO check min max
+    return annualized_returns
+
+def annualized_stdev(daily_log_returns):
+    if daily_log_returns.shape[0] < 2:
+        annualized_stdev = 100.0
+    else:
+        annualized_stdev = (math.exp(math.sqrt(252.0) * numpy.std(daily_log_returns)) - 1) * 100.0
+        annualized_stdev = max(1.0, min(100.0, annualized_stdev))
+    return annualized_stdev   
+
 def drawdown(returns):
     """Calculates the global maximum drawdown i.e. the maximum drawdown till now"""
     if returns.shape[0] < 2:
@@ -54,8 +70,8 @@ def compute_yearly_sharpe(dates, returns):
     yearly_sharpe = []
     for key, rows in itertools.groupby(yyyy_returns, lambda x : x[0]):
         _returns = numpy.array([x[1] for x in rows])
-        _ann_returns = (math.exp(252.0 * numpy.mean(_returns)) - 1) * 100.0
-        _ann_std = (math.exp(math.sqrt(252.0) * numpy.std(_returns)) - 1) * 100.0
+        _ann_returns = annualized_returns(_returns)
+        _ann_std = annualized_stdev(_returns)
         yearly_sharpe.append((key, _ann_returns/_ann_std ))
     return yearly_sharpe
 
@@ -244,8 +260,8 @@ def get_all_stats(dates, daily_log_returns):
     worst_10pc_monthly_returns = (math.exp(mean_lowest_k_percent(monthly_log_returns, 10)) - 1)*100.0
     worst_10pc_quarterly_returns = (math.exp(mean_lowest_k_percent(quarterly_log_returns, 10)) - 1) * 100.0
     worst_10pc_yearly_returns = (math.exp(mean_lowest_k_percent(yearly_log_returns, 10)) - 1) * 100.0
-    annualized_returns_percent = (math.exp(252.0 * numpy.mean(daily_log_returns)) - 1) * 100.0
-    annualized_stddev_returns = (math.exp(math.sqrt(252.0) * numpy.std(daily_log_returns)) - 1) * 100.0
+    annualized_returns_percent = annualized_returns(daily_log_returns)
+    annualized_stddev_returns = annualized_stdev(daily_log_returns)
     sharpe = annualized_returns_percent/annualized_stddev_returns
     yearly_sharpe = compute_yearly_sharpe(dates, daily_log_returns)
     sortino = compute_sortino(daily_log_returns)
