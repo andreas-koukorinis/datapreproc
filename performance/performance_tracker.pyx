@@ -139,15 +139,15 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
                 else:
                     current_short_amount = - order['amount']
                     while current_short_amount > 0:
-                        matched_order = self.long_orders[_product][0]
-                        if matched_order[2] > current_short_amount:
+                        matched_order = self.long_orders[_product][0]  # Find long order in FIFO queue that has not been matched till now
+                        if matched_order[2] > current_short_amount:  # Look for no more matches, long order amount > short order amount
                             _closed_amount = current_short_amount
                         else:
-                            _closed_amount = matched_order[2]
-                            self.long_orders[_product].popleft()
-                        current_short_amount -= _closed_amount
-                        _profit = _closed_amount * (order['fill_price'] - matched_order[1])
-                        time_diff = order['dt'] - matched_order[0]
+                            _closed_amount = matched_order[2]        
+                            self.long_orders[_product].popleft()  # Remove the long order from queue
+                        current_short_amount -= _closed_amount  # Update remaining short amount
+                        _profit = _closed_amount * (order['fill_price'] - matched_order[1])  
+                        time_diff = order['dt'] - matched_order[0]  # Look at time dif to decide short or long term
                         time_diff_in_years = (time_diff.days + time_diff.seconds/86400.0)/365.2425
                         if time_diff_in_years < 1.0: # Short term gain
                             self.short_term_tax_liability_realized += _profit
@@ -261,12 +261,14 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         _type = event['distribution_type']
         _distribution = event['quote']
         s = "DISTRIBUTION EVENT on %s for %s of type %s: %0.2f\n" % (_dt, _product, _type, _distribution) 
+        #  Tax immediately paid on dividend payout
+        #  Why not do the same thing for capital gain? Commented lines which were giving tax twice
         if _type == 'DIVIDEND':
             _after_tax_net_payout = _distribution*self.portfolio.num_shares[_product]*(1 - self.dividend_tax_rate)
         elif _type == 'CAPITALGAIN': # TODO split into short term and long term based on bbg data
             _after_tax_net_payout = _distribution*self.portfolio.num_shares[_product]*(1 - (self.long_term_tax_rate + self.short_term_tax_rate)/2.0)
-            self.short_term_tax_liability_realized += _after_tax_net_payout/2.0
-            self.long_term_tax_liability_realized += _after_tax_net_payout/2.0 
+            #self.short_term_tax_liability_realized += _after_tax_net_payout/2.0
+            #self.long_term_tax_liability_realized += _after_tax_net_payout/2.0 
         self.portfolio.cash += _after_tax_net_payout
         s += "Net payout after taxes: %0.2f\nCash after distribution = %0.2f\n" % (_after_tax_net_payout, self.portfolio.cash)
         if Globals.debug_level > 0:
