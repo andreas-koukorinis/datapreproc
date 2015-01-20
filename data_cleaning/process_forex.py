@@ -11,7 +11,7 @@ product_info = {'JPYUSD': ('US$/US$_XX46.csv', True), 'CADUSD' : ('US$/US$_XX39.
 
 def process_for_dump(products):
     in_path = '/apps/data/csi/forex/'
-    out_path = 'Data/'
+    out_path = 'data/'
     if not os.path.exists(out_path):
         os.makedirs(out_path)
     dateparse = lambda x: datetime.strptime(x, '%Y%m%d').date() # Parse dates in format required by mysql i.e. YYYY-MM-DD
