@@ -202,9 +202,9 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
                         _current_price = find_most_recent_price_future(self.bb_objects[product].dailybook, self.bb_objects[get_next_futures_contract(product)].dailybook, date)
                     else:
                         _current_price = find_most_recent_price(self.bb_objects[product].dailybook, date)
-                    mark_to_market += _current_price * self.portfolio.num_shares[product] * self.conversion_factor[product] * self.currency_factor[self.product_to_currency[product]][date]
+                    mark_to_market += _current_price * self.portfolio.num_shares[product] * self.conversion_factor[product] * self.currency_factor[self.product_to_currency[product]][date][1]
                 else: # Use open equity
-                    mark_to_market += self.portfolio.open_equity[product] * self.currency_factor[self.product_to_currency[product]][date]
+                    mark_to_market += self.portfolio.open_equity[product] * self.currency_factor[self.product_to_currency[product]][date][1]
         return mark_to_market
 
     def update_open_equity(self, date): # TODO change to 1 update per day: except for rollovers
@@ -221,17 +221,17 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
     # Called by Dispatcher
     def on_end_of_day(self, date):
         for _currency in self.currency_factor.keys():
-            self.portfolio.cash += self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
-            self.short_term_tax_liability_realized += 0.4 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date] 
+            self.portfolio.cash += self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date][1]
+            self.short_term_tax_liability_realized += 0.4 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date][1]
             # Assuming that we calculate tax in USD on realization date itself 
-            self.long_term_tax_liability_realized += 0.6 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
+            self.long_term_tax_liability_realized += 0.6 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date][1]
             self.todays_realized_pnl[_currency] = 0
         self.update_open_equity(date)
         self.short_term_tax_liability_unrealized = 0.0
         self.long_term_tax_liability_unrealized = 0.0
         for _product in self.products:
-            self.short_term_tax_liability_unrealized += 0.4 * self.portfolio.open_equity[_product] * self.currency_factor[_currency][date]
-            self.long_term_tax_liability_unrealized += 0.6 * self.portfolio.open_equity[_product] * self.currency_factor[_currency][date]
+            self.short_term_tax_liability_unrealized += 0.4 * self.portfolio.open_equity[_product] * self.currency_factor[_currency][date][1]
+            self.long_term_tax_liability_unrealized += 0.6 * self.portfolio.open_equity[_product] * self.currency_factor[_currency][date][1]
         self.compute_daily_stats(date)
 
     def on_tax_payment_day(self):

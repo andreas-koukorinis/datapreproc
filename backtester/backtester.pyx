@@ -44,7 +44,7 @@ class BackTester(DailyBookListener):
         _date = order['dt'].date()
         dailybook = self.bb.dailybook
         fill_price = dailybook[-1][1] # Use the most recent price for agg order
-        order['value'] = fill_price * order['amount'] * self.conversion_factor * self.currency_factor[_date] # +ve for buy,-ve for sell
+        order['value'] = fill_price * order['amount'] * self.conversion_factor * self.currency_factor[_date][0] # +ve for buy,-ve for sell
         cost = 0.0
         filled_order = { 'id': order['id'], 'dt' : order['dt'], 'product' : order['product'], 'amount' : order['amount'], 'cost' : cost, 'value' : order['value'], 'fill_price' : fill_price, 'type' : 'agg' }
         current_dt = dailybook[-1][0]
@@ -64,7 +64,7 @@ class BackTester(DailyBookListener):
         for order in self.pending_orders:
             if True :  # Should check if order can be filled based on current book,if yes remove from pending_list and add to filled_list
                 fill_price = dailybook[-1][3]
-                order['value'] = fill_price * order['amount'] * self.conversion_factor * self.currency_factor[_date] # +ve for buy,-ve for sell
+                order['value'] = fill_price * order['amount'] * self.conversion_factor * self.currency_factor[_date][0] # +ve for buy,-ve for sell
                 cost = self.commission_manager.getcommission(order, dailybook)
                 filled_orders.append( { 'id': order['id'], 'dt' : order['dt'], 'product' : order['product'], 'amount' : order['amount'], 'cost' : cost, 'value' : order['value'], 'fill_price' : fill_price , 'type' : 'normal'} )
             else:

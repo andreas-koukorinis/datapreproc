@@ -153,13 +153,13 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
     currencies = list(set(currencies))
     if len(currencies) > 0:
         _format_strings = ','.join(['%s'] * len(currencies))
-        query = "SELECT date,product,close FROM forex WHERE product IN (%s) AND date >= '%s' AND date <= '%s' ORDER BY date" % (_format_strings, start_date, end_date)
+        query = "SELECT date,product,open,close FROM forex WHERE product IN (%s) AND date >= '%s' AND date <= '%s' ORDER BY date" % (_format_strings, start_date, end_date)
         db_cursor.execute(query, tuple(currencies))
         rows = db_cursor.fetchall()
         for row in rows:
             if dummy_value[row['product']] == 0.0:
                 dummy_value[row['product']] = float(row['close'])
-            currency_factor[row['product']][row['date']] = float(row['close'])
+            currency_factor[row['product']][row['date']] = (float(row['open']),float(row['close']))
     if _is_usd_present:
         currencies.append('USD')
     _date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
@@ -168,7 +168,7 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
     while _date <= end_date:
         for _currency in currencies:
             if _currency == 'USD':
-                currency_factor[_currency][_date] = 1.0
+                currency_factor[_currency][_date] = (1.0,1.0)
             else:
                 _currency_val = currency_factor[_currency].get(_date, dummy_value[_currency])
                 currency_factor[_currency][_date] = _currency_val
