@@ -52,6 +52,7 @@ def compare_ticker(ticker1, ticker2):
 
 def flips_present(df):
     flips = []
+    print len(df)
     for i in range(len(df)-2):
         if compare_ticker(df.loc[i, 'specific_ticker'], df.loc[i+1, 'specific_ticker']):
             flips.append(i)
@@ -116,10 +117,18 @@ def process_futures(product, to_name):
     # Directory for the product
     dir1 = '/apps/data/csi/history_part1/' + product + '/'
     dir2 = '/apps/data/csi/history_part2/' + product + '/'
+    dir3 = '/apps/data/csi/historical_futures1/' + product + '/'
+    dir4 = '/apps/data/csi/historical_futures2/' + product + '/'
     if os.path.isdir(dir1):
         in_dir = dir1
-    else:
+    elif os.path.isdir(dir2):
         in_dir = dir2
+    elif os.path.isdir(dir3):
+        in_dir = dir3
+    elif os.path.isdir(dir4):
+        in_dir = dir4
+    else:
+        sys.exit('Not Found')       
     out_dir = 'data/'
 
     # Remove 0000 file
