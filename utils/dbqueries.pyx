@@ -143,7 +143,7 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
         if row['currency'] != 'USD':
             _currency = row['currency'] + 'USD'
             currencies.append(_currency)
-            dummy_value[_currency] = 0.0
+            dummy_value[_currency] = (0.0,0.0)
             product_to_currency[_symbol] = _currency
             currency_factor[_currency] = {}
         else:
@@ -157,8 +157,8 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
         db_cursor.execute(query, tuple(currencies))
         rows = db_cursor.fetchall()
         for row in rows:
-            if dummy_value[row['product']] == 0.0:
-                dummy_value[row['product']] = float(row['close'])
+            if dummy_value[row['product']] == (0.0,0.0):
+                dummy_value[row['product']] = (float(row['open']),float(row['close']))
             currency_factor[row['product']][row['date']] = (float(row['open']),float(row['close']))
     if _is_usd_present:
         currencies.append('USD')
