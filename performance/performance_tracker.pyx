@@ -235,12 +235,19 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.compute_daily_stats(date)
 
     def on_tax_payment_day(self):
+        s = "TAX EVENT\n"
         if self.short_term_tax_liability_realized > 0:
             self.portfolio.cash -= self.short_term_tax_liability_realized * self.short_term_tax_rate
+            s += "Short term tax paid: %0.2f\n" % (self.short_term_tax_liability_realized * self.short_term_tax_rate)
             self.short_term_tax_liability_realized = 0
         if self.long_term_tax_liability_realized > 0:
             self.portfolio.cash -= self.long_term_tax_liability_realized * self.long_term_tax_rate
-            self.long_term_tax_liability_realized = 0 
+            s += "Long term tax paid: %0.2f\n" % (self.long_term_tax_liability_realized * self.long_term_tax_rate)
+            self.long_term_tax_liability_realized = 0
+        s += "Cash after tax payment: %0.2f\n" % self.portfolio.cash
+        if Globals.debug_level > 0:
+            Globals.positions_file.write(s)
+
 
     def on_distribution_day(self, event):
         """On a distribution day, calculate the net payout after taxes and add the money to portfolio cash
@@ -253,6 +260,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         _dt = event['dt']
         _type = event['distribution_type']
         _distribution = event['quote']
+        s = "DISTRIBUTION EVENT on %s for %s of type %s: %0.2f\n" % (_dt, _product, _type, _distribution) 
         if _type == 'DIVIDEND':
             _after_tax_net_payout = _distribution*self.portfolio.num_shares[_product]*(1 - self.dividend_tax_rate)
         elif _type == 'CAPITALGAIN': # TODO split into short term and long term based on bbg data
@@ -260,6 +268,9 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
             self.short_term_tax_liability_realized += _after_tax_net_payout/2.0
             self.long_term_tax_liability_realized += _after_tax_net_payout/2.0 
         self.portfolio.cash += _after_tax_net_payout
+        s += "Net payout after taxes: %0.2f\nCash after distribution = %0.2f\n" % (_after_tax_net_payout, self.portfolio.cash)
+        if Globals.debug_level > 0:
+            Globals.positions_file.write(s)
 
     # Computes the daily stats for the most recent trading day prior to 'date'
     # TOASK {gchak} Do we ever expect to run this function without current date ?
