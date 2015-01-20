@@ -23,9 +23,26 @@ def convert_to_year_month(YYMM):
         year = 2000 + yy
     return year*100 + mm
 
+def convert_to_yymm(number):
+    year = (number/100)%100
+    month = number%100
+    yy = '0' + str(year) if year < 10 else str(year)
+    mm = '0' + str(month) if month < 10 else str(month)
+    return yy + mm
+
 def get_number_from_filename(filename):
-    filename = os.path.splitext(filename)[0].split('/')[-1].rsplit('_',1)[1]
+    if '__' in filename:
+        filename = os.path.splitext(filename)[0].split('/')[-1].rsplit('__',1)[1]
+    else:
+        filename = os.path.splitext(filename)[0].split('/')[-1].rsplit('_',1)[1]
     return convert_to_year_month(filename[-4:])
+
+def get_filename_from_number(number, initial):
+    return initial + convert_to_yymm(number) + '.csv'
+
+def shift_k_years(contract_filename, k):
+    number = get_number_from_filename(contract_filename) + k*100
+    return get_filename_from_number(number, os.path.splitext(contract_filename)[0].split('/')[-1][:-4])
 
 def compare_ticker(ticker1, ticker2):
     month_codes_rev = {'F':'01','G':'02','H':'03','J':'04','K':'05','M':'06','N':'07','Q':'08','U':'09','V':'10','X':'11','Z':'12'}
@@ -54,12 +71,20 @@ def fix_flips(in_dir, df):
     #df = df[['contract_filename', 'date','open','high','low','close','contract_volume','contract_oi','total_volume','total_oi']]
     return df
 
+def get_contract_file_based_on_past_pattern(_first_contract_file, contract_filenames):
+    _past_first_contract_file = shift_k_years(_first_contract_file, -1)
+    j = contract_filenames.index(_past_first_contract_file)
+    return shift_k_years(contract_filenames[j+1], 1)
+
 def get_second_contract(in_dir, df,  out_file_aux1, out_file_aux2, oi_1):
+
     cmd = "cat %s | awk -F, '{ print $1 }' | uniq"%(out_file_aux1)
     contract_filenames = commands.getoutput(cmd).split('\n')
+    print contract_filenames
     cmd = "cd %s; ls"%(in_dir)
     contract_filenames_ls = commands.getoutput(cmd).split('\n')
     contract_filenames_ls = sorted(contract_filenames_ls, key = get_number_from_filename) 
+    mode1_entered = False
     j = 1
     f = open(out_file_aux2, 'w')
     mode = 0
@@ -75,9 +100,14 @@ def get_second_contract(in_dir, df,  out_file_aux1, out_file_aux2, oi_1):
             output = commands.getoutput(cmd)
             f.write(output)
         else:
+            if not mode1_entered:
+                mode1_entered = True
+                print 'Mode 1 entered on %s'%df.loc[i, 'date']
             date =  df.loc[i, 'date']
-            j = contract_filenames_ls.index(df.loc[i, 'contract_filename']) + 1
-            cmd = "cd %s;grep -H %s %s | sed 's/:/,/'"%(in_dir, str(date), contract_filenames_ls[j])
+            #j = contract_filenames_ls.index(df.loc[i, 'contract_filename']) + 1
+            _first_contract_file = df.loc[i, 'contract_filename']
+            _second_contract_file = get_contract_file_based_on_past_pattern(_first_contract_file, contract_filenames)
+            cmd = "cd %s;grep -H %s %s | sed 's/:/,/'"%(in_dir, str(date), _second_contract_file)
             output = commands.getoutput(cmd)
             f.write(output)
     f.close()
@@ -164,6 +194,7 @@ def __main__():
         print 'args: product to_name'
         sys.exit(0)
     process_futures(product, to_name)
+    
 
 if __name__ == '__main__':
     __main__()
