@@ -174,7 +174,7 @@ def main():
     benchmarks = ['VBLTX', 'VTSMX', 'AQRIX']
     performance_stats = []
 
-    weekday = date.weekday()
+    weekday = date.weekday
     if (weekday == 5 or weekday == 6) and args.mail_send == 1: # For saturday or sunday dont send mail
         sys.exit()
 
