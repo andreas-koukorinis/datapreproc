@@ -54,7 +54,7 @@ def get_last_trading_dates( products, _startdate, _enddate ):
     db_close(db)
     return _last_trading_days
 
-def push_all_end_of_day_events( heap, products, _startdate, _enddate ):
+def push_all_end_of_day_events( heap, products, _startdate, _enddate, _actual_startdate ):
     products = [ product.lstrip('f') for product in products ]
     (db,db_cursor) = db_connect()
     _format_strings = ','.join(['%s'] * len(products))
@@ -81,7 +81,7 @@ def push_all_end_of_day_events( heap, products, _startdate, _enddate ):
             if _product_type == 'etf':
                 _event = {'product':row['product'], 'open': float(row['open']), 'high': float(row['high']),'low': float(row['low']), 'close': float(row['close']), 'volume': float(row['volume']), 'type':'ENDOFDAY', 'dt': _dt,'product_type': types[row['product']], 'is_last_trading_day': False}
                 _dividend = float(row['dividend'])
-                if _dividend > 0 and row['date'] >= _startdate:
+                if _dividend > 0 and row['date'] >= _actual_startdate:
                     _distribution_event = {'product': row['product'], 'type': 'DISTRIBUTIONDAY','distribution_type': 'DIVIDEND', 'dt': datetime.datetime.combine(row['date'], distribution_time), 'quote': float(row['dividend'])}
                     heapq.heappush(heap,(_distribution_event['dt'], _distribution_event))
 
@@ -89,10 +89,10 @@ def push_all_end_of_day_events( heap, products, _startdate, _enddate ):
                 _event = {'product':row['product'],'close': float(row['close']),'asking_price': float(row['asking_price']),'forward_adjusted_close': float(row['forward_adjusted_close']),'backward_adjusted_price': float(row['backward_adjusted_price']), 'type':'ENDOFDAY', 'dt': _dt,'product_type': types[row['product']], 'is_last_trading_day': False}
                 _dividend = float(row['dividend'])
                 _capital_gain = float(row['capital_gain'])
-                if _dividend > 0 and row['date'] >= _startdate:
+                if _dividend > 0 and row['date'] >= _actual_startdate:
                     _distribution_event = {'product': row['product'], 'type': 'DISTRIBUTIONDAY','distribution_type': 'DIVIDEND', 'dt': datetime.datetime.combine(row['date'], distribution_time), 'quote': _dividend}
                     heapq.heappush(heap,(_distribution_event['dt'], _distribution_event))
-                if _capital_gain > 0 and row['date'] >= _startdate:
+                if _capital_gain > 0 and row['date'] >= _actual_startdate:
                     _distribution_event = {'product': row['product'], 'type': 'DISTRIBUTIONDAY','distribution_type': 'CAPITALGAIN', 'dt': datetime.datetime.combine(row['date'], distribution_time), 'quote': _capital_gain}
                     heapq.heappush(heap,(_distribution_event['dt'], _distribution_event))
             
