@@ -80,6 +80,7 @@ def push_all_end_of_day_events( heap, products, _startdate, _enddate ):
             _product_type = types[row['product']]
             if _product_type == 'etf':
                 _event = {'product':row['product'], 'open': float(row['open']), 'high': float(row['high']),'low': float(row['low']), 'close': float(row['close']), 'volume': float(row['volume']), 'type':'ENDOFDAY', 'dt': _dt,'product_type': types[row['product']], 'is_last_trading_day': False}
+                heapq.heappush(heap,(_dt, _event))
                 _dividend = float(row['dividend'])
                 if _dividend > 0 and row['date'] >= _startdate:
                     _distribution_event = {'product': row['product'], 'type': 'DISTRIBUTIONDAY','distribution_type': 'DIVIDEND', 'dt': datetime.datetime.combine(row['date'], distribution_time), 'quote': float(row['dividend'])}
@@ -87,6 +88,7 @@ def push_all_end_of_day_events( heap, products, _startdate, _enddate ):
 
             elif _product_type == 'fund':
                 _event = {'product':row['product'],'close': float(row['close']),'asking_price': float(row['asking_price']),'forward_adjusted_close': float(row['forward_adjusted_close']),'backward_adjusted_price': float(row['backward_adjusted_price']), 'type':'ENDOFDAY', 'dt': _dt,'product_type': types[row['product']], 'is_last_trading_day': False}
+                heapq.heappush(heap,(_dt, _event))
                 _dividend = float(row['dividend'])
                 _capital_gain = float(row['capital_gain'])
                 if _dividend > 0 and row['date'] >= _startdate:
@@ -103,7 +105,13 @@ def push_all_end_of_day_events( heap, products, _startdate, _enddate ):
                 else:
                     _is_last_trading_day = True
                 _event = {'product': 'f' + row['product'],'open': float(row['open']), 'high': float(row['high']),'low': float(row['low']), 'close': float(row['close']), 'contract_volume': float(row['contract_volume']), 'contract_oi': float(row['contract_oi']), 'total_volume': float(row['total_volume']), 'total_oi': float(row['total_oi']), 'type':'ENDOFDAY', 'dt': _dt, 'product_type': types[row['product']], 'is_last_trading_day': _is_last_trading_day}
-            heapq.heappush(heap,(_dt, _event)) 
+                heapq.heappush(heap,(_dt, _event))
+            
+            elif _product_type == 'fx':
+                _event = {'product': row['product'], 'open': float(row['open']), 'high': float(row['high']),'low': float(row['low']), 'close': float(row['close']), 'type':'ENDOFDAY', 'dt': _dt, 'is_last_trading_day': False}
+                #if row['product'] == 'JPYUSD':
+                #    print _event
+                heapq.heappush(heap,(_dt, _event))
     db_close(db)
 
 def push_all_tax_payment_events(heap, start_date, end_date):
