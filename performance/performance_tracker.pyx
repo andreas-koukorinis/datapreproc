@@ -53,21 +53,20 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.PnLvector = numpy.empty(shape=(0))
         self.annualized_PnL = 0
         self.annualized_stdev_PnL = 0
-        self._annualized_returns_percent = 0
+        self.annualized_returns_percent = 0
         self.annualized_stddev_returns = 0
         self.sharpe = 0
         self.yearly_sharpe = []
         self.sortino = 0
         self.yearly_sotino = []
-        self.daily_returns = numpy.empty(shape=(0))
         self.daily_log_returns = numpy.empty(shape=(0))
         self.cum_log_returns = numpy.empty(shape=(0))
         self.max_cum_log_return = -1000 # Read as -inf
         self.net_log_return = 0
-        self.dml = 0
-        self.mml = 0
-        self._worst_10pc_quarterly_returns = 0
-        self._worst_10pc_yearly_returns = 0
+        self.worst_10pc_daily_returns = 0
+        self.worst_10pc_monthly_returns = 0
+        self.worst_10pc_quarterly_returns = 0
+        self.worst_10pc_yearly_returns = 0
         self.current_loss = 0
         self.current_drawdown = 0
         self.current_year_trading_cost = [datetime.datetime.fromtimestamp(0).date().year, 0.0]
@@ -76,7 +75,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.recovery_period = (datetime.datetime.fromtimestamp(0).date(), datetime.datetime.fromtimestamp(0).date())
         self.max_drawdown_dollar = 0
         self.return_by_maxdrawdown = 0
-        self._annualized_pnl_by_max_drawdown_dollar = 0
+        self.annualized_pnl_by_max_drawdown_dollar = 0
         self.skewness = 0
         self.kurtosis = 0
         self.trading_cost = 0
@@ -338,17 +337,16 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.net_returns = (self.PnL*100.0)/self.initial_capital # final sum of pnl / initial capital
         self.annualized_PnL = 252.0 * numpy.mean(self.PnLvector)
         self.annualized_stdev_PnL = math.sqrt(252.0) * numpy.std(self.PnLvector)
-        self.daily_returns = self.PnLvector * 100.0/self.value[0:self.value.shape[0] - 1]
-        monthly_log_returns = rollsum(self.daily_log_returns, 21)
-        quarterly_log_returns = rollsum(self.daily_log_returns, 63)
-        yearly_log_returns = rollsum(self.daily_log_returns, 252)
-        self.dml = (math.exp(mean_lowest_k_percent(self.daily_log_returns, 10)) - 1)*100.0
-        self.mml = (math.exp(mean_lowest_k_percent(monthly_log_returns, 10)) - 1)*100.0
-        self._worst_10pc_quarterly_returns = (math.exp(mean_lowest_k_percent(quarterly_log_returns, 10)) - 1) * 100.0
-        self._worst_10pc_yearly_returns = (math.exp(mean_lowest_k_percent(yearly_log_returns, 10)) - 1) * 100.0
+        _monthly_log_returns = rollsum(self.daily_log_returns, 21)
+        _quarterly_log_returns = rollsum(self.daily_log_returns, 63)
+        _yearly_log_returns = rollsum(self.daily_log_returns, 252)
+        self.worst_10pc_daily_returns = (math.exp(mean_lowest_k_percent(self.daily_log_returns, 10)) - 1)*100.0
+        self.worst_10pc_monthly_returns = (math.exp(mean_lowest_k_percent(_monthly_log_returns, 10)) - 1)*100.0
+        self.worst_10pc_quarterly_returns = (math.exp(mean_lowest_k_percent(_quarterly_log_returns, 10)) - 1) * 100.0
+        self.worst_10pc_yearly_returns = (math.exp(mean_lowest_k_percent(_yearly_log_returns, 10)) - 1) * 100.0
         self.annualized_returns_percent = annualized_returns(self.daily_log_returns)
         self.annualized_stddev_returns = annualized_stdev(self.daily_log_returns)
-        self.sharpe = self._annualized_returns_percent/self.annualized_stddev_returns
+        self.sharpe = self.annualized_returns_percent/self.annualized_stddev_returns
         self.yearly_sharpe = compute_yearly_sharpe(self.dates, self.daily_log_returns)
         self.sortino = compute_sortino(self.daily_log_returns)
         _format_strings = ','.join([' %s : %0.2f'] * len(self.yearly_sharpe))
@@ -360,9 +358,9 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.max_drawdown_percent = abs((math.exp(max_dd_log) - 1) * 100)
         self.drawdown_period, self.recovery_period = drawdown_period_and_recovery_period(self.dates, self.cum_log_returns)
         self.max_drawdown_dollar = abs(drawdown(self.PnLvector))
-        self.return_by_maxdrawdown = self._annualized_returns_percent/self.max_drawdown_percent if not is_float_zero(self.max_drawdown_percent) else float('NaN')
-        self._annualized_pnl_by_max_drawdown_dollar = self.annualized_PnL/self.max_drawdown_dollar
-        self.ret_var10 = abs(self._annualized_returns_percent/self.dml)
+        self.return_by_maxdrawdown = self.annualized_returns_percent/self.max_drawdown_percent if not is_float_zero(self.max_drawdown_percent) else float('NaN')
+        self.annualized_pnl_by_max_drawdown_dollar = self.annualized_PnL/self.max_drawdown_dollar
+        self.ret_var10 = abs(self.annualized_returns_percent/self.worst_10pc_daily_returns)
         self.turnover_percent = turnover(self.dates, self.amount_long_transacted, self.amount_short_transacted, self.value)
         self.hit_loss_ratio = numpy.sum(numpy.where(self.daily_log_returns > 0, 1.0, 0.0))/numpy.sum(numpy.where(self.daily_log_returns < 0, 1.0, 0.0))
         self.gain_pain_ratio = numpy.sum(self.daily_log_returns)/numpy.sum(numpy.where(self.daily_log_returns < 0, -self.daily_log_returns, 0.0))
@@ -377,7 +375,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self._save_results()
 
         _stats = _extreme_days + _extreme_weeks 
-        _stats += ("\nInitial Capital = %.2f\nNet PNL = %.2f \nTrading Cost = %.2f\nNet Returns = %.2f%%\nAnnualized PNL = %.2f\nAnnualized_Std_PnL = %.2f\nAnnualized_Returns = %.2f%% \nAnnualized_Std_Returns = %.2f%% \nSharpe Ratio = %.2f \nSortino Ratio = %.2f\nSkewness = %.2f\nKurtosis = %.2f\nDML = %.2f%%\nMML = %.2f%%\nQML = %.2f%%\nYML = %.2f%%\nMax Drawdown = %.2f%% \nDrawdown Period = %s to %s\nDrawdown Recovery Period = %s to %s\nMax Drawdown Dollar = %.2f \nAnnualized PNL by drawdown = %.2f \nReturn_drawdown_Ratio = %.2f\nReturn Var10 ratio = %.2f\nYearly_sharpe = " + _print_yearly_sharpe + "\nHit Loss Ratio = %0.2f\nGain Pain Ratio = %0.2f\nMax num days with no new high = %d from %s to %s\nLosing month streak = Lost %0.2f%% in %d months from %s to %s\nTurnover = %0.2f%%\nLeverage = Min : %0.2f, Max : %0.2f, Average : %0.2f, Stddev : %0.2f\nTrading Cost = %0.2f\nTotal Money Transacted = %0.2f\nTotal Orders Placed = %d\n") % (self.initial_capital, self.PnL, self.trading_cost, self.net_returns, self.annualized_PnL, self.annualized_stdev_PnL, self._annualized_returns_percent, self.annualized_stddev_returns, self.sharpe, self.sortino, self.skewness, self.kurtosis, self.dml, self.mml, self._worst_10pc_quarterly_returns, self._worst_10pc_yearly_returns, self.max_drawdown_percent, self.drawdown_period[0], self.drawdown_period[1], self.recovery_period[0], self.recovery_period[1], self.max_drawdown_dollar, self._annualized_pnl_by_max_drawdown_dollar, self.return_by_maxdrawdown, self.ret_var10, self.hit_loss_ratio, self.gain_pain_ratio, self.max_num_days_no_new_high[0], self.max_num_days_no_new_high[1], self.max_num_days_no_new_high[2], self.losing_month_streak[1], self.losing_month_streak[0], self.losing_month_streak[2], self.losing_month_streak[3], self.turnover_percent, _leverage_params[0], _leverage_params[1], _leverage_params[2], _leverage_params[3], self.trading_cost, self.total_amount_transacted, self.total_orders)
+        _stats += ("\nInitial Capital = %.2f\nNet PNL = %.2f \nTrading Cost = %.2f\nNet Returns = %.2f%%\nAnnualized PNL = %.2f\nAnnualized_Std_PnL = %.2f\nAnnualized_Returns = %.2f%% \nAnnualized_Std_Returns = %.2f%% \nSharpe Ratio = %.2f \nSortino Ratio = %.2f\nSkewness = %.2f\nKurtosis = %.2f\nDML = %.2f%%\nMML = %.2f%%\nQML = %.2f%%\nYML = %.2f%%\nMax Drawdown = %.2f%% \nDrawdown Period = %s to %s\nDrawdown Recovery Period = %s to %s\nMax Drawdown Dollar = %.2f \nAnnualized PNL by drawdown = %.2f \nReturn_drawdown_Ratio = %.2f\nReturn Var10 ratio = %.2f\nYearly_sharpe = " + _print_yearly_sharpe + "\nHit Loss Ratio = %0.2f\nGain Pain Ratio = %0.2f\nMax num days with no new high = %d from %s to %s\nLosing month streak = Lost %0.2f%% in %d months from %s to %s\nTurnover = %0.2f%%\nLeverage = Min : %0.2f, Max : %0.2f, Average : %0.2f, Stddev : %0.2f\nTrading Cost = %0.2f\nTotal Money Transacted = %0.2f\nTotal Orders Placed = %d\n") % (self.initial_capital, self.PnL, self.trading_cost, self.net_returns, self.annualized_PnL, self.annualized_stdev_PnL, self.annualized_returns_percent, self.annualized_stddev_returns, self.sharpe, self.sortino, self.skewness, self.kurtosis, self.worst_10pc_daily_returns, self.worst_10pc_monthly_returns, self.worst_10pc_quarterly_returns, self.worst_10pc_yearly_returns, self.max_drawdown_percent, self.drawdown_period[0], self.drawdown_period[1], self.recovery_period[0], self.recovery_period[1], self.max_drawdown_dollar, self.annualized_pnl_by_max_drawdown_dollar, self.return_by_maxdrawdown, self.ret_var10, self.hit_loss_ratio, self.gain_pain_ratio, self.max_num_days_no_new_high[0], self.max_num_days_no_new_high[1], self.max_num_days_no_new_high[2], self.losing_month_streak[1], self.losing_month_streak[0], self.losing_month_streak[2], self.losing_month_streak[3], self.turnover_percent, _leverage_params[0], _leverage_params[1], _leverage_params[2], _leverage_params[3], self.trading_cost, self.total_amount_transacted, self.total_orders)
         _stats += '\nBenchmarks:\n'
         for benchmark in self.benchmarks:
             _stats += get_benchmark_stats(self.dates, self.daily_log_returns, benchmark) # Returns a string of benchmark stats
