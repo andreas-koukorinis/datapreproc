@@ -125,10 +125,14 @@ def combine_process_futures(product1, product2, factor, to_name):
         spec_ticker = df1.loc[idx, 'specific_ticker']
         #print spec_ticker, type(spec_ticker)
         df1.loc[idx, 'specific_ticker'] = to_name + spec_ticker[-3:]
+
+    index_set = df1.index.values
+    for i in range(len(index_set)):
+        idx = index_set[i]
         if i < len(index_set) - 1:
             idx2 = index_set[i+1]
-            if df1.loc[idx, 'specific_ticker'] != df1.loc[idx2, 'specific_ticker']:
-                df1.loc[idx2, 'is_last_trading_day'] = 1.0
+            if df1.loc[idx, 'specific_ticker'] != df1.loc[idx2, 'specific_ticker'] and df1.loc[idx, 'is_last_trading_day'] != 1.0:
+                df1.loc[idx, 'is_last_trading_day'] = 1.0
                 print 'SET last trading day 1'
 
     index_set = df2.index.values
@@ -136,11 +140,16 @@ def combine_process_futures(product1, product2, factor, to_name):
         idx = index_set[i]
         spec_ticker = df2.loc[idx, 'specific_ticker']
         df2.loc[idx, 'specific_ticker'] = to_name + spec_ticker[-3:]
+
+    index_set = df2.index.values
+    for i in range(len(index_set)):
+        idx = index_set[i]
         if i < len(index_set) - 1:
             idx2 = index_set[i+1]
-            if df2.loc[idx, 'specific_ticker'] != df2.loc[idx2, 'specific_ticker']: 
-                df2.loc[idx2, 'is_last_trading_day'] = 1.0
+            if df2.loc[idx, 'specific_ticker'] != df2.loc[idx2, 'specific_ticker'] and df2.loc[idx, 'is_last_trading_day'] != 1.0: 
+                df2.loc[idx, 'is_last_trading_day'] = 1.0
                 print 'SET last trading day 2'
+    print 'Min oi percent %f for index %f' % ((df1['contract_oi']/df1['total_oi']).min(), (df1['contract_oi']/df1['total_oi']).argmin())
     df1.to_csv(output_path_1, index=False)
     df2.to_csv(output_path_2, index=False)
 
