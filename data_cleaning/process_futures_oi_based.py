@@ -84,9 +84,14 @@ def fix_flips(in_dir, df):
     return df
 
 def get_contract_file_based_on_past_pattern(_first_contract_file, contract_filenames):
-    _past_first_contract_file = shift_k_years(_first_contract_file, -1)
-    j = contract_filenames.index(_past_first_contract_file)
-    return shift_k_years(contract_filenames[j+1], 1)
+    lookback = -1
+    while True:
+        _past_first_contract_file = shift_k_years(_first_contract_file, lookback)
+        if _past_first_contract_file in contract_filenames:
+            j = contract_filenames.index(_past_first_contract_file)
+            return shift_k_years(contract_filenames[j+1], -lookback)
+        else:
+            lookback -= 1
 
 def get_second_contract(in_dir, df,  out_file_aux1, out_file_aux2, oi_1):
 
@@ -121,9 +126,10 @@ def get_second_contract(in_dir, df,  out_file_aux1, out_file_aux2, oi_1):
             #j = contract_filenames_ls.index(df.loc[i, 'contract_filename']) + 1
             _first_contract_file = df.loc[idx1, 'contract_filename']
             _second_contract_file = get_contract_file_based_on_past_pattern(_first_contract_file, contract_filenames)
-            cmd = "cd %s;grep -H %s %s | sed 's/:/,/'"%(in_dir, str(date), _second_contract_file)
-            output = commands.getoutput(cmd)
-            f.write(output)
+            if os.path.exists(in_dir+_second_contract_file):
+                cmd = "cd %s;grep -H %s %s | sed 's/:/,/'"%(in_dir, str(date), _second_contract_file)
+                output = commands.getoutput(cmd)
+                f.write(output)
     f.close()
 
 def process_futures(product, to_name):
