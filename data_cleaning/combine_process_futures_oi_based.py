@@ -77,48 +77,16 @@ def get_contract_file_based_on_past_pattern(_first_contract_file, contract_filen
     j = contract_filenames.index(_past_first_contract_file)
     return shift_k_years(contract_filenames[j+1], 1)
 
-def get_second_contract(in_dir, df,  out_file_aux1, out_file_aux2, oi_1):
 
-    cmd = "cat %s | awk -F, '{ print $1 }' | uniq"%(out_file_aux1)
-    contract_filenames = commands.getoutput(cmd).split('\n')
-    print contract_filenames
-    cmd = "cd %s; ls"%(in_dir)
-    contract_filenames_ls = commands.getoutput(cmd).split('\n')
-    contract_filenames_ls = sorted(contract_filenames_ls, key = get_number_from_filename) 
-    mode1_entered = False
-    j = 1
-    f = open(out_file_aux2, 'w')
-    mode = 0
-    for i in range(len(df)-2):
-        if mode == 0:
-            if df.loc[i, 'contract_filename'] == contract_filenames[j]:
-                j += 1
-                if j == len(contract_filenames)-1:
-                    mode = 1
-        if mode == 0: 
-            date =  df.loc[i, 'date']
-            cmd = "cd %s;grep -H %s %s | sed 's/:/,/'"%(in_dir, str(date), contract_filenames[j])
-            output = commands.getoutput(cmd)
-            f.write(output)
-        else:
-            if not mode1_entered:
-                mode1_entered = True
-                print 'Mode 1 entered on %s'%df.loc[i, 'date']
-            date =  df.loc[i, 'date']
-            #j = contract_filenames_ls.index(df.loc[i, 'contract_filename']) + 1
-            _first_contract_file = df.loc[i, 'contract_filename']
-            _second_contract_file = get_contract_file_based_on_past_pattern(_first_contract_file, contract_filenames)
-            cmd = "cd %s;grep -H %s %s | sed 's/:/,/'"%(in_dir, str(date), _second_contract_file)
-            output = commands.getoutput(cmd)
-            f.write(output)
-    f.close()
+def combine_process_futures(product1, product2, factor, to_name):    
+    print subprocess.Popen(['python', '-W', 'ignore', 'process_futures_oi_based.py', product1, product1 ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
+    print subprocess.Popen(['python', '-W', 'ignore', 'process_futures_oi_based.py', product2, product2 ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
 
-def process_futures(product1, product2, factor, to_name):
     in_dir = 'data/'
-    file1_1 = in_dir + product1 + '/_1.csv'
-    file1_2 = in_dir + product1 + '/_2.csv'
-    file2_1 = in_dir + product2 + '/_1.csv'
-    file2_2 = in_dir + product2 + '/_2.csv'
+    file1_1 = in_dir +  product1 + '_1.csv'
+    file1_2 = in_dir +  product1 + '_2.csv'
+    file2_1 = in_dir +  product2 + '_1.csv'
+    file2_2 = in_dir +  product2 + '_2.csv'
     output_path_1 = in_dir + to_name + '_1.csv'
     output_path_2 = in_dir + to_name + '_2.csv'
     dateparse = lambda x: datetime.strptime(x, '%Y-%m-%d').date()
@@ -126,6 +94,7 @@ def process_futures(product1, product2, factor, to_name):
     df1_2 = pd.read_csv(file1_2, header=0,parse_dates =['date'],date_parser=dateparse)
     df2_1 = pd.read_csv(file2_1, header=0,parse_dates =['date'],date_parser=dateparse)
     df2_2 = pd.read_csv(file2_2, header=0,parse_dates =['date'],date_parser=dateparse)
+    
     i = 0
     j = 0
     while True:
@@ -139,10 +108,39 @@ def process_futures(product1, product2, factor, to_name):
             i += 1
             j += 1
     end_date1_1 = df1_1.loc[i, 'date']
+
+    print end_date1_1, i, j
     df1 = df1_1[df1_1['date'] < end_date1_1]
     df2 = df1_2[df1_2['date'] < end_date1_1]    
-    df1 = pd.concat(df1, df2_1[df2_1['date'] >= end_date1_1])
-    df2 = pd.concat(df2, df2_2[df2_2['date'] >= end_date1_1])
+    df1 = pd.concat([df1, df2_1[df2_1['date'] >= end_date1_1]])
+    df2 = pd.concat([df2, df2_2[df2_2['date'] >= end_date1_1]])
+    df1.to_csv('data/checkdf1')
+    df1['product'] = to_name + '_1'
+    df2['product'] = to_name + '_2'
+    df1.reset_index(inplace=True, drop=True)
+    df2.reset_index(inplace=True, drop=True)
+    index_set = df1.index.values
+    for i in range(len(index_set)):
+        idx = index_set[i]
+        spec_ticker = df1.loc[idx, 'specific_ticker']
+        #print spec_ticker, type(spec_ticker)
+        df1.loc[idx, 'specific_ticker'] = to_name + spec_ticker[-3:]
+        if i < len(index_set) - 1:
+            idx2 = index_set[i+1]
+            if df1.loc[idx, 'specific_ticker'] != df1.loc[idx2, 'specific_ticker']:
+                df1.loc[idx2, 'is_last_trading_day'] = 1.0
+                print 'SET last trading day 1'
+
+    index_set = df2.index.values
+    for i in range(len(index_set)):
+        idx = index_set[i]
+        spec_ticker = df2.loc[idx, 'specific_ticker']
+        df2.loc[idx, 'specific_ticker'] = to_name + spec_ticker[-3:]
+        if i < len(index_set) - 1:
+            idx2 = index_set[i+1]
+            if df2.loc[idx, 'specific_ticker'] != df2.loc[idx2, 'specific_ticker']: 
+                df2.loc[idx2, 'is_last_trading_day'] = 1.0
+                print 'SET last trading day 2'
     df1.to_csv(output_path_1, index=False)
     df2.to_csv(output_path_2, index=False)
 
