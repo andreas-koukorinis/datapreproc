@@ -11,7 +11,7 @@ def annualized_returns(daily_log_returns):
         annualized_returns = 1.0
     else:
         annualized_returns = (math.exp(numpy.mean(daily_log_returns) * 252.0) - 1) * 100
-        annualized_returns = max(1.0, min(50.0, annualized_returns)) # TODO check min max
+        #annualized_returns = max(1.0, min(50.0, annualized_returns)) # TODO check min max
     return annualized_returns
 
 def annualized_stdev(daily_log_returns):
