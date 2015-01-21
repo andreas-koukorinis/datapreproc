@@ -173,5 +173,5 @@ class Dispatcher (object):
 
            Returns: Nothing      
         """
-        push_all_end_of_day_events(self.heap, products, self.sim_start_dt.date(), self.end_dt.date())
+        push_all_end_of_day_events(self.heap, products, self.sim_start_dt.date(), self.end_dt.date(), self.start_dt.date())
         push_all_tax_payment_events(self.heap, self.start_dt.date(), self.end_dt.date())

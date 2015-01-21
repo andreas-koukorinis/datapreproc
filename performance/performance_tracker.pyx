@@ -20,7 +20,7 @@ from utils.benchmark_comparison import get_benchmark_stats
 from utils import defaults
 from bookbuilder.bookbuilder import BookBuilder
 from utils.global_variables import Globals
-from performance_utils import drawdown, current_dd, drawdown_period_and_recovery_period, rollsum, mean_lowest_k_percent, turnover, get_extreme_days, get_extreme_weeks, compute_max_num_days_no_new_high, compute_yearly_sharpe, compute_sortino, compute_losing_month_streak
+from performance_utils import drawdown, current_dd, drawdown_period_and_recovery_period, rollsum, mean_lowest_k_percent, turnover, get_extreme_days, get_extreme_weeks, compute_max_num_days_no_new_high, compute_yearly_sharpe, compute_sortino, compute_losing_month_streak, annualized_returns, annualized_stdev
 
 # TODO {gchak} PerformanceTracker is probably a class that just pertains to the performance of one strategy
 # We need to change it from listening to executions from BackTester, to being called on from the OrderManager,
@@ -139,15 +139,15 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
                 else:
                     current_short_amount = - order['amount']
                     while current_short_amount > 0:
-                        matched_order = self.long_orders[_product][0]
-                        if matched_order[2] > current_short_amount:
+                        matched_order = self.long_orders[_product][0]  # Find long order in FIFO queue that has not been matched till now
+                        if matched_order[2] > current_short_amount:  # Look for no more matches, long order amount > short order amount
                             _closed_amount = current_short_amount
                         else:
-                            _closed_amount = matched_order[2]
-                            self.long_orders[_product].popleft()
-                        current_short_amount -= _closed_amount
-                        _profit = _closed_amount * (order['fill_price'] - matched_order[1])
-                        time_diff = order['dt'] - matched_order[0]
+                            _closed_amount = matched_order[2]        
+                            self.long_orders[_product].popleft()  # Remove the long order from queue
+                        current_short_amount -= _closed_amount  # Update remaining short amount
+                        _profit = _closed_amount * (order['fill_price'] - matched_order[1])  
+                        time_diff = order['dt'] - matched_order[0]  # Look at time dif to decide short or long term
                         time_diff_in_years = (time_diff.days + time_diff.seconds/86400.0)/365.2425
                         if time_diff_in_years < 1.0: # Short term gain
                             self.short_term_tax_liability_realized += _profit
@@ -202,9 +202,9 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
                         _current_price = find_most_recent_price_future(self.bb_objects[product].dailybook, self.bb_objects[get_next_futures_contract(product)].dailybook, date)
                     else:
                         _current_price = find_most_recent_price(self.bb_objects[product].dailybook, date)
-                    mark_to_market += _current_price * self.portfolio.num_shares[product] * self.conversion_factor[product] * self.currency_factor[self.product_to_currency[product]][date]
+                    mark_to_market += _current_price * self.portfolio.num_shares[product] * self.conversion_factor[product] * self.currency_factor[self.product_to_currency[product]][date][1]
                 else: # Use open equity
-                    mark_to_market += self.portfolio.open_equity[product] * self.currency_factor[self.product_to_currency[product]][date]
+                    mark_to_market += self.portfolio.open_equity[product] * self.currency_factor[self.product_to_currency[product]][date][1]
         return mark_to_market
 
     def update_open_equity(self, date): # TODO change to 1 update per day: except for rollovers
@@ -221,26 +221,33 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
     # Called by Dispatcher
     def on_end_of_day(self, date):
         for _currency in self.currency_factor.keys():
-            self.portfolio.cash += self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
-            self.short_term_tax_liability_realized += 0.4 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date] 
+            self.portfolio.cash += self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date][1]
+            self.short_term_tax_liability_realized += 0.4 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date][1]
             # Assuming that we calculate tax in USD on realization date itself 
-            self.long_term_tax_liability_realized += 0.6 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date]
+            self.long_term_tax_liability_realized += 0.6 * self.todays_realized_pnl[_currency] * self.currency_factor[_currency][date][1]
             self.todays_realized_pnl[_currency] = 0
         self.update_open_equity(date)
         self.short_term_tax_liability_unrealized = 0.0
         self.long_term_tax_liability_unrealized = 0.0
         for _product in self.products:
-            self.short_term_tax_liability_unrealized += 0.4 * self.portfolio.open_equity[_product]
-            self.long_term_tax_liability_unrealized += 0.6 * self.portfolio.open_equity[_product]
+            self.short_term_tax_liability_unrealized += 0.4 * self.portfolio.open_equity[_product] * self.currency_factor[_currency][date][1]
+            self.long_term_tax_liability_unrealized += 0.6 * self.portfolio.open_equity[_product] * self.currency_factor[_currency][date][1]
         self.compute_daily_stats(date)
 
     def on_tax_payment_day(self):
+        s = "TAX EVENT\n"
         if self.short_term_tax_liability_realized > 0:
             self.portfolio.cash -= self.short_term_tax_liability_realized * self.short_term_tax_rate
+            s += "Short term tax paid: %0.2f\n" % (self.short_term_tax_liability_realized * self.short_term_tax_rate)
             self.short_term_tax_liability_realized = 0
         if self.long_term_tax_liability_realized > 0:
             self.portfolio.cash -= self.long_term_tax_liability_realized * self.long_term_tax_rate
-            self.long_term_tax_liability_realized = 0 
+            s += "Long term tax paid: %0.2f\n" % (self.long_term_tax_liability_realized * self.long_term_tax_rate)
+            self.long_term_tax_liability_realized = 0
+        s += "Cash after tax payment: %0.2f\n" % self.portfolio.cash
+        if Globals.debug_level > 0:
+            Globals.positions_file.write(s)
+
 
     def on_distribution_day(self, event):
         """On a distribution day, calculate the net payout after taxes and add the money to portfolio cash
@@ -253,13 +260,19 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         _dt = event['dt']
         _type = event['distribution_type']
         _distribution = event['quote']
+        s = "DISTRIBUTION EVENT on %s for %s of type %s: %0.2f\n" % (_dt, _product, _type, _distribution) 
+        #  Tax immediately paid on dividend payout
+        #  Why not do the same thing for capital gain? Commented lines which were giving tax twice
         if _type == 'DIVIDEND':
             _after_tax_net_payout = _distribution*self.portfolio.num_shares[_product]*(1 - self.dividend_tax_rate)
         elif _type == 'CAPITALGAIN': # TODO split into short term and long term based on bbg data
             _after_tax_net_payout = _distribution*self.portfolio.num_shares[_product]*(1 - (self.long_term_tax_rate + self.short_term_tax_rate)/2.0)
-            self.short_term_tax_liability_realized += _after_tax_net_payout/2.0
-            self.long_term_tax_liability_realized += _after_tax_net_payout/2.0 
+            #self.short_term_tax_liability_realized += _after_tax_net_payout/2.0
+            #self.long_term_tax_liability_realized += _after_tax_net_payout/2.0 
         self.portfolio.cash += _after_tax_net_payout
+        s += "Net payout after taxes: %0.2f\nCash after distribution = %0.2f\n" % (_after_tax_net_payout, self.portfolio.cash)
+        if Globals.debug_level > 0:
+            Globals.positions_file.write(s)
 
     # Computes the daily stats for the most recent trading day prior to 'date'
     # TOASK {gchak} Do we ever expect to run this function without current date ?
@@ -299,9 +312,9 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         # Print snapshot
         if Globals.debug_level > 0:
             if self.PnLvector.shape[0] > 0:
-                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %0.2f\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\nNotional Allocation: %s\nAverage Trade Price: %s\nLeverage: %0.2f\n\n" % (self.date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares), dict_to_string(notional_amounts), dict_to_string(self.average_trade_price), self.leverage[-1])
+                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: %0.2f\nPortfolio Value: %0.2f\nCash: %0.2f\nShort Term Tax Realized: %0.2f\nLong Term Tax Realized: %0.2f\nShort Term Tax Unrealized: %0.2f\nLong Term Tax Unrealized: %0.2f\nOpen Equity: %s\nPositions: %s\nNotional Allocation: %s\nAverage Trade Price: %s\nLeverage: %0.2f\n\n" % (self.date, self.PnLvector[-1], self.value[-1], self.portfolio.cash, self.short_term_tax_liability_realized, self.long_term_tax_liability_realized, self.short_term_tax_liability_unrealized, self.long_term_tax_liability_unrealized, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares), dict_to_string(notional_amounts), dict_to_string(self.average_trade_price), self.leverage[-1])
             else:
-                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value: %0.2f\nCash: %0.2f\nOpen Equity: %s\nPositions: %s\nNotional Allocation: %s\nAverage Trade Price: %s\nLeverage: %0.2f\n\n" % (self.date, self.value[-1], self.portfolio.cash, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares), dict_to_string(notional_amounts), dict_to_string(self.average_trade_price), self.leverage[-1])
+                s = "\nPortfolio snapshot at EndOfDay %s\nPnL for today: Trading has not started\nPortfolio Value: %0.2f\nCash: %0.2f\nShort Term Tax Realized: %0.2f\nLong Term Tax Realized: %0.2f\nShort Term Tax Unrealized: %0.2f\nLong Term Tax Unrealized: %0.2f\nOpen Equity: %s\nPositions: %s\nNotional Allocation: %s\nAverage Trade Price: %s\nLeverage: %0.2f\n\n" % (self.date, self.value[-1], self.portfolio.cash, self.short_term_tax_liability_realized, self.long_term_tax_liability_realized, self.short_term_tax_liability_unrealized, self.long_term_tax_liability_unrealized, dict_to_string(self.portfolio.open_equity), dict_to_string(self.portfolio.num_shares), dict_to_string(notional_amounts), dict_to_string(self.average_trade_price), self.leverage[-1])
             Globals.positions_file.write(s)
         # Print weights, leverage
         if Globals.debug_level > 1:
@@ -333,8 +346,8 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.mml = (math.exp(mean_lowest_k_percent(monthly_log_returns, 10)) - 1)*100.0
         self._worst_10pc_quarterly_returns = (math.exp(mean_lowest_k_percent(quarterly_log_returns, 10)) - 1) * 100.0
         self._worst_10pc_yearly_returns = (math.exp(mean_lowest_k_percent(yearly_log_returns, 10)) - 1) * 100.0
-        self._annualized_returns_percent = (math.exp(252.0 * numpy.mean(self.daily_log_returns)) - 1) * 100.0
-        self.annualized_stddev_returns = (math.exp(math.sqrt(252.0) * numpy.std(self.daily_log_returns)) - 1) * 100.0
+        self.annualized_returns_percent = annualized_returns(self.daily_log_returns)
+        self.annualized_stddev_returns = annualized_stdev(self.daily_log_returns)
         self.sharpe = self._annualized_returns_percent/self.annualized_stddev_returns
         self.yearly_sharpe = compute_yearly_sharpe(self.dates, self.daily_log_returns)
         self.sortino = compute_sortino(self.daily_log_returns)
@@ -347,7 +360,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.max_drawdown_percent = abs((math.exp(max_dd_log) - 1) * 100)
         self.drawdown_period, self.recovery_period = drawdown_period_and_recovery_period(self.dates, self.cum_log_returns)
         self.max_drawdown_dollar = abs(drawdown(self.PnLvector))
-        self.return_by_maxdrawdown = self._annualized_returns_percent/self.max_drawdown_percent
+        self.return_by_maxdrawdown = self._annualized_returns_percent/self.max_drawdown_percent if not is_float_zero(self.max_drawdown_percent) else float('NaN')
         self._annualized_pnl_by_max_drawdown_dollar = self.annualized_PnL/self.max_drawdown_dollar
         self.ret_var10 = abs(self._annualized_returns_percent/self.dml)
         self.turnover_percent = turnover(self.dates, self.amount_long_transacted, self.amount_short_transacted, self.value)

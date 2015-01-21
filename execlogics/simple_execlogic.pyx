@@ -96,10 +96,10 @@ class SimpleExecLogic(ExecLogicAlgo):
             if is_future_entity(product): #If it is a futures entity like fES
                 # This execlogic invests in the first futures contract for a future entity
                 first_contract = get_first_futures_contract(product)
-                _conv_factor = self.conversion_factor[first_contract] * self.currency_factor[self.product_to_currency[first_contract]][date]                
+                _conv_factor = self.conversion_factor[first_contract] * self.currency_factor[self.product_to_currency[first_contract]][date][1]                
                 positions_to_take[first_contract] = positions_to_take[first_contract] + (weights[product] * current_worth)/(current_prices[first_contract] * _conv_factor)
             else:
-                _conv_factor = self.conversion_factor[product] * self.currency_factor[self.product_to_currency[product]][date]
+                _conv_factor = self.conversion_factor[product] * self.currency_factor[self.product_to_currency[product]][date][1]
                 positions_to_take[product] = positions_to_take[product] + (weights[product] * current_worth)/(current_prices[product] * _conv_factor)
         return positions_to_take
 
@@ -115,7 +115,7 @@ class SimpleExecLogic(ExecLogicAlgo):
                     _price = find_most_recent_price_future(self.bb_objects[_product].dailybook, self.bb_objects[get_next_futures_contract(_product)].dailybook, date)
                 else:
                     _price = find_most_recent_price(self.bb_objects[_product].dailybook, date)
-                _notional_value_product = _price * _desired_num_shares * self.conversion_factor[_product] * self.currency_factor[self.product_to_currency[_product]][date]
+                _notional_value_product = _price * _desired_num_shares * self.conversion_factor[_product] * self.currency_factor[self.product_to_currency[_product]][date][1]
             else:
                 _notional_value_product = 0.0
             weights[_product] = _notional_value_product/_net_portfolio_value

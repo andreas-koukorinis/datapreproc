@@ -21,9 +21,9 @@ def get_mark_to_market(date, current_price, conversion_factor, currency_factor, 
     performance_tracker.update_open_equity(date)
     for product in current_price.keys():
         if not is_margin_product(product):
-            mark_to_market += (current_price[product] * conversion_factor[product] * currency_factor[product_to_currency[product]][date] * num_shares[product])
+            mark_to_market += (current_price[product] * conversion_factor[product] * currency_factor[product_to_currency[product]][date][1] * num_shares[product])
         else:
-            mark_to_market += open_equity[product] * currency_factor[product_to_currency[product]][date]
+            mark_to_market += open_equity[product] * currency_factor[product_to_currency[product]][date][1]
     return mark_to_market
 
 def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, currency_factor, product_to_currency, date):
@@ -35,7 +35,7 @@ def get_current_notional_amounts(bb_objects, portfolio, conversion_factor, curre
                 _price = find_most_recent_price_future(bb_objects[product].dailybook, bb_objects[get_next_futures_contract(product)].dailybook, date)
             else:
                 _price = find_most_recent_price(bb_objects[product].dailybook, date)
-            notional_amount[product] = _price * portfolio.num_shares[product] * conversion_factor[product] * currency_factor[product_to_currency[product]][date]
+            notional_amount[product] = _price * portfolio.num_shares[product] * conversion_factor[product] * currency_factor[product_to_currency[product]][date][1]
         else:
             notional_amount[product] = 0.0
         net_notional_exposure += abs(notional_amount[product])
