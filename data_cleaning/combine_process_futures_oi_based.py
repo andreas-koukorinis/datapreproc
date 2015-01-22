@@ -78,7 +78,7 @@ def get_contract_file_based_on_past_pattern(_first_contract_file, contract_filen
     return shift_k_years(contract_filenames[j+1], 1)
 
 
-def combine_process_futures(product1, product2, factor, to_name):    
+def combine_process_futures(product1, product2, factor, supress_factor, to_name):    
     print subprocess.Popen(['python', '-W', 'ignore', 'process_futures_oi_based.py', product1, product1 ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
     print subprocess.Popen(['python', '-W', 'ignore', 'process_futures_oi_based.py', product2, product2 ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
 
@@ -94,6 +94,14 @@ def combine_process_futures(product1, product2, factor, to_name):
     df1_2 = pd.read_csv(file1_2, header=0,parse_dates =['date'],date_parser=dateparse)
     df2_1 = pd.read_csv(file2_1, header=0,parse_dates =['date'],date_parser=dateparse)
     df2_2 = pd.read_csv(file2_2, header=0,parse_dates =['date'],date_parser=dateparse)
+    df1_1['contract_volume'] /= factor
+    df1_1['total_volume'] /= factor
+    df1_1['contract_oi'] /= factor
+    df1_1['total_oi'] /= factor
+    df1_2['contract_volume'] /= factor
+    df1_2['total_volume'] /= factor
+    df1_2['contract_oi'] /= factor
+    df1_2['total_oi'] /= factor
     
     i = 0
     j = 0
@@ -102,7 +110,7 @@ def combine_process_futures(product1, product2, factor, to_name):
             i += 1
         elif df1_1.loc[i, 'date'] > df2_1.loc[j, 'date']:
             j += 1
-        elif df1_1.loc[i, 'total_oi'] <= factor*df2_1.loc[j, 'total_oi']:
+        elif df1_1.loc[i, 'total_oi']* supress_factor <= df2_1.loc[j, 'total_oi']:
             break
         else:
             i += 1
@@ -157,14 +165,15 @@ def combine_process_futures(product1, product2, factor, to_name):
 
 def __main__():
     if len(sys.argv) > 1:
-        to_name = sys.argv[4]
+        to_name = sys.argv[5]
+        supress_factor = float(sys.argv[4])
         factor = float(sys.argv[3])
         product2 = sys.argv[2]
         product1 = sys.argv[1]
     else:
-        print 'args: product1 product2 factor to_name'
+        print 'args: product1 product2 factor suppress_factor to_name'
         sys.exit(0)
-    combine_process_futures(product1, product2, factor, to_name)
+    combine_process_futures(product1, product2, factor, supress_factor, to_name)
     
 
 if __name__ == '__main__':
