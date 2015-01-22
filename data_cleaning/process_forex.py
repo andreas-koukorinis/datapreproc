@@ -7,7 +7,7 @@ import pandas as pd
 from datetime import datetime
 
 #product -> (filename, to_invert)
-product_info = {'JPYUSD': ('US$/US$_XX46.csv', True), 'CADUSD' : ('US$/US$_XX39.csv', True), 'GBPUSD' : ('GB2/GB2_XX60.csv', False), 'EURUSD' : ('EU2/EU2_XX60.csv', False), 'AUDUSD' :('US$/US$_XX37.csv', True), 'NZDUSD' : ('US$/US$_XX51.csv', True), 'CHFUSD' : ('US$/US$_XX53.csv', True), 'SEKUSD' : ('US$/US$_XX58.csv', True), 'NOKUSD' : ('US$/US$_XX49.csv', True), 'TRYUSD' : ('FX1/FX1_XX39.csv', True), 'MXNUSD' : ('US$/US$_XX56.csv', True), 'ZARUSD' : ('US$/US$_XX57.csv', True), 'ILSUSD' : ('U2$/U2$_XX55.csv', True)}
+product_info = {'JPYUSD': ('US$/US$_XX46.csv', True), 'CADUSD' : ('US$/US$_XX39.csv', True), 'GBPUSD' : ('GB2/GB2_XX60.csv', False), 'EURUSD' : ('EU2/EU2_XX60.csv', False), 'AUDUSD' :('US$/US$_XX37.csv', True), 'NZDUSD' : ('US$/US$_XX51.csv', True), 'CHFUSD' : ('US$/US$_XX53.csv', True), 'SEKUSD' : ('US$/US$_XX58.csv', True), 'NOKUSD' : ('US$/US$_XX49.csv', True), 'TRYUSD' : ('FX1/FX1_XX39.csv', True), 'MXNUSD' : ('US$/US$_XX56.csv', True), 'ZARUSD' : ('US$/US$_XX57.csv', True), 'ILSUSD' : ('U2$/U2$_XX55.csv', True), 'SGDUSD' : ('US$/US$_XX52.csv', True), 'HKDUSD' : ('US$/US$_XX44.csv', True), 'TWDUSD' : ('U2$/U2$_XX53.csv', True)}
 
 def process_for_dump(products):
     in_path = '/apps/data/csi/forex/'
