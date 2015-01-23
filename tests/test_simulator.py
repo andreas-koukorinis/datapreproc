@@ -25,9 +25,9 @@ def test_mvo_config1():
     """
     net_returns, sharpe, sortino = setup1()
 
-    assert net_returns == 138.03
-    assert sharpe == 0.87
-    assert sortino == 1.22
+    assert net_returns == 135.92
+    assert sharpe == 1.09
+    assert sortino == 1.55
 
 @pytest.fixture
 def setup2():
@@ -48,6 +48,6 @@ def test_trvp_config1():
     net_returns, sharpe, sortino = setup2()
 
     # Run simulator
-    assert net_returns == 161.08
-    assert sharpe == 0.84
-    assert sortino == 1.20
+    assert net_returns == 190.53
+    assert sharpe == 1.20
+    assert sortino == 1.74

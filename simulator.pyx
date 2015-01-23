@@ -11,7 +11,6 @@ from utils.regular import get_trade_products, get_all_products, init_logs
 from strategies.strategy_list import is_valid_strategy_name, get_module_name_from_strategy_name
 from utils.global_variables import Globals
 from utils.dbqueries import get_currency_and_conversion_factors
-import gc
 
 class Simulator:
     """ Performs the backtesting of the strategy
@@ -85,7 +84,6 @@ class Simulator:
 
         # Instantiate the Dispatcher
         self._dispatcher = Dispatcher.get_unique_instance(self._all_products, self._start_date, self._end_date, self._config)
-        print sys.getrefcount(self._dispatcher)
 
     def run(self):
         # Run the dispatcher to start the backtesting process
