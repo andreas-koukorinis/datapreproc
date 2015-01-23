@@ -43,11 +43,8 @@ def test_trvp_config1():
     """ 
     Testing TRVP with config1 
     """
-    # Set config file path
-
     net_returns, sharpe, sortino = setup2()
 
-    # Run simulator
     assert net_returns == 190.53
     assert sharpe == 1.20
     assert sortino == 1.74
