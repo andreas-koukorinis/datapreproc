@@ -1,6 +1,5 @@
 # cython: profile=True
 import sys
-import gc
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import DailyEventListener
 from utils.regular import get_all_products
