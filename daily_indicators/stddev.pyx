@@ -2,7 +2,7 @@
 import math
 from indicator_listeners import IndicatorListener
 from daily_log_returns import DailyLogReturns
-
+from utils.global_variables import Globals
 
 class StdDev( IndicatorListener ):
     """Track the standard deviation of log returns for the product
@@ -14,7 +14,6 @@ class StdDev( IndicatorListener ):
 
        Listening to: DailyLogReturns of the corresponding product
     """
-    instances = {}
 
     def __init__( self, identifier, _startdate, _enddate, _config ):
         """Initializes the required variables like identifier, period, current_sum, current_num, current_pow_sum etc
@@ -56,12 +55,12 @@ class StdDev( IndicatorListener ):
         self.listeners.append( listener )
 
     @staticmethod
-    def get_unique_instance( identifier, _startdate, _enddate, _config):
+    def get_unique_instance(identifier, _startdate, _enddate, _config):
         """This static function is used by other classes to add themselves as a listener to the StdDev"""
-        if identifier not in StdDev.instances.keys() :
+        if identifier not in Globals.stddev_instances.keys() :
             new_instance = StdDev( identifier, _startdate, _enddate, _config )
-            StdDev.instances[identifier] = new_instance
-        return StdDev.instances[identifier]
+            Globals.stddev_instances[identifier] = new_instance
+        return Globals.stddev_instances[identifier]
 
     # Update the standard deviation indicators on each ENDOFDAY event
     # Efficient version

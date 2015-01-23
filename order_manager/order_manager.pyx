@@ -13,8 +13,6 @@ from utils.global_variables import Globals
  3)Pring all the placed orders to a file : positions_file'''
 class OrderManager():
 
-    instance = []
-
     def __init__(self, products, _startdate, _enddate, _config):
         self.products = products
         self.order_status = {} # Dict mapping an order id to its status : 0:placed but not filled, 1:placed and filled, 2:placed but cancelled
@@ -29,10 +27,10 @@ class OrderManager():
 
     @staticmethod
     def get_unique_instance(products, _startdate, _enddate, _config):
-        if len(OrderManager.instance) == 0 :
+        if Globals.ordermanager_instance is None:
             new_instance = OrderManager(products, _startdate, _enddate, _config)
-            OrderManager.instance.append(new_instance)
-        return OrderManager.instance[0]
+            Globals.ordermanager_instance = new_instance
+        return Globals.ordermanager_instance
 
     def add_listener(self, listener):
         self.listeners.append(listener)
@@ -93,3 +91,4 @@ class OrderManager():
     def print_cancelled_order(self, current_dt, order):
         s = 'ORDER CANCELLED ON %s:   datetime:%s   id: %d   product: %s   amount: %0.10f' % ( current_dt.date(), order['dt'], order['id'], order['product'], order['amount'] )
         Globals.positions_file.write("%s\n" % s)
+

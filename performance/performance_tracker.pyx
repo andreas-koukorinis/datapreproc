@@ -381,3 +381,4 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
             _stats += get_benchmark_stats(self.dates, self.daily_log_returns, benchmark) # Returns a string of benchmark stats
         print _stats
         Globals.stats_file.write(_stats)
+

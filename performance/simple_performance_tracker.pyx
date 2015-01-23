@@ -179,3 +179,6 @@ class SimplePerformanceTracker(IndicatorListener):
         _Var10_log = numpy.mean(_sorted_cwas_log_return_series[0:_end_index])
         _Var10 = abs((math.exp(_Var10_log) - 1)*100.0) # +ve value for VAR
         return max(0.001, _Var10) # To ensure that we dont return 0
+
+    def reset(self):
+        pass
