@@ -37,9 +37,9 @@ class ExchangeSymbolManager():
             return "cme"
         elif _basename in ['FGBS','FGBM','FGBL','FGBX','FESX','FDAX','FSMI']:
             return "eurex"
-        elif _basename in ['SXF', 'CGB']: # TOADD BAX
+        elif _basename in ['SXF', 'CGB', 'BAX']:
             return "tmx"
-        elif _basename in ['LFZ', 'LFR']: # TOADD FES,LFI,LFL
+        elif _basename in ['LFZ', 'LFR', 'FTI', 'FES', 'FCE']: # TOADD LFI,LFL
             return "liffe"
         elif _basename in ['KC','CT','CC','SB','G','BRN']:
             return "ice" 
@@ -47,15 +47,22 @@ class ExchangeSymbolManager():
             return "tse"
         elif _basename in ['JGBL','JNK']:
 	    return "ose"
+        elif _basename in ['SIN','SG']:
+            return "sgx"
+        elif _basename in ['HHI','HSI']:
+            return "hkfe"
+        elif _basename in ['ALSI']:
+            return "safex"
+        elif _basename in ['SPI']:
+            return "asx"
+        elif _basename in ['MFX']:
+            return "meff"
+        elif _basename in ['KOSPI']:
+            return "krw"
+        elif _basename in ['YEA']:
+            return "tfx"
         else:
             sys.exit('Unhandled symbol in get_exchange_for_product')
-        #FCE,FTI -> EURONEXT
-        #MFX -> MEFF
-        #SPI -> ASX
-        #ALSI -> SAFEX
-        #SIN, SG ->SGX
-        #HHI,HSI -> HKFE
-        #KOSPI -> KRW
 
     # Given a contract eg: ES_1,this function finds out the last trading day we can trade the contract without being called for notice or expiry
     # Assuming that the current date is the 'date' argument
@@ -121,10 +128,6 @@ class ExchangeSymbolManager():
         return ( _next_month,_next_year )
 
     def is_cme_month( self, _basename, _this_month ):
-        #if _basename == "CL" : # CL is a monthly contract
-        #    return True
-        #if _basename == "GC" : # GC contract months are 1,3,5,7,9,11 
-        #    return ( ( _this_month + 1 ) % 2 ) == 0
         if _basename in ['ZC']:
             if _this_month in [3,5,7,12]: # 3,5,7,9,12
                 return True
@@ -145,27 +148,43 @@ class ExchangeSymbolManager():
                 return True
             else:
                 return False
-        # NIY has monthly contracts but 3,6,9,12 are most common
         if _basename == "LH":
-            if _this_month in [2,4,5,6,7,8,10,12]:
+            if _this_month in [2,4,6,7,8,10,12]:
                 return True 
             else:
                 return False
-        if _basename in ['GC','SI','HG','PL','PA','HO','RB','NG']:
+        if _basename == "GC":
+            if _this_month in [2,4,6,8,12]: #[1,2,3,4,5,6,7,8,9,10,11,12]:
                 return True
-        # Default case
+            else:
+                return False
+        if _basename in ["SI","HG"]:
+            if _this_month in [3,5,7,9,12]: #[1,2,3,4,5,6,7,8,9,10,11,12]:
+                return True
+            else:
+                return False
+        if _basename == "PL":
+            if _this_month in [1,4,7,10]: #[1,2,3,4,5,6,7,8,9,10,11,12]:
+                return True
+            else:
+                return False
+        if _basename == "NG":
+            return ( (_this_month + 1)  % 2 ) == 0 #[1,2,3,4,5,6,7,8,9,10,11,12]
+        if _basename in ['CL','BRN','HO','RB','NG','G']:
+                return True
+        # Default case, forced -> PA, NIY
         return ( _this_month % 3 ) == 0 # Quaterly contract months 3,6,9,12 -> ES,EMD,NKD,NIY,YM,NQ,6A,6B,6C,6E,6M,6N,6S,ZT,ZF,ZN,ZB
 
     def is_eurex_month( self, _basename, _this_month ):
         return ( _this_month % 3 ) == 0
         
     def is_liffe_month( self, _basename, _this_month ):
-        if _basename in ['LFR','LFZ','LFI','LFL']:
+        if _basename in ['LFR','LFZ','FES']:
             return ( _this_month % 3 ) == 0
-        return True # FCE is a monthly contract
+        return True # FTI is a monthly contract
 
     def is_tmx_month( self, _basename, _this_month ):
-        return ( _this_month % 3 ) == 0 # SXF, CGB
+        return ( _this_month % 3 ) == 0 # SXF, CGB, BAX
 
     def is_ice_month( self, _basename, _this_month ):
         if _basename in ['KC','CC']:
@@ -196,6 +215,34 @@ class ExchangeSymbolManager():
             return ( _this_month % 3 ) == 0
         return True
 
+    def is_sgx_month( self, _basename, _this_month ):
+        return True # SG, SIN
+
+    def is_hkfe_month( self, _basename, _this_month ):
+        return True # HHI, HSI
+
+    def is_safex_month( self, _basename, _this_month ):
+        if _basename in ['ALSI']:
+            return ( _this_month % 3 ) == 0
+        return True
+
+    def is_asx_month( self, _basename, _this_month ):
+        if _basename in ['SPI']:
+            return ( _this_month % 3 ) == 0
+        return True
+
+    def is_meff_month( self, _basename, _this_month ):
+        return True # MFX
+
+    def is_krw_month( self, _basename, _this_month ):
+        if _basename in ['KOSPI']:
+            return ( _this_month % 3 ) == 0
+        return True
+
+    def is_tfx_month( self, _basename, _this_month ):
+        if _basename in ['YEA']:
+            return ( _this_month % 3 ) == 0
+        return True
 
     def get_cme_last_trading_date( self, _basename, _next_cme_month, _next_cme_year ):
         #ES,EMD,YM,NQ
@@ -270,7 +317,6 @@ class ExchangeSymbolManager():
 
         if _basename == '6R': #TODO verify
             date = datetime.date(year=_next_cme_year,day=15,month=_next_cme_month) # 15th day of that month of that year
-            #date = date + datetime.timedelta( days=-1) TODO how do they take care of holidays
             for i in range(0,1): #TODO ###
                 date = date + datetime.timedelta( days=-1)
                 while not self.is_cme_exchange_date( _basename, date ):
@@ -298,15 +344,147 @@ class ExchangeSymbolManager():
             elif weekday == 6: #If sunday #TODO ### if 18th is sunday,how do they handle
                  date = date + datetime.timedelta( days=-2)
             return date
-        # volume shifts on second last trading day of expiry month
+
+        # GC: Last trading day : Trading terminates on the third last business day of the delivery month.
+        if _basename == 'GC':
+            date = datetime.date(day=monthrange(_next_cme_year,_next_cme_month)[1],year=_next_cme_year,month=_next_cme_month)
+            while not self.is_cme_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,2): # Last trading day
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            for i in range(0,28):
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        # SI: Last trading day : Trading terminates on the third last business day of the delivery month.
+        if _basename == 'SI':
+            date = datetime.date(day=monthrange(_next_cme_year,_next_cme_month)[1],year=_next_cme_year,month=_next_cme_month)
+            while not self.is_cme_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,2): # Last trading day
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            for i in range(0,29):
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        # HG: Last trading day : Trading terminates on the third last business day of the delivery month.
+        if _basename == 'HG':
+            date = datetime.date(day=monthrange(_next_cme_year,_next_cme_month)[1],year=_next_cme_year,month=_next_cme_month)
+            while not self.is_cme_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,2): # Last trading day
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            for i in range(0,29):
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        # PL: Last trading day : Trading terminates on the third last business day of the delivery month.
+        if _basename == 'PL':
+            date = datetime.date(day=monthrange(_next_cme_year,_next_cme_month)[1],year=_next_cme_year,month=_next_cme_month)
+            while not self.is_cme_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,2): # Last trading day
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            for i in range(0,27):
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        # PA: Last trading day : Trading terminates on the third last business day of the delivery month.
+        if _basename == 'PA':
+            date = datetime.date(day=monthrange(_next_cme_year,_next_cme_month)[1],year=_next_cme_year,month=_next_cme_month)
+            while not self.is_cme_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,2): # Last trading day
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            for i in range(0,26):
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        # HO: Last trading day : Trading terminates on the third last business day of the delivery month.
+        if _basename == 'HO':
+            date = datetime.date(day=monthrange(_next_cme_year,_next_cme_month)[1],year=_next_cme_year,month=_next_cme_month)
+            while not self.is_cme_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,2): # Last trading day
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            for i in range(0,32):
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        # RB: Last trading day : Trading terminates on the third last business day of the delivery month.
+        if _basename == 'RB':
+            date = datetime.date(day=monthrange(_next_cme_year,_next_cme_month)[1],year=_next_cme_year,month=_next_cme_month)
+            while not self.is_cme_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,2): # Last trading day
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            for i in range(0,33):
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        # NG: Last trading day : Trading terminates on the third last business day of the delivery month.
+        if _basename == 'NG':
+            date = datetime.date(day=monthrange(_next_cme_year,_next_cme_month)[1],year=_next_cme_year,month=_next_cme_month)
+            while not self.is_cme_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,2): # Last trading day
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            for i in range(0,35):
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        # LH: Last trading day : 10th business day of the contract month
+        if _basename == 'LH':
+            date = datetime.date(year=_next_cme_year,day=1,month=_next_cme_month)
+            while not self.is_cme_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=1)
+            for i in range(0,9): # 10th business day
+                date = date + datetime.timedelta( days=1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=1)
+            for i in range(0,25):
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        '''# volume shifts on second last trading day of expiry month
         if _basename == 'GC':
             date = datetime.date(year=_next_cme_year,day=monthrange(_next_cme_year,_next_cme_month)[1],month=_next_cme_month) # day = last day of this month
-            weekday = date.weekday()
-            if weekday == 5: #If saturday
+            while not self.is_cme_exchange_date( _basename, date ):
                 date = date + datetime.timedelta( days=-1)
-            if weekday == 6: #If sunday
-                date = date + datetime.timedelta( days=-2)
-            #date = date + datetime.timedelta( days=-2) TODO they might be returning weekends
             for i in range(0,2): # Go two business days back #TODO ###
                 date = date + datetime.timedelta( days=-1)
                 while not self.is_cme_exchange_date( _basename, date ):
@@ -326,12 +504,11 @@ class ExchangeSymbolManager():
                 return date2
             else:
                 date = date + datetime.timedalta( days=-1 ) #TODO need to look at exchange holiday thing
-                return date       
+                return date'''       
         print 'UnHandled case: Using default'
         # Default day is 10th of month
         date = datetime.date(year=_next_cme_year,day=10,month=_next_cme_month)
-        #date = date + datetime.timedelta( days=-1 )
-        for i in range(0,1): # Go one business days back #TODO ###
+        for i in range(0,1):
             date = date + datetime.timedelta( days=-1)
             while not self.is_cme_exchange_date( _basename, date ):
                 date = date + datetime.timedelta( days=-1)
@@ -374,7 +551,7 @@ class ExchangeSymbolManager():
                 while not self.is_liffe_exchange_date(_basename, date):
                     date += datetime.timedelta(days=-1)
             return date
-        if _basename == 'LFL':
+        '''if _basename == 'LFL':
             date = self.get_date_from_nth_day_of_month_year(3, 'WEDNESDAY', _next_liffe_month, _next_liffe_year) # 3rd wednesday of that month of that year
             date = date + datetime.timedelta(days=-1)
             return date
@@ -385,7 +562,7 @@ class ExchangeSymbolManager():
                 date += datetime.timedelta(days=-1)
                 while not self.is_liffe_exchange_date(_basename, date):
                     date += datetime.timedelta(days=-1) 
-            return date
+            return date'''
         # Last trading day : Two business days prior to the last business day in the delivery month
         # First notice day : Two business days prior to the first day of the delivery month
         if _basename == 'LFR':
@@ -395,6 +572,31 @@ class ExchangeSymbolManager():
                 while not self.is_liffe_exchange_date(_basename, date):
                     date += datetime.timedelta(days=-1)
             return date
+
+        # FTI : Last Trading day : the third Friday of the delivery month, provided this is a business day. If not,last business day preceding the third Friday
+        if _basename in ['FTI']:
+            date = self.get_date_from_nth_day_of_month_year(3, 'FRIDAY', _next_liffe_month, _next_liffe_year) # 3rd friday of that month of that year
+            while not self.is_liffe_exchange_date(_basename, date):
+                date += datetime.timedelta(days=-1)
+            for i in range(0,1): # 3rd thursday usually
+                date += datetime.timedelta(days=-1)
+                while not self.is_liffe_exchange_date(_basename, date):
+                    date += datetime.timedelta(days=-1)
+            return date
+
+        # FES : Last trading day : Two business days prior to the third Wednesday of the delivery month
+        if _basename in ['FES']:
+            date = self.get_date_from_nth_day_of_month_year(3, 'WEDNESDAY', _next_liffe_month, _next_liffe_year) # 3rd wednesday of that month of that year
+            for i in range(0,2): # last trading day
+                date += datetime.timedelta(days=-1)
+                while not self.is_liffe_exchange_date(_basename, date):
+                    date += datetime.timedelta(days=-1)
+            for i in range(0,0):
+                date += datetime.timedelta(days=-1)
+                while not self.is_liffe_exchange_date(_basename, date):
+                    date += datetime.timedelta(days=-1)
+            return date
+
         print 'UnHandled case: Using default'
         #Default
         return datetime.date(day=10, month=_next_liffe_month, year=_next_liffe_year)
@@ -563,6 +765,113 @@ class ExchangeSymbolManager():
                     date = date + datetime.timedelta( days=-1)
             return date
 
+    def get_sgx_last_trading_date( self, _basename, _next_sgx_month, _next_sgx_year ):
+        # Last trading day : The second last business day of the contract month 
+        if _basename == 'SG':
+            date = datetime.date(day=monthrange(_next_sgx_year,_next_sgx_month)[1], month=_next_sgx_month, year=_next_sgx_year)
+            while not self.is_sgx_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,1): # last trading day
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_sgx_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            for i in range(0,4):
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_sgx_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        # Last Trading day : Last Thursday of the month. If this happens to fall on an India holiday, the last trading day shall be the preceding business day.
+        if _basename == 'SIN':
+            date = datetime.date(day=monthrange(_next_sgx_year,_next_sgx_month)[1], month=_next_sgx_month, year=_next_sgx_year)
+            while date.weekday() != 3: # Last thursday
+                date = date + datetime.timedelta( days=-1)
+            while not self.is_sgx_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,3): # last trading day
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_sgx_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+    def get_hkfe_last_trading_date( self, _basename, _next_hkfe_month, _next_hkfe_year ):
+        # Last trading day : The second last business day of the contract month 
+        if _basename in ['HSI','HHI']:
+            date = datetime.date(day=monthrange(_next_hkfe_year,_next_hkfe_month)[1], month=_next_hkfe_month, year=_next_hkfe_year)
+            while not self.is_hkfe_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,1): # last trading day
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_hkfe_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            for i in range(0,3):
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_hkfe_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+    def get_safex_last_trading_date( self, _basename, _next_safex_month, _next_safex_year ):
+        # Last trading day : Third Thursday of the settlement month
+        if _basename in ['ALSI']:
+            date = self.get_date_from_nth_day_of_month_year(3, 'THURSDAY', _next_safex_month, _next_safex_year)
+            while not self.is_safex_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,4):
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_safex_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+    def get_asx_last_trading_date( self, _basename, _next_asx_month, _next_asx_year ):
+        # Last trading day : Third Thursday of the settlement month
+        if _basename in ['SPI']:
+            date = self.get_date_from_nth_day_of_month_year(3, 'THURSDAY', _next_asx_month, _next_asx_year)
+            while not self.is_asx_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,2):
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_asx_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+    def get_krw_last_trading_date( self, _basename, _next_krw_month, _next_krw_year ):
+        # Last trading day : Second Thursday of the contract month
+        if _basename in ['KOSPI']:
+            date = self.get_date_from_nth_day_of_month_year(2, 'THURSDAY', _next_krw_month, _next_krw_year)
+            while not self.is_krw_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,2):
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_krw_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+    def get_meff_last_trading_date( self, _basename, _next_meff_month, _next_meff_year ):
+        # Last trading day : The third Friday of the expiration month
+        if _basename in ['MFX']:
+            date = self.get_date_from_nth_day_of_month_year(3, 'FRIDAY', _next_meff_month, _next_meff_year)
+            while not self.is_meff_exchange_date( _basename, date ):
+                date = date + datetime.timedelta( days=-1)
+            for i in range(0,3):
+                date = date + datetime.timedelta( days=-1 )
+                while not self.is_meff_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+    def get_tfx_last_trading_date( self, _basename, _next_tfx_month, _next_tfx_year ):
+        # Last trading day : Two business days prior to the third Wednesday of the contract month
+        if _basename in ['YEA']:
+            date = self.get_date_from_nth_day_of_month_year(3, 'WEDNESDAY', _next_liffe_month, _next_liffe_year) # 3rd wednesday of that month of that year
+            for i in range(0,2): # last trading day
+                date += datetime.timedelta(days=-1)
+                while not self.is_liffe_exchange_date(_basename, date):
+                    date += datetime.timedelta(days=-1)
+            for i in range(0,0):
+                date += datetime.timedelta(days=-1)
+                while not self.is_liffe_exchange_date(_basename, date):
+                    date += datetime.timedelta(days=-1)
+            return date
+
     def get_cme_symbol_from_last_trading_date ( self, _basename, _current_min_last_trading_date ): 
         _current_min_last_trading_date_mm = _current_min_last_trading_date.month
         _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
@@ -636,6 +945,36 @@ class ExchangeSymbolManager():
         _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
         return _basename + self.month_codes[str(_current_min_last_trading_date_mm)] + self.get_yy(_current_min_last_trading_date_yyyy)
 
+    def get_sgx_symbol_from_last_trading_date( self, _basename, _current_min_last_trading_date ):
+        _current_min_last_trading_date_mm = _current_min_last_trading_date.month
+        _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
+        return _basename + self.month_codes[str(_current_min_last_trading_date_mm)] + self.get_yy(_current_min_last_trading_date_yyyy)
+
+    def get_hkfe_symbol_from_last_trading_date( self, _basename, _current_min_last_trading_date ):
+        _current_min_last_trading_date_mm = _current_min_last_trading_date.month
+        _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
+        return _basename + self.month_codes[str(_current_min_last_trading_date_mm)] + self.get_yy(_current_min_last_trading_date_yyyy)
+
+    def get_safex_symbol_from_last_trading_date( self, _basename, _current_min_last_trading_date ):
+        _current_min_last_trading_date_mm = _current_min_last_trading_date.month
+        _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
+        return _basename + self.month_codes[str(_current_min_last_trading_date_mm)] + self.get_yy(_current_min_last_trading_date_yyyy)
+
+    def get_asx_symbol_from_last_trading_date( self, _basename, _current_min_last_trading_date ):
+        _current_min_last_trading_date_mm = _current_min_last_trading_date.month
+        _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
+        return _basename + self.month_codes[str(_current_min_last_trading_date_mm)] + self.get_yy(_current_min_last_trading_date_yyyy)
+
+    def get_meff_symbol_from_last_trading_date( self, _basename, _current_min_last_trading_date ):
+        _current_min_last_trading_date_mm = _current_min_last_trading_date.month
+        _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
+        return _basename + self.month_codes[str(_current_min_last_trading_date_mm)] + self.get_yy(_current_min_last_trading_date_yyyy)
+
+    def get_krw_symbol_from_last_trading_date( self, _basename, _current_min_last_trading_date ):
+        _current_min_last_trading_date_mm = _current_min_last_trading_date.month
+        _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
+        return _basename + self.month_codes[str(_current_min_last_trading_date_mm)] + self.get_yy(_current_min_last_trading_date_yyyy)
+
     def is_eurex_exchange_date( self, _basename, date ):
         return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
 
@@ -655,6 +994,24 @@ class ExchangeSymbolManager():
         return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
 
     def is_tse_exchange_date( self, _basename, date ):
+        return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
+
+    def is_sgx_exchange_date( self, _basename, date ):
+        return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
+
+    def is_hkfe_exchange_date( self, _basename, date ):
+        return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
+
+    def is_safex_exchange_date( self, _basename, date ):
+        return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
+
+    def is_asx_exchange_date( self, _basename, date ):
+        return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
+
+    def is_meff_exchange_date( self, _basename, date ):
+        return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
+
+    def is_krw_exchange_date( self, _basename, date ):
         return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
 
     def get_exchange_symbol_cme( self, date, product ):
@@ -684,6 +1041,30 @@ class ExchangeSymbolManager():
     def get_exchange_symbol_tse( self, date, product ):
         _last_trading_date = self.get_last_trading_date( date, product )
         return self.get_tse_symbol_from_last_trading_date ( self.get_basename(product), _last_trading_date )
+
+    def get_exchange_symbol_sgx( self, date, product ):
+        _last_trading_date = self.get_last_trading_date( date, product )
+        return self.get_sgx_symbol_from_last_trading_date ( self.get_basename(product), _last_trading_date )
+
+    def get_exchange_symbol_hkfe( self, date, product ):
+        _last_trading_date = self.get_last_trading_date( date, product )
+        return self.get_hkfe_symbol_from_last_trading_date ( self.get_basename(product), _last_trading_date )
+
+    def get_exchange_symbol_safex( self, date, product ):
+        _last_trading_date = self.get_last_trading_date( date, product )
+        return self.get_safex_symbol_from_last_trading_date ( self.get_basename(product), _last_trading_date )
+
+    def get_exchange_symbol_asx( self, date, product ):
+        _last_trading_date = self.get_last_trading_date( date, product )
+        return self.get_asx_symbol_from_last_trading_date ( self.get_basename(product), _last_trading_date )
+
+    def get_exchange_symbol_meff( self, date, product ):
+        _last_trading_date = self.get_last_trading_date( date, product )
+        return self.get_meff_symbol_from_last_trading_date ( self.get_basename(product), _last_trading_date )
+
+    def get_exchange_symbol_krw( self, date, product ):
+        _last_trading_date = self.get_last_trading_date( date, product )
+        return self.get_krw_symbol_from_last_trading_date ( self.get_basename(product), _last_trading_date )
 
 def __main__() :
     if len( sys.argv ) > 1:
