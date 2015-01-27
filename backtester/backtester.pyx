@@ -10,8 +10,6 @@ from utils.global_variables import Globals
 # If the Backtester's product had a settlement day yesterday,then it will call AfterSettlementDay on its listeners so that the can account for the change in symbols
 class BackTester(DailyBookListener):
 
-    instances = {}
-
     def __init__(self, product, _startdate, _enddate, _config):
         self.product=product
         self.pending_orders = []
@@ -29,10 +27,10 @@ class BackTester(DailyBookListener):
 
     @staticmethod
     def get_unique_instance(product, _startdate, _enddate, _config):
-        if product not in BackTester.instances.keys() :
+        if product not in Globals.backtester_instances.keys() :
             new_instance = BackTester(product, _startdate, _enddate, _config)
-            BackTester.instances[product] = new_instance
-        return BackTester.instances[product]
+            Globals.backtester_instances[product] = new_instance
+        return Globals.backtester_instances[product]
 
     # Append the orders to the pending_list.
     # ASSUMPTION:Orders will be filled on the next event
@@ -75,3 +73,4 @@ class BackTester(DailyBookListener):
         # Here the listeners will be portfolio, performance tracker and order manager
         for listener in self.listeners:
             listener.on_order_update( filled_orders, current_dt )  # Pass control to the performance tracker,pass date to track the daily performance
+

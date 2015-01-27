@@ -28,6 +28,20 @@ class MeanVarianceOptimization(SignalAlgorithm):
     """
     def init(self, _config):
         """Initialize variables with configuration inputs or defaults"""
+        self.day = -1
+        # Set computational variables
+        self.last_date_correlation_matrix_computed = -100000
+        self.last_date_stdev_computed = -100000
+        self.last_date_exp_return_computed = -100000
+        self.exp_log_returns = numpy.array([0.0]*len(self.products))
+        self.map_product_to_weight = dict([(product, 0.0) for product in self.products])  # map from product to weight, which will be passed downstream
+        self.weights = numpy.array([0.0]*len(self.products))  # these are the weights, with products occuring in the same order as the order in self.products
+        self.stdev_logret = numpy.array([1.0]*len(self.products))  # these are the stddev values, with products occuring in the same order as the order in self.products
+        self.stdev_indicator_vec = []
+        self.exp_return_indicator_vec = {}
+        # Create a diagonal matrix of 1s for correlation matrix
+        self.logret_correlation_matrix = numpy.eye(len(self.products))
+        
         _paramfilepath="/dev/null"
         if _config.has_option('Parameters', 'paramfilepath'):
             _paramfilepath=adjust_file_path_for_home_directory(_config.get('Parameters', 'paramfilepath'))
@@ -38,26 +52,14 @@ class MeanVarianceOptimization(SignalAlgorithm):
             _modelfilepath=adjust_file_path_for_home_directory(_config.get('Strategy','modelfilepath'))
         self.process_model_file(_modelfilepath, _config)
 
-        self.day = -1
-        # Set computational variables
-        self.last_date_correlation_matrix_computed = -100000
-        self.last_date_stdev_computed = -100000
-        self.last_date_exp_return_computed = -100000
-        self.exp_log_returns = numpy.array([0.0]*len(self.products))
-        self.map_product_to_weight = dict([(product, 0.0) for product in self.products])  # map from product to weight, which will be passed downstream
-        self.weights = numpy.array([0.0]*len(self.products))  # these are the weights, with products occuring in the same order as the order in self.products
-        self.stddev_logret = numpy.array([1.0]*len(self.products))  # these are the stddev values, with products occuring in the same order as the order in self.products
-        # Create a diagonal matrix of 1s for correlation matrix
-        self.logret_correlation_matrix = numpy.eye(len(self.products))
-        
     def process_param_file(self, _paramfilepath, _config):
         super(MeanVarianceOptimization, self).process_param_file(_paramfilepath, _config)
     
     def process_model_file(self, _modelfilepath, _config):
         _model_file_handle = open( _modelfilepath, "r" )
-        _map_product_to_crossover_computation_history = {}
-        _map_product_to_crossover_volatility_computation_history = {}
-
+        _map_product_to_stdev_computation_history = {}
+        _map_product_to_exp_return_computation_history = {}
+        
         # Set target risk
         self.target_risk = 5.0
         # Set risk tolerance
@@ -67,13 +69,13 @@ class MeanVarianceOptimization(SignalAlgorithm):
         # Set expected returns indicator
         self.exp_return_indicator = 'ExpectedReturns'
         # Set expected return computation history
-        self.exp_return_computation_history = 252
+        self.exp_return_computation_history = ['252']
         # Set expected return computation inteval
         self.exp_return_computation_interval = 21
         # Set StdDev indicator name
         self.stddev_computation_indicator = 'StdDev'
         # Set StdDev computation history
-        self.stddev_computation_history = 252
+        self.stddev_computation_history = ['252']
         # Set StdDev computation interval
         self.stddev_computation_interval = 21
         # Set Correlation computation indicator
@@ -97,14 +99,14 @@ class MeanVarianceOptimization(SignalAlgorithm):
                     elif _model_line_words[1] == 'StdDevComputationParameters':
                         _computation_words = _model_line_words[2:]
                         if len(_computation_words) == 2:
-                            self.stddev_computation_history = int(_computation_words[0])
+                            self.stddev_computation_history = [_computation_words[0]]
                             self.stddev_computation_interval = int(_computation_words[1])
                     elif _model_line_words[1] == 'ExpectedReturnsIndicator':
                         self.exp_return_indicator = _model_line_words[2]
                     elif _model_line_words[1] == 'ExpectedReturnsComputationParameters':
                         _computation_words = _model_line_words[2:]
                         if len(_computation_words) == 2:
-                            self.exp_return_computation_history = int(_computation_words[0])
+                            self.exp_return_computation_history = [_computation_words[0]]
                             self.exp_return_computation_interval = int(_computation_words[1])
                     elif _model_line_words[1] == 'CorrelationLogReturnsIndicator':
                         self.correlation_computation_indicator = _model_line_words[2]
@@ -117,45 +119,47 @@ class MeanVarianceOptimization(SignalAlgorithm):
                         self.risk_tolerance = float(_model_line_words[2])
                     elif _model_line_words[1] == 'MaxAllocation':
                         self.max_allocation = float(_model_line_words[2])
+                else:
+                    _product=_model_line_words[0]
+                    if _product in self.products:
+                        if _model_line_words[1] == 'StdDevComputationParameters':
+                            _computation_words = _model_line_words[2:]
+                            if len(_computation_words) == 2:
+                                # set the refreshing interval to the minimum of current and previous values
+                                _map_product_to_stdev_computation_history[_product] = _computation_words[0]
+                                self.stdev_computation_interval = min(self.stdev_computation_interval, int(_computation_words[1])) 
+                        elif _model_line_words[1] == 'ExpectedReturnsComputationParameters':
+                            _computation_words = _model_line_words[2:]
+                            if len(_computation_words) == 2:
+                                #set the refreshing interval to the minimum of current and previous values
+                                _map_product_to_exp_return_computation_history[_product] = _computation_words[0]
+                                self.exp_return_computation_interval = min(self.exp_return_computation_interval, int(_computation_words[1]))
             elif len(_model_line_words) == 2:
                 if _model_line_words[0] == 'TargetRisk':
                     self.target_risk = float(_model_line_words[1])
-                # else:
-                #     _product=_model_line_words[0]
-                #     if _product in self.products:
-                #         if _model_line_words[1] == 'CrossoverComputationParameters':
-                #             _computation_words = _model_line_words[2:]
-                #             if len(_computation_words) == 3:
-                #                 #set the refreshing interval to the minimum of current and previous values
-                #                 self.crossover_computation_interval = min(self.crossover_computation_interval, int(_computation_words[0])) 
-                #                 _map_product_to_crossover_computation_history[_product] = _computation_words[1:]
-                #         elif _model_line_words[1] == 'CrossoverVolatilityComputationParameters':
-                #             _computation_words = _model_line_words[2:]
-                #             if len(_computation_words) == 2:
-                #                 #set the refreshing interval to the minimum of current and previous values
-                #                 self.crossover_volatility_computation_interval = min(self.crossover_volatility_computation_interval, int(_computation_words[0]))   
-                #                 _map_product_to_crossover_volatility_computation_history[_product] = _computation_words[1]
 
         # Set indicator for ExpectedReturns
         if is_valid_daily_indicator(self.exp_return_indicator):
             module = import_module('daily_indicators.' + get_module_name_from_indicator_name(self.exp_return_indicator))
             Indicatorclass = getattr(module, self.exp_return_indicator)
             for product in self.products:
-                indicator = self.exp_return_indicator + '.' + product + '.' + str(self.exp_return_computation_history)        
-                self.daily_indicators[indicator] = Indicatorclass.get_unique_instance(indicator, self.start_date, self.end_date, _config)
+                indicator = self.exp_return_indicator + '.' + product + '.' + '.'.join(_map_product_to_exp_return_computation_history.get(product, self.exp_return_computation_history))
+                self.exp_return_indicator_vec[product] = Indicatorclass.get_unique_instance(indicator, self.start_date, self.end_date, _config)
         else:
             print "Expected returns computation indicator %s invalid!" % self.exp_return_indicator
             sys.exit(0)
+        
         # Set indicator for stddev_computation_indicator
         if is_valid_daily_indicator(self.stddev_computation_indicator):
             module = import_module('daily_indicators.' + get_module_name_from_indicator_name(self.stddev_computation_indicator))
-            Indicatorclass = getattr(module, self.stddev_computation_indicator)
-            for product in self.products:
-                _orig_indicator_name = self.stddev_computation_indicator + '.' + product + '.' + str(self.stddev_computation_history)  # this would be something like StdDev.fTY.252
-                self.daily_indicators[_orig_indicator_name] = Indicatorclass.get_unique_instance(_orig_indicator_name, self.start_date, self.end_date, _config)
+            StdDevIndicatorClass = getattr(module, self.stddev_computation_indicator)
+            for _product in self.products:
+               _identifier = self.stddev_computation_indicator + '.' + _product + '.' + '.'.join(_map_product_to_stdev_computation_history.get(product, self.stddev_computation_history))
+               self.stdev_indicator_vec.append(StdDevIndicatorClass.get_unique_instance(_identifier, self.start_date, self.end_date, _config))
         else:
             print "Stdev computation indicator %s invalid!" % self.stddev_computation_indicator
             sys.exit(0)
+        
         # Set correlation computation indicator
         if is_valid_daily_indicator(self.correlation_computation_indicator):
             _portfolio_string = make_portfolio_string_from_products(self.products)  # this allows us to pass a portfolio to the CorrelationLogReturns indicator.
@@ -190,10 +194,9 @@ class MeanVarianceOptimization(SignalAlgorithm):
                 self.last_date_correlation_matrix_computed = self.day
 
             if self.day >= (self.last_date_stdev_computed + self.stddev_computation_interval):
-                # Get the stdev values from the stddev indicators
-                for _product in self.products:
-                    # earlier this was self.stddev_computation_indicator[_product] but due to error, switched to this
-                    self.stddev_logret[self.map_product_to_index[_product]] = self.daily_indicators[self.stddev_computation_indicator + '.' + _product + '.' + str(self.stddev_computation_history)].values[1]
+                # Get the stdev values from the stdev indicators
+                for i in xrange(len(self.stdev_logret)):
+                    self.stdev_logret[i] = max(0.000001, self.stdev_indicator_vec[i].get_stdev()) # a max with 1% is just to not have divide by 0 problems.
                     # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.
                     # TODO we can make tests here that the module needs to pass.
@@ -203,14 +206,14 @@ class MeanVarianceOptimization(SignalAlgorithm):
             if self.day >= (self.last_date_exp_return_computed + self.exp_return_computation_interval):
                 # Get the expected log return values values from the expected returns indicators
                 for _product in self.products:
-                    self.exp_log_returns[self.map_product_to_index[_product]] = self.daily_indicators[self.exp_return_indicator + '.' + _product + '.' + str(self.exp_return_computation_history)].values[1]
+                    self.exp_log_returns[self.map_product_to_index[_product]] =  self.exp_return_indicator_vec[_product].values[1]
                 _need_to_recompute_weights = True
                 self.last_date_exp_return_computed = self.day
 
             if _need_to_recompute_weights:
                 # Calculate weights to assign to each product using indicators
                 # compute covariance matrix from correlation matrix and
-                _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stddev_logret, self.stddev_logret)  # we should probably do it when either self.stddev_logret or _correlation_matrix has been updated
+                _cov_mat = self.logret_correlation_matrix * numpy.outer(self.stdev_logret, self.stdev_logret)  # we should probably do it when either self.stdev_logret or _correlation_matrix has been updated
 
                 # Recompute weights
                 self.weights = efficient_frontier(self.exp_log_returns, _cov_mat, self.maximum_leverage, self.risk_tolerance, self.max_allocation)

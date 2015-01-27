@@ -172,10 +172,13 @@ class SimplePerformanceTracker(IndicatorListener):
         if self.log_return_history.shape[0] < return_history:
             return 0.001 # Low value for complete allocation
         _log_returns = self.log_return_history[-return_history:,:]
-        _cwas_log_return_series = math.log(1 + numpy.sum((math.exp(_log_returns) -1)*self.rebalance_weights, axis=1)) #TODO consider changing to actual weights
+        _cwas_log_return_series = numpy.log(1 + numpy.sum((numpy.exp(_log_returns) -1)*self.rebalance_weights, axis=1)) #TODO consider changing to actual weights
         _sorted_cwas_log_return_series = numpy.sort(_cwas_log_return_series)
         n = _sorted_cwas_log_return_series.shape[0]
         _end_index = min(n-1, int(0.1*n)) # Considering the worst 10% days
         _Var10_log = numpy.mean(_sorted_cwas_log_return_series[0:_end_index])
         _Var10 = abs((math.exp(_Var10_log) - 1)*100.0) # +ve value for VAR
         return max(0.001, _Var10) # To ensure that we dont return 0
+
+    def reset(self):
+        pass

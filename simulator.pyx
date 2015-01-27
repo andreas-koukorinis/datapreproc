@@ -91,8 +91,8 @@ class Simulator:
         print '\nTotal Tradable Days = %d'%(self._dispatcher.trading_days)
         # Call the performance tracker to display the stats
         self._tradelogic_instance.performance_tracker.show_results()
-        
-                
+        Globals.reset()
+
 if __name__ == '__main__':
     if len ( sys.argv ) < 2 :
         print "config_file <trading-startdate trading-enddate>"

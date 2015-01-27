@@ -3,6 +3,7 @@ import sys
 import numpy
 from indicator_listeners import IndicatorListener
 from trend import Trend
+from utils.global_vaiables import Globals
 
 class AverageDiscretizedTrend( IndicatorListener ):
     """Track the average trend of log returns over a list of periods for the product.
@@ -10,8 +11,6 @@ class AverageDiscretizedTrend( IndicatorListener ):
     We will instantiate StdDev indicators for each duration and then maintain an average of the indicator values of those.
 
     """
-    instances = {}
-
     def __init__( self, identifier, _startdate, _enddate, _config ):
         self.values = (0.0,1) # Tuple of the form (dt,value) #TODO better init for default dt
         self.identifier = identifier # e.g. AverageDiscretizedTrend.fES.63.252
@@ -43,11 +42,11 @@ class AverageDiscretizedTrend( IndicatorListener ):
             return 0
 
     @staticmethod
-    def get_unique_instance( identifier, _startdate, _enddate, _config):
-        if identifier not in AverageDiscretizedTrend.instances.keys() :
+    def get_unique_instance(identifier, _startdate, _enddate, _config):
+        if identifier not in Globals.average_discretized_trend_instances.keys() :
             new_instance = AverageDiscretizedTrend( identifier, _startdate, _enddate, _config )
-            AverageDiscretizedTrend.instances[identifier] = new_instance
-        return AverageDiscretizedTrend.instances[identifier]
+            Globals.average_discretized_trend_instances[identifier] = new_instance
+        return Globals.average_discretized_trend_instances[identifier]
 
     def _have_we_received_all_updates(self):
         if numpy.sum(self.received_updates) == self.trend_vec_len:

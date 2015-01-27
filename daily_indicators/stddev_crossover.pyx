@@ -6,6 +6,7 @@ from indicator_listeners import IndicatorListener
 from daily_log_returns import DailyLogReturns
 from crossover import Crossover
 from utils.regular import is_float_zero
+from utils.global_variables import Globals
 
 # In the config file this indicator will be specfied as StdDevCrossover.product.stddev_period.crossover_short_period.crossover_long_period
 class StdDevCrossover(IndicatorListener):
@@ -19,8 +20,6 @@ class StdDevCrossover(IndicatorListener):
            DailyLogReturns of the corresponding product
            Crossover indicator of the corresponding product
     """
-    instances = {}
-
     def __init__(self, identifier, _startdate, _enddate, _config):
         """Initializes the required variables like identifier, stddev_period, current_sum, current_num, current_pow_sum etc
            and starts listening to dailylogreturns and crossover signal of the corresponding product
@@ -68,10 +67,10 @@ class StdDevCrossover(IndicatorListener):
     @staticmethod
     def get_unique_instance(identifier, _startdate, _enddate, _config):
         """This static function is used by other classes to add themselves as a listener to the StdDevCrossover"""
-        if identifier not in StdDevCrossover.instances.keys() :
+        if identifier not in Globals.stddev_crossover_instances.keys() :
             new_instance = StdDevCrossover(identifier, _startdate, _enddate, _config)
-            StdDevCrossover.instances[identifier] = new_instance
-        return StdDevCrossover.instances[identifier]
+            Globals.stddev_crossover_instances[identifier] = new_instance
+        return Globals.stddev_crossover_instances[identifier]
 
     def on_indicator_update(self, identifier, values):
         """On a logreturn/crossover update, this function is called by the DailyLogReturns/Crossover instance and the new values are set here
@@ -116,3 +115,4 @@ class StdDevCrossover(IndicatorListener):
             self.values = (self.date, _val)
             for listener in self.listeners: 
                 listener.on_indicator_update(self.identifier, self.values)
+
