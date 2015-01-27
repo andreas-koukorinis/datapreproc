@@ -59,10 +59,7 @@ class Simulator:
         
         # Read product list from config file
         Globals.trade_products = get_all_trade_products(self._config)
-        print Globals.trade_products
         Globals.all_products = sorted(get_all_products(Globals.trade_products))
-
-        print Globals.trade_products, Globals.all_products
 
         # Initialize the global variables
         Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, Globals.product_type = get_currency_and_conversion_factors(Globals.all_products, self._start_date, self._end_date)
