@@ -5,7 +5,7 @@ from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import EventsListener
 from bookbuilder.bookbuilder import BookBuilder
 from utils import defaults
-from utils.regular import get_all_products
+from utils.regular import get_all_products, get_trade_products
 from performance.simple_performance_tracker import SimplePerformanceTracker
 from daily_indicators.indicator_list import is_valid_daily_indicator
 
@@ -46,8 +46,8 @@ class SignalAlgorithm(EventsListener): # TODO May be Should listen to events cor
 
         if not _config.has_option('Products', 'trade_products'):
             sys.exit('Cannot proceed without trade_products in signal config')
-        self.products = sorted(_config.get('Products', 'trade_products').split(',')) # we are doing this here so that multiple instances of indicators all point to same value.
-        self.all_products = get_all_products(_config)
+        self.products = get_trade_products(_config)
+        self.all_products = get_all_products(self.products)
         self.daily_indicators = {}
         self.start_date = _startdate
         self.end_date = _enddate

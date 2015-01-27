@@ -16,29 +16,36 @@ from global_variables import Globals
 
 # Returns the full list of products  with fES_1 and fES_2 treated separately
 # Products which are not traded but have indicators based on them are also included 
-def get_all_products( _config):
-    _trade_products = Globals.trade_products
-    _real_traded_products = get_real_traded_products( _trade_products )
-    if _config.has_option('Products', 'mappings'):
-        _mappings = _config.get( 'Products', 'mappings' ).split(' ') 
-        _mapped_products = get_mapped_products( _mappings )
-    else: 
-        _mapped_products = []
-    return list( set( _real_traded_products ) | set( _mapped_products ) ) #Take union of two lists
+def get_all_products(_trade_products): 
+    return get_real_traded_products( _trade_products )
 
-def get_trade_products(_config):
+def get_all_trade_products(_config):
     _trade_products = []
     if _config.has_option('Strategy', 'signal_configs'):
         _signal_configs = [adjust_file_path_for_home_directory(x) for x in _config.get('Strategy', 'signal_configs').split(',')]
         for _config_name in _signal_configs:
             _signal_config = ConfigParser.ConfigParser()
             _signal_config.readfp(open(_config_name, 'r'))
-            _signal_products = _signal_config.get('Products', 'trade_products').split(',')
+            _signal_products = get_trade_products(_signal_config)
             _trade_products.extend(_signal_products)
         _trade_products = sorted(list(set(_trade_products)))
         return _trade_products
     else:
         sys.exit('No signal configs')        
+
+def get_trade_products(_config):
+    _trade_products = []
+    if _config.has_option('Products', 'trade_products'):
+        _product_files = [adjust_file_path_for_home_directory(x) for x in _config.get('Products', 'trade_products').split(',')]
+        for _product_file in _product_files:
+            with open (_product_file, "r") as myfile:
+                _products = myfile.read()
+            _products = filter(None, _products.split('\n'))
+            _trade_products.extend(_products)
+        _trade_products = sorted(list(set(_trade_products)))
+        return _trade_products
+    else:
+        sys.exit('No trade products in signal config')
 
 # Returns a list of products replacing each future contract by 1st and 2nd future contract in 'traded_products'
 def get_real_traded_products( _traded_products ):

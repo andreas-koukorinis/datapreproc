@@ -5,6 +5,7 @@ class Globals:
     product_to_currency = {}
     product_type = {}
     trade_products = []
+    all_products = []
     debug_level = None
     positions_file = None
     returns_file = None
@@ -38,6 +39,7 @@ class Globals:
         cls.product_to_currency = {}
         cls.product_type = {}
         cls.trade_products = []
+        cls.all_products = []
         cls.debug_level = None
         cls.positions_file = None
         cls.returns_file = None

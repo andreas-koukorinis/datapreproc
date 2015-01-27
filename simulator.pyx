@@ -7,7 +7,7 @@ import shutil
 from importlib import import_module
 import ConfigParser
 from dispatcher.dispatcher import Dispatcher
-from utils.regular import get_trade_products, get_all_products, init_logs
+from utils.regular import get_all_trade_products, get_all_products, init_logs
 from strategies.strategy_list import is_valid_strategy_name, get_module_name_from_strategy_name
 from utils.global_variables import Globals
 from utils.dbqueries import get_currency_and_conversion_factors
@@ -58,15 +58,18 @@ class Simulator:
         os.makedirs(self._directory)
         
         # Read product list from config file
-        Globals.trade_products = get_trade_products(self._config)
-        self._all_products = sorted(get_all_products(self._config))
+        Globals.trade_products = get_all_trade_products(self._config)
+        print Globals.trade_products
+        Globals.all_products = sorted(get_all_products(Globals.trade_products))
+
+        print Globals.trade_products, Globals.all_products
 
         # Initialize the global variables
-        Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, Globals.product_type = get_currency_and_conversion_factors(self._all_products, self._start_date, self._end_date)
+        Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, Globals.product_type = get_currency_and_conversion_factors(Globals.all_products, self._start_date, self._end_date)
 
         # Initialize the log file handles
         self._log_dir =  os.path.expanduser('~') + "/logs/" + os.path.splitext(_config_file)[0].split('/')[-1] + '/'
-        init_logs(self._config, self._log_dir, self._all_products)
+        init_logs(self._config, self._log_dir, Globals.all_products)
        
         # Import the strategy class using 'Strategy'->'name' in config file
         self._stratfile = self._config.get ( 'Strategy', 'name' )  # Remove .py from filename
@@ -80,10 +83,10 @@ class Simulator:
         # Instantiate the strategy
         # Strategy is written by the user and it inherits from TradeAlgorithm
         # TradeLogic here is the strategy class name converted to variable.Eg: UnleveredRP
-        self._tradelogic_instance = self.TradeLogic(Globals.trade_products, self._all_products, self._start_date, self._end_date, self._config) # TODO Should take logfile as terminal arg
+        self._tradelogic_instance = self.TradeLogic(Globals.trade_products, Globals.all_products, self._start_date, self._end_date, self._config) # TODO Should take logfile as terminal arg
 
         # Instantiate the Dispatcher
-        self._dispatcher = Dispatcher.get_unique_instance(self._all_products, self._start_date, self._end_date, self._config)
+        self._dispatcher = Dispatcher.get_unique_instance(Globals.all_products, self._start_date, self._end_date, self._config)
 
     def run(self):
         # Run the dispatcher to start the backtesting process
