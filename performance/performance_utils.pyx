@@ -22,6 +22,24 @@ def annualized_stdev(daily_log_returns):
         annualized_stdev = max(1.0, min(100.0, annualized_stdev))
     return annualized_stdev   
 
+def annualized_returns_from_monthly(monthly_log_returns):
+    if monthly_log_returns.shape[0] < 1:
+        annualized_returns = 1.0
+    else:
+        annualized_returns = (math.exp(numpy.mean(monthly_log_returns) * 12.0) - 1) * 100
+        #annualized_returns = max(1.0, min(50.0, annualized_returns)) # TODO check min max
+    return annualized_returns
+
+def annualized_stdev_from_monthly(monthly_log_returns):
+    if monthly_log_returns.shape[0] < 2:
+        annualized_stdev = 100.0
+    else:
+        annualized_stdev = (math.exp(math.sqrt(12.0) * numpy.std(monthly_log_returns)) - 1) * 100.0
+        annualized_stdev = max(1.0, min(100.0, annualized_stdev))
+    return annualized_stdev   
+
+
+
 def drawdown(returns):
     """Calculates the global maximum drawdown i.e. the maximum drawdown till now"""
     if returns.shape[0] < 2:
