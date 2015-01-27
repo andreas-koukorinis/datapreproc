@@ -11,8 +11,8 @@ from daily_indicators.correlation_log_returns import CorrelationLogReturns
 from daily_indicators.portfolio_utils import make_portfolio_string_from_products
 from signals.signal_algorithm import SignalAlgorithm
 
-class TargetRiskEqualRiskContributionJessop(SignalAlgorithm):
-    """Implementation of the ERC risk balanced strategy based on Jessop's approach : 
+class TargetRiskEqualRiskContributionLogmax(SignalAlgorithm):
+    """Implementation of the ERC risk balanced strategy based on Log maximization approach : 
     The objective function is : 
         Max[ Sum(log(|wi|)) ] 
         subject to wT*cov*w <= self.target_risk and weight bounds according to mandate sign
@@ -63,7 +63,7 @@ class TargetRiskEqualRiskContributionJessop(SignalAlgorithm):
         self.logret_correlation_matrix = numpy.eye(len(self.products))
     
     def process_param_file(self, _paramfilepath, _config):
-        super(TargetRiskEqualRiskContributionJessop, self).process_param_file(_paramfilepath, _config)
+        super(TargetRiskEqualRiskContributionLogmax, self).process_param_file(_paramfilepath, _config)
 
     def process_model_file(self, _modelfilepath, _config):
         _model_file_handle = open( _modelfilepath, "r" )
