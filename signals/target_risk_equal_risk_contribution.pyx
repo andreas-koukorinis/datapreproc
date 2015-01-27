@@ -158,7 +158,8 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
             if self.day >= (self.last_date_stdev_computed + self.stdev_computation_interval):
                 # Get the stdev values from the stdev indicators
                 for _stdev_logret_index in xrange(len(self.stdev_logret)):
-                    self.stdev_logret[_stdev_logret_index] = max(0.000001, self.stdev_indicator_vec[_stdev_logret_index].get_stdev()) # a max with 1% is just                    # TODO should not accessing an array without checking the length!
+                    self.stdev_logret[_stdev_logret_index] = max(0.000001, self.stdev_indicator_vec[_stdev_logret_index].get_stdev()) # a max with 1% is just to not have divide by 0 problems.
+                    # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.
                     # TODO we can make tests here that the module needs to pass.
                 _need_to_recompute_erc_weights = True

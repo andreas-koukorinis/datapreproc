@@ -195,7 +195,7 @@ class TargetRiskEqualRiskContributionJessop(SignalAlgorithm):
                         _bounds.append((None, 0))
                 _bounds = list(_bounds)   
                 
-                self.erc_weights_optim = minimize(_get_objective_function, self.erc_weights_optim, method='SLSQP', bounds=_bounds, constraints=_constraints, options={'ftol': self.optimization_ftol, 'disp': False, 'maxiter':self.optimization_maxiter}).x
+                self.erc_weights_optim = minimize(_get_objective_function, self.erc_weights_optim, method = 'SLSQP', bounds = _bounds, constraints = _constraints, options = {'ftol': self.optimization_ftol, 'disp': False, 'maxiter':self.optimization_maxiter}).x
                 self.erc_weights = self.erc_weights_optim
 
                 # We check whether weights produced here have the same signs as self.allocation_signs.
