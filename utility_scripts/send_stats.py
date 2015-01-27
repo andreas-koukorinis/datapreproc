@@ -120,10 +120,10 @@ def todays_return(snapshot):
 
 def send_mail(_subject, _body):
     _server = "localhost"
-    _from = "sanchit.gupta@tworoads.co.in"
+    _from = "gchak@circulumvite.com"
     _to = "cvquant@circulumvite.com"
-    #_to = "sanchit.gupta@tworoads.co.in"
-     # Prepare actual message
+    #_to = "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in"
+    # Prepare actual message
     message = "From: {0}\nTo: {1}\nSubject: {2}\n\n{3}".format(_from, _to, _subject, _body)
     # Send the mail
     server = smtplib.SMTP(_server)
