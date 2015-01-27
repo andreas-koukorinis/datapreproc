@@ -6,10 +6,9 @@ import os
 from importlib import import_module
 from utils.regular import get_dt_from_date
 from daily_indicators.indicator_listeners import IndicatorListener
+from utils.global_variables import Globals
 
 class PrintIndicators(IndicatorListener):
-
-    instance = []
 
     def __init__(self, _startdate, _enddate, _indicators_file, _config):
         self.start_date = get_dt_from_date(_startdate).date()
@@ -29,10 +28,10 @@ class PrintIndicators(IndicatorListener):
 
     @staticmethod
     def get_unique_instance(_startdate, _enddate, _indicators_file, _config):
-        if len(PrintIndicators.instance) == 0:
+        if Globals.printindicators_instance is None:
             new_instance = PrintIndicators(_startdate, _enddate, _indicators_file, _config)
-            PrintIndicators.instance.append(new_instance)
-        return PrintIndicators.instance[0]
+            Globals.printindicators_instance = new_instance
+        return Globals.printindicators_instance
 
     def print_all_indicators(self):
         '''After the Simulation has been done, this function
@@ -68,3 +67,5 @@ class PrintIndicators(IndicatorListener):
                     else: # For other indicators use the latest value as the default value
                         self.all_indicator_values[current_date][_identifier] = self.latest_indicator_values[_identifier]
             self.all_indicator_values[current_date][identifier] = indicator_value[1]
+
+

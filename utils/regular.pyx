@@ -2,6 +2,7 @@
 import os
 import sys
 import re
+import cPickle
 import ConfigParser
 from datetime import datetime
 from os.path import expanduser
@@ -174,6 +175,12 @@ def dict_to_string(_dict):
     for key in sorted(_dict.keys()):
         _str += '%s : %0.2f   ' % (key, _dict[key])
     return _str
+
+def get_dates_returns(filename):
+    _file = open(filename,'rb')
+    dates = cPickle.load(_file)
+    returns = cPickle.load(_file)
+    return dates, returns
 
 def is_float_zero(val):
     return abs(val) < 0.000000001

@@ -2,13 +2,11 @@
 import math
 from indicator_listeners import IndicatorListener
 from daily_log_returns import DailyLogReturns
-
+from utils.global_variables import Globals
 
 # Track the expected value of log returns for the product
 # In the config file this indicator will be specfied as : ExpectedReturns,product,period
 class ExpectedReturns( IndicatorListener ):
-
-    instances = {}
 
     def __init__( self, identifier, _startdate, _enddate, _config ):
         self.values = () # Tuple of the form (dt,value)
@@ -27,11 +25,11 @@ class ExpectedReturns( IndicatorListener ):
         self.listeners.append( listener )
 
     @staticmethod
-    def get_unique_instance( identifier, _startdate, _enddate, _config):
-        if identifier not in ExpectedReturns.instances.keys() :
+    def get_unique_instance(identifier, _startdate, _enddate, _config):
+        if identifier not in Globals.expected_returns_instances.keys() :
             new_instance = ExpectedReturns( identifier, _startdate, _enddate, _config )
-            ExpectedReturns.instances[identifier] = new_instance
-        return ExpectedReturns.instances[identifier]
+            Globals.expected_returns_instances[identifier] = new_instance
+        return Globals.expected_returns_instances[identifier]
 
     # Do online update of the expected returns indicator on each ENDOFDAY event
     def on_indicator_update( self, identifier, daily_log_returns_dt ):

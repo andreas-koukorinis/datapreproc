@@ -10,8 +10,6 @@ from utils.global_variables import Globals
 # If the Backtester's product had a settlement day yesterday,then it will call AfterSettlementDay on its listeners so that the can account for the change in symbols
 class BackTester(DailyBookListener):
 
-    instances = {}
-
     def __init__(self, product, _startdate, _enddate, _config):
         self.product=product
         self.pending_orders = []
@@ -29,10 +27,10 @@ class BackTester(DailyBookListener):
 
     @staticmethod
     def get_unique_instance(product, _startdate, _enddate, _config):
-        if product not in BackTester.instances.keys() :
+        if product not in Globals.backtester_instances.keys() :
             new_instance = BackTester(product, _startdate, _enddate, _config)
-            BackTester.instances[product] = new_instance
-        return BackTester.instances[product]
+            Globals.backtester_instances[product] = new_instance
+        return Globals.backtester_instances[product]
 
     # Append the orders to the pending_list.
     # ASSUMPTION:Orders will be filled on the next event
@@ -44,7 +42,7 @@ class BackTester(DailyBookListener):
         _date = order['dt'].date()
         dailybook = self.bb.dailybook
         fill_price = dailybook[-1][1] # Use the most recent price for agg order
-        order['value'] = fill_price * order['amount'] * self.conversion_factor * self.currency_factor[_date] # +ve for buy,-ve for sell
+        order['value'] = fill_price * order['amount'] * self.conversion_factor * self.currency_factor[_date][0] # +ve for buy,-ve for sell
         cost = 0.0
         filled_order = { 'id': order['id'], 'dt' : order['dt'], 'product' : order['product'], 'amount' : order['amount'], 'cost' : cost, 'value' : order['value'], 'fill_price' : fill_price, 'type' : 'agg' }
         current_dt = dailybook[-1][0]
@@ -64,7 +62,7 @@ class BackTester(DailyBookListener):
         for order in self.pending_orders:
             if True :  # Should check if order can be filled based on current book,if yes remove from pending_list and add to filled_list
                 fill_price = dailybook[-1][3]
-                order['value'] = fill_price * order['amount'] * self.conversion_factor * self.currency_factor[_date] # +ve for buy,-ve for sell
+                order['value'] = fill_price * order['amount'] * self.conversion_factor * self.currency_factor[_date][0] # +ve for buy,-ve for sell
                 cost = self.commission_manager.getcommission(order, dailybook)
                 filled_orders.append( { 'id': order['id'], 'dt' : order['dt'], 'product' : order['product'], 'amount' : order['amount'], 'cost' : cost, 'value' : order['value'], 'fill_price' : fill_price , 'type' : 'normal'} )
             else:
@@ -75,3 +73,4 @@ class BackTester(DailyBookListener):
         # Here the listeners will be portfolio, performance tracker and order manager
         for listener in self.listeners:
             listener.on_order_update( filled_orders, current_dt )  # Pass control to the performance tracker,pass date to track the daily performance
+

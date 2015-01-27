@@ -21,8 +21,6 @@ class DailyLogReturns( DailyBookListener ):
        Listening to: BookBuilder for dailybook updates
     """
 
-    instances = {}
-
     def __init__( self, _identifier, _startdate, _enddate, _config ):
         """Initializes the required variables like identifier, last two prices etc
            and starts listening to products whose closing prices are needed to compute the dailylogreturns of a given product
@@ -73,12 +71,12 @@ class DailyLogReturns( DailyBookListener ):
         self.listeners.append( listener )
 
     @staticmethod
-    def get_unique_instance( identifier, _startdate, _enddate, _config ):
+    def get_unique_instance(identifier, _startdate, _enddate, _config ):
         """This static function is used by other classes to add themselves as a listener to the DailyLogReturns"""
-        if identifier not in DailyLogReturns.instances.keys() :
+        if identifier not in Globals.daily_log_returns_instances.keys() :
             new_instance = DailyLogReturns ( identifier, _startdate, _enddate, _config )
-            DailyLogReturns.instances[identifier] = new_instance
-        return DailyLogReturns.instances[identifier]
+            Globals.daily_log_returns_instances[identifier] = new_instance
+        return Globals.daily_log_returns_instances[identifier]
 
     # Update the daily log returns on each ENDOFDAY event
     def on_dailybook_update( self, product, dailybook ):
@@ -127,3 +125,4 @@ class DailyLogReturns( DailyBookListener ):
             self.values.append((dailybook[-1][0].date(), logret))
             for listener in self.listeners: # Pass the dailylogreturn history onto the listeners
                 listener.on_indicator_update( self.identifier, self.values )
+

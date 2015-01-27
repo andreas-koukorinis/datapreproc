@@ -3,12 +3,11 @@ from indicator_listeners import IndicatorListener
 from bookbuilder.bookbuilder import BookBuilder
 from bookbuilder.bookbuilder_listeners import DailyBookListener
 from utils.regular import get_first_futures_contract,is_future_entity
+from utils.global_variables import Globals
 
 # Track the standard deviation of log returns for the product
 # In the config file this indicator will be specfied as : MovingAverage1.product.period
 class MovingAverage( DailyBookListener ):
-
-    instances = {}
 
     def __init__( self, identifier, _startdate, _enddate, _config ):
         self.values = () # Tuple of the form (dt,value)
@@ -28,11 +27,11 @@ class MovingAverage( DailyBookListener ):
         self.listeners.append( listener )
 
     @staticmethod
-    def get_unique_instance( identifier, _startdate, _enddate, _config):
-        if identifier not in MovingAverage.instances.keys() :
+    def get_unique_instance(identifier, _startdate, _enddate, _config):
+        if identifier not in Globals.moving_average_instances.keys() :
             new_instance = MovingAverage( identifier, _startdate, _enddate, _config )
-            MovingAverage.instances[identifier] = new_instance
-        return MovingAverage.instances[identifier]
+            Globals.moving_average_instances[identifier] = new_instance
+        return Globals.moving_average_instances[identifier]
 
     # Update moving average indicators on each ENDOFDAY event
     def on_dailybook_update( self, product, dailybook ):
@@ -49,3 +48,4 @@ class MovingAverage( DailyBookListener ):
         self.values = ( dailybook[-1][0], val )         
         for listener in self.listeners: 
             listener.on_indicator_update( self.identifier, self.values )
+

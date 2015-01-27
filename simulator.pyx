@@ -3,6 +3,7 @@
 
 import os
 import sys
+import shutil
 from importlib import import_module
 import ConfigParser
 from dispatcher.dispatcher import Dispatcher
@@ -52,8 +53,9 @@ class Simulator:
             self._end_date = _end_date
     
         self._directory =  os.path.dirname(os.getcwd()) + "/logs/" + os.path.splitext(os.path.basename(_config_file))[0]+'/' # directory to store log files like positions,returns file
-        if not os.path.exists(self._directory):
-            os.makedirs(self._directory)
+        if os.path.exists(self._directory):
+            shutil.rmtree(self._directory)
+        os.makedirs(self._directory)
         
         # Read product list from config file
         Globals.trade_products = get_trade_products(self._config)
@@ -63,7 +65,7 @@ class Simulator:
         Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, Globals.product_type = get_currency_and_conversion_factors(self._all_products, self._start_date, self._end_date)
 
         # Initialize the log file handles
-        self._log_dir =  os.path.dirname(os.getcwd()) + "/logs/" + os.path.splitext(_config_file)[0].split('/')[-1] + '/'
+        self._log_dir =  os.path.expanduser('~') + "/logs/" + os.path.splitext(_config_file)[0].split('/')[-1] + '/'
         init_logs(self._config, self._log_dir, self._all_products)
        
         # Import the strategy class using 'Strategy'->'name' in config file
@@ -89,8 +91,8 @@ class Simulator:
         print '\nTotal Tradable Days = %d'%(self._dispatcher.trading_days)
         # Call the performance tracker to display the stats
         self._tradelogic_instance.performance_tracker.show_results()
-        
-                
+        Globals.reset()
+
 if __name__ == '__main__':
     if len ( sys.argv ) < 2 :
         print "config_file <trading-startdate trading-enddate>"

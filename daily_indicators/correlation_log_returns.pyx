@@ -5,6 +5,7 @@ from utils.regular import get_dt_from_date
 from indicator_listeners import IndicatorListener
 from daily_log_returns import DailyLogReturns
 from portfolio_utils import get_products_from_portfolio_string,make_portfolio_string_from_products
+from utils.global_variables import Globals
 
 class CorrelationLogReturns(IndicatorListener):
     """Compute the correlation of log returns of a number of product for the specified number of days
@@ -14,8 +15,6 @@ class CorrelationLogReturns(IndicatorListener):
 
 
     """
-
-    instances = {}
 
     def __init__(self, identifier, _startdate, _enddate, _config):
         params = identifier.strip().split('.') # interpretation of params is PortfolioString and number of days to look back
@@ -48,10 +47,10 @@ class CorrelationLogReturns(IndicatorListener):
         _split_identifier_words = identifier.split('.')
         _products = sorted(get_products_from_portfolio_string(_split_identifier_words[1]))
         _sorted_identifier = _split_identifier_words[0] + '.' + make_portfolio_string_from_products(_products) + '.' + _split_identifier_words[2]
-        if _sorted_identifier not in CorrelationLogReturns.instances.keys() :
+        if _sorted_identifier not in Globals.correlation_log_returns_instances.keys() :
             new_instance = CorrelationLogReturns(_sorted_identifier, _startdate, _enddate, _config)
-            CorrelationLogReturns.instances[_sorted_identifier] = new_instance
-        return CorrelationLogReturns.instances[_sorted_identifier]
+            Globals.correlation_log_returns_instances[_sorted_identifier] = new_instance
+        return Globals.correlation_log_returns_instances[_sorted_identifier]
 
     def on_indicator_update(self, identifier, daily_log_returns_dt):
         """Update the standard deviation indicators on each ENDOFDAY event
@@ -76,7 +75,10 @@ class CorrelationLogReturns(IndicatorListener):
             if self.logret_matrix.shape[0] >= 2:
                 self.covariance_matrix = np.cov(self.logret_matrix.T)
                 # TODO, probably this can be made more efficient, since we already have the covariance matrix
-                self.correlation_matrix = np.corrcoef(self.logret_matrix.T) 
+                self.correlation_matrix = np.corrcoef(self.logret_matrix.T)
                 self.stddev_logret = np.std(self.logret_matrix,axis=0,ddof=1)
                 self.correlation_matrix_already_computed = True
+        if np.isnan(np.sum(self.correlation_matrix)): # If atleast 1 value is nan, use identity matrix as correlation matrix.One usecase is for single product
+            self.correlation_matrix = np.eye(len(self.products)) 
         return(self.correlation_matrix)
+

@@ -5,6 +5,7 @@ import math
 from indicator_listeners import IndicatorListener
 from daily_log_returns import DailyLogReturns
 from moving_average import MovingAverage
+from utils.global_variables import Globals
 
 # In the config file this indicator will be specfied as StdDevCrossover.product.stddev_period.crossover_short_period.crossover_long_period
 class Crossover(IndicatorListener):
@@ -18,8 +19,6 @@ class Crossover(IndicatorListener):
            DailyLogReturns of the corresponding product
            Moving Average indicator (logn and short) of the corresponding product
     """
-    instances = {}
-
     def __init__(self, identifier, _startdate, _enddate, _config):
         """Initializes the required variables like identifier, self.current_mv_short, self.current_mv_long etc
            and starts listening to short and long moving averages of the corresponding product
@@ -63,10 +62,10 @@ class Crossover(IndicatorListener):
     @staticmethod
     def get_unique_instance(identifier, _startdate, _enddate, _config):
         """This static function is used by other classes to add themselves as a listener to the StdDev"""
-        if identifier not in Crossover.instances.keys() :
+        if identifier not in Globals.crossover_instances.keys() :
             new_instance = Crossover(identifier, _startdate, _enddate, _config)
-            Crossover.instances[identifier] = new_instance
-        return Crossover.instances[identifier]
+            Globals.crossover_instances.instances[identifier] = new_instance
+        return Globals.crossover_instances[identifier]
 
     def on_indicator_update(self, identifier, values):
         """On a moving average update, this function is called by the MovingAverage instance and the new moving avg value is set here
@@ -89,3 +88,4 @@ class Crossover(IndicatorListener):
             self.values = (values[0], _val)
             for listener in self.listeners: 
                 listener.on_indicator_update(self.identifier, self.values)
+

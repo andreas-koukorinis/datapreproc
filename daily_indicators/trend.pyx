@@ -3,14 +3,12 @@ import sys
 import numpy
 from daily_indicators.indicator_listeners import IndicatorListener
 from daily_indicators.daily_log_returns import DailyLogReturns
-
+from utils.global_variables import Globals
 
 class Trend(IndicatorListener):
     """Track the direction of trend for the product
     In the config file this indicator will be specfied as : Trend,product,period
     """
-
-    instances = {}
 
     def __init__(self, identifier, _startdate, _enddate, _config):
         self.values = ()# Tuple of the form(dt,value)
@@ -32,10 +30,10 @@ class Trend(IndicatorListener):
 
     @staticmethod
     def get_unique_instance(identifier, _startdate, _enddate, _config):
-        if identifier not in Trend.instances.keys():
+        if identifier not in Globals.trend_instances.keys():
             new_instance = Trend(identifier, _startdate, _enddate, _config)
-            Trend.instances[identifier] = new_instance
-        return Trend.instances[identifier]
+            Globals.trend_instances[identifier] = new_instance
+        return Globals.trend_instances[identifier]
 
     def on_indicator_update(self, identifier, daily_log_returns_dt):
         """Update the past trend observed on each ENDOFDAY event"""
@@ -53,3 +51,5 @@ class Trend(IndicatorListener):
         self.values = (daily_log_returns_dt[-1][0], val)
         for listener in self.listeners:
             listener.on_indicator_update(self.identifier, self.values)
+
+        

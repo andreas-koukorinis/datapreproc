@@ -6,6 +6,7 @@ import MySQLdb
 from utils.dbqueries import push_all_end_of_day_events, push_all_tax_payment_events
 from utils.regular import get_dt_from_date,check_eod
 from utils import defaults
+from utils.global_variables import Globals
 
 class Dispatcher (object):
     """Maintains a heap of all the future events, fetches them in chronological order
@@ -13,12 +14,12 @@ class Dispatcher (object):
 
        Description: Initially the dispatcher fetches all end of day events from the database and pushes them to a heap keyed by the timestamp
                     Then for each set of concurrent events in chronological order,calls are made to(in order):
-                    event_listeners: book builders updated
+                    product_event_listeners: book builders updated
                     events_listeners: control given to strategy
                     end_of_day_listeners: performance updated
 
        Listeners: There are currently three types of dispatcher listeners to the dispatcher
-                  1) event_listeners: The listeners which are interested in the events corresponding to a particular product.
+                  1) product_event_listeners: The listeners which are interested in the events corresponding to a particular product.
                                       Names: Bookbuilders for each product
                   2) events_listeners: The listeners which are interested in all sets of concurrent events
                                        Names: TradeAlgorithm and SignalAlgorithm
@@ -27,8 +28,6 @@ class Dispatcher (object):
 
        Listening to: None
     """
-
-    instance=[]
 
     def __init__( self, products, _startdate, _enddate, _config ):
         """Initializes the required variables.
@@ -54,19 +53,20 @@ class Dispatcher (object):
         self.sim_start_dt = self.start_dt + timedelta (days=-warmupdays)
         self.products = products
         self.heap = []	# Initialize the heap, heap will contain tuples of the form (timestamp,event)
-        self.event_listeners = dict([(product,[]) for product in self.products])  # For each product,maintain a list of listeners
+        self.product_event_listeners = dict([(product,[]) for product in self.products])  # For each product,maintain a list of listeners
         self.events_listeners = []  # These are the listeners which receive all the concurrent events at once.Here Strategy only
         self.end_of_day_listeners = []  # These are the listeners called on eand of each trading day.Here Performance Tracker
         self.tax_payment_day_listeners = [] # These are the listeners called on the tax payment day(typically end of year).Here Performance Tracker
         self.distribution_day_listeners = [] # These are the listeners called on the day when a distribution(dividend/capital_gain) is paid out
 
     @staticmethod
-    def get_unique_instance( products, _startdate, _enddate, _config ):
+    def get_unique_instance(products, _startdate, _enddate, _config ):
         """This static function is used by other classes to add themselves as a listener to the dispatcher"""
-        if len( Dispatcher.instance ) == 0 :
-            new_instance = Dispatcher( products, _startdate, _enddate, _config )
-            Dispatcher.instance.append( new_instance )
-        return Dispatcher.instance[0]
+        if Globals.dispatcher_instance is not None:
+            return Globals.dispatcher_instance
+        new_instance = Dispatcher( products, _startdate, _enddate, _config )
+        Globals.dispatcher_instance = new_instance
+        return Globals.dispatcher_instance
 
     def add_event_listener(self, listener, product):  # For Bookbuilders
         """Used by classes to register as event_listener of the dispatcher
@@ -77,8 +77,8 @@ class Dispatcher (object):
 
            Returns: Nothing       
         """
-        self.event_listeners[product].append(listener)
-
+        self.product_event_listeners[product].append(listener)
+        
     def add_events_listener(self, listener):  # For strategy,signals
         """Used by classes to register as events_listener of the dispatcher
 
@@ -135,9 +135,10 @@ class Dispatcher (object):
                 tup = heapq.heappop(self.heap)
                 event = tup[1]
                 concurrent_events.append(event)
+
             for event in concurrent_events:
                 if event['type']=='ENDOFDAY': # This is an endofday event
-                    for listener in self.event_listeners[event['product']]:
+                    for listener in self.product_event_listeners[event['product']]:
                         listener.on_daily_event_update(event)
 
                 if event['type']=='INTRADAY':  # This is an intraday event
@@ -160,7 +161,7 @@ class Dispatcher (object):
                 for listener in self.end_of_day_listeners:
                     listener.on_end_of_day(concurrent_events[0]['dt'].date())
 
-            if(len(self.heap)>0):
+            if(len(self.heap)>0):    
                 current_dt = self.heap[0][0] # If the are still elements in the heap,update the timestamp to next timestamp
             else : break # If sufficient data is not available,break out of loop
 
@@ -173,5 +174,6 @@ class Dispatcher (object):
 
            Returns: Nothing      
         """
-        push_all_end_of_day_events(self.heap, products, self.sim_start_dt.date(), self.end_dt.date())
+        push_all_end_of_day_events(self.heap, products, self.sim_start_dt.date(), self.end_dt.date(), self.start_dt.date())
         push_all_tax_payment_events(self.heap, self.start_dt.date(), self.end_dt.date())
+    

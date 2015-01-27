@@ -54,7 +54,7 @@ def get_last_trading_dates( products, _startdate, _enddate ):
     db_close(db)
     return _last_trading_days
 
-def push_all_end_of_day_events( heap, products, _startdate, _enddate ):
+def push_all_end_of_day_events( heap, products, _startdate, _enddate, _actual_startdate ):
     products = [ product.lstrip('f') for product in products ]
     (db,db_cursor) = db_connect()
     _format_strings = ','.join(['%s'] * len(products))
@@ -81,7 +81,7 @@ def push_all_end_of_day_events( heap, products, _startdate, _enddate ):
             if _product_type == 'etf':
                 _event = {'product':row['product'], 'open': float(row['open']), 'high': float(row['high']),'low': float(row['low']), 'close': float(row['close']), 'volume': float(row['volume']), 'type':'ENDOFDAY', 'dt': _dt,'product_type': types[row['product']], 'is_last_trading_day': False}
                 _dividend = float(row['dividend'])
-                if _dividend > 0 and row['date'] >= _startdate:
+                if _dividend > 0 and row['date'] >= _actual_startdate:
                     _distribution_event = {'product': row['product'], 'type': 'DISTRIBUTIONDAY','distribution_type': 'DIVIDEND', 'dt': datetime.datetime.combine(row['date'], distribution_time), 'quote': float(row['dividend'])}
                     heapq.heappush(heap,(_distribution_event['dt'], _distribution_event))
 
@@ -89,10 +89,10 @@ def push_all_end_of_day_events( heap, products, _startdate, _enddate ):
                 _event = {'product':row['product'],'close': float(row['close']),'asking_price': float(row['asking_price']),'forward_adjusted_close': float(row['forward_adjusted_close']),'backward_adjusted_price': float(row['backward_adjusted_price']), 'type':'ENDOFDAY', 'dt': _dt,'product_type': types[row['product']], 'is_last_trading_day': False}
                 _dividend = float(row['dividend'])
                 _capital_gain = float(row['capital_gain'])
-                if _dividend > 0 and row['date'] >= _startdate:
+                if _dividend > 0 and row['date'] >= _actual_startdate:
                     _distribution_event = {'product': row['product'], 'type': 'DISTRIBUTIONDAY','distribution_type': 'DIVIDEND', 'dt': datetime.datetime.combine(row['date'], distribution_time), 'quote': _dividend}
                     heapq.heappush(heap,(_distribution_event['dt'], _distribution_event))
-                if _capital_gain > 0 and row['date'] >= _startdate:
+                if _capital_gain > 0 and row['date'] >= _actual_startdate:
                     _distribution_event = {'product': row['product'], 'type': 'DISTRIBUTIONDAY','distribution_type': 'CAPITALGAIN', 'dt': datetime.datetime.combine(row['date'], distribution_time), 'quote': _capital_gain}
                     heapq.heappush(heap,(_distribution_event['dt'], _distribution_event))
             
@@ -143,7 +143,7 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
         if row['currency'] != 'USD':
             _currency = row['currency'] + 'USD'
             currencies.append(_currency)
-            dummy_value[_currency] = 0.0
+            dummy_value[_currency] = (0.0,0.0)
             product_to_currency[_symbol] = _currency
             currency_factor[_currency] = {}
         else:
@@ -153,13 +153,13 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
     currencies = list(set(currencies))
     if len(currencies) > 0:
         _format_strings = ','.join(['%s'] * len(currencies))
-        query = "SELECT date,product,close FROM forex WHERE product IN (%s) AND date >= '%s' AND date <= '%s' ORDER BY date" % (_format_strings, start_date, end_date)
+        query = "SELECT date,product,open,close FROM forex WHERE product IN (%s) AND date >= '%s' AND date <= '%s' ORDER BY date" % (_format_strings, start_date, end_date)
         db_cursor.execute(query, tuple(currencies))
         rows = db_cursor.fetchall()
         for row in rows:
-            if dummy_value[row['product']] == 0.0:
-                dummy_value[row['product']] = float(row['close'])
-            currency_factor[row['product']][row['date']] = float(row['close'])
+            if dummy_value[row['product']] == (0.0,0.0):
+                dummy_value[row['product']] = (float(row['open']),float(row['close']))
+            currency_factor[row['product']][row['date']] = (float(row['open']),float(row['close']))
     if _is_usd_present:
         currencies.append('USD')
     _date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
@@ -168,7 +168,7 @@ def get_currency_and_conversion_factors(products, start_date, end_date):
     while _date <= end_date:
         for _currency in currencies:
             if _currency == 'USD':
-                currency_factor[_currency][_date] = 1.0
+                currency_factor[_currency][_date] = (1.0,1.0)
             else:
                 _currency_val = currency_factor[_currency].get(_date, dummy_value[_currency])
                 currency_factor[_currency][_date] = _currency_val

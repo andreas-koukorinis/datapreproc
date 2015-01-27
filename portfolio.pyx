@@ -88,3 +88,4 @@ class Portfolio(BackTesterListener):
             sys.exit( 'ERROR : Portfolio -> on_last_trading_day -> orders not placed properly -> first futures contract of %s has non zero shares after last trading day' % _base_symbol )
         else:
             shift_future_symbols(self.num_shares, future_mappings)
+

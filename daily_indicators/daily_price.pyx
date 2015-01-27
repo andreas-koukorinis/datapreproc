@@ -3,11 +3,10 @@ import datetime
 from bookbuilder.bookbuilder_listeners import DailyBookListener
 from bookbuilder.bookbuilder import BookBuilder
 from utils.regular import get_first_futures_contract, is_future_entity, is_future
+from utils.global_variables import Globals
 
 # Track the daily log returns for the product
 class DailyPrice(DailyBookListener):
-
-    instances = {}
 
     def __init__(self, _identifier, _startdate, _enddate, _config):
         self.listeners = []
@@ -25,12 +24,13 @@ class DailyPrice(DailyBookListener):
 
     @staticmethod
     def get_unique_instance(identifier, _startdate, _enddate, _config):
-        if identifier not in DailyPrice.instances.keys() :
+        if identifier not in Globals.daily_prices_instances.keys() :
             new_instance = DailyPrice(identifier, _startdate, _enddate, _config)
-            DailyPrice.instances[identifier] = new_instance
-        return DailyPrice.instances[identifier]
+            Globals.daily_prices_instances[identifier] = new_instance
+        return Globals.daily_prices_instances[identifier]
 
     # Update the daily price on each ENDOFDAY event
     def on_dailybook_update(self, product, dailybook):
         self.values.append((dailybook[-1][0].date(), dailybook[-1][1]))
         for listener in self.listeners: listener.on_indicator_update(self.identifier, self.values)
+

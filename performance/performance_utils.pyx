@@ -2,8 +2,25 @@ import numpy
 import math
 import datetime
 import itertools
+import scipy.stats as ss
 from utils.calculate import convert_daily_returns_to_yyyymm_monthly_returns_pair
 from utils.regular import is_float_zero
+
+def annualized_returns(daily_log_returns):
+    if daily_log_returns.shape[0] < 1:
+        annualized_returns = 1.0
+    else:
+        annualized_returns = (math.exp(numpy.mean(daily_log_returns) * 252.0) - 1) * 100
+        #annualized_returns = max(1.0, min(50.0, annualized_returns)) # TODO check min max
+    return annualized_returns
+
+def annualized_stdev(daily_log_returns):
+    if daily_log_returns.shape[0] < 2:
+        annualized_stdev = 100.0
+    else:
+        annualized_stdev = (math.exp(math.sqrt(252.0) * numpy.std(daily_log_returns)) - 1) * 100.0
+        annualized_stdev = max(1.0, min(100.0, annualized_stdev))
+    return annualized_stdev   
 
 def drawdown(returns):
     """Calculates the global maximum drawdown i.e. the maximum drawdown till now"""
@@ -53,8 +70,8 @@ def compute_yearly_sharpe(dates, returns):
     yearly_sharpe = []
     for key, rows in itertools.groupby(yyyy_returns, lambda x : x[0]):
         _returns = numpy.array([x[1] for x in rows])
-        _ann_returns = (math.exp(252.0 * numpy.mean(_returns)) - 1) * 100.0
-        _ann_std = (math.exp(math.sqrt(252.0) * numpy.std(_returns)) - 1) * 100.0
+        _ann_returns = annualized_returns(_returns)
+        _ann_std = annualized_stdev(_returns)
         yearly_sharpe.append((key, _ann_returns/_ann_std ))
     return yearly_sharpe
 
@@ -233,3 +250,41 @@ def drawdown_period_and_recovery_period(dates, _cum_returns):
     else:
         recovery_period = (dates[_end_idx_max_drawdown], datetime.date(2050,1,1)) # Never recovered
     return (drawdown_period, recovery_period)
+
+def get_all_stats(dates, daily_log_returns):
+    net_returns = (math.exp(numpy.sum(daily_log_returns)) - 1) * 100.0 
+    monthly_log_returns = rollsum(daily_log_returns, 21)
+    quarterly_log_returns = rollsum(daily_log_returns, 63)
+    yearly_log_returns = rollsum(daily_log_returns, 252)
+    worst_10pc_daily_returns = (math.exp(mean_lowest_k_percent(daily_log_returns, 10)) - 1)*100.0
+    worst_10pc_monthly_returns = (math.exp(mean_lowest_k_percent(monthly_log_returns, 10)) - 1)*100.0
+    worst_10pc_quarterly_returns = (math.exp(mean_lowest_k_percent(quarterly_log_returns, 10)) - 1) * 100.0
+    worst_10pc_yearly_returns = (math.exp(mean_lowest_k_percent(yearly_log_returns, 10)) - 1) * 100.0
+    annualized_returns_percent = annualized_returns(daily_log_returns)
+    annualized_stddev_returns = annualized_stdev(daily_log_returns)
+    sharpe = annualized_returns_percent/annualized_stddev_returns
+    yearly_sharpe = compute_yearly_sharpe(dates, daily_log_returns)
+    sortino = compute_sortino(daily_log_returns)
+    _format_strings = ','.join([' %s : %0.2f'] * len(yearly_sharpe))
+    _yearly_sharpe_tuple = tuple(list(itertools.chain(*yearly_sharpe)))
+    _print_yearly_sharpe = _format_strings%_yearly_sharpe_tuple
+    skewness = ss.skew(daily_log_returns)
+    kurtosis = ss.kurtosis(daily_log_returns)
+    max_drawdown_percent = abs((math.exp(drawdown(daily_log_returns)) - 1) * 100)
+    drawdown_period, recovery_period = drawdown_period_and_recovery_period(dates, daily_log_returns.cumsum())
+    return_by_maxdrawdown = annualized_returns_percent/max_drawdown_percent
+    ret_var10 = abs(annualized_returns_percent/worst_10pc_daily_returns)
+    #turnover_percent = turnover(self.dates, self.amount_long_transacted, self.amount_short_transacted, self.value)
+    hit_loss_ratio = numpy.sum(numpy.where(daily_log_returns > 0, 1.0, 0.0))/numpy.sum(numpy.where(daily_log_returns < 0, 1.0, 0.0))
+    gain_pain_ratio = numpy.sum(daily_log_returns)/numpy.sum(numpy.where(daily_log_returns < 0, -daily_log_returns, 0.0))
+    max_num_days_no_new_high = compute_max_num_days_no_new_high(dates, daily_log_returns)
+    losing_month_streak = compute_losing_month_streak(dates, daily_log_returns)
+    extreme_days = get_extreme_days(dates, daily_log_returns, 5)
+    extreme_weeks = get_extreme_weeks(dates, daily_log_returns, 5)
+    #if len(self.leverage) > 0:
+    #        _leverage_params = (min(self.leverage), max(self.leverage), numpy.mean(self.leverage), numpy.std(self.leverage))
+    #    else:
+    #        _leverage_params = (0, 0, 0, 0)
+    _stats = extreme_days + extreme_weeks 
+    _stats += ("\nNet Returns = %.2f%%\nAnnualized_Returns = %.2f%% \nAnnualized_Std_Returns = %.2f%% \nSharpe Ratio = %.2f \nSortino Ratio = %.2f\nSkewness = %.2f\nKurtosis = %.2f\nDML = %.2f%%\nMML = %.2f%%\nQML = %.2f%%\nYML = %.2f%%\nMax Drawdown = %.2f%% \nDrawdown Period = %s to %s\nDrawdown Recovery Period = %s to %s\nReturn_drawdown_Ratio = %.2f\nReturn Var10 ratio = %.2f\nYearly_sharpe = " + _print_yearly_sharpe + "\nHit Loss Ratio = %0.2f\nGain Pain Ratio = %0.2f\nMax num days with no new high = %d from %s to %s\nLosing month streak = Lost %0.2f%% in %d months from %s to %s\n") % (net_returns, annualized_returns_percent, annualized_stddev_returns, sharpe, sortino, skewness, kurtosis, worst_10pc_daily_returns, worst_10pc_monthly_returns, worst_10pc_quarterly_returns, worst_10pc_yearly_returns, max_drawdown_percent, drawdown_period[0], drawdown_period[1], recovery_period[0], recovery_period[1], return_by_maxdrawdown, ret_var10, hit_loss_ratio, gain_pain_ratio, max_num_days_no_new_high[0], max_num_days_no_new_high[1], max_num_days_no_new_high[2], losing_month_streak[1], losing_month_streak[0], losing_month_streak[2], losing_month_streak[3])
+    return _stats 

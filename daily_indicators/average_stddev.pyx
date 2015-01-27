@@ -3,6 +3,7 @@ import sys
 import numpy
 from indicator_listeners import IndicatorListener
 from stddev import StdDev
+from utils.global_variables import Globals
 
 class AverageStdDev( IndicatorListener ):
     """Track the average standard deviation of log returns over a list of periods for the product.
@@ -10,7 +11,6 @@ class AverageStdDev( IndicatorListener ):
     We will instantiate StdDev indicators for each duration and then maintain an average of the indicator values of those.
 
     """
-    instances = {}
 
     def __init__( self, identifier, _startdate, _enddate, _config ):
         self.values = (0.0,1) # Tuple of the form (dt,value) #TODO better init for default dt
@@ -43,11 +43,11 @@ class AverageStdDev( IndicatorListener ):
         self.listeners.append( listener )
 
     @staticmethod
-    def get_unique_instance( identifier, _startdate, _enddate, _config):
-        if identifier not in AverageStdDev.instances.keys() :
+    def get_unique_instance(identifier, _startdate, _enddate, _config):
+        if identifier not in Globals.average_stdev_instances.keys() :
             new_instance = AverageStdDev( identifier, _startdate, _enddate, _config )
-            AverageStdDev.instances[identifier] = new_instance
-        return AverageStdDev.instances[identifier]
+            Globals.average_stdev_instances[identifier] = new_instance
+        return Globals.average_stdev_instances[identifier]
 
     def _have_we_received_all_updates(self):
         if numpy.sum(self.received_updates) == self.stdev_vec_len:
@@ -71,3 +71,4 @@ class AverageStdDev( IndicatorListener ):
             self.values = ( values[0], val )
             for listener in self.listeners: 
                 listener.on_indicator_update( self.identifier, self.values )
+

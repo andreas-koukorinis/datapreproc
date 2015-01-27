@@ -11,8 +11,11 @@ from daily_indicators.correlation_log_returns import CorrelationLogReturns
 from daily_indicators.portfolio_utils import make_portfolio_string_from_products
 from signals.signal_algorithm import SignalAlgorithm
 
-class TargetRiskEqualRiskContribution(SignalAlgorithm):
-    """Implementation of the ERC risk balanced strategy
+class TargetRiskEqualRiskContributionJessop(SignalAlgorithm):
+    """Implementation of the ERC risk balanced strategy based on Jessop's approach : 
+    The objective function is : 
+        Max[ Sum(log(|wi|)) ] 
+        subject to wT*cov*w <= self.target_risk and weight bounds according to mandate sign
 
     Items read from config :
     target_risk : this is the risk value we want to have. For now we are just interpreting that as the desired ex-ante stdev value. In future we will improve this to a better risk measure
@@ -60,7 +63,7 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
         self.logret_correlation_matrix = numpy.eye(len(self.products))
     
     def process_param_file(self, _paramfilepath, _config):
-        super(TargetRiskEqualRiskContribution, self).process_param_file(_paramfilepath, _config)
+        super(TargetRiskEqualRiskContributionJessop, self).process_param_file(_paramfilepath, _config)
 
     def process_model_file(self, _modelfilepath, _config):
         _model_file_handle = open( _modelfilepath, "r" )
@@ -178,15 +181,11 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
                     self.erc_weights = zero_corr_risk_parity_weights/numpy.sum(numpy.abs(zero_corr_risk_parity_weights))
                     self.erc_weights_optim = self.erc_weights
 
-                # Using L1 norm here. It does not optimize well if we use L2 norm.
-                def _get_l1_norm_risk_contributions(_given_weights):
-                    """Function to return the L1 norm of the series of { risk_contrib - mean(risk_contrib) },
-                    or sum of absolute values of the series of { risk_contributions - mean(risk_contributions) }
-                    """
-                    _cov_vec = numpy.array(numpy.asmatrix(_cov_mat)*numpy.asmatrix(_given_weights).T)[:, 0]
-                    _trc = _given_weights*_cov_vec
-                    return (numpy.sum(numpy.abs(_trc - numpy.mean(_trc))))
+                def _get_objective_function(_given_weights):
+                    """The objective function is Max[ Sum(log(|wi|)) ] subject to wT*cov*w <= self.target_risk and bounds according to mandate sign"""
+                    return -1.0*(numpy.sum(numpy.log(numpy.abs(_given_weights))))
 
+                _constraints = ({'type':'ineq', 'fun': lambda x: self.target_risk - 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(x) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(x).T))[0, 0]) - 1)})
                 _bounds = []
                 # Bounds ensure that we follow the mandate sign of the product
                 for i in range(self.erc_weights.shape[0]):
@@ -194,17 +193,17 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
                         _bounds.append((0, None))
                     else:
                         _bounds.append((None, 0))
-                _bounds = list(_bounds)
-
-                _constraints = {'type':'eq', 'fun': lambda x: numpy.sum(numpy.abs(x)) - 1}
-                self.erc_weights_optim = minimize(_get_l1_norm_risk_contributions, self.erc_weights_optim, method='SLSQP',bounds = _bounds, constraints=_constraints, options={'ftol': self.optimization_ftol, 'disp': False, 'maxiter':self.optimization_maxiter}).x
+                _bounds = list(_bounds)   
+                
+                self.erc_weights_optim = minimize(_get_objective_function, self.erc_weights_optim, method='SLSQP', bounds=_bounds, constraints=_constraints, options={'ftol': self.optimization_ftol, 'disp': False, 'maxiter':self.optimization_maxiter}).x
                 self.erc_weights = self.erc_weights_optim
+                #print (self.erc_weights*numpy.array(numpy.asmatrix(_cov_mat)*numpy.asmatrix(self.erc_weights).T)[:, 0]) # To check if risk contributions are equal
 
                 # We check whether weights produced here have the same signs as self.allocation_signs.
                 # Otherwise we try to correct them
                 if sum(numpy.abs(numpy.sign(self.erc_weights)-numpy.sign(self.allocation_signs))) > 0:
-                    # some sign isn't what it shoudl be
-                    _check_sign_of_weights = False # this is sort of a debugging exercise
+                    # some sign isn't what it should be
+                    _check_sign_of_weights = True # this is sort of a debugging exercise
                     if _check_sign_of_weights:
                         print ( "Sign-check-fail: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
                     _annualized_risk = 100.0*(numpy.exp(numpy.sqrt(252.0)*self.stdev_logret)-1) # we should do this only when self.stdev_logret has been updated

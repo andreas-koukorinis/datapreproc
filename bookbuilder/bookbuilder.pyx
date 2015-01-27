@@ -1,4 +1,5 @@
 # cython: profile=True
+import sys
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import DailyEventListener
 from utils.regular import get_all_products
@@ -10,8 +11,6 @@ from utils.global_variables import Globals
  Update the daily book[based on tuples(timestamp,closingprices)] on the 'ENDOFDAY' event corresponding to its product
  Call its Daily book listeners : Backtester,DailyLogReturn Indicator'''
 class BookBuilder(DailyEventListener):
-
-    instances = {}
 
     def __init__(self, product, _startdate, _enddate, _config):
         self.product = product
@@ -25,10 +24,10 @@ class BookBuilder(DailyEventListener):
 
     @staticmethod
     def get_unique_instance(product, _startdate, _enddate, _config):
-        if(product not in BookBuilder.instances.keys()):
+        if(product not in Globals.bookbuilder_instances.keys()):
             new_instance = BookBuilder(product, _startdate, _enddate, _config)
-            BookBuilder.instances[product]=new_instance
-        return BookBuilder.instances[product]
+            Globals.bookbuilder_instances[product] = new_instance
+        return Globals.bookbuilder_instances[product]
 
     def add_dailybook_listener(self,listener):
         self.dailybook_listeners.append(listener)
@@ -50,3 +49,4 @@ class BookBuilder(DailyEventListener):
     # TODO {sanchit}
     def on_intraday_event_update(self, event):
         pass
+
