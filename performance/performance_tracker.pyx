@@ -40,7 +40,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.currency_factor = Globals.currency_factor
         self.product_to_currency = Globals.product_to_currency
         self.num_shares_traded = dict([(product, 0) for product in self.products])
-        self.benchmarks = ['VBLTX', 'VTSMX', 'AQRIX', 'BTOP50', 'TULIP', 'AHLDIV']
+        self.benchmarks = ['VBLTX', 'VTSMX', 'AQRIX','AQMIX', 'BTOP50', 'TULIP', 'AHLDIV']
         if _config.has_option('Benchmarks', 'products'):
             self.benchmarks.extend(_config.get('Benchmarks','products').split(','))
         self.dates = []
