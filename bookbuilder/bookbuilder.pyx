@@ -2,7 +2,6 @@
 import sys
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import DailyEventListener
-from utils.regular import get_all_products
 from utils.global_variables import Globals
 
 '''BookBuilder listens to the dispatcher for daily update of its product
@@ -18,7 +17,7 @@ class BookBuilder(DailyEventListener):
         self.intradaybook = []  # List of tuples (type,size,price) # Type = 0 -> bid, type = 1 -> ask
         self.dailybook_listeners = []
         self.intradaybook_listeners = []
-        products = get_all_products(_config)
+        products = Globals.all_products
         dispatcher = Dispatcher.get_unique_instance(products, _startdate, _enddate, _config)
         dispatcher.add_event_listener(self, self.product)
 

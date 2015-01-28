@@ -6,6 +6,7 @@ import os
 from importlib import import_module
 from utils.regular import get_dt_from_date
 from daily_indicators.indicator_listeners import IndicatorListener
+from daily_indicators.indicator_list import is_valid_daily_indicator,get_module_name_from_indicator_name
 from utils.global_variables import Globals
 
 class PrintIndicators(IndicatorListener):
@@ -17,14 +18,15 @@ class PrintIndicators(IndicatorListener):
         self.latest_indicator_values = {}
         self.all_indicator_values = {}
         # Read indicator list from config file
-        self.identifiers = sorted(_config.get('daily_indicators', 'names').strip().split(" "))
+        self.identifiers = sorted(_config.get('DailyIndicators', 'names').strip().split(","))
         #Instantiate daily indicator objects
         for identifier in self.identifiers:
-            indicator_name = identifier.strip().split('.')[0]
-            module = import_module('daily_indicators.' + indicator_name)
-            _indicator_class = getattr(module, indicator_name)
-            _indicator_class.get_unique_instance(identifier, _startdate, _enddate, _config).add_listener(self)
-            self.latest_indicator_values[identifier] = 0.0 # Default value for each indicator
+            _indicator_name = identifier.split('.')[0]
+            if is_valid_daily_indicator(_indicator_name):
+                _indicator_module = import_module('daily_indicators.' + get_module_name_from_indicator_name(_indicator_name))
+                _indicator_class = getattr(_indicator_module, _indicator_name)
+                _indicator_class.get_unique_instance(identifier, _startdate, _enddate, _config).add_listener(self)
+                self.latest_indicator_values[identifier] = 0.0 # Default value for each indicator
 
     @staticmethod
     def get_unique_instance(_startdate, _enddate, _indicators_file, _config):
@@ -37,8 +39,6 @@ class PrintIndicators(IndicatorListener):
         '''After the Simulation has been done, this function
            is called by gendata.py for printing the indicator
            values to csv file'''
-        if not os.path.exists(os.path.dirname(self.indicators_file)):
-            os.makedirs(os.path.dirname(self.indicators_file))
         _file = open(self.indicators_file, 'w')
         _header = 'date,' + ','.join(self.identifiers)
         _out = _header + '\n'
@@ -67,5 +67,3 @@ class PrintIndicators(IndicatorListener):
                     else: # For other indicators use the latest value as the default value
                         self.all_indicator_values[current_date][_identifier] = self.latest_indicator_values[_identifier]
             self.all_indicator_values[current_date][identifier] = indicator_value[1]
-
-

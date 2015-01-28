@@ -5,6 +5,7 @@ class Globals:
     product_to_currency = {}
     product_type = {}
     trade_products = []
+    all_products = []
     debug_level = None
     positions_file = None
     returns_file = None
@@ -18,7 +19,7 @@ class Globals:
     ordermanager_instance = None
     backtester_instances = {}
     bookbuilder_instances = {}
-    printidicators_instance = None
+    printindicators_instance = None
     average_discretized_trend_instances = {}
     average_stdev_instances = {}
     correlation_log_returns_instances = {}
@@ -38,6 +39,7 @@ class Globals:
         cls.product_to_currency = {}
         cls.product_type = {}
         cls.trade_products = []
+        cls.all_products = []
         cls.debug_level = None
         cls.positions_file = None
         cls.returns_file = None
@@ -51,7 +53,7 @@ class Globals:
         cls.ordermanager_instance = None
         cls.backtester_instances = {}
         cls.bookbuilder_instances = {}
-        cls.printidicators_instance = None
+        cls.printindicators_instance = None
         cls.average_discretized_trend_instances = {}
         cls.average_stdev_instances = {}
         cls.correlation_log_returns_instances = {}
