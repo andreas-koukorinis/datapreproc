@@ -41,14 +41,14 @@ class TargetRiskEqualRiskContributionLogmax(SignalAlgorithm):
         self.stdev_indicator_vec = []
         self.correlation_computation_indicator = None
 
-        _paramfilepath="/dev/null"
+        _paramfilepath = "/dev/null"
         if _config.has_option('Parameters', 'paramfilepath'):
-            _paramfilepath=adjust_file_path_for_home_directory(_config.get('Parameters', 'paramfilepath'))
+            _paramfilepath = adjust_file_path_for_home_directory(_config.get('Parameters', 'paramfilepath'))
         self.process_param_file(_paramfilepath, _config)
 
-        _modelfilepath="/dev/null"
+        _modelfilepath = "/dev/null"
         if _config.has_option('Strategy','modelfilepath'):
-            _modelfilepath=adjust_file_path_for_home_directory(_config.get('Strategy','modelfilepath'))
+            _modelfilepath = adjust_file_path_for_home_directory(_config.get('Strategy','modelfilepath'))
         self.process_model_file(_modelfilepath, _config)
 
         # Some computational variables
@@ -95,12 +95,12 @@ class TargetRiskEqualRiskContributionLogmax(SignalAlgorithm):
                     _sign_words = _model_line_words[1:]
                     if len(_sign_words) % 2 != 0:
                         sys.exit('Something wrong in model file.allocation signs not in pairs')
-                    idx = 0
-                    while idx < len(_sign_words):
-                        _product, _sign = _sign_words[idx], float(_sign_words[idx+1])
+                    _idx_sign_words = 0
+                    while _idx_sign_words < len(_sign_words):
+                        _product, _sign = _sign_words[_idx_sign_words], float(_sign_words[_idx_sign_words + 1])
                         if _product in self.products:
                             self.allocation_signs[self.map_product_to_index[_product]] = _sign
-                        idx += 2
+                        _idx_sign_words += 2
                 else:
                     _product = _model_line_words[0]
                     if _product in self.products:
@@ -121,12 +121,12 @@ class TargetRiskEqualRiskContributionLogmax(SignalAlgorithm):
                     _sign_words = _model_line_words[1:]
                     if len(_sign_words) % 2 != 0:
                         sys.exit('Something wrong in model file.allocation signs not in pairs')
-                    idx = 0
-                    while idx < len(_sign_words):
-                        _product, _sign = _sign_words[idx], float(_sign_words[idx+1])
+                    _idx_sign_words = 0
+                    while _idx_sign_words < len(_sign_words):
+                        _product, _sign = _sign_words[_idx_sign_words], float(_sign_words[_idx_sign_words + 1])
                         if _product in self.products:
                             self.allocation_signs[self.map_product_to_index[_product]] = _sign
-                        idx += 2
+                        _idx_sign_words += 2
 
         if is_valid_daily_indicator(self.stdev_computation_indicator_name):
             _stdev_indicator_module = import_module('daily_indicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator_name))
@@ -160,8 +160,8 @@ class TargetRiskEqualRiskContributionLogmax(SignalAlgorithm):
 
             if self.day >= (self.last_date_stdev_computed + self.stdev_computation_interval):
                 # Get the stdev values from the stdev indicators
-                for i in xrange(len(self.stdev_logret)):
-                    self.stdev_logret[i] = max(0.000001, self.stdev_indicator_vec[i].get_stdev()) # a max with 1% is just to not have divide by 0 problems.
+                for _stdev_logret_index in xrange(len(self.stdev_logret)):
+                    self.stdev_logret[_stdev_logret_index] = max(0.000001, self.stdev_indicator_vec[_stdev_logret_index].get_stdev()) # a max with 1% is just to not have divide by 0 problems.
                     # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.
                     # TODO we can make tests here that the module needs to pass.
@@ -195,13 +195,12 @@ class TargetRiskEqualRiskContributionLogmax(SignalAlgorithm):
                         _bounds.append((None, 0))
                 _bounds = list(_bounds)   
                 
-                self.erc_weights_optim = minimize(_get_objective_function, self.erc_weights_optim, method='SLSQP', bounds=_bounds, constraints=_constraints, options={'ftol': self.optimization_ftol, 'disp': False, 'maxiter':self.optimization_maxiter}).x
+                self.erc_weights_optim = minimize(_get_objective_function, self.erc_weights_optim, method = 'SLSQP', bounds = _bounds, constraints = _constraints, options = {'ftol': self.optimization_ftol, 'disp': False, 'maxiter':self.optimization_maxiter}).x
                 self.erc_weights = self.erc_weights_optim
-                #print (self.erc_weights*numpy.array(numpy.asmatrix(_cov_mat)*numpy.asmatrix(self.erc_weights).T)[:, 0]) # To check if risk contributions are equal
 
                 # We check whether weights produced here have the same signs as self.allocation_signs.
                 # Otherwise we try to correct them
-                if sum(numpy.abs(numpy.sign(self.erc_weights)-numpy.sign(self.allocation_signs))) > 0:
+                if sum(numpy.abs(numpy.sign(self.erc_weights) - numpy.sign(self.allocation_signs))) > 0:
                     # some sign isn't what it should be
                     _check_sign_of_weights = True # this is sort of a debugging exercise
                     if _check_sign_of_weights:
