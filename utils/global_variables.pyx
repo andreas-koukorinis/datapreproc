@@ -19,7 +19,7 @@ class Globals:
     ordermanager_instance = None
     backtester_instances = {}
     bookbuilder_instances = {}
-    printidicators_instance = None
+    printindicators_instance = None
     average_discretized_trend_instances = {}
     average_stdev_instances = {}
     correlation_log_returns_instances = {}
@@ -53,7 +53,7 @@ class Globals:
         cls.ordermanager_instance = None
         cls.backtester_instances = {}
         cls.bookbuilder_instances = {}
-        cls.printidicators_instance = None
+        cls.printindicators_instance = None
         cls.average_discretized_trend_instances = {}
         cls.average_stdev_instances = {}
         cls.correlation_log_returns_instances = {}
