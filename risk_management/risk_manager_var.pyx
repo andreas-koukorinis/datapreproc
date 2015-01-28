@@ -65,11 +65,12 @@ class RiskManagerVar(RiskManagerAlgo):
         #check that the var levels are in descending order
         for i in xrange (1, len(self.var_levels)):
             if self.var_levels[i-1] <= self.var_levels[i]:
-                sys.exit("Var levels should be in increasing order. They seem to not be so! %s" %(','.join(self.var_levels)))
+                sys.exit("Var levels should be in decreasing order. They seem to not be so! %s" %(','.join(self.var_levels)))
 
         #check that the length of var_level_vec is 1 greater than the length of drawdown_levels, stoploss_levels
         if len(self.var_levels) != 1 + len(self.drawdown_levels) or len(self.var_levels) != 1 + len(self.stoploss_levels):
             sys.exit("Number of var levels should be 1 greater than the number of drawdown/stoploss levels.Does not hold!")
+
 
         #setup the var level array
         self.var_level_vec = []
