@@ -200,3 +200,17 @@ def fetch_prices(product, _startdate, _enddate):
         prices.append(_price)
     db_close(db)
     return np.array(dates), np.array(prices)
+
+def fetch_monthly_returns_benchmark(benchmark, _startdate, _enddate):
+    benchmark = benchmark.lstrip('f')
+    (db,db_cursor) = db_connect()
+    query = "SELECT * FROM benchmarks WHERE benchmark='%s' AND date >= '%s' AND date <= '%s' order by date" % (benchmark, _startdate, _enddate)
+    db_cursor.execute(query)
+    rows = db_cursor.fetchall()
+    dates = []
+    returns = []
+    for row in rows:
+        dates.append(row['date'])
+        returns.append(row['returns'])
+    db_close(db)
+    return np.array(dates), np.array(returns) 
