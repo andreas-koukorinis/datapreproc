@@ -33,7 +33,7 @@ class CWAS(SignalAlgorithm):
             sys.exit('Something wrong! Sum(Abs(weights)) is 0')
         for _product in self.weights.keys():
             self.weights[_product] = self.weights[_product]/_sum_abs_weights
-        
+
     def process_param_file(self, _paramfilepath, _config):
         super(CWAS, self).process_param_file(_paramfilepath, _config)
 
@@ -44,6 +44,20 @@ class CWAS(SignalAlgorithm):
             # fES 0.6
             # fZN 0.4
             _model_line_words = _model_line.strip().split(' ')
+            if len(_model_line_words) >= 3:
+                if _model_line_words[0] == 'sector_allocation':
+                    self.sector_allocation = _model_line_words[1:]
+                    if _config.has_option('Products', 'trade_products'):
+                        _product_files = [adjust_file_path_for_home_directory(x) for x in _config.get('Products', 'trade_products').split(',')]
+                        if len(_product_files) != len(self.sector_allocation):
+                            sys.exit('number of product files and sectors not same')
+                        for i in range(len(_product_files)):
+                            with open (_product_files[i], "r") as myfile:
+                                _products = myfile.read()
+                            _products = filter(None, _products.split('\n'))
+                            for _product in _products:
+                                self.weights[_product] = float(self.sector_allocation[i])
+
             if len(_model_line_words) == 2:
                 _product = _model_line_words[0]
                 _weight = float(_model_line_words[1])
