@@ -92,12 +92,12 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
                     _sign_words = _model_line_words[1:]
                     if len(_sign_words) % 2 != 0:
                         sys.exit('Something wrong in model file.allocation signs not in pairs')
-                    idx = 0
-                    while idx < len(_sign_words):
-                        _product, _sign = _sign_words[idx], float(_sign_words[idx+1])
+                    _idx_sign_words = 0
+                    while _idx_sign_words < len(_sign_words):
+                        _product, _sign = _sign_words[_idx_sign_words], float(_sign_words[_idx_sign_words + 1])
                         if _product in self.products:
                             self.allocation_signs[self.map_product_to_index[_product]] = _sign
-                        idx += 2
+                        _idx_sign_words += 2
                 else:
                     _product = _model_line_words[0]
                     if _product in self.products:
@@ -118,12 +118,12 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
                     _sign_words = _model_line_words[1:]
                     if len(_sign_words) % 2 != 0:
                         sys.exit('Something wrong in model file.allocation signs not in pairs')
-                    idx = 0
-                    while idx < len(_sign_words):
-                        _product, _sign = _sign_words[idx], float(_sign_words[idx+1])
+                    _idx_sign_words = 0
+                    while _idx_sign_words < len(_sign_words):
+                        _product, _sign = _sign_words[_idx_sign_words], float(_sign_words[_idx_sign_words + 1])
                         if _product in self.products:
                             self.allocation_signs[self.map_product_to_index[_product]] = _sign
-                        idx += 2
+                        _idx_sign_words += 2
 
         if is_valid_daily_indicator(self.stdev_computation_indicator_name):
             _stdev_indicator_module = import_module('daily_indicators.' + get_module_name_from_indicator_name(self.stdev_computation_indicator_name))
@@ -157,8 +157,8 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
 
             if self.day >= (self.last_date_stdev_computed + self.stdev_computation_interval):
                 # Get the stdev values from the stdev indicators
-                for i in xrange(len(self.stdev_logret)):
-                    self.stdev_logret[i] = max(0.000001, self.stdev_indicator_vec[i].get_stdev()) # a max with 1% is just to not have divide by 0 problems.
+                for _stdev_logret_index in xrange(len(self.stdev_logret)):
+                    self.stdev_logret[_stdev_logret_index] = max(0.000001, self.stdev_indicator_vec[_stdev_logret_index].get_stdev()) # a max with 1% is just to not have divide by 0 problems.
                     # TODO should not accessing an array without checking the length!
                     # TODO should add some sanity checks before overwriting previous value.
                     # TODO we can make tests here that the module needs to pass.
@@ -202,8 +202,8 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
 
                 # We check whether weights produced here have the same signs as self.allocation_signs.
                 # Otherwise we try to correct them
-                if sum(numpy.abs(numpy.sign(self.erc_weights)-numpy.sign(self.allocation_signs))) > 0:
-                    # some sign isn't what it shoudl be
+                if sum(numpy.abs(numpy.sign(self.erc_weights) - numpy.sign(self.allocation_signs))) > 0:
+                    # some sign isn't what it should be
                     _check_sign_of_weights = False # this is sort of a debugging exercise
                     if _check_sign_of_weights:
                         print ( "Sign-check-fail: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
