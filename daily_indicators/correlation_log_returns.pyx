@@ -65,7 +65,6 @@ class CorrelationLogReturns(IndicatorListener):
             self.logret_matrix = np.delete(self.logret_matrix,(0), axis=0)
         self.correlation_matrix_already_computed = False # this just marks that we need to recompute elements
 
-
     def get_correlation_matrix(self):
         """Returns the correlation matrix of log returns
         For performance reasons, perhaps we don't want to recompute the output variables
@@ -78,7 +77,6 @@ class CorrelationLogReturns(IndicatorListener):
                 self.correlation_matrix = np.corrcoef(self.logret_matrix.T)
                 self.stddev_logret = np.std(self.logret_matrix,axis=0,ddof=1)
                 self.correlation_matrix_already_computed = True
-        if np.isnan(np.sum(self.correlation_matrix)): # If atleast 1 value is nan, use identity matrix as correlation matrix.One usecase is for single product
-            self.correlation_matrix = np.eye(len(self.products)) 
+            if np.isnan(np.sum(self.correlation_matrix)): # If atleast 1 value is nan, use identity matrix as correlation matrix.One usecase is for single product
+                self.correlation_matrix = np.eye(len(self.products)) 
         return(self.correlation_matrix)
-
