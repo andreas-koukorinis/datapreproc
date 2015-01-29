@@ -51,6 +51,7 @@ class MeanVarianceOptimization(SignalAlgorithm):
         if _config.has_option('Strategy','modelfilepath'):
             _modelfilepath=adjust_file_path_for_home_directory(_config.get('Strategy','modelfilepath'))
         self.process_model_file(_modelfilepath, _config)
+        self.target_risk = math.sqrt((math.log((self.target_risk/100.0) + 1)**2)/252.0)
 
     def process_param_file(self, _paramfilepath, _config):
         super(MeanVarianceOptimization, self).process_param_file(_paramfilepath, _config)
@@ -221,7 +222,7 @@ class MeanVarianceOptimization(SignalAlgorithm):
                 # In the following steps we resize the portfolio to the target risk level.
                 # We have just used stdev as the measure of risk here since it is simple.
                 # TODO improve risk calculation
-                _annualized_stdev_of_portfolio = 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(self.weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.weights).T))[0, 0]) - 1)
+               _annualized_stdev_of_portfolio = math.sqrt((numpy.asmatrix(self.erc_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.erc_weights).T)[0, 0])
                 self.weights = self.weights*(self.target_risk/_annualized_stdev_of_portfolio)
                 self.weights = adjust_to_desired_l1norm_range (self.weights, self.minimum_leverage, self.maximum_leverage)   
 
