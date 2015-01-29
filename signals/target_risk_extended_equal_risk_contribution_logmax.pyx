@@ -224,13 +224,15 @@ class TargetRiskExtendedEqualRiskContributionLogmax(SignalAlgorithm):
 
                 def _get_objective_function(_given_weights, _exp_log_returns, _stdev_logret):
                     """The objective function is Max[ Sum (|si|*log(|wi|)) ] subject to wT*cov*w <= self.target_risk and bounds according to mandate sign"""
+                    # TODO While we are doing it now, the division here qill require that we keep checking that the stdev_logret vector has positive valued entries
                     _exp_sharpe = [returns/risk for (returns,risk) in zip(_exp_log_returns, _stdev_logret)]
-                    _each_poduct_term = [abs(sharpe)*numpy.log(abs(given_weight)) for (sharpe,given_weight) in zip(_exp_sharpe, _given_weights)]
-                    return -1.0*(numpy.sum(_each_poduct_term))
+                    _weighted_log_allocation_vec = [abs(sharpe)*numpy.log(abs(given_weight)) for (sharpe,given_weight) in zip(_exp_sharpe, _given_weights)]
+                    return -1.0*(numpy.sum(_weighted_log_allocation_vec))
 
                 _constraints = ({'type':'ineq', 'fun': lambda x: self.target_risk - 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(x) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(x).T))[0, 0]) - 1)})
                 _bounds = []
                 # Bounds ensure that we follow the mandate sign of the product
+                # Shouldn't this change based on the expected scores ?
                 for i in range(self.erc_weights.shape[0]):
                     if self.erc_weights[i] > 0:
                         _bounds.append((0, None))

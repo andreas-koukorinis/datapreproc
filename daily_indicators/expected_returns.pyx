@@ -12,6 +12,9 @@ class ExpectedReturns( IndicatorListener ):
         self.values = () # Tuple of the form (dt,value)
         self.identifier = identifier
         params = identifier.strip().split('.')
+        if len(params) <= 2:
+            print("ExpectedReturns requires at least three parameters in the identifier, like ExpectedReturns.fES.63");
+            sys.exit(0)
         self.product = params[1]
         self.period = int( params[2] )
         # To maintain running expected returns

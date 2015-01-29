@@ -17,7 +17,6 @@ class Trend(IndicatorListener):
         if len(params) <= 2:
             print("Trend requires at least three parameters in the identifier, like Trend.fES.63");
             sys.exit(0)
-            #TODO{gchak} do something better than just exit ! Print a better error message.
         self.product = params[1]
         self.period = int(params[2])
         self.current_sum = 0.0
@@ -51,5 +50,3 @@ class Trend(IndicatorListener):
         self.values = (daily_log_returns_dt[-1][0], val)
         for listener in self.listeners:
             listener.on_indicator_update(self.identifier, self.values)
-
-        
