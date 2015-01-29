@@ -2,7 +2,7 @@
 import sys
 import numpy
 from importlib import import_module
-
+import math
 from utils.regular import check_eod, adjust_file_path_for_home_directory, is_float_zero, parse_weights, adjust_to_desired_l1norm_range
 from daily_indicators.indicator_list import is_valid_daily_indicator,get_module_name_from_indicator_name
 from daily_indicators.portfolio_utils import make_portfolio_string_from_products
@@ -182,7 +182,7 @@ class SimpleMomentumSignal( SignalAlgorithm ):
                 _cov_mat = self.logret_correlation_matrix * numpy.outer(self.expected_risk_vec, self.expected_risk_vec) # we should probably do it when either self.stdev_logret or _correlation_matrix has been updated
 
                 self.dmf_weights = self.expected_return_vec/self.expected_risk_vec
-               _annualized_stdev_of_portfolio = math.sqrt((numpy.asmatrix(self.erc_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.erc_weights).T)[0, 0])
+                _annualized_stdev_of_portfolio = math.sqrt((numpy.asmatrix(self.erc_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.erc_weights).T)[0, 0])
                 self.dmf_weights= self.dmf_weights*(self.target_risk/_annualized_stdev_of_portfolio)
                 self.dmf_weights = adjust_to_desired_l1norm_range (self.dmf_weights, self.minimum_leverage, self.maximum_leverage)
 
