@@ -1,6 +1,6 @@
 # cython: profile=True
 def is_valid_signal_name(_signal_name):
-    _signal_name_list = ['TargetRiskVolatilityParity', 'TargetRiskEqualRiskContribution', 'TargetRiskMaxSharpeHistCorr', 'MeanVarianceOptimization', 'SimpleMomentumSignal', 'CWAS', 'CTAM', 'TargetRiskEqualRiskContributionLogmax']
+    _signal_name_list = ['TargetRiskVolatilityParity', 'TargetRiskEqualRiskContribution', 'TargetRiskMaxSharpeHistCorr', 'MeanVarianceOptimization', 'SimpleMomentumSignal', 'CWAS', 'CTAM', 'TargetRiskEqualRiskContributionLogmax', 'TargetRiskExtendedEqualRiskContributionLogmax']
     _retval = False
     if _signal_name in _signal_name_list:
         _retval = True
@@ -15,6 +15,8 @@ def get_module_name_from_signal_name(signal_name):
         return ( "target_risk_equal_risk_contribution" )
     def _target_risk_equal_risk_contribution_logmax():
         return ( "target_risk_equal_risk_contribution_logmax" )
+    def _target_risk_extended_equal_risk_contribution_logmax():
+        return ("target_risk_extended_equal_risk_contribution_logmax")
     def _target_risk_max_sharpe_hist_corr():
         return ( "target_risk_max_sharpe_hist_corr" )
     def _mvo():
@@ -33,7 +35,8 @@ def get_module_name_from_signal_name(signal_name):
                 'CWAS' : _cwas,
                 'MeanVarianceOptimization' : _mvo,
                 'CTAM' : _ctam,
-                'TargetRiskEqualRiskContributionLogmax' : _target_risk_equal_risk_contribution_logmax
+                'TargetRiskEqualRiskContributionLogmax' : _target_risk_equal_risk_contribution_logmax,
+                'TargetRiskExtendedEqualRiskContributionLogmax' : _target_risk_extended_equal_risk_contribution_logmax
               }
     if is_valid_signal_name(signal_name):
         return options[signal_name]()
