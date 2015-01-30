@@ -206,7 +206,7 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
                 # Otherwise we try to correct them
                 if sum(numpy.abs(numpy.sign(self.erc_weights) - numpy.sign(self.allocation_signs))) > 0:
                     # some sign isn't what it should be
-                    _check_sign_of_weights = False # this is sort of a debugging exercise
+                    _check_sign_of_weights = True # this is sort of a debugging exercise
                     if _check_sign_of_weights:
                         print ( "Sign-check-fail: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
                     _annualized_risk = 100.0*(numpy.exp(numpy.sqrt(252.0)*self.stdev_logret)-1) # we should do this only when self.stdev_logret has been updated
@@ -221,7 +221,7 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stdev_of_portfolio)
 
                 self.erc_weights = adjust_to_desired_l1norm_range (self.erc_weights, self.minimum_leverage, self.maximum_leverage)
-                
+                #print self.erc_weights*numpy.array(numpy.asmatrix(_cov_mat)*numpy.asmatrix(self.erc_weights).T)[:, 0] # To check the effectiveness of optimization
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.erc_weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
 

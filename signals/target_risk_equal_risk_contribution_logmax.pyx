@@ -219,7 +219,7 @@ class TargetRiskEqualRiskContributionLogmax(SignalAlgorithm):
                 self.erc_weights = self.erc_weights*(self.target_risk/_annualized_stdev_of_portfolio)
 
                 self.erc_weights = adjust_to_desired_l1norm_range (self.erc_weights, self.minimum_leverage, self.maximum_leverage)
-                
+                #print self.erc_weights*numpy.array(numpy.asmatrix(_cov_mat)*numpy.asmatrix(self.erc_weights).T)[:, 0] # To check the effectiveness of optimization
                 for _product in self.products:
                     self.map_product_to_weight[_product] = self.erc_weights[self.map_product_to_index[_product]] # This is completely avoidable use of map_product_to_index. We could just start an index at 0 and keep incrementing it
 
