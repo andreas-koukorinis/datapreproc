@@ -33,7 +33,7 @@ class ExchangeSymbolManager():
 
     def get_exchange_for_product( self, product ):
         _basename = self.get_basename( product )
-        if _basename in ['ZT','ZF','ZN','ZB','NKD','NIY','ES','EMD','NQ','YM','6A','6B','6C','6E','6J','6M','6N','6S','GC','SI','HG','PL','PA','HO','RB','NG','LH','ZW','ZC','ZS','ZM','ZL']:
+        if _basename in ['ZT','ZF','ZN','ZB','NKD','NIY','ES','EMD','NQ','YM','6A','6B','6C','6E','6J','6M','6N','6S','GC','SI','HG','PL','PA','HO','RB','NG','LH','ZW','ZC','ZS','ZM','ZL']: # RB,NG,HO,CL
             return "cme"
         elif _basename in ['FGBS','FGBM','FGBL','FESX','FDAX','FSMI']: # FGBX
             return "eurex"
@@ -59,8 +59,8 @@ class ExchangeSymbolManager():
             return "meff"
         elif _basename in ['KOSPI']:
             return "krw"
-        elif _basename in ['YEA']:
-            return "tfx"
+        #elif _basename in ['YEA']:
+        #    return "tfx"
         else:
             sys.exit('Unhandled symbol in get_exchange_for_product')
 
@@ -248,25 +248,28 @@ class ExchangeSymbolManager():
         #ES,EMD,YM,NQ
         #Settlement Date: The 3rd Friday of contract month or first earlier date when the index is published
         #Last Trading Day: Same as Settlement Date
-        #OBSERVATION: the volume shifts towards the next future contract one week before i.e 2nd Friday -> 2014-03-14, 2014-06-13, 2014-09-12
+        #OBSERVATION: the oi shifts towards the next future contract one week before i.e 2nd Friday -> 2014-03-14, 2014-06-13, 2014-09-12
         if _basename in ['ES', 'NQ', 'YM']:
             date = self.get_date_from_nth_day_of_month_year(2, 'FRIDAY', _next_cme_month, _next_cme_year) # 2nd friday of that month of that year       
             return date
 
-        # Observation: For EMD volume shifts o 2nd thursday. -> 2014-03-13, 2014-06-12, 2014-09-11
+        # Observation: For EMD oi shifts o 2nd thursday. -> 2014-03-13, 2014-06-12, 2014-09-11
         if _basename == 'EMD':
             date = self.get_date_from_nth_day_of_month_year(2, 'THURSDAY', _next_cme_month, _next_cme_year)
             return date
 
         #NIY -> Last trading day on the Thursday prior to the second Friday of the contract month
-        if _basename == 'NIY': # based on volume observation
+        if _basename == 'NIY': # based on oi observation
             date = self.get_date_from_nth_day_of_month_year(2, 'FRIDAY', _next_cme_month, _next_cme_year)
-            date = date + datetime.timedelta( days=-2 )
+            for i in range(0,3):
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
             return date
 
-        #NKD -> Last trading day on Business Day prior to 2nd Friday of the contract month
+        #NKD -> Last trading day  n Business Day prior to 2nd Friday of the contract month
         #Observation : Volume shift on 2nd Monday. -> 2014-09-08, 2014-06-09, 2014-03-10
-        if _basename == 'NKD': # based on volume observation
+        if _basename == 'NKD': # based on oi observation
             date = self.get_date_from_nth_day_of_month_year(2, 'FRIDAY', _next_cme_month, _next_cme_year)
             for i in range(0,4):
                 date = date + datetime.timedelta( days=-1)
@@ -296,11 +299,20 @@ class ExchangeSymbolManager():
             return date
 
         # 6A,6B,6E,6J,6M,6N,6S -> Last trading day is on the second business day immediately preceding the third Wednesday of the contract month (usually Monday)
-        # Observation -> mostly volume shifts on 2nd tuesday
+        # Observation -> mostly oi shifts on 2nd tuesday
         # 6A -> 2013-03-11, 2013-06-11, 2013-09-11, 2013-12-10, 2014-03-12, 2014-06-11, 2014-09-09 
-        if _basename in ['6A', '6B', '6E', '6J', '6M', '6N', '6S']:
+        if _basename in ['6A', '6B', '6E', '6J', '6M']:
             date = self.get_date_from_nth_day_of_month_year(3, 'WEDNESDAY', _next_cme_month, _next_cme_year) # 3rd wednesday of that month of that year       
-            for i in range(0,8):
+            for i in range(0,6): # 2nd tuesday
+                date = date + datetime.timedelta( days=-1)
+                while not self.is_cme_exchange_date( _basename, date ):
+                    date = date + datetime.timedelta( days=-1)
+            return date
+
+        # 6A,6B,6E,6J,6M,6N,6S -> Last trading day is on the second business day immediately preceding the third Wednesday of the contract month (usually Monday)
+        if _basename in ['6N', '6S']:
+            date = self.get_date_from_nth_day_of_month_year(3, 'WEDNESDAY', _next_cme_month, _next_cme_year) # 3rd wednesday of that month of that year       
+            for i in range(0,5): # 2nd wednesday
                 date = date + datetime.timedelta( days=-1)
                 while not self.is_cme_exchange_date( _basename, date ):
                     date = date + datetime.timedelta( days=-1)
@@ -309,7 +321,7 @@ class ExchangeSymbolManager():
         # 6C -> Last trading day is on the business day immediately preceding the third Wednesday of the contract month (usually Tuesday).
         if _basename in ['6C']:
             date = self.get_date_from_nth_day_of_month_year(3, 'WEDNESDAY', _next_cme_month, _next_cme_year) # 3rd wednesday of that month of that year       
-            for i in range(0,7):
+            for i in range(0,5):
                 date = date + datetime.timedelta( days=-1)
                 while not self.is_cme_exchange_date( _basename, date ):
                     date = date + datetime.timedelta( days=-1)
@@ -329,7 +341,7 @@ class ExchangeSymbolManager():
         if _basename == 'CL':
             date = datetime.date(year=_next_cme_year,day=18,month=_next_cme_month)
             weekday = date.weekday()
-            # If 19th is SUNDAY,volume shifts on 17th,so 16th would be the last trading date
+            # If 19th is SUNDAY,oi shifts on 17th,so 16th would be the last trading date
             if weekday == 5: #If saturday
                 date = date + datetime.timedelta( days=-2)
             elif weekday == 4: #If friday
@@ -633,7 +645,7 @@ class ExchangeSymbolManager():
                 date = date + datetime.timedelta( days=-1 )
                 while not self.is_ice_exchange_date( _basename, date ):
                     date = date + datetime.timedelta( days=-1)
-            for i in range(0,9): # Adjustment based on volume
+            for i in range(0,9): # Adjustment based on oi
                 date = date + datetime.timedelta( days=-1 )
                 while not self.is_ice_exchange_date( _basename, date ):
                     date = date + datetime.timedelta( days=-1)
@@ -648,7 +660,7 @@ class ExchangeSymbolManager():
                 date = date + datetime.timedelta( days=-1 )
                 while not self.is_ice_exchange_date( _basename, date ):
                     date = date + datetime.timedelta( days=-1)
-            for i in range(0,12): # Adjustment based on volume
+            for i in range(0,12): # Adjustment based on oi
                 date = date + datetime.timedelta( days=-1 )
                 while not self.is_ice_exchange_date( _basename, date ):
                     date = date + datetime.timedelta( days=-1)
