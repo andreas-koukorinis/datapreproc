@@ -187,7 +187,7 @@ class TargetRiskEqualRiskContributionLogmax(SignalAlgorithm):
                     """The objective function is Max[ Sum(log(|wi|)) ] subject to wT*cov*w <= self.target_risk and bounds according to mandate sign"""
                     return -1.0*(numpy.sum(numpy.log(numpy.abs(_given_weights))))
 
-                _constraints = ({'type':'ineq', 'fun': lambda x: self.target_risk - 100.0*(numpy.exp(numpy.sqrt(252.0 * (numpy.asmatrix(x) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(x).T))[0, 0]) - 1)})
+                _constraints = ({'type':'ineq', 'fun': lambda x: self.target_risk - math.sqrt((numpy.asmatrix(x) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(x).T)[0, 0]) })
                 _bounds = []
                 # Bounds ensure that we follow the mandate sign of the product
                 for i in range(self.erc_weights.shape[0]):
