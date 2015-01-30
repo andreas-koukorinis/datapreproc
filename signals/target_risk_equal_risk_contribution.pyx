@@ -191,8 +191,8 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
 
                 _bounds = []
                 # Bounds ensure that we follow the mandate sign of the product
-                for i in range(self.erc_weights.shape[0]):
-                    if self.erc_weights[i] > 0:
+                for i in range(self.allocation_signs.shape[0]):
+                    if self.allocation_signs[i] > 0:
                         _bounds.append((0, None))
                     else:
                         _bounds.append((None, 0))
