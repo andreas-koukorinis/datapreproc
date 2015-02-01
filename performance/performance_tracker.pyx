@@ -14,7 +14,7 @@ from backtester.backtester_listeners import BackTesterListener
 from backtester.backtester import BackTester
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import EndOfDayListener, TaxPaymentDayListener, DistributionDayListener
-from utils.regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string
+from utils.regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string, dump_sim_to_json
 from utils.calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts
 from utils.benchmark_comparison import get_benchmark_stats
 from utils import defaults
@@ -381,4 +381,4 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
             _stats += get_benchmark_stats(self.dates, self.daily_log_returns, benchmark) # Returns a string of benchmark stats
         print _stats
         Globals.stats_file.write(_stats)
-
+        dump_sim_to_json(Globals.config_file, zip(self.dates,self.daily_log_returns), _stats)
