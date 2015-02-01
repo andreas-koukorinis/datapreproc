@@ -42,6 +42,8 @@ class BookBuilder(DailyEventListener):
             self.dailybook.append((event['dt'], event['close'], event['is_last_trading_day'], event['close']))
         elif Globals.product_type[self.product] == 'future':
             self.dailybook.append((event['dt'], event['close'], event['is_last_trading_day'], event['open']))
+        elif Globals.product_type[self.product] == 'fx':
+            self.dailybook.append((event['dt'], event['close'], event['is_last_trading_day'], event['open']))
         for listener in self.dailybook_listeners:
             listener.on_dailybook_update(self.product, self.dailybook)
 

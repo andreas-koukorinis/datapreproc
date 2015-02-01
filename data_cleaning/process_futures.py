@@ -32,13 +32,37 @@ def get_start_date(product,label,exchange_symbol_manager,start_date):
         start_date += timedelta(days=1)
     return start_date
 
-def process_futures(num_contracts,product,to_name,folder):
-    
+def process_futures(num_contracts, product, to_name):    
     exchange_symbol_manager = ExchangeSymbolManager()
-    path = '/apps/data/csi/history_part'+folder+'/'
-    output_path = '/home/cvdev/stratdev/data_cleaning/data/'
+    # Directory for the product
+    dir1 = '/apps/data/csi/history_part1/' + product + '/'
+    dir2 = '/apps/data/csi/history_part2/' + product + '/'
+    dir3 = '/apps/data/csi/historical_futures1/' + product + '/'
+    dir4 = '/apps/data/csi/historical_futures2/' + product + '/'
+    if os.path.isdir(dir1):
+        in_dir = dir1
+    elif os.path.isdir(dir2):
+        in_dir = dir2
+    elif os.path.isdir(dir3):
+        in_dir = dir3
+    elif os.path.isdir(dir4):
+        in_dir = dir4
+    else:
+        sys.exit('Not Found')
+
+    # Remove 0000 file
+    _aux_file1 = in_dir + product + '_0000.csv'
+    _aux_file2 = in_dir + product + '__0000.csv'
+    _aux_file3 = in_dir + product + '___0000.csv'
+    if os.path.exists(_aux_file1):
+        os.remove(_aux_file1)
+    if os.path.exists(_aux_file2):
+        os.remove(_aux_file2)
+    if os.path.exists(_aux_file3):
+        os.remove(_aux_file3)
+
+    output_path = '/home/cvdev/add_futures/stratdev/data_cleaning/data/'
     dateparse = lambda x: datetime.strptime(x, '%Y%m%d').date() # Parse dates in format required by mysql i.e. YYYY-MM-DD
-    directory = path + product + '/'
     generic_tickers = []
     generic_to_name = []
     for i in range(num_contracts):
@@ -49,54 +73,56 @@ def process_futures(num_contracts,product,to_name,folder):
     for ticker in generic_tickers:
         output_dfs.append(pd.DataFrame(columns=('date', 'product','specific_ticker', 'open', 'high', 'low', 'close', 'is_last_trading_day', 'contract_volume','contract_oi','total_volume','total_oi')))
     input_dfs = {}
-    for filename in os.listdir(directory):
-        fullname = directory+filename
+    for filename in os.listdir(in_dir):
+        fullname = in_dir + filename
+        if '___' in filename: 
+            YYMM = os.path.splitext(os.path.basename(fullname))[0].split('__')[1] 
         if '__' in filename: 
             YYMM = os.path.splitext(os.path.basename(fullname))[0].split('__')[1] 
         elif '_' in filename:
             YYMM = os.path.splitext(os.path.basename(fullname))[0].split('_')[1]
-        input_dfs[YYMM] = pd.read_csv(fullname,parse_dates =['date'],date_parser=dateparse,names=['date','open','high','low','close','contract_volume','contract_oi','total_volume','total_oi'])
+        input_dfs[YYMM] = pd.read_csv(fullname, parse_dates =['date'],date_parser=dateparse,names=['date','open','high','low','close','contract_volume','contract_oi','total_volume','total_oi'])
         input_dfs[YYMM] = input_dfs[YYMM].set_index('date')
 
     sorted_labels = sorted(input_dfs.keys(),key = convert_to_year_month)
     print sorted_labels
-    start_date = get_start_date(generic_to_name[0],sorted_labels[0],exchange_symbol_manager,input_dfs[sorted_labels[0]].index.values[0])
-    print start_date
+    start_date = datetime.strptime('1994-11-01', "%Y-%m-%d").date()
     end_date = datetime.strptime('2014-10-31', "%Y-%m-%d").date()
     delta = end_date-start_date
-    _last_trading_date = exchange_symbol_manager.get_last_trading_date( start_date, generic_to_name[0] )
     for i in range(delta.days + 1):
         current_date = start_date + timedelta(days=i)
-        first_contract_YYMM = get_YYMM_from_exchange_code(exchange_symbol_manager.get_exchange_symbol(current_date,generic_to_name[0])[-3:])  
-        current_idx = sorted_labels.index(first_contract_YYMM)
-        print current_date,_last_trading_date
-        if current_date > _last_trading_date:
-            for j in range( len(generic_tickers) ):
-                output_dfs[j].loc[len(output_dfs[j]),'is_last_trading_day'] = 1.0
 
         for j in range( len(generic_tickers) ):
-            YYMM = sorted_labels[current_idx + j]
-            print YYMM,current_date 
+            YYMM = get_YYMM_from_exchange_code(exchange_symbol_manager.get_exchange_symbol(current_date,generic_to_name[j])[-3:]) 
+            if YYMM not in input_dfs.keys():
+                continue
             if current_date in input_dfs[YYMM].index:
-                print current_date,YYMM
                 row = input_dfs[YYMM].loc[current_date]            
                 output_dfs[j].loc[len(output_dfs[j])+1] = [ str(current_date), generic_to_name[j], to_name+get_exchange_specific(YYMM),row['open'], row['high'], row['low'], row['close'], '0.0', row['contract_volume'], row['contract_oi'], row['total_volume'], row['total_oi']]
-        _last_trading_date = exchange_symbol_manager.get_last_trading_date( current_date, generic_to_name[0] )
  
+    for j in range(len(output_dfs)):
+        index_set = output_dfs[j].index.values
+        count = 0 
+        for i in range(len(index_set)-1):
+            idx1 = index_set[i]
+            idx2 = index_set[i+1]
+            if output_dfs[j].loc[idx1, 'specific_ticker'] != output_dfs[j].loc[idx2, 'specific_ticker']:
+                output_dfs[j].loc[idx1, 'is_last_trading_day'] = 1.0
+                count += 1
+        print '%dth contract : %d' % (j+1, count)
+        print 'Min oi percent %f for index %f' % ((output_dfs[0]['contract_oi']/output_dfs[0]['total_oi']).min(), (output_dfs[0]['contract_oi']/output_dfs[0]['total_oi']).argmin())
     for i in range(len(generic_tickers)):
-        output_dfs[i].to_csv(output_path+generic_to_name[i]+'.csv',index=False) # Save result to csv 
+        output_dfs[i].to_csv(output_path + generic_to_name[i] + '.csv', index=False) # Save result to csv 
 
 def __main__() :
     if len( sys.argv ) > 1:
-        to_name = sys.argv[4]
-        product = sys.argv[3]
+        to_name = sys.argv[3]
+        product = sys.argv[2]
         num_contracts = int(sys.argv[1])
-        folder = sys.argv[2]
     else:
-        print 'python process_futures.py num_contracts folder product to_name'
+        print 'python process_futures.py num_contracts product to_name'
         sys.exit(0)
-    process_futures( num_contracts, product, to_name, folder )
-
+    process_futures(num_contracts, product, to_name)
 
 if __name__ == '__main__':
     __main__();
