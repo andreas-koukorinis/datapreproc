@@ -61,7 +61,7 @@ def process_futures(num_contracts, product, to_name):
     if os.path.exists(_aux_file3):
         os.remove(_aux_file3)
 
-    output_path = '/home/cvdev/add_futures/stratdev/data_cleaning/data/'
+    output_path = '/home/cvdev/stratdev/data_cleaning/data/'
     dateparse = lambda x: datetime.strptime(x, '%Y%m%d').date() # Parse dates in format required by mysql i.e. YYYY-MM-DD
     generic_tickers = []
     generic_to_name = []

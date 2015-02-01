@@ -148,7 +148,7 @@ def process_futures(product, to_name):
         in_dir = dir4
     else:
         sys.exit('Not Found')       
-    out_dir = '/home/cvdev/add_futures/stratdev/data_cleaning/data/'
+    out_dir = '/home/cvdev/stratdev/data_cleaning/data/'
 
     # Remove 0000 file
     _aux_file1 = in_dir + product + '_0000.csv'

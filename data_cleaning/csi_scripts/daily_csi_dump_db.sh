@@ -1,5 +1,5 @@
 #!/bin/sh
-cd /home/cvdev/add_futures/stratdev/data_cleaning/csi_scripts/
+cd /home/cvdev/stratdev/data_cleaning/csi_scripts/
 echo "DB DUMP CSI DAT FOR ETF's AND FUNDS STATUS:\n" >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
 COUNTER=92
 #>log
