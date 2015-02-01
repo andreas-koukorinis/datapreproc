@@ -33,7 +33,7 @@ class ExchangeSymbolManager():
 
     def get_exchange_for_product( self, product ):
         _basename = self.get_basename( product )
-        if _basename in ['ZT','ZF','ZN','ZB','NKD','NIY','ES','EMD','NQ','YM','6A','6B','6C','6E','6J','6M','6N','6S','GC','SI','HG','PL','PA','HO','RB','NG','LH','ZW','ZC','ZS','ZM','ZL']: # RB,NG,HO,CL
+        if _basename in ['ZT','ZF','ZN','ZB','NKD','NIY','ES','EMD','NQ','YM','6A','6B','6C','6E','6J','6M','6N','6S','GC','SI','HG','PL','PA','LH','ZW','ZC','ZS','ZM','ZL']: # RB,NG,HO,CL
             return "cme"
         elif _basename in ['FGBS','FGBM','FGBL','FESX','FDAX','FSMI']: # FGBX
             return "eurex"
@@ -359,8 +359,7 @@ class ExchangeSymbolManager():
                 date = date + datetime.timedelta( days=-1)
                 while not self.is_cme_exchange_date( _basename, date ):
                     date = date + datetime.timedelta( days=-1)
-            #for i in range(0,28):
-            for i in range(0,20):
+            for i in range(0,27):
                 date = date + datetime.timedelta( days=-1)
                 while not self.is_cme_exchange_date( _basename, date ):
                     date = date + datetime.timedelta( days=-1)
@@ -390,7 +389,7 @@ class ExchangeSymbolManager():
                 date = date + datetime.timedelta( days=-1)
                 while not self.is_cme_exchange_date( _basename, date ):
                     date = date + datetime.timedelta( days=-1)
-            for i in range(0,29):
+            for i in range(0,33):
                 date = date + datetime.timedelta( days=-1)
                 while not self.is_cme_exchange_date( _basename, date ):
                     date = date + datetime.timedelta( days=-1)
@@ -767,7 +766,7 @@ class ExchangeSymbolManager():
                 date = date + datetime.timedelta( days=-1 )
                 while not self.is_sgx_exchange_date( _basename, date ):
                     date = date + datetime.timedelta( days=-1)
-            for i in range(0,4):
+            for i in range(0,3):
                 date = date + datetime.timedelta( days=-1 )
                 while not self.is_sgx_exchange_date( _basename, date ):
                     date = date + datetime.timedelta( days=-1)

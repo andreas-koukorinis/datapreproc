@@ -14,8 +14,10 @@ table = {}
 product_type = {}
 db_cursor = None
 db = None
-mappings = {'AD1':'6A','BP1':'6B','CD1':'6C','CU1':'6E','JY1':'6J','MP':'6M','EX':'E7','ES':'ES','FDX':'FDAX','SXE':'FESX','EBL':'FGBL','EBM':'FGBM','JT':'J7','FLG':'LFR','NK':'NKD','SXF':'SXF','ZF':'ZF','TY':'ZN'}
-forex_mappings = { 'US$_46' : ('JPYUSD',True) ,'US$_39' : ('CADUSD',True), 'GB2_60' : ('GBPUSD',False), 'EU2_60' : ('EURUSD',False) }
+mappings = {'TU':'ZT','FV':'ZF','TY':'ZN','US':'ZB','NK':'NKD','NIY':'NIY','ES':'ES','EMD':'EMD','NQ':'NQ','YM':'YM','AD':'6A','BP':'6B','CD':'6C','CU1':'6E','JY':'6J','MP':'6M','NE2':'6N','SF':'6S','GC':'GC','SI':'SI','HG':'HG','PL':'PL','PA':'PA','LH':'LH','ZW':'ZW','ZC':'ZC','ZS':'ZS','ZM':'ZM','ZL':'ZL','EBS':'FGBS','EBM':'FGBM','EBL':'FGBL','SXE':'FESX','FDX':'FDAX','SMI':'FSMI','SXF':'SXF','CGB':'CGB','FFI':'LFZ','FLG': 'LFR','AEX': 'FTI','KC':'KC','CT':'CT','CC':'CC','SB':'SB','JTI':'TOPIX','JGB':'JGBL','JNI':'JNK','SIN':'SIN','SSG':'SG','HCE':'HHI','HSI':'HSI','ALS':'ALSI','YAP':'SPI','MFX':'MFX','KOS':'KOSPI'}
+
+forex_mappings = { 'US$_46' : ('JPYUSD',True) ,'US$_39' : ('CADUSD',True), 'GB2_60' : ('GBPUSD',False), 'EU2_60' : ('EURUSD',False), 'US$_37': ('AUDUSD', True), 'US$_51': ('NZDUSD', True), 'US$_53': ('CHFUSD', True), 'US$_58': ('SEKUSD', True), 'US$_49': ('NOKUSD', True), 'FX1_39': ('TRYUSD', True), 'US$_56': ('MXNUSD', True), 'US$_57': ('ZARUSD', True), 'U2$_55': ('ILSUSD', True), 'US$_52': ('SGDUSD', True), 'US$_44': ('HKDUSD', True), 'U2$_53': ('TWDUSD', True) }
+
 exchange_symbol_mamager = None
 
 def FloatOrZero(value):
@@ -47,21 +49,39 @@ def product_to_table_map():
     rows = db_cursor.fetchall()
     for row in rows:
         table[row['product']] = row['table']
-        product_type = row['type']      
+        product_type[row['product']] = row['type']      
 
 def get_exchange_specific(YYMM):
     YY,MM = YYMM[0:2],YYMM[2:4]
     month_codes = {'01':'F','02':'G','03':'H','04':'J','05':'K','06':'M','07':'N','08':'Q','09':'U','10':'V','11':'X','12':'Z'}
     return month_codes[MM]+YY
 
+def compare_ticker(ticker1, ticker2):
+    month_codes_rev = {'F':'01','G':'02','H':'03','J':'04','K':'05','M':'06','N':'07','Q':'08','U':'09','V':'10','X':'11','Z':'12'}
+    code1 = convert_to_year_month(ticker1[-2:] + month_codes_rev[ticker1[-3]])
+    code2 = convert_to_year_month(ticker2[-2:] + month_codes_rev[ticker2[-3]])
+    return code1 > code2
+
+def convert_to_year_month(YYMM):
+    yy = int(YYMM[0:2])
+    mm = int(YYMM[2:4])
+    if yy >50:
+        year = 1900 + yy
+    else:
+        year = 2000 + yy
+    return year*100 + mm
+
 # TODO Check if it is a past contract: should not be
 def get_contract_number(date, _base_symbol, YYMM ):
     _exchange_symbol = _base_symbol + get_exchange_specific(YYMM)
+    first_contract = exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_1')
+    if compare_ticker(first_contract,_exchange_symbol):
+        return 0
     num=1
-    while _exchange_symbol != exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_' + str(num) ) and num < 20:   
+    while _exchange_symbol != exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_' + str(num) ) and num < 3:   
         num+=1
-    if num == 20:
-        num=0 
+    if num > 2:
+        num=-1 
     return num
 
 def get_file(filename,k):
@@ -74,7 +94,7 @@ def get_file(filename,k):
         if len(is_in_s3) <= 0:
             #sys.exit('File %s not in s3'%_file)
             print 'File %s not in s3'%_file
-            return '0'
+            return None
         subprocess.call(['s3cmd','get','s3://cvquantdata/csi/rawdata/'+_file]) 
         inF = gzip.open(_file, 'rb')
         outF = open(filename, 'wb')
@@ -99,7 +119,7 @@ def add_stock_quote(date,record):
         db.commit()
     except:
         db.rollback()
-        sys.exit('EXCEPTION in add_stock_quote %s'%record)
+        print('EXCEPTION in add_stock_quote %s'%record)
     
 def add_fund_quote(date,record):
     product, csi_num, close, asking_price = record[1], IntOrZero(record[2]), FloatOrZero(record[3]), FloatOrZero(record[4])    
@@ -117,7 +137,7 @@ def add_fund_quote(date,record):
         db.commit()
     except:
         db.rollback()
-        sys.exit('EXCEPTION in add_fund_quote %s'%record)
+        print('EXCEPTION in add_fund_quote %s'%record)
 
 def add_forex_quote(date,forex_tuple,record):
     open1, high, low, close = FloatOrZero(record[4]), FloatOrZero(record[6]), FloatOrZero(record[7]), FloatOrZero(record[8])
@@ -136,12 +156,12 @@ def add_forex_quote(date,forex_tuple,record):
         db.commit()
     except:
         db.rollback()
-        sys.exit('EXCEPTION in add_forex_quote %s'%record) 
+        print('EXCEPTION in add_forex_quote %s'%record) 
 
 def add_future_quote(date,record,future_someday_total_volume,future_someday_total_oi,future_volume_date,future_oi_date):
     try:
         #print record
-        product, csi_num, YYMM, open1, high, low, close, prev_close, future_someday_volume, future_someday_oi = record[1], IntOrZero(record[2]), record[3], FloatOrZero(record[4]), FloatOrZero(record[6]), FloatOrZero(record[7]), FloatOrZero(record[8]), FloatOrZero(record[9]), IntOrZero(record[10]), IntOrZero(record[11])   
+        product, csi_num, YYMM, open1, high, low, close, future_someday_volume, future_someday_oi = record[1], IntOrZero(record[2]), record[3], FloatOrZero(record[4]), FloatOrZero(record[6]), FloatOrZero(record[7]), FloatOrZero(record[8]), IntOrZero(record[10]), IntOrZero(record[11])   
         if product in mappings.keys():
             _base_symbol = mappings[product]
         else:
@@ -163,7 +183,7 @@ def add_future_quote(date,record,future_someday_total_volume,future_someday_tota
                 db.commit()
             except:
                 db.rollback()
-                sys.exit('EXCEPTION in add_future_quote %s'%record)
+                print('EXCEPTION in add_future_quote block 3 %s'%record)
         if contract_number in [0,1,2]:
             try:
                 query = "UPDATE %s SET contract_volume='%d',total_volume='%d' WHERE date='%s' AND specific_ticker='%s'" % (table[_base_symbol+'_1'], future_someday_volume, future_someday_total_volume, future_volume_date, specific_ticker)
@@ -175,9 +195,9 @@ def add_future_quote(date,record,future_someday_total_volume,future_someday_tota
                 db.commit()
             except:
                 db.rollback()
-                sys.exit('EXCEPTION in add_future_quote %s'%record)
+                print('EXCEPTION in add_future_quote block 2 %s'%record)
     except:
-        sys.exit('EXCEPTION in add_future_quote %s'%record)
+        print('EXCEPTION in add_future_quote block 1 %s'%record)
 
 # ASSUMPTION: dividend quote will be sequenced after price quote
 def dividend_quote(date,record):
@@ -196,7 +216,7 @@ def dividend_quote(date,record):
             rows = db_cursor.fetchall()
             print rows  
             if len(rows) < 1:
-                sys.exit('Price quote did not preceed dividend quote')
+                print('Price quote did not preceed dividend quote')
             else:
                 ex_close = float(rows[0]['close'])
             dividend_factor = 1 + (dividend+capital_gain)/ex_close
@@ -216,7 +236,7 @@ def dividend_quote(date,record):
             rows = db_cursor.fetchall()
             print rows
             if len(rows) < 1:
-                sys.exit('Price quote did not preceed dividend quote')
+                print('Price quote did not preceed dividend quote')
             else:
                 ex_close = float(rows[0]['close'])
             dividend_factor = 1 + (dividend)/ex_close
@@ -229,7 +249,7 @@ def dividend_quote(date,record):
         db.commit()
     except:
         db.rollback()
-        sys.exit('EXCEPTION in dividend_quote %s'%record)
+        print('EXCEPTION in dividend_quote %s'%record)
 
 def split_quote(date,record):
     product, csi_num, ex_date, new_shares, old_shares = record[1], IntOrZero(record[2]), datetime.strptime(record[3], '%Y%m%d').strftime('%Y-%m-%d'), FloatOrZero(record[4]), FloatOrZero(record[5])
@@ -244,7 +264,7 @@ def split_quote(date,record):
         db.commit()
     except:
         db.rollback()
-        sys.exit('EXCEPTION in split_quote %s'%record)
+        print('EXCEPTION in split_quote %s'%record)
 
 def error_correction_quote(date,record):
     print 'IN ERROR CORRECTION'
@@ -258,7 +278,7 @@ def delete_quote(date,record):
         db.commit()
     except:
         db.rollback()
-        sys.exit('EXCEPTION in delete_quote %s'%record)
+        print('EXCEPTION in delete_quote %s'%record)
 
 def daily_update(filename,products):
     f = open(filename)
@@ -393,11 +413,12 @@ def update_last_trading_day(k):
                 db.commit()
             except:
                 db.rollback()
-                sys.exit('EXCEPTION in update_last_trading_day %s'%generic_ticker)
+                print('EXCEPTION in update_last_trading_day %s'%generic_ticker)
 
 def __main__() :
     if len( sys.argv ) > 1:
         filename = sys.argv[1]
+        delay = int(sys.argv[2])
         products = []
         for i in range(3,len(sys.argv)):
             products.append(sys.argv[i])
@@ -407,14 +428,15 @@ def __main__() :
     global exchange_symbol_manager
     module = imp.load_source('exchange_symbol_manager', '../exchange_symbol_manager.py')
     exchange_symbol_manager = module.ExchangeSymbolManager()
-    filename = get_file(filename, int(sys.argv[2]))
-    #print filename
+    filename = get_file(filename, delay)
+    print filename
     #sys.exit()
     db_connect()
     product_to_table_map()
-    if filename != '0':
+    #print table, product_type
+    if filename is not None:
         daily_update(filename, products)
-    update_last_trading_day(int(sys.argv[2]))
+    update_last_trading_day(delay)
 
 if __name__ == '__main__':
     __main__()
