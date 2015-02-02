@@ -45,8 +45,8 @@ class Dispatcher (object):
         self.start_dt = get_dt_from_date(_startdate)  # Convert date to datetime object with time hardcoded as 23:59:59:999999
         self.end_dt = get_dt_from_date(_enddate)
         self.trading_days=0
-        if _config.has_option('Parameters', 'warmupdays'):
-            warmupdays = _config.getint('Parameters','warmupdays')
+        if _config.has_option('Simulation', 'warmupdays'):
+            warmupdays = _config.getint('Simulation','warmupdays')
         else:
             warmupdays = defaults.WARMUP_DAYS  # Default value of warmupdays,in case not specified in config file
 
