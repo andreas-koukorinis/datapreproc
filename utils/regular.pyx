@@ -294,3 +294,14 @@ def efficient_frontier(expected_returns, covariance, max_leverage, risk_toleranc
     solvers.options['show_progress'] = False
     portfolios = qp(dmat, -1*risk_tolerance*dvec, amat, bvec)['x']
     return portfolios[0:num_prods].T
+
+def parse_results(results):
+    results = results.split('\n')
+    _dict_results = {}
+    for result in results:
+        if '=' in result:
+            _result = result.split('=')
+            _name = _result[0].strip()
+            _val = _result[1].strip()
+            _dict_results[_name] = _val
+    return _dict_results

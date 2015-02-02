@@ -4,6 +4,7 @@
 import os
 import sys
 import shutil
+import argparse
 from importlib import import_module
 import ConfigParser
 from dispatcher.dispatcher import Dispatcher
@@ -47,9 +48,9 @@ class Simulator:
             shutil.rmtree(self.log_dir)
         os.makedirs(self.log_dir)
         if os.path.splitext(_config_file)[1] == '.json':
-            _output_cfg_path = self.log_dir + os.path.splitext(_config_file)[0].split('/')[-1] + '.cfg'
-            JsonParser.json_to_cfg(_config_file, _output_cfg_path)
-            _config_file = _output_cfg_path     
+            _output_cfg_dir = self.log_dir
+            JsonParser().json_to_cfg(_config_file, _output_cfg_dir)
+            _config_file = _output_cfg_dir + 'agg.cfg'    
         self.config = ConfigParser.ConfigParser()
         self.config.readfp( open( _config_file, 'r' ) )
 
