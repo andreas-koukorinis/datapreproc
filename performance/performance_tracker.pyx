@@ -14,12 +14,13 @@ from backtester.backtester_listeners import BackTesterListener
 from backtester.backtester import BackTester
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import EndOfDayListener, TaxPaymentDayListener, DistributionDayListener
-from utils.regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string, dump_sim_to_json
+from utils.regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string
 from utils.calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts
 from utils.benchmark_comparison import get_benchmark_stats
 from utils import defaults
 from bookbuilder.bookbuilder import BookBuilder
 from utils.global_variables import Globals
+from utils.json_parser import JsonParser
 from performance_utils import drawdown, current_dd, drawdown_period_and_recovery_period, rollsum, mean_lowest_k_percent, turnover, get_extreme_days, get_extreme_weeks, compute_max_num_days_no_new_high, compute_yearly_sharpe, compute_sortino, compute_losing_month_streak, annualized_returns, annualized_stdev
 
 # TODO {gchak} PerformanceTracker is probably a class that just pertains to the performance of one strategy
@@ -48,7 +49,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.todays_realized_pnl = dict([(_currency, 0) for _currency in self.currency_factor.keys()]) # Map from currency to todays realized pnl in the currency
         self.average_trade_price = dict([(_product, 0) for _product in self.products]) # Map from product to average trade price for the open trades in the product
         self.net_returns = 0
-        self.initial_capital = _config.getfloat('Parameters', 'initial_capital')
+        self.initial_capital = _config.getfloat('Simulation', 'initial_capital')
         self.value = numpy.array([self.initial_capital])  # Track end of day values of the portfolio
         self.PnLvector = numpy.empty(shape=(0))
         self.annualized_PnL = 0
@@ -100,12 +101,12 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.short_term_tax_rate = .396 #39.6%
         self.long_term_tax_rate = .196 #19.6%
         self.dividend_tax_rate = 0.4 #40%
-        if _config.has_option('Parameters', 'short_term_tax_rate'):
-            self.short_term_tax_rate = _config.getfloat('Parameters', 'short_term_tax_rate')/100.0
-        if _config.has_option('Parameters', 'long_term_tax_rate'):
-            self.long_term_tax_rate = _config.getfloat('Parameters', 'long_term_tax_rate')/100.0
-        if _config.has_option('Parameters', 'dividend_tax_rate'):
-            self.dividend_tax_rate = _config.getfloat('Parameters', 'dividend_tax_rate')/100.0
+        if _config.has_option('Simulation', 'short_term_tax_rate'):
+            self.short_term_tax_rate = _config.getfloat('Simulation', 'short_term_tax_rate')/100.0
+        if _config.has_option('Simulation', 'long_term_tax_rate'):
+            self.long_term_tax_rate = _config.getfloat('Simulation', 'long_term_tax_rate')/100.0
+        if _config.has_option('Simulation', 'dividend_tax_rate'):
+            self.dividend_tax_rate = _config.getfloat('Simulation', 'dividend_tax_rate')/100.0
         self.short_term_tax_liability_realized = 0.0
         self.short_term_tax_liability_unrealized = 0.0
         self.long_term_tax_liability_realized = 0.0
@@ -381,4 +382,4 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
             _stats += get_benchmark_stats(self.dates, self.daily_log_returns, benchmark) # Returns a string of benchmark stats
         print _stats
         Globals.stats_file.write(_stats)
-        dump_sim_to_json(Globals.config_file, zip(self.dates,self.daily_log_returns), _stats)
+        return JsonParser().sim_to_json(Globals.config_file, self.dates, self.daily_log_returns, self.leverage, _stats) # Return the json object corresponding to the simulation
