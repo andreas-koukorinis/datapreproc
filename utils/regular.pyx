@@ -1,8 +1,6 @@
 # cython: profile=True
 import os
 import sys
-import re
-import json
 import cPickle
 import ConfigParser
 from datetime import datetime
@@ -296,46 +294,3 @@ def efficient_frontier(expected_returns, covariance, max_leverage, risk_toleranc
     solvers.options['show_progress'] = False
     portfolios = qp(dmat, -1*risk_tolerance*dvec, amat, bvec)['x']
     return portfolios[0:num_prods].T
-
-def read_all_config_params_to_dict(_config):
-    data = {}
-    for _section in _config.sections():
-        data[_section] = {}
-        for _var in _config.options(_section):
-            data[_section][_var] = _config.get(_section, _var)
-    return data
-
-def read_all_txt_params_to_dict(txt_file):
-    data = {}
-    with open(txt_file, 'r') as file_handle:
-        for line in file_handle:
-            words = line.split(' ')
-            data[words[0]] = words[1:]
-    return data
-
-def dump_sim_to_json(config_file, returns, stats):
-    data = {}
-    config = ConfigParser.ConfigParser() # Read aggregator config
-    config.optionxform = str
-    config.readfp(open(config_file, 'r'))
-    data = read_all_config_params_to_dict(config)
-    data['config_name'] = config_file
-    data['returns'] = returns
-    data['stats'] = stats
-    data['Strategy']['signal_configs'] = data['Strategy']['signal_configs'].split(',')
-    signal_configs = data['Strategy']['signal_configs']
-    risk_profile_path = data['RiskManagement']['risk_profile'].replace("~", os.path.expanduser("~"))
-    data['RiskManagement']['risk_file'] = read_all_txt_params_to_dict(risk_profile_path)
-    for i in range(len(signal_configs)):
-        signal_config_path = signal_configs[i].replace("~", os.path.expanduser("~"))
-        config = ConfigParser.ConfigParser() # Read aggregator config
-        config.optionxform = str
-        config.readfp(open(signal_config_path, 'r'))
-        signal_label = 'signal %d' % (i+1)
-        data[signal_label] = read_all_config_params_to_dict(config)
-        paramfilepath = data[signal_label]['Parameters']['paramfilepath'].replace("~", os.path.expanduser("~"))
-        modelfilepath = data[signal_label]['Strategy']['modelfilepath'].replace("~", os.path.expanduser("~"))
-        data[signal_label]['Parameters']['params'] = read_all_txt_params_to_dict(paramfilepath)
-        data[signal_label]['Strategy']['model'] = read_all_txt_params_to_dict(modelfilepath)
-        data[signal_label]['Products']['trade_products'] = data[signal_label]['Products']['trade_products'].split(',') 
-    print json.dumps(data)      

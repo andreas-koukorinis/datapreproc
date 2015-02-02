@@ -50,4 +50,7 @@ class JsonParser():
             signal_dict['Strategy']['model'] = self.read_all_txt_params_to_dict(modelfilepath)
             signal_dict['Products']['trade_products'] = signal_dict['Products']['trade_products'].split(',')
             data['signals'].append(signal_dict) 
-        return json.dumps(data)    
+        return json.dumps(data)
+
+    def json_to_cfg(_config_file, _output_cfg_path):
+        pass
