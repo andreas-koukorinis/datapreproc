@@ -208,7 +208,7 @@ class TargetRiskEqualRiskContribution(SignalAlgorithm):
                     # some sign isn't what it should be
                     _check_sign_of_weights = True # this is sort of a debugging exercise
                     if _check_sign_of_weights:
-                        print ( "Sign-check-fail: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
+                        print ( "Sign-check-fail ERC: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
                     _annualized_risk = 100.0*(numpy.exp(numpy.sqrt(252.0)*self.stdev_logret)-1) # we should do this only when self.stdev_logret has been updated
                     _expected_sharpe_ratios = self.allocation_signs # switched to self.allocation_signs from not multiplying anything 
                     zero_corr_risk_parity_weights = (1.0/_annualized_risk) * _expected_sharpe_ratios

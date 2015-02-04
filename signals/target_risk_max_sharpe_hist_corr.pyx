@@ -187,7 +187,7 @@ class TargetRiskMaxSharpeHistCorr(SignalAlgorithm):
                     # some sign isn't what it should be
                     _check_sign_of_weights = True # this is sort of a debugging exercise
                     if _check_sign_of_weights:
-                        print ( "Sign-check-fail: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
+                        print ( "Sign-check-fail TRMSHC: On date %s weights %s" %(events[0]['dt'], [ str(x) for x in self.erc_weights ]) )
                     self.erc_weights = correct_signs_weights(self.erc_weights, zero_corr_risk_parity_weights)
 
                 #print events[0]['dt'],'Initial weights:', self.erc_weights
