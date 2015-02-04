@@ -223,7 +223,7 @@ class MeanVarianceOptimization(SignalAlgorithm):
                 # In the following steps we resize the portfolio to the target risk level.
                 # We have just used stdev as the measure of risk here since it is simple.
                 # TODO improve risk calculation
-                _annualized_stdev_of_portfolio = math.sqrt((numpy.asmatrix(self.erc_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.erc_weights).T)[0, 0])
+                _annualized_stdev_of_portfolio = math.sqrt((numpy.asmatrix(self.weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.weights).T)[0, 0])
                 self.weights = self.weights*(self.target_risk/_annualized_stdev_of_portfolio)
                 self.weights = adjust_to_desired_l1norm_range (self.weights, self.minimum_leverage, self.maximum_leverage)   
 
