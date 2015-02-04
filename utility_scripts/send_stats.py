@@ -2,6 +2,7 @@
 import re
 import sys
 import os
+import math
 import subprocess
 import argparse
 from datetime import datetime, date, timedelta
@@ -72,11 +73,11 @@ def process_snapshot(_snapshot):
     if len(_snapshot) == 0:
         return ''
     _snap = _snapshot.split('\n')
-    _header = _snap[0] + '\t' + _snap[1] + '\t' + _snap[2] + '\t' + _snap[3] + '\t' + _snap[8]
-    _open_equity = get_dict(_snap[4])
-    _positions = get_dict(_snap[5])
-    _notional_allocation = get_dict(_snap[6])
-    _average_trade_price = get_dict(_snap[7])
+    _header = _snap[0] + '\t' + _snap[1] + '\t' + _snap[2] + '\t' + _snap[3] + '\t' + _snap[-1]
+    _open_equity = get_dict(_snap[8])
+    _positions = get_dict(_snap[9])
+    _notional_allocation = get_dict(_snap[10])
+    _average_trade_price = get_dict(_snap[11])
     _data = PrettyTable(["Product", "Open_Equity", "Position", "Notional_Allocation", 'Average_Trade_Price'])
     for _product in sorted(_open_equity.keys()):
         _data.add_row([_product,_open_equity[_product],_positions[_product],_notional_allocation[_product],_average_trade_price[_product]])
@@ -121,7 +122,9 @@ def todays_return(snapshot):
 def send_mail(_subject, _body):
     _server = "localhost"
     _from = "gchak@circulumvite.com"
+    #_from = "sanchit.gupta@tworoads.co.in"
     _to = "cvquant@circulumvite.com"
+    #_to = "sanchit.gupta@tworoads.co.in"
     #_to = "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in"
     # Prepare actual message
     message = "From: {0}\nTo: {1}\nSubject: {2}\n\n{3}".format(_from, _to, _subject, _body)
@@ -134,7 +137,7 @@ def get_positions(_current_date, _config_file):
     positions_file = home_path + '/logs/'+os.path.splitext(_config_file)[0].split('/')[-1]+'/positions.txt'
     placed_orders = re.compile(r'ORDER PLACED ON %s.*'%str(_current_date))
     filled_orders = re.compile(r"ORDER FILLED ON %s.*"%str(_current_date))
-    snapshot = re.compile(r"Portfolio snapshot at EndOfDay %s\n.*PnL for today.*\nPortfolio Value.*\nCash.*\nOpen Equity.*\nPositions.*\nNotional Allocation.*\nAverage Trade Price.*\nLeverage.*"%_current_date)
+    snapshot = re.compile(r"Portfolio snapshot at EndOfDay %s\n.*PnL for today.*\nPortfolio Value.*\nCash.*\nShort Term Tax Realized.*\nLong Term Tax Realized.*\nShort Term Tax Unrealized.*\nLong Term Tax Unrealized.*\nOpen Equity.*\nPositions.*\nNotional Allocation.*\nAverage Trade Price.*\nLeverage.*"%_current_date)
     fp = open(positions_file)
     lines = fp.read()
     fp.close()
@@ -145,12 +148,13 @@ def get_positions(_current_date, _config_file):
     _return = 0
     if len(results_snapshot) > 0:
         _result += process_snapshot(results_snapshot[0])
-        _return = todays_return(results_snapshot[0])
+        #_return = todays_return(results_snapshot[0])
     if len(results_placed_orders) > 0:
         _result += '\n\nORDERS PLACED\n' + process_placed_orders(results_placed_orders)
     if len(results_filled_orders) > 0:
         _result += '\n\nORDERS FILLED\n' + process_filled_orders(results_filled_orders)
-    return _return, _result
+    #return _return, _result
+    return _result
 
 def main():
     parser = argparse.ArgumentParser()
@@ -181,7 +185,7 @@ def main():
     proc = subprocess.Popen(['python', '-W', 'ignore', 'run_simulator.py', _config_file, str(_sim_start_date), str(_sim_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     proc.communicate()
     performance_stats.append('------------------------------------------------\nYDAY Performance:')
-    todays_return, todays_performance = get_positions(_current_date, _config_file)
+    todays_performance = get_positions(_current_date, _config_file)
     performance_stats.append(todays_performance)
    
     returns_file = home_path + '/logs/'+os.path.splitext(_config_file)[0].split('/')[-1]+'/returns.txt' 
@@ -209,6 +213,10 @@ def main():
     for item in benchmark_returns:
         _print_benchmark_returns += '%s : %0.2f%%\t' % (item[0],item[1])
 
+    if dates[-1] == _current_date:
+        todays_return = (math.exp(returns[-1]) - 1)*100.0
+    else:
+        todays_return = 0.0
     subject = '%s up %0.2f%% on %s' % ('_'.join(_config_file.rsplit('/')[-1].split('_')[0:2]), todays_return, _yday_end_date)
     body = 'Config File: %s\nBenchmark Returns on %s: %s\n\n'%(_config_file.rsplit('/')[-1], _current_date, _print_benchmark_returns)  + '\n\n'.join(performance_stats)
 
