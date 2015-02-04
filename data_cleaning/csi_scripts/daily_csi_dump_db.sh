@@ -1,7 +1,7 @@
 #!/bin/sh
 cd /home/cvdev/stratdev/data_cleaning/csi_scripts/
 echo "DB DUMP CSI DAT FOR ETF's AND FUNDS STATUS:\n" >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
-COUNTER=92
+#COUNTER=92
 #>log
 #while [  $COUNTER -gt 0 ]; do
 #    echo The counter is $COUNTER
@@ -13,4 +13,3 @@ python daily_update.py futures 1 TU FV TY US NK NIY ES EMD NQ YM AD BP CD CU1 JY
 
 python daily_update.py us-stocks 1 VTI VTV VOE VBR VEA VWO VXUS VT IEMG TIP VTIP BND MUB LQD BNDX VWOB SHV >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
 python daily_update.py funds 1 AQRIX AQMIX QGMIX SRPFX ABRZX VBLTX VTSMX>> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
-#python daily_update.py futures 1 EBL EBM FLG ZF TY AD1 BP1 CD1 CU1 MP FDX SXF NK EX JT ES SXE JY1 CADUSD GBPUSD EURUSD JPYUSD >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
