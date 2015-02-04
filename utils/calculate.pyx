@@ -50,7 +50,7 @@ def convert_daily_returns_to_yyyymm_monthly_returns_pair(dates, returns):
     return monthly_returns
 
 def compute_correlation(labels_and_returns_1, labels_and_returns_2):
-    if len(labels_and_returns_1) < 1 or len(labels_and_returns_2) < 1:
+    if len(labels_and_returns_1) <= 1 or len(labels_and_returns_2) <= 1:
         return 0
     filtered_labels_and_returns_1, filtered_labels_and_returns_2 = filter_series(labels_and_returns_1, labels_and_returns_2)
     if len(filtered_labels_and_returns_1) != len(labels_and_returns_1) or len(filtered_labels_and_returns_2) != len(labels_and_returns_2): # If some records were filtered out
