@@ -38,8 +38,6 @@ def annualized_stdev_from_monthly(monthly_log_returns):
         annualized_stdev = max(1.0, min(100.0, annualized_stdev))
     return annualized_stdev   
 
-
-
 def drawdown(returns):
     """Calculates the global maximum drawdown i.e. the maximum drawdown till now"""
     if returns.shape[0] < 2:
@@ -269,6 +267,28 @@ def drawdown_period_and_recovery_period(dates, _cum_returns):
         recovery_period = (dates[_end_idx_max_drawdown], datetime.date(2050,1,1)) # Never recovered
     return (drawdown_period, recovery_period)
 
+def compute_hit_loss_ratio(daily_log_returns):
+    positive_return_count = numpy.sum(numpy.where(daily_log_returns > 0, 1.0, 0.0))
+    negative_return_count = numpy.sum(numpy.where(daily_log_returns < 0, 1.0, 0.0))
+    if negative_return_count > 0:
+        return positive_return_count/negative_return_count
+    else:
+        return float('NaN')
+
+def compute_gain_pain_ratio(daily_log_returns):
+    net_log_return = numpy.sum(daily_log_returns)
+    abs_negative_net_returns = numpy.sum(numpy.where(daily_log_returns < 0, -daily_log_returns, 0.0))
+    if abs_negative_net_returns > 0:
+        return net_log_return/abs_negative_net_returns
+    else:
+        return float('NaN')
+
+def compute_skew(daily_log_returns):
+    if daily_log_returns.shape[0] < 2:
+        return 0.0
+    else:
+        return ss.skew(daily_log_returns)
+
 def get_all_stats(dates, daily_log_returns):
     net_returns = (math.exp(numpy.sum(daily_log_returns)) - 1) * 100.0 
     monthly_log_returns = rollsum(daily_log_returns, 21)
@@ -286,15 +306,15 @@ def get_all_stats(dates, daily_log_returns):
     _format_strings = ','.join([' %s : %0.2f'] * len(yearly_sharpe))
     _yearly_sharpe_tuple = tuple(list(itertools.chain(*yearly_sharpe)))
     _print_yearly_sharpe = _format_strings%_yearly_sharpe_tuple
-    skewness = ss.skew(daily_log_returns)
+    skewness = compute_skew(daily_log_returns)
     kurtosis = ss.kurtosis(daily_log_returns)
     max_drawdown_percent = abs((math.exp(drawdown(daily_log_returns)) - 1) * 100)
     drawdown_period, recovery_period = drawdown_period_and_recovery_period(dates, daily_log_returns.cumsum())
-    return_by_maxdrawdown = annualized_returns_percent/max_drawdown_percent
-    ret_var10 = abs(annualized_returns_percent/worst_10pc_daily_returns)
+    return_by_maxdrawdown = annualized_returns_percent/max_drawdown_percent if max_drawdown_percent > 0 else float('NaN')
+    ret_var10 = abs(annualized_returns_percent/worst_10pc_daily_returns) if abs(worst_10pc_daily_returns) > 0 else float('NaN')
     #turnover_percent = turnover(self.dates, self.amount_long_transacted, self.amount_short_transacted, self.value)
-    hit_loss_ratio = numpy.sum(numpy.where(daily_log_returns > 0, 1.0, 0.0))/numpy.sum(numpy.where(daily_log_returns < 0, 1.0, 0.0))
-    gain_pain_ratio = numpy.sum(daily_log_returns)/numpy.sum(numpy.where(daily_log_returns < 0, -daily_log_returns, 0.0))
+    hit_loss_ratio = compute_hit_loss_ratio(daily_log_returns)
+    gain_pain_ratio = compute_gain_pain_ratio(daily_log_returns)
     max_num_days_no_new_high = compute_max_num_days_no_new_high(dates, daily_log_returns)
     losing_month_streak = compute_losing_month_streak(dates, daily_log_returns)
     extreme_days = get_extreme_days(dates, daily_log_returns, 5)
