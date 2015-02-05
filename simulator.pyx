@@ -55,11 +55,11 @@ class Simulator:
         self.config.readfp( open( _config_file, 'r' ) )
 
         if _start_date is None:
-            self.start_date = self.config.get('Simulation', 'start_date')
+            self.start_date = self.config.get('Dates', 'start_date')
         else:
             self.start_date = _start_date
         if _end_date is None:
-            self.end_date = self.config.get('Simulation', 'end_date')
+            self.end_date = self.config.get('Dates', 'end_date')
         else:
             self.end_date = _end_date
         if _json_output_path is None:

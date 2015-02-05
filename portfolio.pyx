@@ -38,7 +38,7 @@ class Portfolio(BackTesterListener):
         Returns: Nothing 
         """
 
-        self.cash = _config.getfloat('Simulation', 'initial_capital')
+        self.cash = _config.getfloat('Parameters', 'initial_capital')
         self.products = products
         self.open_equity = dict([(_product, 0) for _product in self.products]) # Map from product to current open equity
         self.num_shares = {}

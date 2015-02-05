@@ -118,7 +118,7 @@ class JsonParser():
         Config = ConfigParser.ConfigParser()
         aggconfig = open(_output_cfg_dir + 'agg.cfg', 'w')
         for section in cfg.keys():
-            if section in ['Simulation','Strategy','RiskManagement']:
+            if section in ['Parameters','Strategy','RiskManagement']:
                 Config.add_section(section)
                 for key in cfg[section].keys():
                     if key not in ['risk_file']:

@@ -93,8 +93,8 @@ class TradeAlgorithm(EventsListener):
         # We read the parameter "execlogic" from the config, and based on name we import the relevant module
         # and instantiate the self.exec_logic object
         _exec_logic_name = defaults.EXECLOGIC
-        if _config.has_option('Simulation', 'execlogic'):
-            _exec_logic_name = _config.get('Simulation', 'execlogic')
+        if _config.has_option('Parameters', 'execlogic'):
+            _exec_logic_name = _config.get('Parameters', 'execlogic')
         if not(is_valid_execlogic_name(_exec_logic_name)):
             sys.exit("Cannot proceed with invalid Execlogic name")
         _exec_logic_module_name = get_module_name_from_execlogic_name(_exec_logic_name)

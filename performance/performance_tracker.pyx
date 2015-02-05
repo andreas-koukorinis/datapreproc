@@ -49,7 +49,7 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.todays_realized_pnl = dict([(_currency, 0) for _currency in self.currency_factor.keys()]) # Map from currency to todays realized pnl in the currency
         self.average_trade_price = dict([(_product, 0) for _product in self.products]) # Map from product to average trade price for the open trades in the product
         self.net_returns = 0
-        self.initial_capital = _config.getfloat('Simulation', 'initial_capital')
+        self.initial_capital = _config.getfloat('Parameters', 'initial_capital')
         self.value = numpy.array([self.initial_capital])  # Track end of day values of the portfolio
         self.PnLvector = numpy.empty(shape=(0))
         self.annualized_PnL = 0
@@ -101,12 +101,12 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         self.short_term_tax_rate = .396 #39.6%
         self.long_term_tax_rate = .196 #19.6%
         self.dividend_tax_rate = 0.4 #40%
-        if _config.has_option('Simulation', 'short_term_tax_rate'):
-            self.short_term_tax_rate = _config.getfloat('Simulation', 'short_term_tax_rate')/100.0
-        if _config.has_option('Simulation', 'long_term_tax_rate'):
-            self.long_term_tax_rate = _config.getfloat('Simulation', 'long_term_tax_rate')/100.0
-        if _config.has_option('Simulation', 'dividend_tax_rate'):
-            self.dividend_tax_rate = _config.getfloat('Simulation', 'dividend_tax_rate')/100.0
+        if _config.has_option('Parameters', 'short_term_tax_rate'):
+            self.short_term_tax_rate = _config.getfloat('Parameters', 'short_term_tax_rate')/100.0
+        if _config.has_option('Parameters', 'long_term_tax_rate'):
+            self.long_term_tax_rate = _config.getfloat('Parameters', 'long_term_tax_rate')/100.0
+        if _config.has_option('Parameters', 'dividend_tax_rate'):
+            self.dividend_tax_rate = _config.getfloat('Parameters', 'dividend_tax_rate')/100.0
         self.short_term_tax_liability_realized = 0.0
         self.short_term_tax_liability_unrealized = 0.0
         self.long_term_tax_liability_realized = 0.0
