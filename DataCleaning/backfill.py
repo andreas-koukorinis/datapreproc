@@ -9,7 +9,7 @@ from adjust_split import adjust_for_splits
 from backward_dividend_adjust import backward_adjust_dividends
 
 path = '/home/debi/backfill/'
-output_path = '/home/debi/backfill/'
+output_path = '/home/debi/backfill/completed/'
 plot_path = '/home/debi/backfill/'
 
 def backfill_each_product(df_prod_bf, prod, product_type):
@@ -28,12 +28,19 @@ def backfill_each_product(df_prod_bf, prod, product_type):
         starting_index(int): index at which backfilling was started
     """
     # Adjust for splits and create backward dividend adjusted file
-    adjust_for_splits([prod], product_type)
-    backward_adjust_dividends([prod], product_type)
+    if not product_type == 'index':
+        adjust_for_splits([prod], product_type)
+        backward_adjust_dividends([prod], product_type)
 
-    # Read data from CSVs to datarframe
-    prod_file = path+prod+'_backward_dividend_adjusted.csv'
-    df_prod = pd.read_csv(prod_file)
+        # Read data from CSVs to datarframe
+        prod_file = path+prod+'_backward_dividend_adjusted.csv'
+        df_prod = pd.read_csv(prod_file)
+    else:
+        columns = ['date','open','high','low','close','volume','dividend']
+        prod_file = path+prod[0]+'/'+prod+'.csv'
+        df_prod = pd.read_csv(prod_file,names=columns)
+
+    
 
     # Get last date available in df_prod_bf
     # This is the starting date for backfill
@@ -53,7 +60,10 @@ def backfill_each_product(df_prod_bf, prod, product_type):
     
     for i in xrange(starting_index-1,-1,-1):
         # backfill_ratio is kept to ensure daily log returns is same between both poducts when data is unavailable
-        backfill_ratio = df_prod['backward_adjusted_close'].iloc[i]/df_prod['backward_adjusted_close'].iloc[i+1]
+        if not product_type == 'index':
+            backfill_ratio = df_prod['backward_adjusted_close'].iloc[i]/df_prod['backward_adjusted_close'].iloc[i+1]
+        else:
+            backfill_ratio = df_prod['close'].iloc[i]/df_prod['close'].iloc[i+1]
         df_backfilled.loc[n,'date'] = df_prod.loc[i,'date']
         # A_price_backfill_i/A_price_backfill_(i+1) = B_backward_adjusted_close_i/ B_backward_adjusted_close_(i+1)        
         df_backfilled.loc[n,'open'] = df_backfilled.loc[n-1,'open'] * backfill_ratio
@@ -68,8 +78,7 @@ def backfill_each_product(df_prod_bf, prod, product_type):
     # Concat the backfilled dataframe and the available dataframe for prod_bf
     df_prod_bf = pd.concat([df_backfilled.iloc[::-1][:-1],df_prod_bf])
 
-    return df_prod_bf, starting_index
-
+    return df_prod_bf, starting_date
 
 def backfill(prod_backfill, prod_list, product_types, plot_option):
     """
@@ -99,26 +108,28 @@ def backfill(prod_backfill, prod_list, product_types, plot_option):
     prod_backfill_file = path+prod_backfill[0]+'/'+prod_backfill+'.csv'
     df_prod_bf = pd.read_csv(prod_backfill_file,names=columns)
     
-    starting_indices = []
+    starting_dates = []
     for prod in zip(prod_list,product_types):
-        df_prod_bf,temp_ind = backfill_each_product(df_prod_bf, prod[0], prod[1])
-        starting_indices.append(temp_ind)
+        df_prod_bf,temp_dt= backfill_each_product(df_prod_bf, prod[0], prod[1])
+        starting_dates.append(temp_dt)
 
     # Output to file
     df_prod_bf.to_csv(output_path+prod_backfill+'_backfilled'+'.csv',index=False)
+    df_prod_bf = pd.read_csv(output_path+prod_backfill+'_backfilled'+'.csv')
 
     if plot_option.lower() == 'y':
         # ax = df_prod.plot(y='backward_adjusted_close',use_index=False,legend=False)
         # patches1, labels1 = ax.get_legend_handles_labels()
         # ax2 = df_prod_bf.plot(y='close',ax=ax,use_index=False,secondary_y=True,legend=False)
         ax = df_prod_bf.plot(y='close',use_index=False)
-        for starting_index in starting_indices:
+        for starting_date in starting_dates:
             # prod_file = path+prod+'_backward_dividend_adjusted.csv'
             # df_prod = pd.read_csv(prod_file)
             # ax2 = df_prod.plot(y='close',ax=ax,use_index=False,secondary_y=True)
             # patches2, labels2 = ax2.get_legend_handles_labels()
             # my_labels = [prod,prod_backfill+"(Right)"]
             # ax.legend(patches1 + patches2,my_labels,loc='best')
+            starting_index = df_prod_bf[df_prod_bf['date']==int(starting_date)].index[0]
             ax.axvline(x=starting_index)
         plt.savefig(output_path+"plot_"+prod_backfill+".png")
 
@@ -133,7 +144,7 @@ def __main__() :
             product_types.append(sys.argv[i])
             products.append(sys.argv[i+1])
     else:
-        print 'python backfill.py plot(y/n) product_to_be_backfilled etf/fund1 product1 etf/fund2 product2'
+        print 'python backfill.py plot(y/n) product_to_be_backfilled etf/fund/index1 product1 etf/fund/index2 product2'
         sys.exit(0)
     
     backfill(prod_backfill, products, product_types, plot_option)    

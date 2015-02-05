@@ -5,7 +5,7 @@ import sys
 import pandas as pd
 
 def forward_adjust_dividends( products, product_type ):
-    path = '/home/cvdev/stratdev/DataCleaning/Data/'
+    path = '/home/debi/backfill/'
     for product in products:
         prices_file = path+product+'_backward_dividend_adjusted.csv'
         df = pd.read_csv(prices_file,header=0)
