@@ -2,6 +2,9 @@ import os
 import sys
 import json
 import yaml
+import time
+import MySQLdb
+import datetime
 import ConfigParser
 from compiler.ast import flatten
 
@@ -57,6 +60,54 @@ class JsonParser():
             signal_dict['Products']['trade_products'] = trade_products
             data['signals'].append(signal_dict) 
         return json.dumps(data)
+
+    def cfg_to_json(self, config_file):
+        data = {}
+        config = ConfigParser.ConfigParser() # Read aggregator config
+        config.optionxform = str
+        config.readfp(open(config_file, 'r'))
+        data = self.read_all_config_params_to_dict(config)
+        data["config_name"] = config_file
+        data["Strategy"]["signal_configs"] = data["Strategy"]["signal_configs"].split(",")
+        signal_configs = data["Strategy"]["signal_configs"]
+        risk_profile_path = data["RiskManagement"]["risk_profile"].replace("~", os.path.expanduser("~"))
+        data["RiskManagement"]["risk_file"] = self.read_all_txt_params_to_list(risk_profile_path)
+        data["signals"] = []
+        for i in range(len(signal_configs)):
+            signal_config_path = signal_configs[i].replace("~", os.path.expanduser("~"))
+            config = ConfigParser.ConfigParser()
+            config.optionxform = str
+            config.readfp(open(signal_config_path, "r"))
+            signal_dict = self.read_all_config_params_to_dict(config)
+            paramfilepath = signal_dict["Parameters"]["paramfilepath"].replace("~", os.path.expanduser("~"))
+            modelfilepath = signal_dict["Strategy"]["modelfilepath"].replace("~", os.path.expanduser("~"))
+            signal_dict["Parameters"]["param_file"] = self.read_all_txt_params_to_list(paramfilepath)
+            signal_dict["Strategy"]["model_file"] = self.read_all_txt_params_to_list(modelfilepath)
+            signal_dict["Products"]["trade_products"] = signal_dict["Products"]["trade_products"].split(",")
+            trade_products = []
+            for i in range(len(signal_dict["Products"]["trade_products"])):
+                products_file = signal_dict["Products"]["trade_products"][i].replace("~", os.path.expanduser("~"))
+                with open(products_file) as f:
+                    products = f.read().splitlines()
+                trade_products.append(products)
+            signal_dict["Products"]["trade_products"] = trade_products
+            data["signals"].append(signal_dict)
+        return json.dumps(data)
+        
+    def dump_sim_to_db(self, config_file, dates, returns, leverage, stats):
+        try:
+            db = MySQLdb.connect(host="fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com", user="cvmysql",passwd="fixedcvincome", db="webapp")
+        except MySQLdb.Error:
+            sys.exit("Error In DB Connection")
+        dates = str([date.strftime("%Y-%m-%d") for date in dates]).replace("'",'"')
+        query = "INSERT INTO strategies (name, params, stats, dates, daily_log_returns, leverage, created_at, updated_at) VALUES('%s','%s','%s','%s','%s','%s','%s','%s')" %(config_file, self.cfg_to_json(config_file), str(stats).replace("'",'"'), dates, list(returns), list(leverage), datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'), datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
+        try :
+            db.cursor().execute(query)
+            db.commit()
+            db.cursor().close()
+        except:
+            db.rollback()
+            print 'Alert! simulation not stored in DB'
 
     def write_list_to_text_file(self, paramlist, filepath):
         with open(filepath, 'w') as f:

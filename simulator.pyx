@@ -99,8 +99,9 @@ class Simulator:
         print '\nTotal Tradable Days = %d'%(self.dispatcher.trading_days)
         # Call the performance tracker to display the stats
         sim_json = self.tradelogic_instance.performance_tracker.show_results()
-        with open(self.json_output_path,'w') as f:
-            f.write(sim_json)
+        if sim_json is not None:
+            with open(self.json_output_path,'w') as f:
+                f.write(sim_json)
         Globals.reset()
 
 if __name__ == '__main__':
