@@ -552,7 +552,7 @@ def main():
     agg_config_path = sys.argv[1].replace("~", os.path.expanduser("~"))
     permutparam_config_path = sys.argv[2].replace("~", os.path.expanduser("~"))
 
-    dest_dir = '/spare/local/logs/' + os.path.splitext(os.path.basename(permutparam_config_path))[0]+'/' # directory to store output files
+    dest_dir = '~/modeling/'.replace("~", os.path.expanduser("~")) # directory to store output files
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
 
@@ -561,6 +561,7 @@ def main():
     new_agg_config_path = copy_config_files(agg_config_path, dest_dir)
     test_to_combinations_map = generate_test_combinations(permutparam_config_path)
     test_dirs, test_to_agg_config_list_map = generate_test_configs(new_agg_config_path, test_to_combinations_map, dest_dir)
+    sys.exit()
     for test_name in test_to_agg_config_list_map.keys(): # Select the best operf stat for each test
         perf_stats = get_perf_stats(test_to_agg_config_list_map[test_name])
         save_perf_stats(test_dirs[test_name], perf_stats)
