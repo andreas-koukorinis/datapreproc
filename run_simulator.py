@@ -1,21 +1,22 @@
 #!/usr/bin/env python
 import os
 import sys
+import argparse
 from subprocess import call
 
 def __main__():
-    call(["python", "setup.py","build_ext","--inplace"],stdout=open(os.devnull, 'w'))
+    ret_code = call(["python", "setup.py","build_ext","--inplace"],stdout=open(os.devnull, 'w'))
+    if ret_code != 0:
+        sys.exit('COMPILATION TERMINATED')
     from simulator import Simulator
-    if len(sys.argv) < 2 :
-        sys.exit("config_file <trading-startdate trading-enddate>")
     # Get handle of config file
-    _config_file = sys.argv[1]
-    if len(sys.argv) >= 4 :
-        _start_date = sys.argv[2]
-        _end_date = sys.argv[3]
-        sim = Simulator(_config_file, _start_date, _end_date)
-    else:
-        sim = Simulator(_config_file)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config_file')
+    parser.add_argument('-sd', type=str, help='Sim Start date\nEg: -sd 2014-06-01\n Default is config_start_date',default=None, dest='sim_start_date')
+    parser.add_argument('-ed', type=str, help='Sim End date\nEg: -ed 2014-10-31\n Default is config end_date',default=None, dest='sim_end_date')    
+    parser.add_argument('-o', type=str, help='Json Output path\nEg: -o ~/logs/file.json\n Default is in log dir',default=None, dest='json_output_path')
+    args = parser.parse_args()
+    sim = Simulator(args.config_file, args.sim_start_date, args.sim_end_date, args.json_output_path)
     sim.run()
 
 if __name__ == '__main__':

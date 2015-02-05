@@ -14,12 +14,13 @@ from backtester.backtester_listeners import BackTesterListener
 from backtester.backtester import BackTester
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.dispatcher_listeners import EndOfDayListener, TaxPaymentDayListener, DistributionDayListener
-from utils.regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string
+from utils.regular import check_eod, get_dt_from_date, get_next_futures_contract, is_float_zero, is_future, shift_future_symbols, is_margin_product, dict_to_string, parse_results
 from utils.calculate import find_most_recent_price, find_most_recent_price_future, get_current_notional_amounts
 from utils.benchmark_comparison import get_benchmark_stats
 from utils import defaults
 from bookbuilder.bookbuilder import BookBuilder
 from utils.global_variables import Globals
+from utils.json_parser import JsonParser
 from performance_utils import drawdown, current_dd, drawdown_period_and_recovery_period, rollsum, mean_lowest_k_percent, turnover, get_extreme_days, get_extreme_weeks, compute_max_num_days_no_new_high, compute_yearly_sharpe, compute_sortino, compute_losing_month_streak, annualized_returns, annualized_stdev
 
 # TODO {gchak} PerformanceTracker is probably a class that just pertains to the performance of one strategy
@@ -381,4 +382,6 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
             _stats += get_benchmark_stats(self.dates, self.daily_log_returns, benchmark) # Returns a string of benchmark stats
         print _stats
         Globals.stats_file.write(_stats)
-
+        #return JsonParser().sim_to_json(Globals.config_file, self.dates, self.daily_log_returns, self.leverage, parse_results(_stats)) # Return the json object corresponding to the simulation
+        JsonParser().dump_sim_to_db(Globals.config_file, self.dates, self.daily_log_returns, self.leverage, parse_results(_stats))
+        return None

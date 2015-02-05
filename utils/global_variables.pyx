@@ -13,6 +13,7 @@ class Globals:
     weights_file = None
     leverage_file = None
     amount_transacted_file = None
+    config_file = None
 
     #  Instance tracking
     dispatcher_instance = None
@@ -47,6 +48,7 @@ class Globals:
         cls.weights_file = None
         cls.leverage_file = None
         cls.amount_transacted_file = None
+        cls.config_file = None
 
         #  Reset instance variables to remove referrents
         cls.dispatcher_instance = None

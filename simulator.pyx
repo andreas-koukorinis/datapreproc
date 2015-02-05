@@ -4,6 +4,7 @@
 import os
 import sys
 import shutil
+import argparse
 from importlib import import_module
 import ConfigParser
 from dispatcher.dispatcher import Dispatcher
@@ -11,6 +12,7 @@ from utils.regular import get_all_trade_products, get_all_products, init_logs
 from strategies.strategy_list import is_valid_strategy_name, get_module_name_from_strategy_name
 from utils.global_variables import Globals
 from utils.dbqueries import get_currency_and_conversion_factors
+from utils.json_parser import JsonParser
 
 class Simulator:
     """ Performs the backtesting of the strategy
@@ -40,69 +42,74 @@ class Simulator:
     
     Returns: Nothing 
     """
-    def __init__(self, _config_file, _start_date=None, _end_date=None):
-        self._config = ConfigParser.ConfigParser()
-        self._config.readfp( open( _config_file, 'r' ) )
-        if _start_date is None:
-            self._start_date = self._config.get('Dates', 'start_date')
-        else:
-            self._start_date = _start_date
-        if _end_date is None:
-            self._end_date = self._config.get('Dates', 'end_date')
-        else:
-            self._end_date = _end_date
-    
-        self._directory =  os.path.dirname(os.getcwd()) + "/logs/" + os.path.splitext(os.path.basename(_config_file))[0]+'/' # directory to store log files like positions,returns file
-        if os.path.exists(self._directory):
-            shutil.rmtree(self._directory)
-        os.makedirs(self._directory)
-        
-        # Read product list from config file
-        Globals.trade_products = get_all_trade_products(self._config)
-        Globals.all_products = sorted(get_all_products(Globals.trade_products))
+    def __init__(self, _config_file, _start_date=None, _end_date=None, _json_output_path=None):
+        self.log_dir =  os.path.expanduser('~') + "/logs/" + os.path.splitext(_config_file)[0].split('/')[-1] + '/'
+        if os.path.exists(self.log_dir):
+            shutil.rmtree(self.log_dir)
+        os.makedirs(self.log_dir)
+        if os.path.splitext(_config_file)[1] == '.json':
+            _output_cfg_dir = self.log_dir
+            JsonParser().json_to_cfg(_config_file, _output_cfg_dir)
+            _config_file = _output_cfg_dir + 'agg.cfg'    
+        self.config = ConfigParser.ConfigParser()
+        self.config.readfp( open( _config_file, 'r' ) )
 
+        if _start_date is None:
+            self.start_date = self.config.get('Dates', 'start_date')
+        else:
+            self.start_date = _start_date
+        if _end_date is None:
+            self.end_date = self.config.get('Dates', 'end_date')
+        else:
+            self.end_date = _end_date
+        if _json_output_path is None:
+            self.json_output_path = self.log_dir + 'output.json'
+        else:
+            self.json_output_path = _json_output_path
+    
+        # Read product list from config file
+        Globals.trade_products = get_all_trade_products(self.config)
+        Globals.all_products = sorted(get_all_products(Globals.trade_products))
+        Globals.config_file = _config_file
         # Initialize the global variables
-        Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, Globals.product_type = get_currency_and_conversion_factors(Globals.all_products, self._start_date, self._end_date)
+        Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, Globals.product_type = get_currency_and_conversion_factors(Globals.all_products, self.start_date, self.end_date)
 
         # Initialize the log file handles
-        self._log_dir =  os.path.expanduser('~') + "/logs/" + os.path.splitext(_config_file)[0].split('/')[-1] + '/'
-        init_logs(self._config, self._log_dir, Globals.all_products)
+        init_logs(self.config, self.log_dir, Globals.all_products)
        
         # Import the strategy class using 'Strategy'->'name' in config file
-        self._stratfile = self._config.get ( 'Strategy', 'name' )  # Remove .py from filename
-        if not(is_valid_strategy_name(self._stratfile)):
-            print("Cannot proceed with invalid Strategy name")
-            sys.exit()
+        self.stratfile = self.config.get ( 'Strategy', 'name' )  # Remove .py from filename
+        if not(is_valid_strategy_name(self.stratfile)):
+            sys.exit('Cannot proceed with invalid Strategy name')
 
-        self.strategy_module_name = get_module_name_from_strategy_name(self._stratfile)
-        self.TradeLogic = getattr(import_module('strategies.' + self.strategy_module_name), self._stratfile)  # Get the strategy class from the imported module
+        self.strategy_module_name = get_module_name_from_strategy_name(self.stratfile)
+        self.TradeLogic = getattr(import_module('strategies.' + self.strategy_module_name), self.stratfile)  # Get the strategy class from the imported module
 
         # Instantiate the strategy
         # Strategy is written by the user and it inherits from TradeAlgorithm
         # TradeLogic here is the strategy class name converted to variable.Eg: UnleveredRP
-        self._tradelogic_instance = self.TradeLogic(Globals.trade_products, Globals.all_products, self._start_date, self._end_date, self._config) # TODO Should take logfile as terminal arg
+        self.tradelogic_instance = self.TradeLogic(Globals.trade_products, Globals.all_products, self.start_date, self.end_date, self.config) # TODO Should take logfile as terminal arg
 
         # Instantiate the Dispatcher
-        self._dispatcher = Dispatcher.get_unique_instance(Globals.all_products, self._start_date, self._end_date, self._config)
+        self.dispatcher = Dispatcher.get_unique_instance(Globals.all_products, self.start_date, self.end_date, self.config)
 
     def run(self):
         # Run the dispatcher to start the backtesting process
-        self._dispatcher.run()
-        print '\nTotal Tradable Days = %d'%(self._dispatcher.trading_days)
+        self.dispatcher.run()
+        print '\nTotal Tradable Days = %d'%(self.dispatcher.trading_days)
         # Call the performance tracker to display the stats
-        self._tradelogic_instance.performance_tracker.show_results()
+        sim_json = self.tradelogic_instance.performance_tracker.show_results()
+        if sim_json is not None:
+            with open(self.json_output_path,'w') as f:
+                f.write(sim_json)
         Globals.reset()
 
 if __name__ == '__main__':
-    if len ( sys.argv ) < 2 :
-        print "config_file <trading-startdate trading-enddate>"
-        sys.exit(0)
-    # Get handle of config file
-    _config_file = sys.argv[1]
-    if len ( sys.argv ) >= 4 :
-        _start_date = sys.argv[2]
-        _end_date = sys.argv[3]
-        sim1 = Simulator(_config_file, _start_date, _end_date)
-    else:
-        sim1 = Simulator(_config_file)
-    sim1.run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config_file')
+    parser.add_argument('-sd', type=str, help='Sim Start date\nEg: -sd 2014-06-01\n Default is config_start_date',default=None, dest='sim_start_date')
+    parser.add_argument('-ed', type=str, help='Sim End date\nEg: -ed 2014-10-31\n Default is config end_date',default=None, dest='sim_end_date')
+    parser.add_argument('-o', type=str, help='Json Output path\nEg: -o ~/logs/file.json\n Default is in log dir',default=None, dest='json_output_path')
+    args = parser.parse_args()
+    sim = Simulator(args.config_file, args.sim_start_date, args.sim_end_date, args.json_output_path)
+    sim.run()
