@@ -5,7 +5,9 @@ import argparse
 from subprocess import call
 
 def __main__():
-    call(["python", "setup.py","build_ext","--inplace"],stdout=open(os.devnull, 'w'))
+    ret_code = call(["python", "setup.py","build_ext","--inplace"],stdout=open(os.devnull, 'w'))
+    if ret_code != 0:
+        sys.exit('COMPILATION TERMINATED')
     from simulator import Simulator
     # Get handle of config file
     parser = argparse.ArgumentParser()
