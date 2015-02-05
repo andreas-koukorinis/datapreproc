@@ -5,8 +5,8 @@ import sys
 import pandas as pd
 
 def adjust_for_splits( products, product_type ):
-    path = '/home/debi/backfill/'
-    output_path = '/home/debi/backfill/'
+    path = '/apps/data/csi/CVHISTORICAL_STOCKS/'
+    output_path = '/home/deedee/backfill/stratdev/DataCleaning/Data/'
     for product in products:
         prices_file = path+product[0]+'/'+product+'.csv'
         split_file = path+product[0]+'/'+product+'.SPT'
