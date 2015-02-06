@@ -399,12 +399,21 @@ def generate_test_configs(base_agg_config_path, combinations, dest_dir):
         count += 1
     return agg_config_list
 
+def get_perf_stats(agg_configs):
+    """For each set of values to be tested,set up the config files and run simulator to get the perf stats"""
+    performance_stats = []
+    for agg_config in agg_configs:
+        proc = subprocess.Popen(['python', '-W', 'ignore', 'run_simulator.py', agg_config ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        performance_stats.append(parse_results(proc.communicate()[0])) # TODO parse results should only parse final_order stats
+    return performance_stats
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('agg_config_file')
     parser.add_argument('param_file')
     parser.add_argument('-dir',type=str, help='Directory to store configs\nEg: -dir ~/modeling/', default= "~/modeling/sample_strats/".replace("~", os.path.expanduser("~")), dest='dir')
     parser.add_argument('-c', type=int, help='Count to start from\nEg: -c 100', default=0, dest='count')
+    parser.add_argument('-r', type=int, help='To run or not\nEg: -r 1', default=0, dest='run')
     args = parser.parse_args()
     agg_config_path = sys.argv[1].replace("~", os.path.expanduser("~"))
     permutparam_config_path = sys.argv[2].replace("~", os.path.expanduser("~"))
@@ -421,6 +430,8 @@ def main():
     new_agg_config_path = copy_config_files(agg_config_path, dest_dir)
     combinations = generate_all_combinations(permutparam_config_path)
     agg_config_list = generate_test_configs(new_agg_config_path, combinations, dest_dir)
+    if args.run == 1:
+        perf_stats = get_perf_stats(agg_config_list)   
 
 if __name__ == '__main__':
     main()

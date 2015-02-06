@@ -42,35 +42,34 @@ class Simulator:
     
     Returns: Nothing 
     """
-    def __init__(self, _config_file, _start_date=None, _end_date=None, _json_output_path=None):
-        self.log_dir =  os.path.expanduser('~') + "/logs/" + os.path.splitext(_config_file)[0].split('/')[-1] + '/'
+    def __init__(self, args):
+        self.log_dir =  args.logs_output_path
+        print self.log_dir
+        self.config_file = args.config_file
         if os.path.exists(self.log_dir):
             shutil.rmtree(self.log_dir)
         os.makedirs(self.log_dir)
-        if os.path.splitext(_config_file)[1] == '.json':
+        if os.path.splitext(self.config_file)[1] == '.json':
             _output_cfg_dir = self.log_dir
-            JsonParser().json_to_cfg(_config_file, _output_cfg_dir)
-            _config_file = _output_cfg_dir + 'agg.cfg'    
+            JsonParser().json_to_cfg(self.config_file, _output_cfg_dir)
+            self.config_file = _output_cfg_dir + 'agg.cfg'    
         self.config = ConfigParser.ConfigParser()
-        self.config.readfp( open( _config_file, 'r' ) )
+        self.config.readfp( open( self.config_file, 'r' ) )
 
-        if _start_date is None:
+        if args.sim_start_date is None:
             self.start_date = self.config.get('Dates', 'start_date')
         else:
-            self.start_date = _start_date
-        if _end_date is None:
+            self.start_date = args.sim_start_date
+        if args.sim_end_date is None:
             self.end_date = self.config.get('Dates', 'end_date')
         else:
-            self.end_date = _end_date
-        if _json_output_path is None:
-            self.json_output_path = self.log_dir + 'output.json'
-        else:
-            self.json_output_path = _json_output_path
+            self.end_date = args.sim_end_date
+        self.json_output_path = args.json_output_path
     
         # Read product list from config file
         Globals.trade_products = get_all_trade_products(self.config)
         Globals.all_products = sorted(get_all_products(Globals.trade_products))
-        Globals.config_file = _config_file
+        Globals.config_file = self.config_file
         # Initialize the global variables
         Globals.conversion_factor, Globals.currency_factor, Globals.product_to_currency, Globals.product_type = get_currency_and_conversion_factors(Globals.all_products, self.start_date, self.end_date)
 
@@ -110,6 +109,12 @@ if __name__ == '__main__':
     parser.add_argument('-sd', type=str, help='Sim Start date\nEg: -sd 2014-06-01\n Default is config_start_date',default=None, dest='sim_start_date')
     parser.add_argument('-ed', type=str, help='Sim End date\nEg: -ed 2014-10-31\n Default is config end_date',default=None, dest='sim_end_date')
     parser.add_argument('-o', type=str, help='Json Output path\nEg: -o ~/logs/file.json\n Default is in log dir',default=None, dest='json_output_path')
+    parser.add_argument('-logs', type=str, help='Logs Output path\nEg: -logs ~/logs/\n Default is in log dir',default=None, dest='logs_output_path')
     args = parser.parse_args()
-    sim = Simulator(args.config_file, args.sim_start_date, args.sim_end_date, args.json_output_path)
+    if args.logs_output_path is None:
+        args.logs_output_path = '~/logs/' + os.path.splitext(args.config_file)[0].split('/')[-1] + '/'
+    args.logs_output_path.replace('~', os.path.expanduser('~'))
+    if args.json_output_path is None:
+        args.json_output_path = args.logs_output_path + 'output.json'
+    sim = Simulator(args)
     sim.run()
