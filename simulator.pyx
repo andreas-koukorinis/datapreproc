@@ -112,10 +112,11 @@ if __name__ == '__main__':
     parser.add_argument('-ed', type=str, help='Sim End date\nEg: -ed 2014-10-31\n Default is config end_date',default=None, dest='sim_end_date')
     parser.add_argument('-o', type=str, help='Json Output path\nEg: -o ~/logs/file.json\n Default is in log dir',default=None, dest='json_output_path')
     parser.add_argument('-logs', type=str, help='Logs Output path\nEg: -logs ~/logs/\n Default is in log dir',default=None, dest='logs_output_path')
+    parser.add_argument('-store', type=int, help='To store results in db or not\nEg: -store 0\n Default is to store i.e. -store 1',default=1, dest='store')
     args = parser.parse_args()
     if args.logs_output_path is None:
-        args.logs_output_path = '~/logs/' + os.path.splitext(args.config_file)[0].split('/')[-1] + '/'
-    args.logs_output_path.replace('~', os.path.expanduser('~'))
+        args.logs_output_path = '~/logs/'
+    args.logs_output_path = (args.logs_output_path + os.path.splitext(args.config_file)[0].split('/')[-1] + '/').replace('~', os.path.expanduser('~'))
     if args.json_output_path is None:
         args.json_output_path = args.logs_output_path + 'output.json'
     sim = Simulator(args)
