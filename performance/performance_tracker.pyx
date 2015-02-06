@@ -383,5 +383,4 @@ class PerformanceTracker(BackTesterListener, EndOfDayListener, TaxPaymentDayList
         print _stats
         Globals.stats_file.write(_stats)
         #return JsonParser().sim_to_json(Globals.config_file, self.dates, self.daily_log_returns, self.leverage, parse_results(_stats)) # Return the json object corresponding to the simulation
-        JsonParser().dump_sim_to_db(Globals.config_file, self.dates, self.daily_log_returns, self.leverage, parse_results(_stats))
-        return None
+        return (self.dates, self.daily_log_returns, self.leverage, parse_results(_stats))

@@ -43,8 +43,8 @@ class Simulator:
     Returns: Nothing 
     """
     def __init__(self, args):
-        self.log_dir =  args.logs_output_path
-        print self.log_dir
+        self.log_dir = args.logs_output_path
+        self.to_store = args.store
         self.config_file = args.config_file
         if os.path.exists(self.log_dir):
             shutil.rmtree(self.log_dir)
@@ -97,10 +97,12 @@ class Simulator:
         self.dispatcher.run()
         print '\nTotal Tradable Days = %d'%(self.dispatcher.trading_days)
         # Call the performance tracker to display the stats
-        sim_json = self.tradelogic_instance.performance_tracker.show_results()
-        if sim_json is not None:
-            with open(self.json_output_path,'w') as f:
-                f.write(sim_json)
+        (dates, log_returns, leverage, stats) = self.tradelogic_instance.performance_tracker.show_results()
+        #if sim_json is not None:
+        #    with open(self.json_output_path,'w') as f:
+        #        f.write(sim_json)
+        if self.to_store == 1:
+            JsonParser().dump_sim_to_db(Globals.config_file, dates, log_returns, leverage, stats)
         Globals.reset()
 
 if __name__ == '__main__':
