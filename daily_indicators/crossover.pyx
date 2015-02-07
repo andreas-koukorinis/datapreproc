@@ -64,7 +64,7 @@ class Crossover(IndicatorListener):
         """This static function is used by other classes to add themselves as a listener to the StdDev"""
         if identifier not in Globals.crossover_instances.keys() :
             new_instance = Crossover(identifier, _startdate, _enddate, _config)
-            Globals.crossover_instances.instances[identifier] = new_instance
+            Globals.crossover_instances[identifier] = new_instance
         return Globals.crossover_instances[identifier]
 
     def on_indicator_update(self, identifier, values):

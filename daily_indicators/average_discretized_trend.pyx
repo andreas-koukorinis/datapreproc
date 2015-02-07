@@ -3,7 +3,7 @@ import sys
 import numpy
 from indicator_listeners import IndicatorListener
 from trend import Trend
-from utils.global_vaiables import Globals
+from utils.global_variables import Globals
 
 class AverageDiscretizedTrend( IndicatorListener ):
     """Track the average trend of log returns over a list of periods for the product.

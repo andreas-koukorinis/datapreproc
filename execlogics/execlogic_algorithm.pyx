@@ -40,7 +40,7 @@ class ExecLogicAlgo(DistributionDayListener):
         else:
             self.debug_level = defaults.DEBUG_LEVEL  # Default value of debug level,in case not specified in config file
         self.orders_to_place = {} # The net order amount(in number of shares) which are to be placed on the next trading day
-        self.distributions_to_reinvest = dict([(product, 0.0) for product in self.all_products if Globals.product_type[product] == 'etf' or Globals.product_type[product] == 'future' or Globals.product_type[product] == 'stock'])
+        self.distributions_to_reinvest = dict([(product, 0.0) for product in self.all_products if Globals.product_type[product] == 'etf' or Globals.product_type[product] == 'fund' or Globals.product_type[product] == 'stock'])
         for product in all_products:
             self.orders_to_place[product] = 0 # Initially there is no pending order for any product
         Dispatcher.get_unique_instance(all_products, _startdate, _enddate, _config).add_distribution_day_listener(self)

@@ -210,7 +210,7 @@ class CTAM( SignalAlgorithm ):
 
                 self.ctam_weights = self.crossover_vec/self.crossover_volatility_vec
                 self.ctam_weights = self.ctam_weights/numpy.sum(numpy.abs(self.ctam_weights)) # Currently leverage is taken as 1
-                _annualized_stdev_of_portfolio = math.sqrt((numpy.asmatrix(self.erc_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.erc_weights).T)[0, 0])
+                #_annualized_stdev_of_portfolio = math.sqrt((numpy.asmatrix(self.ctam_weights) * numpy.asmatrix(_cov_mat) * numpy.asmatrix(self.cctam_weights).T)[0, 0])
                 # self.ctam_weights = self.ctam_weights*(self.target_risk/_annualized_stdev_of_portfolio)
                 self.ctam_weights = adjust_to_desired_l1norm_range(self.ctam_weights, self.minimum_leverage, self.maximum_leverage)
 
