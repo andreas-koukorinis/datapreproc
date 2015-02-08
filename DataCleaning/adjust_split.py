@@ -4,9 +4,8 @@ import os
 import sys
 import pandas as pd
 
-def adjust_for_splits( products, product_type ):
+def adjust_for_splits( output_path, products, product_type ):
     path = '/apps/data/csi/CVHISTORICAL_STOCKS/'
-    output_path = '/home/deedee/backfill/stratdev/DataCleaning/Data/'
     for product in products:
         prices_file = path+product[0]+'/'+product+'.csv'
         split_file = path+product[0]+'/'+product+'.SPT'
@@ -44,14 +43,15 @@ def adjust_for_splits( products, product_type ):
 
 def __main__() :
     if len( sys.argv ) > 1:
-        product_type = sys.argv[1]
+        product_type = sys.argv[2]
+        path = sys.argv[1].replace('~', os.path.expanduser('~')) 
         products = []
-        for i in range(2,len(sys.argv)):
+        for i in range(3,len(sys.argv)):
             products.append(sys.argv[i])
     else:
-        print 'python adjust_split.py etf/fund product1 product2 product3 .. productn'
+        print 'python adjust_split.py path etf/fund product1 product2 product3 .. productn'
         sys.exit(0)
-    adjust_for_splits( products, product_type )    
+    adjust_for_splits( path, products, product_type )    
 
 if __name__ == '__main__':
     __main__();
