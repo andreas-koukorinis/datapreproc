@@ -14,6 +14,22 @@ flatten = lambda lst: reduce(lambda l, i: l + flatten(i) if isinstance(i, (list,
 
 count = 0
 
+def parse_results(results):
+    """Parses the performance stats(output of simulator) and returns them as dict
+    Args:
+        results(string): The results shown by the simulator as a single string
+    Returns: Dictionary from stat name to its value
+    """
+    results = results.split('\n')
+    _dict_results = {}
+    for result in results:
+        if '=' in result:
+            _result = result.split('=')
+            _name = _result[0].strip()
+            _val = _result[1].strip()
+            _dict_results[_name] = _val
+    return _dict_results
+
 def findAll(file, searchExp):
     found = False
     handle = open(file, "r")
@@ -405,6 +421,7 @@ def get_perf_stats(agg_configs):
     for agg_config in agg_configs:
         proc = subprocess.Popen(['python', '-W', 'ignore', 'run_simulator.py', agg_config ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         performance_stats.append(parse_results(proc.communicate()[0])) # TODO parse results should only parse final_order stats
+        print 'done %s'%agg_config
     return performance_stats
 
 def main():
