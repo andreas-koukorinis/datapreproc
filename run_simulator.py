@@ -12,11 +12,13 @@ def __main__():
     # Get handle of config file
     parser = argparse.ArgumentParser()
     parser.add_argument('config_file')
-    parser.add_argument('-sd', type=str, help='Sim Start date\nEg: -sd 2014-06-01\n Default is config_start_date',default=None, dest='sim_start_date')
-    parser.add_argument('-ed', type=str, help='Sim End date\nEg: -ed 2014-10-31\n Default is config end_date',default=None, dest='sim_end_date')    
-    parser.add_argument('-o', type=str, help='Json Output path\nEg: -o ~/logs/file.json\n Default is in log dir',default=None, dest='json_output_path')
-    parser.add_argument('-logs', type=str, help='Logs Output path\nEg: -logs ~/logs/\n Default is in log dir',default=None, dest='logs_output_path')
-    parser.add_argument('-store', type=int, help='To store results in db or not\nEg: -store 0\n Default is to store i.e. -store 1',default=1, dest='store')
+    parser.add_argument('-sd', type=str, help='Sim Start date\nEg: -sd 2014-06-01\n Default is config_start_date', default=None, dest='sim_start_date')
+    parser.add_argument('-ed', type=str, help='Sim End date\nEg: -ed 2014-10-31\n Default is config end_date', default=None, dest='sim_end_date')    
+    parser.add_argument('-o', type=str, help='Json Output path\nEg: -o ~/logs/file.json\n Default is in log dir', default=None, dest='json_output_path')
+    parser.add_argument('-logs', type=str, help='Logs Output path\nEg: -logs ~/logs/\n Default is in log dir', default=None, dest='logs_output_path')
+    parser.add_argument('--dontstore', help='Do not store results in db\nEg: --dontstore\n Default is to store', default=True, dest='store', action='store_false')
+    parser.add_argument('--force', help='Force simulation storage even if already present \nEg: --force\n Default is to not store if present', default=False, dest='force', action='store_true')
+    parser.add_argument('--daily-update', help='Update the simulation with todays log return \nEg: --daily-update\n', default=False, dest='daily_update', action='store_true')
     args = parser.parse_args()
     if args.logs_output_path is None:
         args.logs_output_path = '~/logs/'

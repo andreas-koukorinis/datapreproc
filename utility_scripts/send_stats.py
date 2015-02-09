@@ -182,7 +182,7 @@ def main():
     if (weekday == 5 or weekday == 6) and args.mail_send == 1: # For saturday or sunday dont send mail
         sys.exit()
 
-    proc = subprocess.Popen(['python', '-W', 'ignore', 'run_simulator.py', _config_file, '-sd', str(_sim_start_date), '-ed', str(_sim_end_date) ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(['python', '-W', 'ignore', 'run_simulator.py', _config_file, '-sd', str(_sim_start_date), '-ed', str(_sim_end_date), '--dontstore' ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     proc.communicate()
     performance_stats.append('------------------------------------------------\nYDAY Performance:')
     todays_performance = get_positions(_current_date, _config_file)

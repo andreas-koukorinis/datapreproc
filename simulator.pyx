@@ -44,14 +44,17 @@ class Simulator:
     """
     def __init__(self, args):
         self.log_dir = args.logs_output_path
-        self.to_store = args.store
+        self.store = args.store
+        self.is_daily_update = args.daily_update
+        self.force = args.force
         self.config_file = args.config_file
+        self.json_parser = JsonParser()
         if os.path.exists(self.log_dir):
             shutil.rmtree(self.log_dir)
         os.makedirs(self.log_dir)
         if os.path.splitext(self.config_file)[1] == '.json':
             _output_cfg_dir = self.log_dir
-            JsonParser().json_to_cfg(self.config_file, _output_cfg_dir)
+            self.json_parser.json_to_cfg(self.config_file, _output_cfg_dir)
             self.config_file = _output_cfg_dir + 'agg.cfg'    
         self.config = ConfigParser.ConfigParser()
         self.config.readfp( open( self.config_file, 'r' ) )
@@ -65,7 +68,8 @@ class Simulator:
         else:
             self.end_date = args.sim_end_date
         self.json_output_path = args.json_output_path
-    
+        if self.store:
+            self.params_json, self.config_hash = self.json_parser.is_sim_present(self.config_file, self.force, self.is_daily_update, self.start_date, self.end_date) 
         # Read product list from config file
         Globals.trade_products = get_all_trade_products(self.config)
         Globals.all_products = sorted(get_all_products(Globals.trade_products))
@@ -101,8 +105,8 @@ class Simulator:
         #if sim_json is not None:
         #    with open(self.json_output_path,'w') as f:
         #        f.write(sim_json)
-        if self.to_store == 1:
-            JsonParser().dump_sim_to_db(Globals.config_file, dates, log_returns, leverage, stats)
+        if self.store:
+            self.json_parser.dump_sim_to_db(Globals.config_file, self.params_json, self.config_hash, self.force, self.is_daily_update, dates, log_returns, leverage, stats)
         Globals.reset()
 
 if __name__ == '__main__':
@@ -112,7 +116,10 @@ if __name__ == '__main__':
     parser.add_argument('-ed', type=str, help='Sim End date\nEg: -ed 2014-10-31\n Default is config end_date',default=None, dest='sim_end_date')
     parser.add_argument('-o', type=str, help='Json Output path\nEg: -o ~/logs/file.json\n Default is in log dir',default=None, dest='json_output_path')
     parser.add_argument('-logs', type=str, help='Logs Output path\nEg: -logs ~/logs/\n Default is in log dir',default=None, dest='logs_output_path')
-    parser.add_argument('-store', type=int, help='To store results in db or not\nEg: -store 0\n Default is to store i.e. -store 1',default=1, dest='store')
+    parser.add_argument('--dontstore', help='Do not store results in db\nEg: --dontstore\n Default is to store', default=True, dest='store', action='store_false')
+    parser.add_argument('--force', help='Force simulation storage even if already present \nEg: --force\n Default is to not store if present', default=False, dest='force', action='store_true')
+    parser.add_argument('--daily-update', help='Update the simulation with todays log return \nEg: --daily-update\n', default=False, dest='daily_update', action='store_true')
+
     args = parser.parse_args()
     if args.logs_output_path is None:
         args.logs_output_path = '~/logs/'

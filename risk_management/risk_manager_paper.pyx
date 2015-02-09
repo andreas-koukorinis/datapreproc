@@ -151,4 +151,5 @@ class RiskManagerPaper(RiskManagerAlgo):
         # if self.simple_performance_tracker.get_desired_leverage() > self.maximum_allowed_leverage:
         #     print ("didn't expect to see desired leverage %f to exceed maximum allowed leverage %f" %(self.simple_performance_tracker.get_desired_leverage(), self.maximum_allowed_leverage))
         #     _retval = min (_retval, (self.maximum_allowed_leverage/self.simple_performance_tracker.get_desired_leverage()))
+        #print _retval
         return (_retval)

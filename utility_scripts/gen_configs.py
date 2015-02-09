@@ -60,6 +60,9 @@ def is_range_pattern(pattern):
 def is_list_pattern(pattern):
     return len(pattern) >= 2 and pattern[0] == '{' and pattern[-1] == '}'
 
+def is_allcomb_pattern(pattern):
+    return len(pattern) >= 2 and pattern[0] == '(' and pattern[-1] == ')'
+
 def process_optional_pattern(pattern):
     ret_val = [''] # By default an empty value for an optional pattern
     pattern = pattern[1:-1] # Skip brackets
@@ -102,6 +105,21 @@ def process_list_pattern(pattern):
             ret_val.append(value)   
     return ret_val
 
+def process_allcomb_pattern(pattern):
+    ret_val = []
+    pattern = pattern[1:-1] # Skip the brackets
+    if ',' in pattern:
+        delim = ','
+    elif ' ' in pattern:
+        delim = ' '
+    else:
+        sys.exit('something wrong in () specification')
+    values_list = pattern.split(delim)
+    ret_val = []
+    for i in range(len(values_list)):
+        ret_val.extend([delim.join(map(str,comb)) for comb in itertools.combinations(values_list, i+1)])
+    return ret_val
+
 def parse_variable_values(pattern):
     _patterns = pattern.split(' ')
     ret_val = []
@@ -112,6 +130,8 @@ def parse_variable_values(pattern):
             _sub_pattern_vals = process_range_pattern(_pattern)
         elif is_list_pattern(_pattern):
             _sub_pattern_vals = process_list_pattern(_pattern)
+        elif is_allcomb_pattern(_pattern):
+            _sub_pattern_vals = process_allcomb_pattern(_pattern)
         else:
             _pattern = _pattern.translate(None, '\'')
             _sub_pattern_vals = [_pattern] # Value without brackets
