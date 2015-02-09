@@ -14,6 +14,22 @@ flatten = lambda lst: reduce(lambda l, i: l + flatten(i) if isinstance(i, (list,
 
 count = 0
 
+def parse_results(results):
+    """Parses the performance stats(output of simulator) and returns them as dict
+    Args:
+        results(string): The results shown by the simulator as a single string
+    Returns: Dictionary from stat name to its value
+    """
+    results = results.split('\n')
+    _dict_results = {}
+    for result in results:
+        if '=' in result:
+            _result = result.split('=')
+            _name = _result[0].strip()
+            _val = _result[1].strip()
+            _dict_results[_name] = _val
+    return _dict_results
+
 def findAll(file, searchExp):
     found = False
     handle = open(file, "r")
@@ -43,6 +59,9 @@ def is_range_pattern(pattern):
 
 def is_list_pattern(pattern):
     return len(pattern) >= 2 and pattern[0] == '{' and pattern[-1] == '}'
+
+def is_allcomb_pattern(pattern):
+    return len(pattern) >= 2 and pattern[0] == '(' and pattern[-1] == ')'
 
 def process_optional_pattern(pattern):
     ret_val = [''] # By default an empty value for an optional pattern
@@ -86,6 +105,21 @@ def process_list_pattern(pattern):
             ret_val.append(value)   
     return ret_val
 
+def process_allcomb_pattern(pattern):
+    ret_val = []
+    pattern = pattern[1:-1] # Skip the brackets
+    if ',' in pattern:
+        delim = ','
+    elif ' ' in pattern:
+        delim = ' '
+    else:
+        sys.exit('something wrong in () specification')
+    values_list = pattern.split(delim)
+    ret_val = []
+    for i in range(len(values_list)):
+        ret_val.extend([delim.join(map(str,comb)) for comb in itertools.combinations(values_list, i+1)])
+    return ret_val
+
 def parse_variable_values(pattern):
     _patterns = pattern.split(' ')
     ret_val = []
@@ -96,6 +130,8 @@ def parse_variable_values(pattern):
             _sub_pattern_vals = process_range_pattern(_pattern)
         elif is_list_pattern(_pattern):
             _sub_pattern_vals = process_list_pattern(_pattern)
+        elif is_allcomb_pattern(_pattern):
+            _sub_pattern_vals = process_allcomb_pattern(_pattern)
         else:
             _pattern = _pattern.translate(None, '\'')
             _sub_pattern_vals = [_pattern] # Value without brackets
@@ -399,12 +435,22 @@ def generate_test_configs(base_agg_config_path, combinations, dest_dir):
         count += 1
     return agg_config_list
 
+def get_perf_stats(agg_configs):
+    """For each set of values to be tested,set up the config files and run simulator to get the perf stats"""
+    performance_stats = []
+    for agg_config in agg_configs:
+        proc = subprocess.Popen(['python', '-W', 'ignore', 'run_simulator.py', agg_config ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        performance_stats.append(parse_results(proc.communicate()[0])) # TODO parse results should only parse final_order stats
+        print 'done %s'%agg_config
+    return performance_stats
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('agg_config_file')
     parser.add_argument('param_file')
     parser.add_argument('-dir',type=str, help='Directory to store configs\nEg: -dir ~/modeling/', default= "~/modeling/sample_strats/".replace("~", os.path.expanduser("~")), dest='dir')
     parser.add_argument('-c', type=int, help='Count to start from\nEg: -c 100', default=0, dest='count')
+    parser.add_argument('-r', type=int, help='To run or not\nEg: -r 1', default=0, dest='run')
     args = parser.parse_args()
     agg_config_path = sys.argv[1].replace("~", os.path.expanduser("~"))
     permutparam_config_path = sys.argv[2].replace("~", os.path.expanduser("~"))
@@ -421,6 +467,8 @@ def main():
     new_agg_config_path = copy_config_files(agg_config_path, dest_dir)
     combinations = generate_all_combinations(permutparam_config_path)
     agg_config_list = generate_test_configs(new_agg_config_path, combinations, dest_dir)
+    if args.run == 1:
+        perf_stats = get_perf_stats(agg_config_list)   
 
 if __name__ == '__main__':
     main()

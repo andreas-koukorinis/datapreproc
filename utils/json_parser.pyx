@@ -6,6 +6,7 @@ import time
 import MySQLdb
 import datetime
 import ConfigParser
+import hashlib
 from compiler.ast import flatten
 
 class JsonParser():
@@ -21,10 +22,10 @@ class JsonParser():
     def read_all_txt_params_to_list(self, txt_file):
         data = []
         with open(txt_file, 'r') as file_handle:
-            data = file_handle.read().splitlines() 
-        return data
+            data = file_handle.read().splitlines()
+        return sorted(data)
 
-    def sim_to_json(self, config_file, dates, returns, leverage, stats):
+    '''def sim_to_json(self, config_file, dates, returns, leverage, stats):
         data = {}
         config = ConfigParser.ConfigParser() # Read aggregator config
         config.optionxform = str
@@ -59,15 +60,17 @@ class JsonParser():
                 trade_products.append(products)
             signal_dict['Products']['trade_products'] = trade_products
             data['signals'].append(signal_dict) 
-        return json.dumps(data)
+        return json.dumps(data)'''
 
-    def cfg_to_json(self, config_file):
-        data = {}
+    def cfg_to_dict(self, config_file, start_date, end_date):
         config = ConfigParser.ConfigParser() # Read aggregator config
         config.optionxform = str
         config.readfp(open(config_file, 'r'))
         data = self.read_all_config_params_to_dict(config)
-        data["config_name"] = config_file
+        data["Dates"] = {}
+        data["Dates"]["start_date"] = start_date
+        data["Dates"]["end_date"] = end_date
+        data["config_name"] = os.path.basename(config_file)
         data["Strategy"]["signal_configs"] = data["Strategy"]["signal_configs"].split(",")
         signal_configs = data["Strategy"]["signal_configs"]
         risk_profile_path = data["RiskManagement"]["risk_profile"].replace("~", os.path.expanduser("~"))
@@ -80,7 +83,7 @@ class JsonParser():
             config.readfp(open(signal_config_path, "r"))
             signal_dict = self.read_all_config_params_to_dict(config)
             paramfilepath = signal_dict["Parameters"]["paramfilepath"].replace("~", os.path.expanduser("~"))
-            modelfilepath = signal_dict["Strategy"]["modelfilepath"].replace("~", os.path.expanduser("~"))
+            modelfilepath = signal_dict["Strategy"]["modelfilepath"].replace("~", os.path.expanduser("~"))            
             signal_dict["Parameters"]["param_file"] = self.read_all_txt_params_to_list(paramfilepath)
             signal_dict["Strategy"]["model_file"] = self.read_all_txt_params_to_list(modelfilepath)
             signal_dict["Products"]["trade_products"] = signal_dict["Products"]["trade_products"].split(",")
@@ -89,25 +92,82 @@ class JsonParser():
                 products_file = signal_dict["Products"]["trade_products"][i].replace("~", os.path.expanduser("~"))
                 with open(products_file) as f:
                     products = f.read().splitlines()
-                trade_products.append(products)
-            signal_dict["Products"]["trade_products"] = trade_products
+                trade_products.append(sorted(products))
+            signal_dict["Products"]["trade_products"] = sorted(trade_products)
             data["signals"].append(signal_dict)
-        return json.dumps(data)
+        return data
         
-    def dump_sim_to_db(self, config_file, dates, returns, leverage, stats):
+    def dump_sim_to_db(self, config_path, params_json, config_hash, force, is_daily_update, dates, returns, leverage, stats):
         try:
             db = MySQLdb.connect(host="fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com", user="cvmysql",passwd="fixedcvincome", db="webapp")
+            db_cursor = db.cursor(MySQLdb.cursors.DictCursor)
         except MySQLdb.Error:
             sys.exit("Error In DB Connection")
         dates = str([date.strftime("%Y-%m-%d") for date in dates]).replace("'",'"')
-        query = "INSERT INTO strategies (name, params, stats, dates, daily_log_returns, leverage, created_at, updated_at) VALUES('%s','%s','%s','%s','%s','%s','%s','%s')" %(config_file, self.cfg_to_json(config_file), str(stats).replace("'",'"'), dates, list(returns), list(leverage), datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'), datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
+        config_name = os.path.basename(config_path)
+        query = "SELECT id,name FROM strategies where config_hash='%s'" % config_hash
         try :
-            db.cursor().execute(query)
-            db.commit()
-            db.cursor().close()
+            db_cursor.execute(query)
+            rows = db_cursor.fetchall()
+            if len(rows) >= 1 and is_daily_update: # Is daily update
+                pass
+            elif len(rows) == 0 and is_daily_update: # This should not happen
+                sys.exit('Trying to do daily update for simulation not present')
+            elif len(rows) >= 1 and not force:
+                print '%d simulations with same config are already present'%len(rows)
+                for row_index in range(len(rows)):
+                    print 'ID: %d, config: %s'%(rows[row_index]['id'], rows[row_index]['name'])
+                    sys.exit('Aborting Simulation')
+            else: # No config matches to this simulation, or forced to insert simulation
+                query = "INSERT INTO strategies (name, config_hash, params, stats, dates, daily_log_returns, leverage, created_at, updated_at) VALUES('%s','%s','%s','%s','%s','%s','%s','%s','%s')" %(config_name, config_hash, params_json, str(stats).replace("'",'"'), dates, list(returns), list(leverage), datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'), datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
+                try :
+                    db_cursor.execute(query)
+                    db.commit()
+                    db_cursor.close()
+                except:
+                    db.rollback()
+                    print 'Alert! simulation not stored in DB'
         except:
-            db.rollback()
-            print 'Alert! simulation not stored in DB'
+            print 'Alert! simulation not stored in DB 1'
+
+    def is_sim_present(self, config_file, force, is_daily_update, start_date, end_date):
+        try:
+            db = MySQLdb.connect(host="fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com", user="cvmysql",passwd="fixedcvincome", db="webapp")
+            db_cursor = db.cursor(MySQLdb.cursors.DictCursor)
+        except MySQLdb.Error:
+            sys.exit("Error In DB Connection")
+        params_dict = self.cfg_to_dict(config_file, start_date, end_date)
+        params_json = json.dumps(params_dict)
+        config_hash = self.get_config_hash(params_json)
+        query = "SELECT id,name FROM strategies where config_hash='%s'" % config_hash
+        try :
+            db_cursor.execute(query)
+            rows = db_cursor.fetchall()
+            if len(rows) >= 1:
+                print '%d simulations with same config are already present'%len(rows)
+                for row_index in range(len(rows)):
+                    print 'ID: %d, config: %s'%(rows[row_index]['id'], rows[row_index]['name'])
+                if not (force or is_daily_update):
+                    print 'Aborting Simulation'
+                    sys.exit()
+        except:
+            sys.exit()
+        db_cursor.close()
+        del db_cursor
+        db.close()
+        return params_json, config_hash
+
+    def get_config_hash(self, params_json): 
+        params_json_copy = json.loads(params_json)
+        del params_json_copy["config_name"]
+        del params_json_copy["Dates"]
+        del params_json_copy["Strategy"]["signal_configs"]
+        del params_json_copy["RiskManagement"]["risk_profile"]
+        for i in range(len(params_json_copy["signals"])):
+            del params_json_copy["signals"][i]["Strategy"]["modelfilepath"]
+            del params_json_copy["signals"][i]["Parameters"]["paramfilepath"]
+        return hashlib.md5(json.dumps(params_json_copy, sort_keys=True)).hexdigest()
+        #return hash(json.dumps(params_json_copy, sort_keys=True))
 
     def write_list_to_text_file(self, paramlist, filepath):
         with open(filepath, 'w') as f:

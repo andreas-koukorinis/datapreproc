@@ -87,7 +87,7 @@ def push_all_end_of_day_events( heap, products, _startdate, _enddate, _actual_st
                     heapq.heappush(heap,(_distribution_event['dt'], _distribution_event))
 
             elif _product_type == 'fund':
-                _event = {'product':row['product'],'close': float(row['close']),'asking_price': float(row['asking_price']),'forward_adjusted_close': float(row['forward_adjusted_close']),'backward_adjusted_price': float(row['backward_adjusted_close']), 'type':'ENDOFDAY', 'dt': _dt,'product_type': types[row['product']], 'is_last_trading_day': False}
+                _event = {'product':row['product'],'close': float(row['close']),'asking_price': float(row['asking_price']),'forward_adjusted_close': float(row['forward_adjusted_close']),'backward_adjusted_close': float(row['backward_adjusted_close']), 'type':'ENDOFDAY', 'dt': _dt,'product_type': types[row['product']], 'is_last_trading_day': False}
                 heapq.heappush(heap,(_dt, _event))
                 _dividend = float(row['dividend'])
                 _capital_gain = float(row['capital_gain'])
