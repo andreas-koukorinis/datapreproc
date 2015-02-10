@@ -109,12 +109,13 @@ def process_allcomb_pattern(pattern):
     ret_val = []
     pattern = pattern[1:-1] # Skip the brackets
     if ',' in pattern:
+        values_list = pattern.split(',')
         delim = ','
-    elif ' ' in pattern:
+    elif '|' in pattern:
+        values_list = pattern.split('|')
         delim = ' '
     else:
         sys.exit('something wrong in () specification')
-    values_list = pattern.split(delim)
     ret_val = []
     for i in range(len(values_list)):
         ret_val.extend([delim.join(map(str,comb)) for comb in itertools.combinations(values_list, i+1)])
