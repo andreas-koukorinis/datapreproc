@@ -305,3 +305,19 @@ def parse_results(results):
             _val = _result[1].strip()
             _dict_results[_name] = _val
     return _dict_results
+
+def stat_dict_to_string(stat_dict):
+    final_order = ['Net Returns', 'Total Tradable Days','Sharpe Ratio', 'Return_drawdown_Ratio','Return Var10 ratio', 'Annualized_Returns', 'Annualized_Std_Returns', 'Initial Capital', 'Net PNL', 'Annualized PNL', 'Annualized_Std_PnL', 'Skewness','Kurtosis','DML','MML','QML','YML','Max Drawdown','Drawdown Period','Drawdown Recovery Period','Max Drawdown Dollar','Annualized PNL by drawdown','Yearly_sharpe','Hit Loss Ratio','Gain Pain Ratio','Max num days with no new high','Losing month streak','Turnover','Leverage','Trading Cost','Total Money Transacted','Total Orders Placed','Worst 5 days','Best 5 days','Worst 5 weeks','Best 5 weeks']
+    benchmarks = ['VBLTX_sharpe','VBLTX_net_returns','VBLTX_drawdown','VBLTX_correlation','VTSMX_sharpe','VTSMX_net_returns','VTSMX_drawdown','VTSMX_correlation','AQRIX_sharpe','AQRIX_net_returns','AQRIX_drawdown','AQRIX_correlation']
+
+    print_results = ''
+    for elem in final_order:
+        if elem in stat_dict.keys():
+            print_results += elem + ' = ' + stat_dict[elem] + '\n'
+    if len(benchmarks) > 0:
+        print_results += '\nBenchmarks:\n'
+        for elem in benchmarks:
+            if elem in stat_dict.keys():
+                print_results += elem + ' = ' + stat_dict[elem] + '\n'
+    return print_results
+

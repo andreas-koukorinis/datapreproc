@@ -8,7 +8,7 @@ import datetime
 import ConfigParser
 import hashlib
 from compiler.ast import flatten
-
+from utils.regular import stat_dict_to_string
 class JsonParser():
 
     def read_all_config_params_to_dict(self, config):
@@ -139,7 +139,10 @@ class JsonParser():
         params_dict = self.cfg_to_dict(config_file, start_date, end_date)
         params_json = json.dumps(params_dict)
         config_hash = self.get_config_hash(params_json)
-        query = "SELECT id,name FROM strategies where config_hash='%s'" % config_hash
+        if force or is_daily_update:
+            query = "SELECT id,name FROM strategies where config_hash='%s'" % config_hash
+        else:
+            query = "SELECT id,name,stats,params FROM strategies where config_hash='%s'" % config_hash
         try :
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
@@ -148,7 +151,11 @@ class JsonParser():
                 for row_index in range(len(rows)):
                     print 'ID: %d, config: %s'%(rows[row_index]['id'], rows[row_index]['name'])
                 if not (force or is_daily_update):
-                    print 'Aborting Simulation'
+                    print 'Fetching Simulation from DB...\n'
+                    params = yaml.load(rows[0]['params'])
+                    stats = yaml.load(rows[0]['stats'])
+                    print 'Start date: %s\nEnd date: %s' % (params['Dates']['start_date'], params['Dates']['end_date'])
+                    print stat_dict_to_string(stats)
                     sys.exit()
         except:
             sys.exit()
