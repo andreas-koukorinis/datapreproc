@@ -113,7 +113,8 @@ def add_stock_quote(date,record):
         else:
             current_dividend_factor = float(rows[0]['forward_adjusted_close'])/float(rows[0]['close'])
         forward_adjusted_close = close*current_dividend_factor
-        query = "INSERT INTO %s ( date, product, open, high,low, close, backward_adjusted_close, forward_adjusted_close, volume, dividend ) VALUES('%s','%s','%0.2f','%0.2f','%0.2f','%0.2f','%0.2f','%0.2f','%d','0.0')" % ( table[product], date, product, open, high, low, close, close, forward_adjusted_close, volume)
+        forward_adjusted_open = open*current_dividend_factor
+        query = "INSERT INTO %s ( date, product, open, high,low, close, backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, dividend ) VALUES('%s','%s','%f','%f','%f','%f','%f','%f','%f','%f','%d','0.0')" % ( table[product], date, product, open, high, low, close, close, forward_adjusted_close, open, forward_adjusted_open, volume)
         print query
         db_cursor.execute(query)
         db.commit()
@@ -131,7 +132,7 @@ def add_fund_quote(date,record):
         else:
             current_dividend_factor = float(rows[0]['forward_adjusted_close'])/float(rows[0]['close'])
         forward_adjusted_close = close*current_dividend_factor
-        query = "INSERT INTO %s ( date, product, close, asking_price, backward_adjusted_close, forward_adjusted_close, dividend, capital_gain ) VALUES('%s','%s','%0.2f','%0.2f','%0.2f','%0.2f','0.0','0.0')" % ( table[product], date, product, close, asking_price, close, forward_adjusted_close)
+        query = "INSERT INTO %s ( date, product, close, asking_price, backward_adjusted_close, forward_adjusted_close, dividend, capital_gain ) VALUES('%s','%s','%f','%f','%f','%f','0.0','0.0')" % ( table[product], date, product, close, asking_price, close, forward_adjusted_close)
         print query
         db_cursor.execute(query)
         db.commit()
@@ -240,10 +241,10 @@ def dividend_quote(date,record):
             else:
                 ex_close = float(rows[0]['close'])
             dividend_factor = 1 + (dividend)/ex_close
-            query = "UPDATE %s SET backward_adjusted_close = backward_adjusted_close/%f WHERE product='%s' AND date < '%s'" % ( table[product], dividend_factor, product, ex_date)
+            query = "UPDATE %s SET backward_adjusted_close = backward_adjusted_close/%f,backward_adjusted_open = backward_adjusted_open/%f WHERE product='%s' AND date < '%s'" % ( table[product], dividend_factor, dividend_factor, product, ex_date)
             print query
             db_cursor.execute(query)
-            query = "UPDATE %s SET forward_adjusted_close = forward_adjusted_close*%f WHERE product='%s' AND date >= '%s'" % ( table[product], dividend_factor, product, ex_date)
+            query = "UPDATE %s SET forward_adjusted_close = forward_adjusted_close*%f,forward_adjusted_open = forward_adjusted_open*%f WHERE product='%s' AND date >= '%s'" % ( table[product], dividend_factor, dividend_factor, product, ex_date)
             print query
             db_cursor.execute(query)
         db.commit()
@@ -418,6 +419,7 @@ def update_last_trading_day(k):
 def __main__() :
     if len( sys.argv ) > 1:
         filename = sys.argv[1]
+        file_type = sys.argv[1]
         delay = int(sys.argv[2])
         products = []
         for i in range(3,len(sys.argv)):
@@ -436,7 +438,8 @@ def __main__() :
     #print table, product_type
     if filename is not None:
         daily_update(filename, products)
-    update_last_trading_day(delay)
+    if file_type == 'futures':
+        update_last_trading_day(delay)
 
 if __name__ == '__main__':
     __main__()
