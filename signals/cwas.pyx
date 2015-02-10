@@ -14,7 +14,6 @@ class CWAS(SignalAlgorithm):
     def init(self, _config):
         #Defaults
         self.weights = dict([(product, 1.0/len(self.products)) for product in self.products]) # Equal weighted long portfolio by default
-
         _paramfilepath="/dev/null"
         if _config.has_option('Parameters', 'paramfilepath'):
             _paramfilepath=adjust_file_path_for_home_directory(_config.get('Parameters', 'paramfilepath'))
@@ -44,7 +43,7 @@ class CWAS(SignalAlgorithm):
             # fES 0.6
             # fZN 0.4
             _model_line_words = _model_line.strip().split(' ')
-            if len(_model_line_words) >= 3:
+            if len(_model_line_words) >= 2:
                 if _model_line_words[0] == 'sector_allocation':
                     self.sector_allocation = _model_line_words[1:]
                     if _config.has_option('Products', 'trade_products'):
@@ -58,10 +57,10 @@ class CWAS(SignalAlgorithm):
                             for _product in _products:
                                 self.weights[_product] = float(self.sector_allocation[i])
 
-            if len(_model_line_words) == 2:
-                _product = _model_line_words[0]
-                _weight = float(_model_line_words[1])
-                self.weights[_product] = _weight
+                elif len(_model_line_words) == 2:
+                    _product = _model_line_words[0]
+                    _weight = float(_model_line_words[1])
+                    self.weights[_product] = _weight
 
     def on_events_update(self, events):
         all_eod = check_eod(events)  # Check whether all the events are ENDOFDAY
