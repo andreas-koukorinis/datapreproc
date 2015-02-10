@@ -349,10 +349,14 @@ def generate_test_configs(base_agg_config_path, combinations, dest_dir):
     #print 'param loc map',param_location_map
                 
     #sys.exit()
+    summary_filename = dest_dir + 'summary_%d.txt'%count
+    summary_file_handle = open(summary_filename, 'w')
+    summary_file_handle.write('params: ' + ' | '.join(map(str, combinations[0])) + '\n')
     for i in range(len(combinations[1])):
         new_agg_config_path = dest_dir + 'strategies/' + get_name(base_agg_config_path) + '_' + str(count) + os.path.splitext(base_agg_config_path)[1]
         agg_config_list.append(new_agg_config_path) # save the agg path
         shutil.copyfile(base_agg_config_path, new_agg_config_path)
+        summary_file_handle.write(os.path.basename(new_agg_config_path) + ': ' + ' | '.join(combinations[1][i]) + '\n')
         agg_config = ConfigParser.ConfigParser() # Read aggregator config
         agg_config.optionxform = str
         agg_config.readfp(open(new_agg_config_path, 'r'))
@@ -369,7 +373,7 @@ def generate_test_configs(base_agg_config_path, combinations, dest_dir):
             _signal_config_string.append(_new_signal_path)
         _signal_config_string = ','.join(_signal_config_string)
         agg_config.set('Strategy','signal_configs', _signal_config_string)
-
+        
         # change variables in agg config
         if 'Strategy' in param_location_map.keys():
             for idx, section, param_name in param_location_map['Strategy']:
@@ -434,6 +438,7 @@ def generate_test_configs(base_agg_config_path, combinations, dest_dir):
             with open(new_signal_config_path, 'wb') as configfile:
                 signal_config.write(configfile)
         count += 1
+    summary_file_handle.close()
     return agg_config_list
 
 def get_perf_stats(agg_configs):
