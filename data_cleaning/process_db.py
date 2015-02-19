@@ -1,4 +1,3 @@
-# cython: profile=True
 #!/usr/bin/env python
 
 import os
