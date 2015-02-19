@@ -5,8 +5,7 @@ import os
 import sys
 import pandas as pd
 
-def backward_adjust_dividends( products, product_type ):
-    path = '/home/cvdev/stratdev/data_cleaning/data/'
+def backward_adjust_dividends(path, products, product_type):
     for product in products:
         prices_file = path+product+'_split_adjusted.csv'
         df = pd.read_csv(prices_file,header=0)
@@ -27,14 +26,15 @@ def backward_adjust_dividends( products, product_type ):
 
 def __main__() :
     if len( sys.argv ) > 1:
-        product_type = sys.argv[1]
+        path = sys.argv[1]
+        product_type = sys.argv[2]
         products = []
-        for i in range(2,len(sys.argv)):
+        for i in range(3,len(sys.argv)):
             products.append(sys.argv[i])
     else:
-        print 'python adjust_split.py etf/fund product1 product2 product3 .. productn'
+        print 'python adjust_split.py path etf/fund product1 product2 product3 .. productn'
         sys.exit(0)
-    backward_adjust_dividends( products, product_type )    
+    backward_adjust_dividends(path, products, product_type)    
 
 if __name__ == '__main__':
     __main__();

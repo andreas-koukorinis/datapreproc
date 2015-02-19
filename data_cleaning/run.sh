@@ -19,8 +19,8 @@
 #python process_futures_oi_based.py KOS KOSPI > check/KOSPI
 #python process_futures_oi_based.py JTI TOPIX > check/TOPIX
 
-python combine_process_futures_oi_based.py BDM EBM 1 0 FGBM > check/FGBM
-python combine_process_futures_oi_based.py BDS EBS 1 0 FGBS > check/FGBS
+#python combine_process_futures_oi_based.py BDM EBM 1 0 FGBM > check/FGBM
+#python combine_process_futures_oi_based.py BDS EBS 1 0 FGBS > check/FGBS
 
 #python combine_process_futures_oi_based.py SP ES 0.2 ES > check/ES
 
@@ -43,3 +43,9 @@ python combine_process_futures_oi_based.py BDS EBS 1 0 FGBS > check/FGBS
 #python combine_process_futures_oi_based.py S ZS 1 ZS > check/ZS
 #python combine_process_futures_oi_based.py SM ZM 1 ZM > check/ZM
 ##python combine_process_futures_oi_based.py BO ZL 1 ZL > check/ZL
+
+#python adjust_split.py data/ fund AQRIX AQMIX ABRZX QGMIX SRPFX VBLTX VTSMX
+#python backward_dividend_adjust.py data/ fund AQRIX AQMIX ABRZX QGMIX SRPFX VBLTX VTSMX
+#python forward_dividend_adjust.py data/ fund AQRIX AQMIX ABRZX QGMIX SRPFX VBLTX VTSMX
+#python process_db.py data/ fund AQRIX AQMIX ABRZX QGMIX SRPFX VBLTX VTSMX
+
