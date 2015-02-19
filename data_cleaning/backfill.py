@@ -100,7 +100,7 @@ def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_op
        
     # Read data from file
     prod_backfill_file = path+prod_backfill[0]+'/'+prod_backfill+'.csv'
-    adjust_for_splits([prod_backfill], 'etf')
+    adjust_for_splits(path, [prod_backfill], 'etf')
     df_prod_bf = pd.read_csv(path+prod_backfill+'_split_adjusted.csv')
     
     starting_dates = []
