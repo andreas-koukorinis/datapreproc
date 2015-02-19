@@ -1,6 +1,0 @@
-stratdev
-========
-
-Strategy Development base ////
-
-
