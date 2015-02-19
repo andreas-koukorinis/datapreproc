@@ -1,3 +1,0 @@
-master : production
-beta : is pre-production. changes are moved to master post QA
-various branches from beta like dbutilswork, rp, dmfstrat : work is done in these branches and then merged to beta when code review and testing is done
