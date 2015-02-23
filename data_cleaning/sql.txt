@@ -39,6 +39,8 @@ LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/LQD.csv' INTO TA
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/BNDX.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/VWOB.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/SHV.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/VIG.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/AQRIX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/AQMIX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/QGMIX.csv' INTO TABLE funds FIELDS TERMINATED BY ',' IGNORE 1 LINES;
@@ -214,6 +216,8 @@ insert into products values ('LQD','13965','LQD','ISHARES IBOXX CP BD','etfs','e
 insert into products values ('BNDX','116214','BNDX','Total Interl Etf','etfs','etf','equity','1','1','1','USD','OTC');
 insert into products values ('VWOB','116213','VWOB','Emrg Mkt Gvt Etf','etfs','etf','equity','1','1','1','USD','OTC');
 insert into products values ('SHV','69343','SHV','Ishares Lehman Short Treasury Bond Fund','etfs','etf','equity','1','1','1','USD','NYSE');
+INSERT INTO products VALUES('VIG', 56538, 'VIG', 'VANGUARD DVND ETF', 'etfs', 'etf', 'equity', 1, 1, 1, 'USD', 'AMEX')
+
 
 insert into products values ('AQRIX','95772','AQRIX','AQR Risk Parity Fund Class I','funds','fund','fund','1','1','1','USD','MUTUAL');
 insert into products values ('AQMIX','91380','AQMIX','AQR Managed Futures Fund Class I','funds','fund','fund','1','1','1','USD','MUTUAL');
