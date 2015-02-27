@@ -10,6 +10,8 @@ import pandas as pd
 from datetime import datetime,timedelta,date
 #from exchange_symbol_manager import ExchangeSymbolManager 
 
+
+futures_contract_list = {'VIX':[1,2,3,4,5,6,7]}
 table = {}
 product_type = {}
 db_cursor = None
@@ -78,24 +80,26 @@ def get_contract_number(date, _base_symbol, YYMM ):
     if compare_ticker(first_contract,_exchange_symbol):
         return 0
     num=1
-    while _exchange_symbol != exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_' + str(num) ) and num < 3:   
+    # 
+    while _exchange_symbol != exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_' + str(num) ) and num < 3:
+        #print _exchange_symbol, exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_' + str(num))   
         num+=1
     if num > 2:
         num=-1 
     return num
 
 def get_file(filename,k):
-    filename = filename +'.' + (datetime.now() - timedelta(days=k)).strftime('%Y%m%d')
+    #filename = filename +'.' + (datetime.now() - timedelta(days=k)).strftime('%Y%m%d')
     print filename
-    path = '/home/cvdev/stratdev/data_cleaning/'
+    path = '/home/debi/data/'
     if not os.path.isfile(path+filename): #If the file is not present,download it
-        _file = filename+'.gz'
-        is_in_s3 = subprocess.Popen(['s3cmd', 'ls', 's3://cvquantdata/csi/rawdata/'+_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
-        if len(is_in_s3) <= 0:
-            #sys.exit('File %s not in s3'%_file)
-            print 'File %s not in s3'%_file
-            return None
-        subprocess.call(['s3cmd','get','s3://cvquantdata/csi/rawdata/'+_file]) 
+        _file = path+filename+'.gz'
+        # is_in_s3 = subprocess.Popen(['s3cmd', 'ls', 's3://cvquantdata/csi/rawdata/'+_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
+        # if len(is_in_s3) <= 0:
+        #     #sys.exit('File %s not in s3'%_file)
+        #     print 'File %s not in s3'%_file
+        #     return None
+        # subprocess.call(['s3cmd','get','s3://cvquantdata/csi/rawdata/'+_file]) 
         inF = gzip.open(_file, 'rb')
         outF = open(filename, 'wb')
         outF.write( inF.read() )
@@ -103,7 +107,7 @@ def get_file(filename,k):
         outF.close()
     return filename
 
-def add_stock_quote(date,record):
+def add_stock_quote(date, record, error_correction):
     product, open, high, low, close, volume = record[1], FloatOrZero(record[3]), FloatOrZero(record[4]), FloatOrZero(record[5]), FloatOrZero(record[6]), IntOrZero(record[8])*100
     try:
         db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date < '%s' ORDER BY date DESC LIMIT 1"%(table[product],product,date))
@@ -114,7 +118,19 @@ def add_stock_quote(date,record):
             current_dividend_factor = float(rows[0]['forward_adjusted_close'])/float(rows[0]['close'])
         forward_adjusted_close = close*current_dividend_factor
         forward_adjusted_open = open*current_dividend_factor
-        query = "INSERT INTO %s ( date, product, open, high,low, close, backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, dividend ) VALUES('%s','%s','%f','%f','%f','%f','%f','%f','%f','%f','%d','0.0')" % ( table[product], date, product, open, high, low, close, close, forward_adjusted_close, open, forward_adjusted_open, volume)
+        if error_correction:
+            db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date > '%s' ORDER BY date LIMIT 1"%(table[product],product,date))
+            rows = db_cursor.fetchall()
+            if len(rows) < 1:
+                current_dividend_factor = 1.0
+            else:
+                current_dividend_factor = float(rows[0]['backward_adjusted_close'])/float(rows[0]['close'])
+            backward_adjusted_close = close*current_dividend_factor
+            backward_adjusted_open = open*current_dividend_factor
+            query = "UPDATE %s SET open='%f', high='%f', low='%f', close ='%f', backward_adjusted_close='%f', forward_adjusted_close='%f', backward_adjusted_open='%f', forward_adjusted_open='%f', volume='%f' WHERE date='%s' and product='%s'" \
+                    % (table[product], open, high, low, close,  backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, date, product)
+        else:
+            query = "INSERT INTO %s ( date, product, open, high,low, close, backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, dividend ) VALUES('%s','%s','%f','%f','%f','%f','%f','%f','%f','%f','%d','0.0')" % ( table[product], date, product, open, high, low, close, close, forward_adjusted_close, open, forward_adjusted_open, volume)
         print query
         db_cursor.execute(query)
         db.commit()
@@ -122,7 +138,7 @@ def add_stock_quote(date,record):
         db.rollback()
         print('EXCEPTION in add_stock_quote %s'%record)
     
-def add_fund_quote(date,record):
+def add_fund_quote(date, record, error_correction):
     product, csi_num, close, asking_price = record[1], IntOrZero(record[2]), FloatOrZero(record[3]), FloatOrZero(record[4])    
     try:
         db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date < '%s' ORDER BY date DESC LIMIT 1"%(table[product],product,date))
@@ -132,7 +148,16 @@ def add_fund_quote(date,record):
         else:
             current_dividend_factor = float(rows[0]['forward_adjusted_close'])/float(rows[0]['close'])
         forward_adjusted_close = close*current_dividend_factor
-        query = "INSERT INTO %s ( date, product, close, asking_price, backward_adjusted_close, forward_adjusted_close, dividend, capital_gain ) VALUES('%s','%s','%f','%f','%f','%f','0.0','0.0')" % ( table[product], date, product, close, asking_price, close, forward_adjusted_close)
+        if error_correction:
+            db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date > '%s' ORDER BY date LIMIT 1"%(table[product],product,date))
+            rows = db_cursor.fetchall()
+            if len(rows) < 1:
+                current_dividend_factor = 1.0
+            else:
+                current_dividend_factor = float(rows[0]['backward_adjusted_close'])/float(rows[0]['close'])
+            backward_adjusted_close = close*current_dividend_factor
+            query = "UPDATE %s SET close='%f', asking_price='%f', backward_adjusted_close='%f', forward_adjusted_close='%f' WHERE date='%s' and product='%s'" % \
+                    (table[product], close, asking_price, backward_adjusted_close, forward_adjusted_close, date, product)
         print query
         db_cursor.execute(query)
         db.commit()
@@ -140,7 +165,7 @@ def add_fund_quote(date,record):
         db.rollback()
         print('EXCEPTION in add_fund_quote %s'%record)
 
-def add_forex_quote(date,forex_tuple,record):
+def add_forex_quote(date, forex_tuple , record, error_correction):
     open1, high, low, close = FloatOrZero(record[4]), FloatOrZero(record[6]), FloatOrZero(record[7]), FloatOrZero(record[8])
     product = forex_tuple[0]
     if forex_tuple[1]: # If quotes need to be inverted
@@ -151,7 +176,10 @@ def add_forex_quote(date,forex_tuple,record):
     else:
         _open1, _high, _low, _close = open1, high, low, close
     try:
-        query = "INSERT INTO %s ( date, product, open, high, low, close ) VALUES('%s','%s','%f', '%f', '%f', '%f')" % (table[product], date, product, _open1, _high, _low, _close)
+        if error_correction:
+            query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f' WHERE date='%s' AND product='%s'" % (table[product], _open1, _high, _low, _close, date, product)
+        else:
+            query = "INSERT INTO %s ( date, product, open, high, low, close ) VALUES('%s','%s','%f', '%f', '%f', '%f')" % (table[product], date, product, _open1, _high, _low, _close)
         print query
         db_cursor.execute(query)
         db.commit()
@@ -159,7 +187,7 @@ def add_forex_quote(date,forex_tuple,record):
         db.rollback()
         print('EXCEPTION in add_forex_quote %s'%record) 
 
-def add_future_quote(date,record,future_someday_total_volume,future_someday_total_oi,future_volume_date,future_oi_date):
+def add_future_quote(date, record, future_someday_total_volume, future_someday_total_oi, future_volume_date, future_oi_date, error_correction, record_date):
     try:
         #print record
         product, csi_num, YYMM, open1, high, low, close, future_someday_volume, future_someday_oi = record[1], IntOrZero(record[2]), record[3], FloatOrZero(record[4]), FloatOrZero(record[6]), FloatOrZero(record[7]), FloatOrZero(record[8]), IntOrZero(record[10]), IntOrZero(record[11])   
@@ -168,24 +196,34 @@ def add_future_quote(date,record,future_someday_total_volume,future_someday_tota
         else:
             _base_symbol = product
         _last_trading_date = exchange_symbol_manager.get_last_trading_date(datetime.strptime(date, '%Y-%m-%d').date(), _base_symbol + '_1')
+        # to remove
         if str(_last_trading_date) == date:
             is_last_trading_day = 1.0
         else:
             is_last_trading_day = 0.0
         #print str(_last_trading_date),date,_base_symbol
         contract_number = get_contract_number(datetime.strptime(date, '%Y-%m-%d').date(), _base_symbol, YYMM)
+        #print contract_number
         specific_ticker = _base_symbol + get_exchange_specific( YYMM )
         generic_ticker = _base_symbol + '_' + str( contract_number )
-        if contract_number in [1,2]: # TODO Should change to mapping per product 
+        # get dict for VIX and number of contracts
+        if contract_number in futures_contract_list.get(_base_symbol,[1,2]): # TODO Should change to mapping per product 
             try:
-                query = "INSERT INTO %s ( date, product, specific_ticker, open, high, low, close, is_last_trading_day, contract_volume, contract_oi, total_volume, total_oi ) VALUES('%s','%s','%s','%f','%f','%f','%f','%0.1f','0','0','0','0')" % ( table[generic_ticker], date, generic_ticker, specific_ticker, open1, high, low, close, is_last_trading_day )
+                if error_correction:
+                    if (record_date - date).days == 1: # CSI doesnt do vol/oi changes for previous days
+                        query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f', is_last_trading_day='%0.1f' WHERE date='%s' AND specific_ticker='%s'" % (table[generic_ticker], open1, high, low, close, is_last_trading_day, date, specific_ticker)
+                    else:
+                        query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f', is_last_trading_day='%0.1f', contract_volume='%d', contract_oi='%d', total_volume='%d', total_oi='%d' WHERE date='%s' AND specific_ticker='%s'" % \
+                        (table[generic_ticker], open1, high, low, close, is_last_trading_day, future_someday_volume, future_someday_total_volume, future_someday_oi, future_someday_total_oi, date, specific_ticker)
+                else:
+                    query = "INSERT INTO %s ( date, product, specific_ticker, open, high, low, close, is_last_trading_day, contract_volume, contract_oi, total_volume, total_oi ) VALUES('%s','%s','%s','%f','%f','%f','%f','%0.1f','0','0','0','0')" % ( table[generic_ticker], date, generic_ticker, specific_ticker, open1, high, low, close, is_last_trading_day )
                 print query
                 db_cursor.execute(query)
                 db.commit()
             except:
                 db.rollback()
                 print('EXCEPTION in add_future_quote block 3 %s'%record)
-        if contract_number in [0,1,2]:
+        if contract_number in [0]+futures_contract_list.get(_base_symbol,[1,2]):
             try:
                 query = "UPDATE %s SET contract_volume='%d',total_volume='%d' WHERE date='%s' AND specific_ticker='%s'" % (table[_base_symbol+'_1'], future_someday_volume, future_someday_total_volume, future_volume_date, specific_ticker)
                 print query
@@ -267,9 +305,9 @@ def split_quote(date,record):
         db.rollback()
         print('EXCEPTION in split_quote %s'%record)
 
-def error_correction_quote(date,record):
-    print 'IN ERROR CORRECTION'
-    #update_record(date,record)
+# def error_correction_quote(date,record):
+#     print 'IN ERROR CORRECTION'
+#     update_record(date,record)
 
 def delete_quote(date,record):
     date_to_be_deleted, product, csi_num, delivery_YYMM, option_flag, strike_price = datetime.strptime(record[1], '%Y%m%d').strftime('%Y-%m-%d'),record[2], IntOrZero(record[3]), record[4], record[5], FloatOrZero(record[6])
@@ -284,21 +322,32 @@ def delete_quote(date,record):
 def daily_update(filename,products):
     f = open(filename)
     records = f.readlines()
-    f.close()      
-    for item in records:
+    f.close()
+    header = records[0].strip().split(',')      
+    if header[0] == '00': #Header/Trailer
+        portfolio_identifier = header[1]
+        file_type = header[2]
+        record_count = IntOrZero(header[3])
+        date = datetime.strptime(header[4], '%Y%m%d').strftime('%Y-%m-%d')
+        record_date = date
+        day = header[5]
+        volume_date = datetime.strptime(header[6], '%Y%m%d').strftime('%Y-%m-%d')
+        print volume_date
+        oi_date = datetime.strptime(header[7], '%Y%m%d').strftime('%Y-%m-%d')
+
+    for item in records[1:]:
         record = item.strip().split(',')
+        error_correction = False
         if len(record) > 1:
             symbol = record[1]
-        if record[0]=='00': #Header/Trailer
-            portfolio_identifier = record[1]
-            file_type = record[2]
-            record_count = IntOrZero(record[3])
-            date = datetime.strptime(record[4], '%Y%m%d').strftime('%Y-%m-%d')
-            day = record[5]
-            volume_date = datetime.strptime(record[6], '%Y%m%d').strftime('%Y-%m-%d')
-            oi_date = datetime.strptime(record[7], '%Y%m%d').strftime('%Y-%m-%d')
-
-        elif record[0]=='01': # Future header
+        
+        if record[0]=='09': # Correct error
+            print 'IN ERROR CORRECTION'
+            date = datetime.strptime(record[1], '%Y%m%d').strftime('%Y-%m-%d')
+            record = record[2:]
+            error_correction = True
+        
+        if record[0]=='01': # Future header
             future_symbol, future_csi_num, option_flag, future_total_volume,future_total_oi, future_total_est_volume = record[1], IntOrZero(record[2]), IntOrZero(record[3]), IntOrZero(record[4]), IntOrZero(record[5]), IntOrZero(record[6])
             if len(record) > 8:
                 #print record
@@ -321,41 +370,41 @@ def daily_update(filename,products):
                 num = str(int(record[3])%100)
                 _candidate_forex_identifier = symbol + '_' + num
                 if _candidate_forex_identifier in forex_mappings.keys() and forex_mappings[_candidate_forex_identifier][0] in products:
-                    add_forex_quote(date, forex_mappings[_candidate_forex_identifier], record)
+                    add_forex_quote(date, forex_mappings[_candidate_forex_identifier], record, error_correction)
                 else:
                     if len(products)==0 or symbol in products:
-                        add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date)
+                        add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
             else:
                 if len(products)==0 or symbol in products:
-                        add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date)
+                        add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
 
         elif record[0]=='03': #Stock Price record
             if len(products)==0 or symbol in products:
-                add_stock_quote(date,record)
+                add_stock_quote(date, record, error_correction)
             
         elif record[0]=='06': #Mutual fund record
             if len(products)==0 or symbol in products:
-                add_fund_quote(date,record)
+                add_fund_quote(date, record, error_correction)
 
         elif record[0]=='07': #Dividen/Capital Gain record
             if len(products)==0 or symbol in products:
-                dividend_quote(date,record)
+                dividend_quote(date, record)
 
         elif record[0]=='08': #Stock Split record
             if len(products)==0 or symbol in products:
-                split_quote(date,record)
+                split_quote(date, record)
 
-        elif record[0]=='09': #Error Correction record
-            symbol = record[2]
-            if len(products)==0 or symbol in products:
-                error_correction_quote(date,record)            
+        # elif record[0]=='09': #Error Correction record
+        #     symbol = record[2]
+        #     if len(products)==0 or symbol in products:
+        #         error_correction_quote(date, record)            
 
         elif record[0]=='11': #Fact sheet modifications
             continue
 
         elif record[0]=='13': #Delete past day of data
             if len(products)==0 or symbol in products:
-                delete_quote(date,record)
+                delete_quote(date, record)
 
         elif record[0]=='15': #Fact table entry
             continue
@@ -365,21 +414,21 @@ def daily_update(filename,products):
                 num = str(int(record[3])%100)
                 _candidate_forex_identifier = symbol + '_' + num
                 if _candidate_forex_identifier in forex_mappings.keys() and forex_mappings[_candidate_forex_identifier][0] in products:
-                    add_forex_quote(date, forex_mappings[_candidate_forex_identifier], record)
+                    add_forex_quote(date, forex_mappings[_candidate_forex_identifier], record, error_correction)
                 else:
                     if len(products)==0 or symbol in products:
-                        add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date)
+                        add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
             else:
                 if len(products)==0 or symbol in products:
-                        add_future_quote(date,record,future_total_volume,future_total_oi,future_volume_date,future_oi_date)
+                        add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
 
         elif record[0]=='33': #Type '03' with prices in decimal
             if len(products)==0 or symbol in products:
-                add_stock_quote(date,record)
+                add_stock_quote(date, record, error_correction)
         
         elif record[0]=='36': #Type '06' with prices in decimal
             if len(products)==0 or symbol in products:
-                add_fund_quote(date,record)
+                add_fund_quote(date, record, error_correction)
 
         elif record[0]=='37': #Type '07' with prices in decimal
             if len(products)==0 or symbol in products:
@@ -418,9 +467,8 @@ def update_last_trading_day(k):
 
 def __main__() :
     if len( sys.argv ) > 1:
-        filename = sys.argv[1]
         file_type = sys.argv[1]
-        delay = int(sys.argv[2])
+        delay = int(sys.argv[2]) # Difference between today and file's date
         products = []
         for i in range(3,len(sys.argv)):
             products.append(sys.argv[i])
@@ -430,7 +478,7 @@ def __main__() :
     global exchange_symbol_manager
     module = imp.load_source('exchange_symbol_manager', '../exchange_symbol_manager.py')
     exchange_symbol_manager = module.ExchangeSymbolManager()
-    filename = get_file(filename, delay)
+    filename = get_file(file_type, delay)
     print filename
     #sys.exit()
     db_connect()
