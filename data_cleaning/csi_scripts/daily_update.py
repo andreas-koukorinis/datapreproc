@@ -90,8 +90,9 @@ def get_contract_number(date, _base_symbol, YYMM ):
 
 def get_file(filename,k):
     #filename = filename +'.' + (datetime.now() - timedelta(days=k)).strftime('%Y%m%d')
-    print filename
-    path = '/home/debi/data/'
+    #print filename
+    path = '/home/cvdev/stratdev/data_cleaning/'
+    #path = '/home/debi/datapreproc/data_cleaning/csi_scripts/data/'
     if not os.path.isfile(path+filename): #If the file is not present,download it
         _file = path+filename+'.gz'
         # is_in_s3 = subprocess.Popen(['s3cmd', 'ls', 's3://cvquantdata/csi/rawdata/'+_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
@@ -100,15 +101,16 @@ def get_file(filename,k):
         #     print 'File %s not in s3'%_file
         #     return None
         # subprocess.call(['s3cmd','get','s3://cvquantdata/csi/rawdata/'+_file]) 
-        inF = gzip.open(_file, 'rb')
-        outF = open(filename, 'wb')
-        outF.write( inF.read() )
-        inF.close()
-        outF.close()
+        #inF = gzip.open(_file, 'rb')
+        #outF = open(filename, 'wb')
+        #outF.write( inF.read() )
+        #inF.close()
+        #outF.close()
     return filename
 
 def add_stock_quote(date, record, error_correction):
     product, open, high, low, close, volume = record[1], FloatOrZero(record[3]), FloatOrZero(record[4]), FloatOrZero(record[5]), FloatOrZero(record[6]), IntOrZero(record[8])*100
+    print record
     try:
         db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date < '%s' ORDER BY date DESC LIMIT 1"%(table[product],product,date))
         rows = db_cursor.fetchall()
@@ -132,8 +134,8 @@ def add_stock_quote(date, record, error_correction):
         else:
             query = "INSERT INTO %s ( date, product, open, high,low, close, backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, dividend ) VALUES('%s','%s','%f','%f','%f','%f','%f','%f','%f','%f','%d','0.0')" % ( table[product], date, product, open, high, low, close, close, forward_adjusted_close, open, forward_adjusted_open, volume)
         print query
-        db_cursor.execute(query)
-        db.commit()
+        #db_cursor.execute(query)
+        #db.commit()
     except:
         db.rollback()
         print('EXCEPTION in add_stock_quote %s'%record)
@@ -148,9 +150,11 @@ def add_fund_quote(date, record, error_correction):
         else:
             current_dividend_factor = float(rows[0]['forward_adjusted_close'])/float(rows[0]['close'])
         forward_adjusted_close = close*current_dividend_factor
+
         if error_correction:
             db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date > '%s' ORDER BY date LIMIT 1"%(table[product],product,date))
             rows = db_cursor.fetchall()
+
             if len(rows) < 1:
                 current_dividend_factor = 1.0
             else:
@@ -158,9 +162,12 @@ def add_fund_quote(date, record, error_correction):
             backward_adjusted_close = close*current_dividend_factor
             query = "UPDATE %s SET close='%f', asking_price='%f', backward_adjusted_close='%f', forward_adjusted_close='%f' WHERE date='%s' and product='%s'" % \
                     (table[product], close, asking_price, backward_adjusted_close, forward_adjusted_close, date, product)
+        else:
+            query = "INSERT INTO %s ( date, product, close, asking_price, backward_adjusted_close, forward_adjusted_close, dividend, capital_gain ) VALUES('%s','%s','%0.2f','%0.2f','%0.2f','%0.2f','0.0','0.0')" % ( table[product], date, product, close, asking_price, close, forward_adjusted_close)
+
         print query
-        db_cursor.execute(query)
-        db.commit()
+        #db_cursor.execute(query)
+        #db.commit()
     except:
         db.rollback()
         print('EXCEPTION in add_fund_quote %s'%record)
@@ -181,8 +188,8 @@ def add_forex_quote(date, forex_tuple , record, error_correction):
         else:
             query = "INSERT INTO %s ( date, product, open, high, low, close ) VALUES('%s','%s','%f', '%f', '%f', '%f')" % (table[product], date, product, _open1, _high, _low, _close)
         print query
-        db_cursor.execute(query)
-        db.commit()
+        #db_cursor.execute(query)
+        #db.commit()
     except:
         db.rollback()
         print('EXCEPTION in add_forex_quote %s'%record) 
@@ -207,31 +214,33 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
         specific_ticker = _base_symbol + get_exchange_specific( YYMM )
         generic_ticker = _base_symbol + '_' + str( contract_number )
         # get dict for VIX and number of contracts
+        
         if contract_number in futures_contract_list.get(_base_symbol,[1,2]): # TODO Should change to mapping per product 
             try:
-                if error_correction:
-                    if (record_date - date).days == 1: # CSI doesnt do vol/oi changes for previous days
+                if error_correction:                        
+                    if (datetime.strptime(record_date, '%Y-%m-%d') - datetime.strptime(date, '%Y-%m-%d')).days == 1: # CSI doesnt do vol/oi changes for previous days
                         query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f', is_last_trading_day='%0.1f' WHERE date='%s' AND specific_ticker='%s'" % (table[generic_ticker], open1, high, low, close, is_last_trading_day, date, specific_ticker)
                     else:
-                        query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f', is_last_trading_day='%0.1f', contract_volume='%d', contract_oi='%d', total_volume='%d', total_oi='%d' WHERE date='%s' AND specific_ticker='%s'" % \
-                        (table[generic_ticker], open1, high, low, close, is_last_trading_day, future_someday_volume, future_someday_total_volume, future_someday_oi, future_someday_total_oi, date, specific_ticker)
+                        query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f', is_last_trading_day='%0.1f', contract_volume='%d', contract_oi='%d' WHERE date='%s' AND specific_ticker='%s'" % \
+                        (table[generic_ticker], open1, high, low, close, is_last_trading_day, future_someday_volume, future_someday_oi, date, specific_ticker)
                 else:
                     query = "INSERT INTO %s ( date, product, specific_ticker, open, high, low, close, is_last_trading_day, contract_volume, contract_oi, total_volume, total_oi ) VALUES('%s','%s','%s','%f','%f','%f','%f','%0.1f','0','0','0','0')" % ( table[generic_ticker], date, generic_ticker, specific_ticker, open1, high, low, close, is_last_trading_day )
                 print query
-                db_cursor.execute(query)
-                db.commit()
+                #db_cursor.execute(query)
+                #db.commit()
             except:
                 db.rollback()
                 print('EXCEPTION in add_future_quote block 3 %s'%record)
         if contract_number in [0]+futures_contract_list.get(_base_symbol,[1,2]):
             try:
-                query = "UPDATE %s SET contract_volume='%d',total_volume='%d' WHERE date='%s' AND specific_ticker='%s'" % (table[_base_symbol+'_1'], future_someday_volume, future_someday_total_volume, future_volume_date, specific_ticker)
-                print query
-                db_cursor.execute(query)
-                query = "UPDATE %s SET contract_oi='%d',total_oi='%d' WHERE date='%s' AND specific_ticker='%s'" % (table[_base_symbol+'_1'], future_someday_oi, future_someday_total_oi, future_oi_date, specific_ticker)
-                print query
-                db_cursor.execute(query)
-                db.commit()
+                if not error_correction:
+                    query = "UPDATE %s SET contract_volume='%d',total_volume='%d' WHERE date='%s' AND specific_ticker='%s'" % (table[_base_symbol+'_1'], future_someday_volume, future_someday_total_volume, future_volume_date, specific_ticker)
+                    print query
+                    #db_cursor.execute(query)
+                    query = "UPDATE %s SET contract_oi='%d',total_oi='%d' WHERE date='%s' AND specific_ticker='%s'" % (table[_base_symbol+'_1'], future_someday_oi, future_someday_total_oi, future_oi_date, specific_ticker)
+                    print query
+                    #db_cursor.execute(query)
+                    db.commit()
             except:
                 db.rollback()
                 print('EXCEPTION in add_future_quote block 2 %s'%record)
@@ -248,7 +257,7 @@ def dividend_quote(date,record):
         if table[product] == 'funds':
             query = "UPDATE %s SET dividend='%f',capital_gain='%f' WHERE product='%s' AND date='%s'" % ( table[product], dividend, capital_gain, product, ex_date)
             print query
-            db_cursor.execute(query)
+            #db_cursor.execute(query)
             query = "SELECT * FROM %s WHERE product='%s' AND date='%s'"%(table[product],product,ex_date)
             print query
             db_cursor.execute(query)
@@ -261,14 +270,14 @@ def dividend_quote(date,record):
             dividend_factor = 1 + (dividend+capital_gain)/ex_close
             query = "UPDATE %s SET backward_adjusted_close = backward_adjusted_close/%f WHERE product='%s' AND date < '%s'" % ( table[product], dividend_factor, product, ex_date)
             print query
-            db_cursor.execute(query)
+            #db_cursor.execute(query)
             query = "UPDATE %s SET forward_adjusted_close = forward_adjusted_close*%f WHERE product='%s' AND date >= '%s'" % ( table[product], dividend_factor, product, ex_date)
             print query
-            db_cursor.execute(query)
+            #db_cursor.execute(query)
         else:
             query = "UPDATE %s SET dividend='%f' WHERE product='%s' AND date='%s'" % ( table[product], dividend,  product, ex_date)
             print query
-            db_cursor.execute(query)
+            #db_cursor.execute(query)
             query = "SELECT * FROM %s WHERE product='%s' AND date='%s'"%(table[product],product,ex_date)
             print query
             db_cursor.execute(query)
@@ -281,10 +290,10 @@ def dividend_quote(date,record):
             dividend_factor = 1 + (dividend)/ex_close
             query = "UPDATE %s SET backward_adjusted_close = backward_adjusted_close/%f,backward_adjusted_open = backward_adjusted_open/%f WHERE product='%s' AND date < '%s'" % ( table[product], dividend_factor, dividend_factor, product, ex_date)
             print query
-            db_cursor.execute(query)
+            #db_cursor.execute(query)
             query = "UPDATE %s SET forward_adjusted_close = forward_adjusted_close*%f,forward_adjusted_open = forward_adjusted_open*%f WHERE product='%s' AND date >= '%s'" % ( table[product], dividend_factor, dividend_factor, product, ex_date)
             print query
-            db_cursor.execute(query)
+            #db_cursor.execute(query)
         db.commit()
     except:
         db.rollback()
@@ -299,7 +308,7 @@ def split_quote(date,record):
         else:
             query = "UPDATE %s SET open=open/%f, high=high/%f, low=low/%f, close=close/%f, backward_adjusted_close=backward_adjusted_close/%f, forward_adjusted_close=forward_adjusted_close/%f, volume=volume*%d, dividend=dividend/%f WHERE product='%s' AND date < '%s'" % ( table[product], split_factor, split_factor, split_factor, split_factor, split_factor, split_factor, IntOrZero(split_factor), split_factor, product, ex_date)
         print query
-        db_cursor.execute(query)
+        #db_cursor.execute(query)
         db.commit()
     except:
         db.rollback()
@@ -313,7 +322,7 @@ def delete_quote(date,record):
     date_to_be_deleted, product, csi_num, delivery_YYMM, option_flag, strike_price = datetime.strptime(record[1], '%Y%m%d').strftime('%Y-%m-%d'),record[2], IntOrZero(record[3]), record[4], record[5], FloatOrZero(record[6])
     try:
         query = "DELETE FROM %s WHERE date='%s' AND product='%s'"
-        db_cursor.execute(query)
+        #db_cursor.execute(query)
         db.commit()
     except:
         db.rollback()
@@ -338,15 +347,17 @@ def daily_update(filename,products):
     for item in records[1:]:
         record = item.strip().split(',')
         error_correction = False
-        if len(record) > 1:
-            symbol = record[1]
-        
+                
         if record[0]=='09': # Correct error
-            print 'IN ERROR CORRECTION'
             date = datetime.strptime(record[1], '%Y%m%d').strftime('%Y-%m-%d')
             record = record[2:]
-            error_correction = True
-        
+            if record[1] in products:
+                error_correction = True
+                print "IN ERROR CORRECTION"
+
+        if len(record) > 1:
+            symbol = record[1]
+
         if record[0]=='01': # Future header
             future_symbol, future_csi_num, option_flag, future_total_volume,future_total_oi, future_total_est_volume = record[1], IntOrZero(record[2]), IntOrZero(record[3]), IntOrZero(record[4]), IntOrZero(record[5]), IntOrZero(record[6])
             if len(record) > 8:
@@ -373,9 +384,16 @@ def daily_update(filename,products):
                     add_forex_quote(date, forex_mappings[_candidate_forex_identifier], record, error_correction)
                 else:
                     if len(products)==0 or symbol in products:
-                        add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
+                        if error_correction:
+                            add_future_quote(date, record, 0, 0, 0, 0, error_correction, record_date)
+                        else:
+                            add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
+
             else:
                 if len(products)==0 or symbol in products:
+                    if error_correction:
+                        add_future_quote(date, record, 0, 0, 0, 0, error_correction, record_date)
+                    else:
                         add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
 
         elif record[0]=='03': #Stock Price record
@@ -417,9 +435,15 @@ def daily_update(filename,products):
                     add_forex_quote(date, forex_mappings[_candidate_forex_identifier], record, error_correction)
                 else:
                     if len(products)==0 or symbol in products:
-                        add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
+                        if error_correction:
+                            add_future_quote(date, record, 0, 0, 0, 0, error_correction, record_date)
+                        else:
+                            add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
             else:
                 if len(products)==0 or symbol in products:
+                    if error_correction:
+                        add_future_quote(date, record, 0, 0, 0, 0, error_correction, record_date)
+                    else:
                         add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
 
         elif record[0]=='33': #Type '03' with prices in decimal
@@ -459,7 +483,7 @@ def update_last_trading_day(k):
                     else:
                         query = "UPDATE %s SET is_last_trading_day=1.0 WHERE product='%s' AND date='%s'"%(table[generic_ticker],generic_ticker,_new_last_trading_date)
                         print query
-                        db_cursor.execute(query)
+                        #db_cursor.execute(query)
                 db.commit()
             except:
                 db.rollback()
