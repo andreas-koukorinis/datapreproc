@@ -59,6 +59,8 @@ class ExchangeSymbolManager():
             return "meff"
         elif _basename in ['KOSPI']:
             return "krw"
+        elif _basename in ['VX']:
+            return "cfe"
         #elif _basename in ['YEA']:
         #    return "tfx"
         else:
@@ -78,7 +80,7 @@ class ExchangeSymbolManager():
                 _next_month = _current_month
                 _next_year = _current_year
                 _next_last_trading_date = getattr( ExchangeSymbolManager, 'get_'+_exchange+'_last_trading_date' )( self, _basename, _next_month, _next_year )
-                if _next_last_trading_date < _current_min_last_trading_date:
+                while _next_last_trading_date < _current_min_last_trading_date:
                     _next_month,_next_year = self.get_next_month( _basename, _exchange, _next_month, _next_year )
                     _next_last_trading_date = getattr( ExchangeSymbolManager, 'get_'+_exchange+'_last_trading_date' )( self, _basename, _next_month, _next_year )
                 _current_min_last_trading_date = _next_last_trading_date
@@ -89,14 +91,14 @@ class ExchangeSymbolManager():
                 _next_year = _current_year
                 _next_month,_next_year = self.get_next_month( _basename, _exchange, _next_month, _next_year )
                 _next_last_trading_date = getattr( ExchangeSymbolManager, 'get_'+_exchange+'_last_trading_date' )( self, _basename, _next_month, _next_year )
-                if _next_last_trading_date < _current_min_last_trading_date:
+                while _next_last_trading_date < _current_min_last_trading_date:
                     _next_month,_next_year = self.get_next_month( _basename, _exchange, _next_month, _next_year )
                     _next_last_trading_date = getattr( ExchangeSymbolManager, 'get_'+_exchange+'_last_trading_date' )( self, _basename, _next_month, _next_year )
                 _current_min_last_trading_date = _next_last_trading_date
                 _current_month = _current_min_last_trading_date.month
                 _current_year = _current_min_last_trading_date.year
             if _contract_number > 1:
-                _current_min_last_trading_date = _current_min_last_trading_date + datetime.timedelta(days=3)
+                _current_min_last_trading_date = _current_min_last_trading_date + datetime.timedelta(days=10)
                 _current_month = _current_min_last_trading_date.month
                 _current_year = _current_min_last_trading_date.year
             _contract_number = _contract_number - 1
@@ -243,6 +245,10 @@ class ExchangeSymbolManager():
         if _basename in ['YEA']:
             return ( _this_month % 3 ) == 0
         return True
+
+    def is_cfe_month(self, _basename, _this_month):
+        if _basename in ['VX']:
+            return True
 
     def get_cme_last_trading_date( self, _basename, _next_cme_month, _next_cme_year ):
         #ES,EMD,YM,NQ
@@ -863,6 +869,25 @@ class ExchangeSymbolManager():
                     date += datetime.timedelta(days=-1)
             return date
 
+    def get_cfe_last_trading_date( self, _basename, _next_cfe_month, _next_cfe_year ):
+        # VIX Last trading day : The Wednesday that is thirty days prior to the third Friday of the calendar month immediately following the month in which the contract expires 
+        #  If the third Friday of the month subsequent to expiration of the applicable VIX futures contract is a CBOE holiday, the Final Settlement Date for the contract shall be thirty days prior to the CBOE business day immediately preceding that Friday.
+        if _basename in ['VX']:
+            if _next_cfe_month == 12:
+                _next_cfe_month = 1
+                _next_cfe_year += 1
+            else:
+                _next_cfe_month += 1
+            date = self.get_date_from_nth_day_of_month_year(3, 'FRIDAY', _next_cfe_month, _next_cfe_year)
+            while not self.is_cfe_exchange_date(_basename, date):
+                date += datetime.timedelta(days=-1)
+            date += datetime.timedelta(days=-30)
+            for i in range(0,3):
+                date += datetime.timedelta(days=-1)
+                while not self.is_cfe_exchange_date(_basename, date):
+                    date += datetime.timedelta(days=-1)
+            return date
+
     def get_cme_symbol_from_last_trading_date ( self, _basename, _current_min_last_trading_date ): 
         _current_min_last_trading_date_mm = _current_min_last_trading_date.month
         _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
@@ -980,6 +1005,11 @@ class ExchangeSymbolManager():
         _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
         return _basename + self.month_codes[str(_current_min_last_trading_date_mm)] + self.get_yy(_current_min_last_trading_date_yyyy) # YEA
 
+    def get_cfe_symbol_from_last_trading_date( self, _basename, _current_min_last_trading_date ):
+        _current_min_last_trading_date_mm = _current_min_last_trading_date.month
+        _current_min_last_trading_date_yyyy = _current_min_last_trading_date.year
+        return _basename + self.month_codes[str(_current_min_last_trading_date_mm)] + self.get_yy(_current_min_last_trading_date_yyyy) # VX
+
     def is_eurex_exchange_date( self, _basename, date ):
         return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
 
@@ -1020,6 +1050,9 @@ class ExchangeSymbolManager():
         return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
 
     def is_tfx_exchange_date( self, _basename, date ):
+        return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
+
+    def is_cfe_exchange_date( self, _basename, date ):
         return date.weekday() != 5 and date.weekday() != 6 # Should check exchange holidays
 
     def get_exchange_symbol_cme( self, date, product ):
@@ -1077,6 +1110,10 @@ class ExchangeSymbolManager():
     def get_exchange_symbol_tfx( self, date, product ):
         _last_trading_date = self.get_last_trading_date( date, product )
         return self.get_tfx_symbol_from_last_trading_date ( self.get_basename(product), _last_trading_date )
+
+    def get_exchange_symbol_cfe( self, date, product ):
+        _last_trading_date = self.get_last_trading_date( date, product )
+        return self.get_cfe_symbol_from_last_trading_date ( self.get_basename(product), _last_trading_date )
 
 def __main__() :
     if len( sys.argv ) > 1:
