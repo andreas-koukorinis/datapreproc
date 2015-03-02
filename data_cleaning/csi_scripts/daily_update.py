@@ -211,13 +211,8 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
         #print contract_number
         specific_ticker = _base_symbol + get_exchange_specific( YYMM )
         generic_ticker = _base_symbol + '_' + str( contract_number )
-<<<<<<< HEAD
-        # get dict for VIX and number of contracts
-        print futures_contract_list.get(_base_symbol,[1,2]), _base_symbol, contract_number 
-=======
         # get dict for VX and number of contracts
         
->>>>>>> 8bd7a44e1f7636bd7a3f7b53e33ff2cfc90df7ec
         if contract_number in futures_contract_list.get(_base_symbol,[1,2]): # TODO Should change to mapping per product 
             try:
                 if error_correction:                        
