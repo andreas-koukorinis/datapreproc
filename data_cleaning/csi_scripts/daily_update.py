@@ -10,13 +10,12 @@ import pandas as pd
 from datetime import datetime,timedelta,date
 #from exchange_symbol_manager import ExchangeSymbolManager 
 
-
-futures_contract_list = {'VIX':[1,2,3,4,5,6,7]}
+futures_contract_list = {'VX':[1,2,3,4,5,6,7]}
 table = {}
 product_type = {}
 db_cursor = None
 db = None
-mappings = {'TU':'ZT','FV':'ZF','TY':'ZN','US':'ZB','NK':'NKD','NIY':'NIY','ES':'ES','EMD':'EMD','NQ':'NQ','YM':'YM','AD':'6A','BP':'6B','CD':'6C','CU1':'6E','JY':'6J','MP':'6M','NE2':'6N','SF':'6S','GC':'GC','SI':'SI','HG':'HG','PL':'PL','PA':'PA','LH':'LH','ZW':'ZW','ZC':'ZC','ZS':'ZS','ZM':'ZM','ZL':'ZL','EBS':'FGBS','EBM':'FGBM','EBL':'FGBL','SXE':'FESX','FDX':'FDAX','SMI':'FSMI','SXF':'SXF','CGB':'CGB','FFI':'LFZ','FLG': 'LFR','AEX': 'FTI','KC':'KC','CT':'CT','CC':'CC','SB':'SB','JTI':'TOPIX','JGB':'JGBL','JNI':'JNK','SIN':'SIN','SSG':'SG','HCE':'HHI','HSI':'HSI','ALS':'ALSI','YAP':'SPI','MFX':'MFX','KOS':'KOSPI'}
+mappings = {'TU':'ZT','FV':'ZF','TY':'ZN','US':'ZB','NK':'NKD','NIY':'NIY','ES':'ES','EMD':'EMD','NQ':'NQ','YM':'YM','AD':'6A','BP':'6B','CD':'6C','CU1':'6E','JY':'6J','MP':'6M','NE2':'6N','SF':'6S','GC':'GC','SI':'SI','HG':'HG','PL':'PL','PA':'PA','LH':'LH','ZW':'ZW','ZC':'ZC','ZS':'ZS','ZM':'ZM','ZL':'ZL','EBS':'FGBS','EBM':'FGBM','EBL':'FGBL','SXE':'FESX','FDX':'FDAX','SMI':'FSMI','SXF':'SXF','CGB':'CGB','FFI':'LFZ','FLG': 'LFR','AEX': 'FTI','KC':'KC','CT':'CT','CC':'CC','SB':'SB','JTI':'TOPIX','JGB':'JGBL','JNI':'JNK','SIN':'SIN','SSG':'SG','HCE':'HHI','HSI':'HSI','ALS':'ALSI','YAP':'SPI','MFX':'MFX','KOS':'KOSPI','VX':'VX'}
 
 forex_mappings = { 'US$_46' : ('JPYUSD',True) ,'US$_39' : ('CADUSD',True), 'GB2_60' : ('GBPUSD',False), 'EU2_60' : ('EURUSD',False), 'US$_37': ('AUDUSD', True), 'US$_51': ('NZDUSD', True), 'US$_53': ('CHFUSD', True), 'US$_58': ('SEKUSD', True), 'US$_49': ('NOKUSD', True), 'FX1_39': ('TRYUSD', True), 'US$_56': ('MXNUSD', True), 'US$_57': ('ZARUSD', True), 'U2$_55': ('ILSUSD', True), 'US$_52': ('SGDUSD', True), 'US$_44': ('HKDUSD', True), 'U2$_53': ('TWDUSD', True) }
 
@@ -89,24 +88,23 @@ def get_contract_number(date, _base_symbol, YYMM ):
     return num
 
 def get_file(filename,k):
-    #filename = filename +'.' + (datetime.now() - timedelta(days=k)).strftime('%Y%m%d')
-    #print filename
-    #path = '/home/cvdev/stratdev/data_cleaning/'
-    path = '/home/debi/datapreproc/data_cleaning/csi_scripts/data/'
-    #if not os.path.isfile(path+filename): #If the file is not present,download it
-    #    _file = path+filename+'.gz'
-        # is_in_s3 = subprocess.Popen(['s3cmd', 'ls', 's3://cvquantdata/csi/rawdata/'+_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
-        # if len(is_in_s3) <= 0:
-        #     #sys.exit('File %s not in s3'%_file)
-        #     print 'File %s not in s3'%_file
-        #     return None
-        # subprocess.call(['s3cmd','get','s3://cvquantdata/csi/rawdata/'+_file]) 
-        #inF = gzip.open(_file, 'rb')
-        #outF = open(filename, 'wb')
-        #outF.write( inF.read() )
-        #inF.close()
-        #outF.close()
-    return path+filename
+    filename = filename +'.' + (datetime.now() - timedelta(days=k)).strftime('%Y%m%d')
+    print filename
+    path = '/home/cvdev/stratdev/data_cleaning/'
+    if not os.path.isfile(path+filename): #If the file is not present,download it
+        _file = filename+'.gz'
+        is_in_s3 = subprocess.Popen(['s3cmd', 'ls', 's3://cvquantdata/csi/rawdata/'+_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
+        if len(is_in_s3) <= 0:
+            #sys.exit('File %s not in s3'%_file)
+            print 'File %s not in s3'%_file
+            return None
+        subprocess.call(['s3cmd','get','s3://cvquantdata/csi/rawdata/'+_file]) 
+        inF = gzip.open(_file, 'rb')
+        outF = open(filename, 'wb')
+        outF.write( inF.read() )
+        inF.close()
+        outF.close()
+    return filename
 
 def add_stock_quote(date, record, error_correction):
     product, open, high, low, close, volume = record[1], FloatOrZero(record[3]), FloatOrZero(record[4]), FloatOrZero(record[5]), FloatOrZero(record[6]), IntOrZero(record[8])*100

@@ -7,8 +7,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 from adjust_split import adjust_for_splits
 from backward_dividend_adjust import backward_adjust_dividends
+from calculate import convert_daily_returns_to_yyyymm_monthly_returns_pair, compute_correlation
 
-def backfill_each_product(path, df_prod_bf, prod, product_type):
+def :
+    # Adjust for splits and create backward dividend adjusted file
+    if not product_type == 'index':
+        adjust_for_splits(path, [prod], product_type)
+        backward_adjust_dividends(path, [prod], product_type)
+        # Read data from CSVs to datarframe
+        prod_file = path+prod+'_backward_dividend_adjusted.csv'
+        df_prod = pd.read_csv(prod_file)
+    else:
+        columns = ['date','open','high','low','close','volume','dividend']
+        prod_file = path+prod[0]+'/'+prod+'.csv'
+        df_prod = pd.read_csv(prod_file,names=columns)
+
+def backfill_each_product(path, df_prod_bf, prod, product_type, beta_adjust=False):
     """
     If the assets are A and B and price of A when unavailable is being backfilled using price of B
     A_close_price_backfill_i/A_close_price_backfill_(i+1) = B_backward_adjusted_close_i/ B_backward_adjusted_close_(i+1)
@@ -35,7 +49,14 @@ def backfill_each_product(path, df_prod_bf, prod, product_type):
         prod_file = path+prod[0]+'/'+prod+'.csv'
         df_prod = pd.read_csv(prod_file,names=columns)
 
-    
+    if beta_adjust=True:
+        returns_bf = df_prod_bf.close / df_prod_bf.close.shift(1)
+        std_prod_bf = np.std(returns_bf.values[1:])
+        returns = df_prod.close / df_prod.close.shift(1)
+        std_prod = np.std(returns.values[1:])
+        beta_factor = std_prod_bf/std_prod
+    else:
+        beta_factor = 1.0 
 
     # Get last date available in df_prod_bf
     # This is the starting date for backfill
@@ -56,9 +77,9 @@ def backfill_each_product(path, df_prod_bf, prod, product_type):
     for i in xrange(starting_index-1,-1,-1):
         # backfill_ratio is kept to ensure daily log returns is same between both poducts when data is unavailable
         if not product_type == 'index':
-            backfill_ratio = df_prod['backward_adjusted_close'].iloc[i]/df_prod['backward_adjusted_close'].iloc[i+1]
+            backfill_ratio = beta_factor*df_prod['backward_adjusted_close'].iloc[i]/df_prod['backward_adjusted_close'].iloc[i+1]
         else:
-            backfill_ratio = df_prod['close'].iloc[i]/df_prod['close'].iloc[i+1]
+            backfill_ratio = beta_factor*df_prod['close'].iloc[i]/df_prod['close'].iloc[i+1]
         df_backfilled.loc[n,'date'] = df_prod.loc[i,'date']
         # A_price_backfill_i/A_price_backfill_(i+1) = B_backward_adjusted_close_i/ B_backward_adjusted_close_(i+1)        
         df_backfilled.loc[n,'open'] = df_backfilled.loc[n-1,'open'] * backfill_ratio
@@ -74,6 +95,27 @@ def backfill_each_product(path, df_prod_bf, prod, product_type):
     df_prod_bf = pd.concat([df_backfilled.iloc[::-1][:-1],df_prod_bf])
 
     return df_prod_bf, starting_date
+
+def auto_backfill(path, output_path, prod_backfill, plot_option):
+    """
+    Methodology for automatic backfilling
+    1) Look in folder of assets(funds or indices) whose prices are available till 1995.
+    2) Find asset in this folder with maximum correlation in monthly returns.
+    3) Use beta-adjusted values of the chosen fund or index to backfill.
+    4) If maximum correlation is below a certain threshold don't backfill. This asset will be advised to be backfilled manually.
+    """
+    prod_backfill_file = path+prod_backfill[0]+'/'+prod_backfill+'.csv'
+    adjust_for_splits(path, [prod_backfill], 'etf')
+    df_prod_bf = pd.read_csv(path+prod_backfill+'_split_adjusted.csv')
+
+    products = ['VTSMX', 'SPTR', 'GMHBX', 'VBMFX']
+    correlations = []
+    for product in products:
+        correlations.append(get_correlation_monthly_returns(df_prod_bf, product))
+    backfill_choice = products[correlations.index(max(correlations))]
+    
+    backfill_each_product(path, df_prod_bf, prod)
+
 
 def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_option):
     """
@@ -95,9 +137,7 @@ def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_op
     Outputs:
         In output_path, it creates a new file prod_backfill+'_backfilled.csv' which contains all the prices for
         the product being backfilled.
-    """
-
-       
+    """       
     # Read data from file
     prod_backfill_file = path+prod_backfill[0]+'/'+prod_backfill+'.csv'
     adjust_for_splits(path, [prod_backfill], 'etf')
@@ -130,7 +170,8 @@ def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_op
 
 def __main__() :
     if len( sys.argv ) > 3 and len(sys.argv)%2 == 1:
-        plot_option = sys.argv[1]
+        auto_option = sys.argv[1]
+        plot_option = sys.argv[2]
         path = sys.argv[2]
         output_path = sys.argv[3]
         prod_backfill = sys.argv[4]
@@ -140,10 +181,13 @@ def __main__() :
             product_types.append(sys.argv[i])
             products.append(sys.argv[i+1])
     else:
-        print 'python backfill.py plot(y/n) path output_path product_to_be_backfilled etf/fund/index1 product1 etf/fund/index2 product2'
+        print 'python backfill.py auto(y/n) plot(y/n) path output_path product_to_be_backfilled etf/fund/index1 product1 etf/fund/index2 product2'
         sys.exit(0)
     
-    backfill(path, output_path, prod_backfill, products, product_types, plot_option)    
+    if auto_option == 'y':
+        auto_backfill(path, output_path, prod_backfill, plot_option)
+    else:
+        backfill(path, output_path, prod_backfill, products, product_types, plot_option)    
 
 if __name__ == '__main__':
     __main__();
