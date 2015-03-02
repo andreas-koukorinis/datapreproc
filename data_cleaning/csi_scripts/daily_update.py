@@ -80,10 +80,10 @@ def get_contract_number(date, _base_symbol, YYMM ):
         return 0
     num=1
     # 
-    while _exchange_symbol != exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_' + str(num) ) and num < 3:
+    while _exchange_symbol != exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_' + str(num) ) and num < len(futures_contract_list.get(_base_symbol,[1,2]))+1:
         #print _exchange_symbol, exchange_symbol_manager.get_exchange_symbol( date, _base_symbol + '_' + str(num))   
         num+=1
-    if num > 2:
+    if num > len(futures_contract_list.get(_base_symbol,[1,2])):
         num=-1 
     return num
 
