@@ -92,13 +92,13 @@ def get_file(filename,k):
     print filename
     path = '/apps/data/csi/'
     if not os.path.isfile(path+filename): #If the file is not present,download it
-        _file = path+filename+'.gz'
-    #    is_in_s3 = subprocess.Popen(['s3cmd', 'ls', 's3://cvquantdata/csi/rawdata/'+_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
-    #    if len(is_in_s3) <= 0:
+        _file = filename+'.gz'
+        is_in_s3 = subprocess.Popen(['s3cmd', 'ls', 's3://cvquantdata/csi/rawdata/'+_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
+        if len(is_in_s3) <= 0:
             #sys.exit('File %s not in s3'%_file)
-    #        print 'File %s not in s3'%_file
-    #        return None
-    #    subprocess.call(['s3cmd','get','s3://cvquantdata/csi/rawdata/'+_file]) 
+            print 'File %s not in s3'%_file
+            return None
+        subprocess.call(['s3cmd','get','s3://cvquantdata/csi/rawdata/'+_file]) 
         inF = gzip.open(_file, 'rb')
         outF = open(filename, 'wb')
         outF.write( inF.read() )
@@ -161,7 +161,7 @@ def add_fund_quote(date, record, error_correction):
             query = "UPDATE %s SET close='%f', asking_price='%f', backward_adjusted_close='%f', forward_adjusted_close='%f' WHERE date='%s' and product='%s'" % \
                     (table[product], close, asking_price, backward_adjusted_close, forward_adjusted_close, date, product)
         else:
-            query = "INSERT INTO %s ( date, product, close, asking_price, backward_adjusted_close, forward_adjusted_close, dividend, capital_gain ) VALUES('%s','%s','%0.2f','%0.2f','%0.2f','%0.2f','0.0','0.0')" % ( table[product], date, product, close, asking_price, close, forward_adjusted_close)
+            query = "INSERT INTO %s ( date, product, close, asking_price, backward_adjusted_close, forward_adjusted_close, dividend, capital_gain ) VALUES('%s','%s','%f','%f','%f','%f','0.0','0.0')" % ( table[product], date, product, close, asking_price, close, forward_adjusted_close)
 
         print query
         db_cursor.execute(query)
@@ -211,8 +211,13 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
         #print contract_number
         specific_ticker = _base_symbol + get_exchange_specific( YYMM )
         generic_ticker = _base_symbol + '_' + str( contract_number )
+<<<<<<< HEAD
         # get dict for VIX and number of contracts
         print futures_contract_list.get(_base_symbol,[1,2]), _base_symbol, contract_number 
+=======
+        # get dict for VX and number of contracts
+        
+>>>>>>> 8bd7a44e1f7636bd7a3f7b53e33ff2cfc90df7ec
         if contract_number in futures_contract_list.get(_base_symbol,[1,2]): # TODO Should change to mapping per product 
             try:
                 if error_correction:                        
