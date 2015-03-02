@@ -473,7 +473,6 @@ def daily_update(filename, products):
                         if error_correction:
                             add_future_quote(date, record, 0, 0, 0, 0, error_correction, record_date)
                         else:
-                            print date
                             add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
             else:
                 if len(products)==0 or symbol in products:
