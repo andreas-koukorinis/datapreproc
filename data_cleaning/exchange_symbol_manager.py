@@ -78,7 +78,7 @@ class ExchangeSymbolManager():
                 _next_month = _current_month
                 _next_year = _current_year
                 _next_last_trading_date = getattr( ExchangeSymbolManager, 'get_'+_exchange+'_last_trading_date' )( self, _basename, _next_month, _next_year )
-                if _next_last_trading_date < _current_min_last_trading_date:
+                while _next_last_trading_date < _current_min_last_trading_date:
                     _next_month,_next_year = self.get_next_month( _basename, _exchange, _next_month, _next_year )
                     _next_last_trading_date = getattr( ExchangeSymbolManager, 'get_'+_exchange+'_last_trading_date' )( self, _basename, _next_month, _next_year )
                 _current_min_last_trading_date = _next_last_trading_date
@@ -89,14 +89,14 @@ class ExchangeSymbolManager():
                 _next_year = _current_year
                 _next_month,_next_year = self.get_next_month( _basename, _exchange, _next_month, _next_year )
                 _next_last_trading_date = getattr( ExchangeSymbolManager, 'get_'+_exchange+'_last_trading_date' )( self, _basename, _next_month, _next_year )
-                if _next_last_trading_date < _current_min_last_trading_date:
+                while _next_last_trading_date < _current_min_last_trading_date:
                     _next_month,_next_year = self.get_next_month( _basename, _exchange, _next_month, _next_year )
                     _next_last_trading_date = getattr( ExchangeSymbolManager, 'get_'+_exchange+'_last_trading_date' )( self, _basename, _next_month, _next_year )
                 _current_min_last_trading_date = _next_last_trading_date
                 _current_month = _current_min_last_trading_date.month
                 _current_year = _current_min_last_trading_date.year
             if _contract_number > 1:
-                _current_min_last_trading_date = _current_min_last_trading_date + datetime.timedelta(days=3)
+                _current_min_last_trading_date = _current_min_last_trading_date + datetime.timedelta(days=10)
                 _current_month = _current_min_last_trading_date.month
                 _current_year = _current_min_last_trading_date.year
             _contract_number = _contract_number - 1
