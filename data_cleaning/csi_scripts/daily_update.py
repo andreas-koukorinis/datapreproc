@@ -92,13 +92,13 @@ def get_file(filename,k):
     print filename
     path = '/apps/data/csi/'
     if not os.path.isfile(path+filename): #If the file is not present,download it
-        _file = filename+'.gz'
-        is_in_s3 = subprocess.Popen(['s3cmd', 'ls', 's3://cvquantdata/csi/rawdata/'+_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
-        if len(is_in_s3) <= 0:
+        _file = path+filename+'.gz'
+    #    is_in_s3 = subprocess.Popen(['s3cmd', 'ls', 's3://cvquantdata/csi/rawdata/'+_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
+    #    if len(is_in_s3) <= 0:
             #sys.exit('File %s not in s3'%_file)
-            print 'File %s not in s3'%_file
-            return None
-        subprocess.call(['s3cmd','get','s3://cvquantdata/csi/rawdata/'+_file]) 
+    #        print 'File %s not in s3'%_file
+    #        return None
+    #    subprocess.call(['s3cmd','get','s3://cvquantdata/csi/rawdata/'+_file]) 
         inF = gzip.open(_file, 'rb')
         outF = open(filename, 'wb')
         outF.write( inF.read() )
