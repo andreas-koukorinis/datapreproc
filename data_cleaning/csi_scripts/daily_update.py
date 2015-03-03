@@ -4,6 +4,7 @@ import sys
 import os
 import imp
 import gzip
+import smtplib
 import MySQLdb
 import subprocess
 import pandas as pd
@@ -13,6 +14,7 @@ from datetime import datetime,timedelta,date
 futures_contract_list = {'VX':[1,2,3,4,5,6,7]}
 table = {}
 product_type = {}
+server = None
 db_cursor = None
 db = None
 mappings = {'TU':'ZT','FV':'ZF','TY':'ZN','US':'ZB','NK':'NKD','NIY':'NIY','ES':'ES','EMD':'EMD','NQ':'NQ','YM':'YM','AD':'6A','BP':'6B','CD':'6C','CU1':'6E','JY':'6J','MP':'6M','NE2':'6N','SF':'6S','GC':'GC','SI':'SI','HG':'HG','PL':'PL','PA':'PA','LH':'LH','ZW':'ZW','ZC':'ZC','ZS':'ZS','ZM':'ZM','ZL':'ZL','EBS':'FGBS','EBM':'FGBM','EBL':'FGBL','SXE':'FESX','FDX':'FDAX','SMI':'FSMI','SXF':'SXF','CGB':'CGB','FFI':'LFZ','FLG': 'LFR','AEX': 'FTI','KC':'KC','CT':'CT','CC':'CC','SB':'SB','JTI':'TOPIX','JGB':'JGBL','JNI':'JNK','SIN':'SIN','SSG':'SG','HCE':'HHI','HSI':'HSI','ALS':'ALSI','YAP':'SPI','MFX':'MFX','KOS':'KOSPI','VX':'VX'}
@@ -91,7 +93,7 @@ def get_file(filename,k):
     filename = filename +'.' + (datetime.now() - timedelta(days=k)).strftime('%Y%m%d')
     print filename
     path = '/apps/data/csi/'
-    if not os.path.isfile(path+filename): #If the file is not present,download it
+    if not os.path.isfile(filename): #If the file is not present,download it
         _file = path+filename+'.gz'
         # is_in_s3 = subprocess.Popen(['s3cmd', 'ls', 's3://cvquantdata/csi/rawdata/'+_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
         # if len(is_in_s3) <= 0:
@@ -137,6 +139,7 @@ def add_stock_quote(date, record, error_correction):
     except:
         db.rollback()
         print('EXCEPTION in add_stock_quote %s'%record)
+        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_stock_quote %s'%record)
     
 def add_fund_quote(date, record, error_correction):
     product, csi_num, close, asking_price = record[1], IntOrZero(record[2]), FloatOrZero(record[3]), FloatOrZero(record[4])    
@@ -169,6 +172,7 @@ def add_fund_quote(date, record, error_correction):
     except:
         db.rollback()
         print('EXCEPTION in add_fund_quote %s'%record)
+        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_fund_quote %s'%record)
 
 def add_forex_quote(date, forex_tuple , record, error_correction):
     open1, high, low, close = FloatOrZero(record[4]), FloatOrZero(record[6]), FloatOrZero(record[7]), FloatOrZero(record[8])
@@ -190,9 +194,10 @@ def add_forex_quote(date, forex_tuple , record, error_correction):
         db.commit()
     except:
         db.rollback()
-        print('EXCEPTION in add_forex_quote %s'%record) 
+        print('EXCEPTION in add_forex_quote %s'%record)
+        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_forex_quote %s'%record)
 
-def add_future_quote(date, record, future_someday_total_volume, future_someday_total_oi, future_volume_date, future_oi_date, error_correction, record_date):
+def add_future_quote(date, record, future_someday_total_volume, future_someday_total_oi, future_volume_date, future_oi_date, error_correction):
     try:
         #print record
         product, csi_num, YYMM, open1, high, low, close, future_someday_volume, future_someday_oi = record[1], IntOrZero(record[2]), record[3], FloatOrZero(record[4]), FloatOrZero(record[6]), FloatOrZero(record[7]), FloatOrZero(record[8]), IntOrZero(record[10]), IntOrZero(record[11])   
@@ -200,12 +205,7 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
             _base_symbol = mappings[product]
         else:
             _base_symbol = product
-        _last_trading_date = exchange_symbol_manager.get_last_trading_date(datetime.strptime(date, '%Y-%m-%d').date(), _base_symbol + '_1')
-        # to remove
-        if str(_last_trading_date) == date:
-            is_last_trading_day = 1.0
-        else:
-            is_last_trading_day = 0.0
+        is_last_trading_day = 0.0
         #print str(_last_trading_date),date,_base_symbol
         contract_number = get_contract_number(datetime.strptime(date, '%Y-%m-%d').date(), _base_symbol, YYMM)
         #print contract_number
@@ -213,10 +213,10 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
         generic_ticker = _base_symbol + '_' + str( contract_number )
         # get dict for VX and number of contracts
         
-        if contract_number in futures_contract_list.get(_base_symbol,[1,2]): # TODO Should change to mapping per product 
+        if contract_number in futures_contract_list.get(_base_symbol,[1,2]): 
             try:
-                if error_correction:                        
-                    if (datetime.strptime(record_date, '%Y-%m-%d') - datetime.strptime(date, '%Y-%m-%d')).days == 1: # CSI doesnt do vol/oi changes for previous days
+                if error_correction:
+                    if not (future_someday_volume > 0 and future_someday_total_volume > 0): 
                         query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f', is_last_trading_day='%0.1f' WHERE date='%s' AND specific_ticker='%s'" % (table[generic_ticker], open1, high, low, close, is_last_trading_day, date, specific_ticker)
                     else:
                         query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f', is_last_trading_day='%0.1f', contract_volume='%d', contract_oi='%d' WHERE date='%s' AND specific_ticker='%s'" % \
@@ -228,7 +228,8 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
                 db.commit()
             except:
                 db.rollback()
-                print('EXCEPTION in add_future_quote block 3 %s'%record)
+                print('EXCEPTION in add_future_quote block 3 %s %s'% (record, date))
+                server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 3 %s %s'% (record, date))
         if contract_number in [0]+futures_contract_list.get(_base_symbol,[1,2]):
             try:
                 if not error_correction:
@@ -241,9 +242,11 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
                     db.commit()
             except:
                 db.rollback()
-                print('EXCEPTION in add_future_quote block 2 %s'%record)
+                server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 2 %s %s'% (record, date))
+                print('EXCEPTION in add_future_quote block 2 %s %s'% (record, date))
     except:
-        print('EXCEPTION in add_future_quote block 1 %s'%record)
+        print('EXCEPTION in add_future_quote block 1  %s %s'% (record, date))
+        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 1 %s %s'% (record, date))
 
 # ASSUMPTION: dividend quote will be sequenced after price quote
 def dividend_quote(date, record):
@@ -264,6 +267,7 @@ def dividend_quote(date, record):
     except:
         db.rollback()
         print('EXCEPTION in dividend_quote %s'%record)
+        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in dividend_quote %s'%record)
 
     # Peform dividend adjust on entire dataset just to be sure we are doing this corectly 
     # because CSI might change date of dividend distribution during error correction
@@ -282,7 +286,6 @@ def dividend_adjust(date, product, record):
             print query
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
-            print rows  
             if len(rows) < 1:
                 print('Price quote did not preceed dividend quote')
             else:
@@ -331,6 +334,7 @@ def dividend_adjust(date, product, record):
     except:
         db.rollback()
         print('EXCEPTION in dividend adjust %s'%record)
+        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in dividend adjust %s'%record)
 
 
 def split_quote(date, record):
@@ -347,6 +351,7 @@ def split_quote(date, record):
     except:
         db.rollback()
         print('EXCEPTION in split_quote %s'%record)
+        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in split_quote %s'%record)
 
 # def error_correction_quote(date,record):
 #     print 'IN ERROR CORRECTION'
@@ -361,6 +366,7 @@ def delete_quote(date, record):
     except:
         db.rollback()
         print('EXCEPTION in delete_quote %s'%record)
+        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in delete_quote %s'%record)
 
 def daily_update(filename, products):
     f = open(filename)
@@ -383,8 +389,7 @@ def daily_update(filename, products):
     for item in records[1:]:
         if error_correction:
             # Reset ecord date and date which might have changed due to error correction
-            date = datetime.strptime(header[4], '%Y%m%d').strftime('%Y-%m-%d')
-            record_date = date
+            date = record_date
         
         record = item.strip().split(',')
         error_correction = False        
@@ -425,16 +430,16 @@ def daily_update(filename, products):
                 else:
                     if len(products)==0 or symbol in products:
                         if error_correction:
-                            add_future_quote(date, record, 0, 0, 0, 0, error_correction, record_date)
+                            add_future_quote(date, record, 0, 0, 0, 0, error_correction)
                         else:
-                            add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
+                            add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction)
 
             else:
                 if len(products)==0 or symbol in products:
                     if error_correction:
-                        add_future_quote(date, record, 0, 0, 0, 0, error_correction, record_date)
+                        add_future_quote(date, record, 0, 0, 0, 0, error_correction)
                     else:
-                        add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
+                        add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction)
 
         elif record[0]=='03': #Stock Price record
             if len(products)==0 or symbol in products:
@@ -471,15 +476,15 @@ def daily_update(filename, products):
                 else:
                     if len(products)==0 or symbol in products:
                         if error_correction:
-                            add_future_quote(date, record, 0, 0, 0, 0, error_correction, record_date)
+                            add_future_quote(date, record, 0, 0, 0, 0, error_correction)
                         else:
-                            add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
+                            add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction)
             else:
                 if len(products)==0 or symbol in products:
                     if error_correction:
-                        add_future_quote(date, record, 0, 0, 0, 0, error_correction, record_date)
+                        add_future_quote(date, record, 0, 0, 0, 0, error_correction)
                     else:
-                        add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction, record_date)
+                        add_future_quote(date, record, future_total_volume, future_total_oi, future_volume_date, future_oi_date, error_correction)
 
         elif record[0]=='33': #Type '03' with prices in decimal
             if len(products)==0 or symbol in products:
@@ -497,10 +502,11 @@ def update_last_trading_day(k):
     _date = date.today() + timedelta(days=-k)
     for product in mappings.keys():
         _base_symbol = mappings[product]
+        min_last_trading_date = datetime(2050,12,31)
         _last_trading_date = exchange_symbol_manager.get_last_trading_date(_date, _base_symbol + '_1')
         if _last_trading_date != _date:
             continue
-        _contract_numbers = [1,2] # TODO should have mapping for this
+        _contract_numbers = futures_contract_list.get(_base_symbol,[1,2]) # TODO should have mapping for this
         for _contract_number in _contract_numbers:
             generic_ticker = _base_symbol + '_' + str( _contract_number )
             try:
@@ -509,20 +515,34 @@ def update_last_trading_day(k):
                 db_cursor.execute(query)
                 rows = db_cursor.fetchall()
                 if len(rows) < 1:
-                    print 'Unhandled case %s in update_last_trading_day'%(generic_ticker) 
+                    print 'Unhandled case %s in update_last_trading_day'%(generic_ticker)  # ADD MAIL
+                    server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Unhandled case %s in update_last_trading_day'%(generic_ticker))
                 else:
                     _new_last_trading_date= rows[0]['date']
                     delta = _date - _new_last_trading_date
                     if delta.days >= 7:
-                        print 'Seems to be a problem in update_last_trading_day %s'%generic_ticker
+                        print 'Seems to be a problem in update_last_trading_day %s'%generic_ticker #ADD MAIL
+                        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Seems to be a problem in update_last_trading_day %s'%(generic_ticker))
                     else:
-                        query = "UPDATE %s SET is_last_trading_day=1.0 WHERE product='%s' AND date='%s'"%(table[generic_ticker],generic_ticker,_new_last_trading_date)
-                        print query
-                        db_cursor.execute(query)
-                db.commit()
+                        min_last_trading_date = min(min_last_trading_date, _new_last_trading_date)
             except:
-                db.rollback()
                 print('EXCEPTION in update_last_trading_day %s'%generic_ticker)
+                server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
+        try:
+            query = "SELECT * FROM %s WHERE product like '%s_%' AND date = '%s'"%(table[generic_ticker],generic_ticker,min_last_trading_date)
+            print query
+            db_cursor.execute(query)
+            rows = db_cursor.fetchall()
+            if len(rows) < len(_contract_numbers):
+                server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day : rows < nontract_numbers')
+            else:
+                query = "UPDATE %s SET is_last_trading_day=1.0 WHERE product like '%s_%' AND date='%s'"%(table[generic_ticker],generic_ticker,min_last_trading_date)
+                print query
+                db_cursor.execute(query)
+                db.commit()
+        except:
+            db.rollback()
+            server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
 
 def __main__() :
     if len( sys.argv ) > 1:
@@ -539,6 +559,8 @@ def __main__() :
     exchange_symbol_manager = module.ExchangeSymbolManager()
     filename = get_file(file_type, delay)
     print filename
+    global server
+    server = smtplib.SMTP("localhost")
     #sys.exit()
     db_connect()
     product_to_table_map()
@@ -547,6 +569,7 @@ def __main__() :
         daily_update(filename, products)
     if file_type == 'futures':
         update_last_trading_day(delay)
+    server.quit()
 
 if __name__ == '__main__':
     __main__()
