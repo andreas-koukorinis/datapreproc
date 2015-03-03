@@ -139,7 +139,7 @@ def add_stock_quote(date, record, error_correction):
     except:
         db.rollback()
         print('EXCEPTION in add_stock_quote %s'%record)
-        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_stock_quote %s'%record)
+        #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_stock_quote %s'%record)
     
 def add_fund_quote(date, record, error_correction):
     product, csi_num, close, asking_price = record[1], IntOrZero(record[2]), FloatOrZero(record[3]), FloatOrZero(record[4])    
@@ -172,7 +172,7 @@ def add_fund_quote(date, record, error_correction):
     except:
         db.rollback()
         print('EXCEPTION in add_fund_quote %s'%record)
-        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_fund_quote %s'%record)
+        #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_fund_quote %s'%record)
 
 def add_forex_quote(date, forex_tuple , record, error_correction):
     open1, high, low, close = FloatOrZero(record[4]), FloatOrZero(record[6]), FloatOrZero(record[7]), FloatOrZero(record[8])
@@ -195,7 +195,7 @@ def add_forex_quote(date, forex_tuple , record, error_correction):
     except:
         db.rollback()
         print('EXCEPTION in add_forex_quote %s'%record)
-        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_forex_quote %s'%record)
+        #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_forex_quote %s'%record)
 
 def add_future_quote(date, record, future_someday_total_volume, future_someday_total_oi, future_volume_date, future_oi_date, error_correction):
     try:
@@ -229,7 +229,7 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
             except:
                 db.rollback()
                 print('EXCEPTION in add_future_quote block 3 %s %s'% (record, date))
-                server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 3 %s %s'% (record, date))
+                #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 3 %s %s'% (record, date))
         if contract_number in [0]+futures_contract_list.get(_base_symbol,[1,2]):
             try:
                 if not error_correction:
@@ -242,11 +242,11 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
                     db.commit()
             except:
                 db.rollback()
-                server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 2 %s %s'% (record, date))
+                #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 2 %s %s'% (record, date))
                 print('EXCEPTION in add_future_quote block 2 %s %s'% (record, date))
     except:
         print('EXCEPTION in add_future_quote block 1  %s %s'% (record, date))
-        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 1 %s %s'% (record, date))
+        #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 1 %s %s'% (record, date))
 
 # ASSUMPTION: dividend quote will be sequenced after price quote
 def dividend_quote(date, record):
@@ -267,7 +267,7 @@ def dividend_quote(date, record):
     except:
         db.rollback()
         print('EXCEPTION in dividend_quote %s'%record)
-        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in dividend_quote %s'%record)
+        #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in dividend_quote %s'%record)
 
     # Peform dividend adjust on entire dataset just to be sure we are doing this corectly 
     # because CSI might change date of dividend distribution during error correction
@@ -334,7 +334,7 @@ def dividend_adjust(date, product, record):
     except:
         db.rollback()
         print('EXCEPTION in dividend adjust %s'%record)
-        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in dividend adjust %s'%record)
+        #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in dividend adjust %s'%record)
 
 
 def split_quote(date, record):
@@ -351,7 +351,7 @@ def split_quote(date, record):
     except:
         db.rollback()
         print('EXCEPTION in split_quote %s'%record)
-        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in split_quote %s'%record)
+        #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in split_quote %s'%record)
 
 # def error_correction_quote(date,record):
 #     print 'IN ERROR CORRECTION'
@@ -361,12 +361,12 @@ def delete_quote(date, record):
     date_to_be_deleted, product, csi_num, delivery_YYMM, option_flag, strike_price = datetime.strptime(record[1], '%Y%m%d').strftime('%Y-%m-%d'),record[2], IntOrZero(record[3]), record[4], record[5], FloatOrZero(record[6])
     try:
         query = "DELETE FROM %s WHERE date='%s' AND product='%s'"
-        #db_cursor.execute(query)
+        db_cursor.execute(query)
         db.commit()
     except:
         db.rollback()
         print('EXCEPTION in delete_quote %s'%record)
-        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in delete_quote %s'%record)
+        #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in delete_quote %s'%record)
 
 def daily_update(filename, products):
     f = open(filename)
@@ -516,25 +516,25 @@ def update_last_trading_day(k):
                 rows = db_cursor.fetchall()
                 if len(rows) < 1:
                     print 'Unhandled case %s in update_last_trading_day'%(generic_ticker)  # ADD MAIL
-                    server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Unhandled case %s in update_last_trading_day'%(generic_ticker))
+                    #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Unhandled case %s in update_last_trading_day'%(generic_ticker))
                 else:
                     _new_last_trading_date= rows[0]['date']
                     delta = _date - _new_last_trading_date
                     if delta.days >= 7:
                         print 'Seems to be a problem in update_last_trading_day %s'%generic_ticker #ADD MAIL
-                        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Seems to be a problem in update_last_trading_day %s'%(generic_ticker))
+                        #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Seems to be a problem in update_last_trading_day %s'%(generic_ticker))
                     else:
                         min_last_trading_date = min(min_last_trading_date, _new_last_trading_date)
             except:
                 print('EXCEPTION in update_last_trading_day %s'%generic_ticker)
-                server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
+                #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
         try:
             query = "SELECT * FROM %s WHERE product like '%s_%' AND date = '%s'"%(table[generic_ticker],generic_ticker,min_last_trading_date)
             print query
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
             if len(rows) < len(_contract_numbers):
-                server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day : rows < nontract_numbers')
+                #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day : rows < nontract_numbers')
             else:
                 query = "UPDATE %s SET is_last_trading_day=1.0 WHERE product like '%s_%' AND date='%s'"%(table[generic_ticker],generic_ticker,min_last_trading_date)
                 print query
@@ -542,7 +542,7 @@ def update_last_trading_day(k):
                 db.commit()
         except:
             db.rollback()
-            server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
+            #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
 
 def __main__() :
     if len( sys.argv ) > 1:
