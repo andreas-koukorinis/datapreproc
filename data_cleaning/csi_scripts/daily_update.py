@@ -216,7 +216,7 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
         if contract_number in futures_contract_list.get(_base_symbol,[1,2]): 
             try:
                 if error_correction:
-                    if (future_someday_volume > 0 and future_someday_total_volume > 0): 
+                    if (future_someday_volume > 0 and future_someday_oi > 0): 
                         query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f', is_last_trading_day='%0.1f', contract_volume='%d', contract_oi='%d' WHERE date='%s' AND specific_ticker='%s'" % \
                         (table[generic_ticker], open1, high, low, close, is_last_trading_day, future_someday_volume, future_someday_oi, date, specific_ticker)
                     else:
@@ -278,12 +278,10 @@ def dividend_quote(date, record):
 def dividend_adjust(date, product, record):
     try:
         if table[product] == 'funds':
-            query = "UPDATE funds SET backward_adjusted_close=close WHERE product='%s'"%(product)
+            query = "UPDATE funds SET backward_adjusted_close=close, forward_adjusted_close=close WHERE product='%s'"%(product)
             print query
             db_cursor.execute(query)
-            query = "UPDATE funds SET forward_adjusted_close=close WHERE product='%s'"%(product)
-            print query
-            db_cursor.execute(query)
+            db.commit()
             query = "SELECT * FROM funds WHERE product='%s' AND (dividend > 0 OR capital_gain > 0)"%(product)
             print query
             db_cursor.execute(query)
@@ -298,22 +296,16 @@ def dividend_adjust(date, product, record):
                     query = "UPDATE %s SET backward_adjusted_close = backward_adjusted_close/%f WHERE product='%s' AND date < '%s'" % ( table[product], dividend_factor, product, ex_date)
                     print query
                     db_cursor.execute(query)
+                    db.commit()
                     query = "UPDATE %s SET forward_adjusted_close = forward_adjusted_close*%f WHERE product='%s' AND date >= '%s'" % ( table[product], dividend_factor, product, ex_date)
                     print query
                     db_cursor.execute(query)
+                    db.commit()
         elif table[product] == 'etfs':
-            query = "UPDATE etfs SET backward_adjusted_close=close WHERE product='%s'"%(product)
+            query = "UPDATE etfs SET backward_adjusted_close=close, forward_adjusted_close=close, backward_adjusted_open=open, forward_adjusted_open=open WHERE product='%s'"%(product)
             print query
             db_cursor.execute(query)
-            query = "UPDATE etfs SET forward_adjusted_close=close WHERE product='%s'"%(product)
-            print query
-            db_cursor.execute(query)
-            query = "UPDATE etfs SET backward_adjusted_open=open WHERE product='%s'"%(product)
-            print query
-            db_cursor.execute(query)
-            query = "UPDATE etfs SET forward_adjusted_open=open WHERE product='%s'"%(product)
-            print query
-            db_cursor.execute(query)
+            db.commit()
             query = "SELECT * FROM etfs WHERE product='%s' AND dividend > 0" %(product)
             print query
             db_cursor.execute(query)
@@ -329,10 +321,11 @@ def dividend_adjust(date, product, record):
                     query = "UPDATE %s SET backward_adjusted_close = backward_adjusted_close/%f,backward_adjusted_open = backward_adjusted_open/%f WHERE product='%s' AND date < '%s'" % ( table[product], dividend_factor, dividend_factor, product, ex_date)
                     print query
                     db_cursor.execute(query)
+                    db.commit()
                     query = "UPDATE %s SET forward_adjusted_close = forward_adjusted_close*%f,forward_adjusted_open = forward_adjusted_open*%f WHERE product='%s' AND date >= '%s'" % ( table[product], dividend_factor, dividend_factor, product, ex_date)
                     print query
                     db_cursor.execute(query)
-        db.commit()
+                    db.commit()
     except:
         db.rollback()
         print('EXCEPTION in dividend adjust %s'%record)
