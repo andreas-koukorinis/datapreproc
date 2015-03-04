@@ -216,11 +216,12 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
         if contract_number in futures_contract_list.get(_base_symbol,[1,2]): 
             try:
                 if error_correction:
-                    if not (future_someday_volume > 0 and future_someday_total_volume > 0): 
-                        query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f', is_last_trading_day='%0.1f' WHERE date='%s' AND specific_ticker='%s'" % (table[generic_ticker], open1, high, low, close, is_last_trading_day, date, specific_ticker)
-                    else:
+                    if (future_someday_volume > 0 and future_someday_total_volume > 0): 
                         query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f', is_last_trading_day='%0.1f', contract_volume='%d', contract_oi='%d' WHERE date='%s' AND specific_ticker='%s'" % \
                         (table[generic_ticker], open1, high, low, close, is_last_trading_day, future_someday_volume, future_someday_oi, date, specific_ticker)
+                    else:
+                        query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f', is_last_trading_day='%0.1f' WHERE date='%s' AND specific_ticker='%s'" % (table[generic_ticker], open1, high, low, close, is_last_trading_day, date, specific_ticker)
+
                 else:
                     query = "INSERT INTO %s ( date, product, specific_ticker, open, high, low, close, is_last_trading_day, contract_volume, contract_oi, total_volume, total_oi ) VALUES('%s','%s','%s','%f','%f','%f','%f','%0.1f','0','0','0','0')" % ( table[generic_ticker], date, generic_ticker, specific_ticker, open1, high, low, close, is_last_trading_day )
                 print query
@@ -405,17 +406,17 @@ def daily_update(filename, products):
 
         if record[0]=='01': # Future header
             future_symbol, future_csi_num, option_flag, future_total_volume,future_total_oi, future_total_est_volume = record[1], IntOrZero(record[2]), IntOrZero(record[3]), IntOrZero(record[4]), IntOrZero(record[5]), IntOrZero(record[6])
-            if len(record) > 8:
+            if len(record) > 7:
                 #print record
                 try:
-                    future_volume_date = datetime.strptime(record[8], '%Y%m%d').strftime('%Y-%m-%d')
+                    future_volume_date = datetime.strptime(record[7], '%Y%m%d').strftime('%Y-%m-%d')
                 except:
                     future_volume_date = '1500-01-01'
             else:
                 future_volume_date = volume_date
-            if len(record) > 9:
+            if len(record) > 8:
                 try:
-                    future_oi_date = datetime.strptime(record[9], '%Y%m%d').strftime('%Y-%m-%d')
+                    future_oi_date = datetime.strptime(record[8], '%Y%m%d').strftime('%Y-%m-%d')
                 except:
                     future_oi_date = '1500-01-01'
             else:
