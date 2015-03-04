@@ -317,7 +317,7 @@ def dividend_adjust(date, product, record):
             print query
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
-            print rows  
+            #print rows  
             if len(rows) < 1:
                 print('Price quote did not preceed dividend quote')
             else:
@@ -535,6 +535,7 @@ def update_last_trading_day(k):
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
             if len(rows) < len(_contract_numbers):
+                print "EXCEPTION in update_last_trading_day : rows < nontract_numbers"
                 #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day : rows < nontract_numbers')
             else:
                 query = "UPDATE %s SET is_last_trading_day=1.0 WHERE product like '%s_%' AND date='%s'"%(table[generic_ticker],generic_ticker,min_last_trading_date)
