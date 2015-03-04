@@ -237,6 +237,7 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
                     query = "UPDATE %s SET contract_volume='%d',total_volume='%d' WHERE date='%s' AND specific_ticker='%s'" % (table[_base_symbol+'_1'], future_someday_volume, future_someday_total_volume, future_volume_date, specific_ticker)
                     print query
                     db_cursor.execute(query)
+                    db.commit()    
                     query = "UPDATE %s SET contract_oi='%d',total_oi='%d' WHERE date='%s' AND specific_ticker='%s'" % (table[_base_symbol+'_1'], future_someday_oi, future_someday_total_oi, future_oi_date, specific_ticker)
                     print query
                     db_cursor.execute(query)
