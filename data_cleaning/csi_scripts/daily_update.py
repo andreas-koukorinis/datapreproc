@@ -521,7 +521,7 @@ def update_last_trading_day(k):
                     else:
                         min_last_trading_date = min(min_last_trading_date, _new_last_trading_date)
             except:
-                print 'EXCEPTION in update_last_trading_day %s and %s on %s'%(generic_ticker, specific_ticker, date)
+                print 'EXCEPTION in update_last_trading_day %s on %s'%(generic_ticker, date)
                 #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
         try:
             query = "SELECT * FROM %s WHERE product like '%s_%' AND date = '%s'"%(table[generic_ticker],generic_ticker,min_last_trading_date)
