@@ -115,27 +115,27 @@ def add_stock_quote(date, record, error_correction):
     if product not in indices:
         product, open, high, low, close, volume = record[1], FloatOrZero(record[3]), FloatOrZero(record[4]), FloatOrZero(record[5]), FloatOrZero(record[6]), IntOrZero(record[8])*100
         try:
-            db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date < '%s' ORDER BY date DESC LIMIT 1"%(table[product],product,date))
-            rows = db_cursor.fetchall()
-            if len(rows) < 1:
-                current_dividend_factor = 1.0
-            else:
-                current_dividend_factor = float(rows[0]['forward_adjusted_close'])/float(rows[0]['close'])
-            forward_adjusted_close = close*current_dividend_factor
-            forward_adjusted_open = open*current_dividend_factor
+            #db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date < '%s' ORDER BY date DESC LIMIT 1"%(table[product],product,date))
+            #rows = db_cursor.fetchall()
+            #if len(rows) < 1:
+            #    current_dividend_factor = 1.0
+            #else:
+            #    current_dividend_factor = float(rows[0]['forward_adjusted_close'])/float(rows[0]['close'])
+            #forward_adjusted_close = close*current_dividend_factor
+            #forward_adjusted_open = open*current_dividend_factor
             if error_correction:
-                db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date > '%s' ORDER BY date LIMIT 1"%(table[product],product,date))
-                rows = db_cursor.fetchall()
-                if len(rows) < 1:
-                    current_dividend_factor = 1.0
-                else:
-                    current_dividend_factor = float(rows[0]['backward_adjusted_close'])/float(rows[0]['close'])
-                backward_adjusted_close = close*current_dividend_factor
-                backward_adjusted_open = open*current_dividend_factor
-                query = "UPDATE %s SET open='%f', high='%f', low='%f', close ='%f', backward_adjusted_close='%f', forward_adjusted_close='%f', backward_adjusted_open='%f', forward_adjusted_open='%f', volume='%f' WHERE date='%s' and product='%s'" \
-                        % (table[product], open, high, low, close,  backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, date, product)
+               # db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date > '%s' ORDER BY date LIMIT 1"%(table[product],product,date))
+                #rows = db_cursor.fetchall()
+                #if len(rows) < 1:
+                #    current_dividend_factor = 1.0
+                #else:
+                #    current_dividend_factor = float(rows[0]['backward_adjusted_close'])/float(rows[0]['close'])
+                #backward_adjusted_close = close*current_dividend_factor
+                #backward_adjusted_open = open*current_dividend_factor
+                query = "UPDATE %s SET open='%f', high='%f', low='%f', close ='%f', volume='%f' WHERE date='%s' and product='%s'" \
+                        % (table[product], open, high, low, close,  volume, date, product)
             else:
-                query = "INSERT INTO %s ( date, product, open, high,low, close, backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, dividend ) VALUES('%s','%s','%f','%f','%f','%f','%f','%f','%f','%f','%d','0.0')" % ( table[product], date, product, open, high, low, close, close, forward_adjusted_close, open, forward_adjusted_open, volume)
+                query = "INSERT INTO %s ( date, product, open, high,low, close, backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, dividend ) VALUES('%s','%s','%f','%f','%f','%f','%f','%f','%f','%f','%d','0.0')" % ( table[product], date, product, open, high, low, close, close, close, open, open, volume)
             print query
             db_cursor.execute(query)
             db.commit()
@@ -292,9 +292,9 @@ def dividend_quote(date, record):
 
     # Peform dividend adjust on entire dataset just to be sure we are doing this corectly 
     # because CSI might change date of dividend distribution during error correction
-    dividend_adjust(date, product, record)
+    #dividend_adjust(date, product, record)
 
-def dividend_adjust(date, product, record):
+def dividend_adjust(date, product):
     try:
         if table[product] == 'funds':
             query = "UPDATE funds SET backward_adjusted_close=close, forward_adjusted_close=close WHERE product='%s'"%(product)
@@ -305,21 +305,18 @@ def dividend_adjust(date, product, record):
             print query
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
-            if len(rows) < 1:
-                print('Price quote did not preceed dividend quote')
-            else:
-                for row in rows:
-                    ex_date = row['date']
-                    ex_close = float(row['close'])
-                    dividend_factor = 1 + (float(row['dividend'])+float(row['capital_gain']))/ex_close
-                    query = "UPDATE %s SET backward_adjusted_close = backward_adjusted_close/%f WHERE product='%s' AND date < '%s'" % ( table[product], dividend_factor, product, ex_date)
-                    print query
-                    db_cursor.execute(query)
-                    db.commit()
-                    query = "UPDATE %s SET forward_adjusted_close = forward_adjusted_close*%f WHERE product='%s' AND date >= '%s'" % ( table[product], dividend_factor, product, ex_date)
-                    print query
-                    db_cursor.execute(query)
-                    db.commit()
+            for row in rows:
+                ex_date = row['date']
+                ex_close = float(row['close'])
+                dividend_factor = 1 + (float(row['dividend'])+float(row['capital_gain']))/ex_close
+                query = "UPDATE %s SET backward_adjusted_close = backward_adjusted_close/%f WHERE product='%s' AND date < '%s'" % ( table[product], dividend_factor, product, ex_date)
+                print query
+                db_cursor.execute(query)
+                db.commit()
+                query = "UPDATE %s SET forward_adjusted_close = forward_adjusted_close*%f WHERE product='%s' AND date >= '%s'" % ( table[product], dividend_factor, product, ex_date)
+                print query
+                db_cursor.execute(query)
+                db.commit()
         elif table[product] == 'etfs':
             query = "UPDATE etfs SET backward_adjusted_close=close, forward_adjusted_close=close, backward_adjusted_open=open, forward_adjusted_open=open WHERE product='%s'"%(product)
             print query
@@ -330,25 +327,22 @@ def dividend_adjust(date, product, record):
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
             #print rows  
-            if len(rows) < 1:
-                print('Price quote did not preceed dividend quote')
-            else:
-                for row in rows:
-                    ex_date = row['date']
-                    ex_close = float(row['close'])
-                    dividend_factor = 1 + float(row['dividend'])/ex_close
-                    query = "UPDATE %s SET backward_adjusted_close = backward_adjusted_close/%f,backward_adjusted_open = backward_adjusted_open/%f WHERE product='%s' AND date < '%s'" % ( table[product], dividend_factor, dividend_factor, product, ex_date)
-                    print query
-                    db_cursor.execute(query)
-                    db.commit()
-                    query = "UPDATE %s SET forward_adjusted_close = forward_adjusted_close*%f,forward_adjusted_open = forward_adjusted_open*%f WHERE product='%s' AND date >= '%s'" % ( table[product], dividend_factor, dividend_factor, product, ex_date)
-                    print query
-                    db_cursor.execute(query)
-                    db.commit()
+            for row in rows:
+                ex_date = row['date']
+                ex_close = float(row['close'])
+                dividend_factor = 1 + float(row['dividend'])/ex_close
+                query = "UPDATE %s SET backward_adjusted_close = backward_adjusted_close/%f,backward_adjusted_open = backward_adjusted_open/%f WHERE product='%s' AND date < '%s'" % ( table[product], dividend_factor, dividend_factor, product, ex_date)
+                print query
+                db_cursor.execute(query)
+                db.commit()
+                query = "UPDATE %s SET forward_adjusted_close = forward_adjusted_close*%f,forward_adjusted_open = forward_adjusted_open*%f WHERE product='%s' AND date >= '%s'" % ( table[product], dividend_factor, dividend_factor, product, ex_date)
+                print query
+                db_cursor.execute(query)
+                db.commit()
     except:
         db.rollback()
-        print('EXCEPTION in dividend adjust %s'%record)
-        #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in dividend adjust %s'%record)
+        print('EXCEPTION in dividend adjust %s')
+        #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in dividend adjust %s')
 
 
 def split_quote(date, record):
@@ -521,40 +515,30 @@ def update_last_trading_day(k):
         if _last_trading_date != _date:
             continue
         _contract_numbers = futures_contract_list.get(_base_symbol,[1,2]) # TODO should have mapping for this
-        for _contract_number in _contract_numbers:
-            generic_ticker = _base_symbol + '_' + str( _contract_number )
-            try:
-                query = "SELECT * FROM %s WHERE product='%s' AND date <= '%s' ORDER BY date DESC LIMIT 1"%(table[generic_ticker],generic_ticker,_date)
-                print query
-                db_cursor.execute(query)
-                rows = db_cursor.fetchall()
-                if len(rows) < 1:
-                    print 'Unhandled case %s in update_last_trading_day'%(generic_ticker)  # ADD MAIL
-                    #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Unhandled case %s in update_last_trading_day'%(generic_ticker))
-                else:
-                    _new_last_trading_date= rows[0]['date']
-                    delta = _date - _new_last_trading_date
-                    if delta.days >= 7:
-                        print 'Seems to be a problem in update_last_trading_day %s'%generic_ticker #ADD MAIL
-                        #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Seems to be a problem in update_last_trading_day %s'%(generic_ticker))
-                    else:
-                        min_last_trading_date = min(min_last_trading_date, _new_last_trading_date)
-            except:
-                print 'EXCEPTION in update_last_trading_day %s on %s'%(generic_ticker, _date)
-                #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
         try:
-            query = "SELECT * FROM %s WHERE product like '%s\_%%' AND date = '%s'"%(table[generic_ticker],_base_symbol,min_last_trading_date)
+            query = "SELECT date, count(*) AS c FROM %s WHERE product LIKE '%s\_%%' GROUP BY date HAVING c=%d ORDER BY date DESC LIMIT 1"%(table[_base_symbol+'_1'], _base_symbol, len(_contract_numbers))
             print query
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
-            if len(rows) < len(_contract_numbers):
+            if len(rows) < 1:
                 print "EXCEPTION in update_last_trading_day : rows < nontract_numbers"
                 #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day : rows < nontract_numbers')
             else:
-                query = "UPDATE %s SET is_last_trading_day=1.0 WHERE product like '%s\_%%' AND date='%s'"%(table[generic_ticker],_base_symbol,min_last_trading_date)
-                print query
-                db_cursor.execute(query)
-                db.commit()
+                min_last_trading_date = rows[0]['date']
+                delta = _date - min_last_trading_date
+                if delta.days >= 7:
+                    print 'Seems to be a problem in update_last_trading_day %s %s'%(_base_symbol, _date) #ADD MAIL
+                    #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Seems to be a problem in update_last_trading_day %s'%(generic_ticker))
+                    continue
+        except:
+            print 'EXCEPTION in update_last_trading_day %s on %s'%(generic_ticker, _date)
+            #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
+            continue
+        try:
+            query = "UPDATE %s SET is_last_trading_day=1.0 WHERE product like '%s\_%%' AND date='%s'"%(table[_base_symbol+'_1'], _base_symbol, min_last_trading_date)
+            print query
+            db_cursor.execute(query)
+            db.commit()
         except:
             print "EXCEPTION in update_last_trading_day Tried to update last trading day after finding date but couldn't"
             db.rollback()
@@ -585,6 +569,10 @@ def __main__() :
         daily_update(filename, products)
     if file_type == 'futures':
         update_last_trading_day(delay)
+    elif not (file_type == 'indices' or file_type=='f-indices'):
+        for product in products:
+            _date = date.today() + timedelta(days=-delay)
+            dividend_adjust(_date, product)
     server.quit()
 
 if __name__ == '__main__':
