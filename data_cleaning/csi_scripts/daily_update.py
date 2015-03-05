@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import sys
 import os
 import imp
@@ -525,7 +524,7 @@ def update_last_trading_day(k):
                 print 'EXCEPTION in update_last_trading_day %s on %s'%(generic_ticker, _date)
                 #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
         try:
-            query = "SELECT * FROM %s WHERE product like '%s_%' AND date = '%s'"%(table[generic_ticker],generic_ticker,min_last_trading_date)
+            query = "SELECT * FROM %s WHERE product like '%s\_%%' AND date = '%s'"%(table[generic_ticker],_base_symbol,min_last_trading_date)
             print query
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
@@ -533,11 +532,12 @@ def update_last_trading_day(k):
                 print "EXCEPTION in update_last_trading_day : rows < nontract_numbers"
                 #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day : rows < nontract_numbers')
             else:
-                query = "UPDATE %s SET is_last_trading_day=1.0 WHERE product like '%s_%' AND date='%s'"%(table[generic_ticker],generic_ticker,min_last_trading_date)
+                query = "UPDATE %s SET is_last_trading_day=1.0 WHERE product like '%s\_%%' AND date='%s'"%(table[generic_ticker],_base_symbol,min_last_trading_date)
                 print query
                 db_cursor.execute(query)
                 db.commit()
         except:
+            print "EXCEPTION in update_last_trading_day Tried to update last trading day after finding date but couldn't"
             db.rollback()
             #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
 
