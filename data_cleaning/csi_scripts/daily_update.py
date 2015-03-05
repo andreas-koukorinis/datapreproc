@@ -231,7 +231,7 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
                 print('EXCEPTION in add_future_quote block 3 %s %s'% (record, date))
                 #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 3 %s %s'% (record, date))
         else:
-            print "Contract not being traded"
+            print "Contract not being traded %s %d"%(_base_symbol, contract_number)   
         if contract_number in [0]+futures_contract_list.get(_base_symbol,[1,2]):
             try:
                 if not error_correction:
