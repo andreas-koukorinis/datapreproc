@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#import traceback
 import sys
 import os
 import imp
@@ -11,6 +12,7 @@ from datetime import datetime,timedelta,date
 #from exchange_symbol_manager import ExchangeSymbolManager 
 
 futures_contract_list = {'VX':[1,2,3,4,5,6,7]}
+indices = ['VIX']
 table = {}
 product_type = {}
 server = None
@@ -110,36 +112,53 @@ def get_file(filename,k):
 def add_stock_quote(date, record, error_correction):
     product, open, high, low, close, volume = record[1], FloatOrZero(record[3]), FloatOrZero(record[4]), FloatOrZero(record[5]), FloatOrZero(record[6]), IntOrZero(record[8])*100
     #print record
-    try:
-        db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date < '%s' ORDER BY date DESC LIMIT 1"%(table[product],product,date))
-        rows = db_cursor.fetchall()
-        if len(rows) < 1:
-            current_dividend_factor = 1.0
-        else:
-            current_dividend_factor = float(rows[0]['forward_adjusted_close'])/float(rows[0]['close'])
-        forward_adjusted_close = close*current_dividend_factor
-        forward_adjusted_open = open*current_dividend_factor
-        if error_correction:
-            db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date > '%s' ORDER BY date LIMIT 1"%(table[product],product,date))
+    if product not in indices:
+        product, open, high, low, close, volume = record[1], FloatOrZero(record[3]), FloatOrZero(record[4]), FloatOrZero(record[5]), FloatOrZero(record[6]), IntOrZero(record[8])*100
+        try:
+            db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date < '%s' ORDER BY date DESC LIMIT 1"%(table[product],product,date))
             rows = db_cursor.fetchall()
             if len(rows) < 1:
                 current_dividend_factor = 1.0
             else:
-                current_dividend_factor = float(rows[0]['backward_adjusted_close'])/float(rows[0]['close'])
-            backward_adjusted_close = close*current_dividend_factor
-            backward_adjusted_open = open*current_dividend_factor
-            query = "UPDATE %s SET open='%f', high='%f', low='%f', close ='%f', backward_adjusted_close='%f', forward_adjusted_close='%f', backward_adjusted_open='%f', forward_adjusted_open='%f', volume='%f' WHERE date='%s' and product='%s'" \
-                    % (table[product], open, high, low, close,  backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, date, product)
-        else:
-            query = "INSERT INTO %s ( date, product, open, high,low, close, backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, dividend ) VALUES('%s','%s','%f','%f','%f','%f','%f','%f','%f','%f','%d','0.0')" % ( table[product], date, product, open, high, low, close, close, forward_adjusted_close, open, forward_adjusted_open, volume)
-        print query
-        db_cursor.execute(query)
-        db.commit()
-    except:
-        db.rollback()
-        print('EXCEPTION in add_stock_quote %s'%record)
-        #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_stock_quote %s'%record)
-    
+                current_dividend_factor = float(rows[0]['forward_adjusted_close'])/float(rows[0]['close'])
+            forward_adjusted_close = close*current_dividend_factor
+            forward_adjusted_open = open*current_dividend_factor
+            if error_correction:
+                db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date > '%s' ORDER BY date LIMIT 1"%(table[product],product,date))
+                rows = db_cursor.fetchall()
+                if len(rows) < 1:
+                    current_dividend_factor = 1.0
+                else:
+                    current_dividend_factor = float(rows[0]['backward_adjusted_close'])/float(rows[0]['close'])
+                backward_adjusted_close = close*current_dividend_factor
+                backward_adjusted_open = open*current_dividend_factor
+                query = "UPDATE %s SET open='%f', high='%f', low='%f', close ='%f', backward_adjusted_close='%f', forward_adjusted_close='%f', backward_adjusted_open='%f', forward_adjusted_open='%f', volume='%f' WHERE date='%s' and product='%s'" \
+                        % (table[product], open, high, low, close,  backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, date, product)
+            else:
+                query = "INSERT INTO %s ( date, product, open, high,low, close, backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, dividend ) VALUES('%s','%s','%f','%f','%f','%f','%f','%f','%f','%f','%d','0.0')" % ( table[product], date, product, open, high, low, close, close, forward_adjusted_close, open, forward_adjusted_open, volume)
+            print query
+            db_cursor.execute(query)
+            db.commit()
+        except:
+            db.rollback()
+            print('EXCEPTION in add_stock_quote %s'%record)
+            #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_stock_quote %s'%record)
+    else:
+        product, open, high, low, close = record[1], FloatOrZero(record[3]), FloatOrZero(record[4]), FloatOrZero(record[5]), FloatOrZero(record[6])
+        try:
+            if error_correction:
+                query = "UPDATE %s SET open='%f', high='%f', low='%f', close ='%f' WHERE date='%s' and product='%s'"%(table[product], open, high, low, close, date, product)
+            else:
+                query = "INSERT INTO %s (date, product, open, high, low, close) VALUES('%s','%s','%f','%f','%f','%f')" % (table[product], date, product, open, high, low, close)
+            print query
+            db_cursor.execute(query)
+            db.commit()
+        except:
+            db.rollback()
+            print('EXCEPTION in add_stock_quote(index) %s'%record)
+            #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_stock_quote(index) %s'%record)
+
+
 def add_fund_quote(date, record, error_correction):
     product, csi_num, close, asking_price = record[1], IntOrZero(record[2]), FloatOrZero(record[3]), FloatOrZero(record[4])    
     try:
