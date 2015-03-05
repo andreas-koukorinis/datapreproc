@@ -212,7 +212,6 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
         specific_ticker = _base_symbol + get_exchange_specific( YYMM )
         generic_ticker = _base_symbol + '_' + str( contract_number )
         # get dict for VX and number of contracts
-        
         if contract_number in futures_contract_list.get(_base_symbol,[1,2]): 
             try:
                 if error_correction:
@@ -231,6 +230,8 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
                 db.rollback()
                 print('EXCEPTION in add_future_quote block 3 %s %s'% (record, date))
                 #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 3 %s %s'% (record, date))
+        else:
+            print "Contract not being traded"
         if contract_number in [0]+futures_contract_list.get(_base_symbol,[1,2]):
             try:
                 if not error_correction:
