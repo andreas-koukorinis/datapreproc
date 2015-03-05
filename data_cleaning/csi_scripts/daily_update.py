@@ -497,7 +497,7 @@ def update_last_trading_day(k):
     _date = date.today() + timedelta(days=-k)
     for product in mappings.keys():
         _base_symbol = mappings[product]
-        min_last_trading_date = datetime(2050,12,31)
+        min_last_trading_date = datetime(2050,12,31).date()
         _last_trading_date = exchange_symbol_manager.get_last_trading_date(_date, _base_symbol + '_1')
         if _last_trading_date != _date:
             continue
