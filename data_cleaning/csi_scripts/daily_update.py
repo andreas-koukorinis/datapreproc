@@ -303,14 +303,14 @@ def dividend_quote(date, record):
     # because CSI might change date of dividend distribution during error correction
     #dividend_adjust(date, product, record)
 
-def dividend_adjust(date, product):
+def dividend_adjust(product):
     try:
         if table[product] == 'funds':
             query = "UPDATE funds SET backward_adjusted_close=close, forward_adjusted_close=close WHERE product='%s'"%(product)
             print query
             db_cursor.execute(query)
             db.commit()
-            query = "SELECT * FROM funds WHERE product='%s' AND (dividend > 0 OR capital_gain > 0)"%(product)
+            query = "SELECT * FROM funds WHERE product='%s' AND (dividend > 0 OR capital_gain > 0) ORDER BY date"%(product)
             print query
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
@@ -331,7 +331,7 @@ def dividend_adjust(date, product):
             print query
             db_cursor.execute(query)
             db.commit()
-            query = "SELECT * FROM etfs WHERE product='%s' AND dividend > 0" %(product)
+            query = "SELECT * FROM etfs WHERE product='%s' AND dividend > 0 ORDER BY date" %(product)
             print query
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
@@ -590,8 +590,7 @@ def __main__() :
         update_last_trading_day(delay)
     elif not (file_type == 'indices' or file_type=='f-indices'):
         for product in dividend_adjust_products:
-            _date = date.today() + timedelta(days=-delay)
-            dividend_adjust(_date, product)
+            dividend_adjust(product)
     server.quit()
 
 if __name__ == '__main__':
