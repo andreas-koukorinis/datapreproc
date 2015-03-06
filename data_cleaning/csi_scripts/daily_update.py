@@ -116,6 +116,16 @@ def add_stock_quote(date, record, error_correction):
     #print record
     if product not in indices:
         product, open, high, low, close, volume = record[1], FloatOrZero(record[3]), FloatOrZero(record[4]), FloatOrZero(record[5]), FloatOrZero(record[6]), IntOrZero(record[8])*100
+        if error_correction:
+        try:
+            db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date = '%s'"%(table[product],product,date))
+            rows = db_cursor.fetchall()
+            if float(rows[0]['dividend']) > 0.0:
+                dividend_adjust_products.add(product)
+        except Exception, err:
+            print traceback.format_exc():
+            print('EXCEPTION in add_stock_quote in error corection with dividend: %s'%record)
+            #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_stock_quote in error corection with dividend: %s'%record) 
         try:
             db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date < '%s' ORDER BY date DESC LIMIT 1"%(table[product],product,date))
             rows = db_cursor.fetchall()
@@ -165,6 +175,16 @@ def add_stock_quote(date, record, error_correction):
 
 def add_fund_quote(date, record, error_correction):
     product, csi_num, close, asking_price = record[1], IntOrZero(record[2]), FloatOrZero(record[3]), FloatOrZero(record[4])    
+    if error_correction:
+        try:
+            db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date = '%s'"%(table[product],product,date))
+            rows = db_cursor.fetchall()
+            if float(rows[0]['dividend']) > 0.0 or float(rows[0]['capital_gain']) > 0.0:
+                dividend_adjust_products.add(product)
+        except Exception, err:
+            print traceback.format_exc():
+            print('EXCEPTION in add_fund_quote in error corection with dividend: %s'%record)
+            #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_fund_quote in error corection with dividend: %s'%record) 
     try:
         db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date < '%s' ORDER BY date DESC LIMIT 1"%(table[product],product,date))
         rows = db_cursor.fetchall()
