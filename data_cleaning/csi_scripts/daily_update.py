@@ -243,7 +243,7 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
                         query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f', contract_volume='%d', contract_oi='%d' WHERE date='%s' AND specific_ticker='%s'" % \
                         (table[generic_ticker], open1, high, low, close, future_someday_volume, future_someday_oi, date, specific_ticker)
                     else:
-                        query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f' WHERE date='%s' AND specific_ticker='%s'" % (table[generic_ticker], open1, high, low, close, specific_ticker)
+                        query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f' WHERE date='%s' AND specific_ticker='%s'" % (table[generic_ticker], open1, high, low, close, date, specific_ticker)
                 else:
                     query = "INSERT INTO %s ( date, product, specific_ticker, open, high, low, close, is_last_trading_day, contract_volume, contract_oi, total_volume, total_oi ) VALUES('%s','%s','%s','%f','%f','%f','%f','0.0','0','0','0','0')" % ( table[generic_ticker], date, generic_ticker, specific_ticker, open1, high, low, close)
                 print query
