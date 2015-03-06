@@ -530,13 +530,15 @@ def update_last_trading_day(k):
             continue
         _contract_numbers = futures_contract_list.get(_base_symbol,[1,2]) # TODO should have mapping for this
         try:
-            query = "SELECT date, count(*) AS c FROM %s WHERE product LIKE '%s\_%%' GROUP BY date HAVING c=%d ORDER BY date DESC LIMIT 1"%(table[_base_symbol+'_1'], _base_symbol, len(_contract_numbers))
+            #query = "SELECT date, count(*) AS c FROM %s WHERE product LIKE '%s\_%%' GROUP BY date HAVING c=%d ORDER BY date DESC LIMIT 1"%(table[_base_symbol+'_1'], _base_symbol, len(_contract_numbers))
+            query = "SELECT a.date, count(*) as count from %s as a, (SELECT date from %s where product LIKE '%s\_%%' ORDER BY date DESC LIMIT 1) as b WHERE a.date = b.date AND a.product LIKE '%s\_%%';"
             print query
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
-            if len(rows) < 1:
+            if rows[0]['count'] < len(contract_numbers):
                 print "EXCEPTION in update_last_trading_day : rows < nontract_numbers"
                 #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day : rows < nontract_numbers')
+                continue
             else:
                 min_last_trading_date = rows[0]['date']
                 delta = _date - min_last_trading_date
