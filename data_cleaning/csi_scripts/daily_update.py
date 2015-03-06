@@ -7,8 +7,6 @@ import imp
 import gzip
 import smtplib
 import MySQLdb
-import subprocess
-import pandas as pd
 from datetime import datetime,timedelta,date
 #from exchange_symbol_manager import ExchangeSymbolManager 
 
@@ -29,14 +27,16 @@ exchange_symbol_mamager = None
 def FloatOrZero(value):
     try:
         return float(value)
-    except:
+    except Exception, err:
+        print traceback.format_exc()
         print 'ALERT! Empty string being converted to float'
         return 0.0
 
 def IntOrZero(value):
     try:
         return int(value)
-    except:
+    except Exception, err:
+        print traceback.format_exc()
         print 'ALERT! Empty string being converted to int'
         return 0
 
@@ -117,31 +117,32 @@ def add_stock_quote(date, record, error_correction):
     if product not in indices:
         product, open, high, low, close, volume = record[1], FloatOrZero(record[3]), FloatOrZero(record[4]), FloatOrZero(record[5]), FloatOrZero(record[6]), IntOrZero(record[8])*100
         try:
-            #db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date < '%s' ORDER BY date DESC LIMIT 1"%(table[product],product,date))
-            #rows = db_cursor.fetchall()
-            #if len(rows) < 1:
-            #    current_dividend_factor = 1.0
-            #else:
-            #    current_dividend_factor = float(rows[0]['forward_adjusted_close'])/float(rows[0]['close'])
-            #forward_adjusted_close = close*current_dividend_factor
-            #forward_adjusted_open = open*current_dividend_factor
-            if error_correction:
-               # db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date > '%s' ORDER BY date LIMIT 1"%(table[product],product,date))
-                #rows = db_cursor.fetchall()
-                #if len(rows) < 1:
-                #    current_dividend_factor = 1.0
-                #else:
-                #    current_dividend_factor = float(rows[0]['backward_adjusted_close'])/float(rows[0]['close'])
-                #backward_adjusted_close = close*current_dividend_factor
-                #backward_adjusted_open = open*current_dividend_factor
-                query = "UPDATE %s SET open='%f', high='%f', low='%f', close ='%f', volume='%f' WHERE date='%s' and product='%s'" \
-                        % (table[product], open, high, low, close,  volume, date, product)
+            db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date < '%s' ORDER BY date DESC LIMIT 1"%(table[product],product,date))
+            rows = db_cursor.fetchall()
+            if len(rows) < 1:
+                current_dividend_factor = 1.0
             else:
-                query = "INSERT INTO %s ( date, product, open, high,low, close, backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, dividend ) VALUES('%s','%s','%f','%f','%f','%f','%f','%f','%f','%f','%d','0.0')" % ( table[product], date, product, open, high, low, close, close, close, open, open, volume)
+                current_dividend_factor = float(rows[0]['forward_adjusted_close'])/float(rows[0]['close'])
+            forward_adjusted_close = close*current_dividend_factor
+            forward_adjusted_open = open*current_dividend_factor
+            if error_correction:
+                db_cursor.execute("SELECT * FROM %s WHERE product='%s' AND date > '%s' ORDER BY date LIMIT 1"%(table[product],product,date))
+                rows = db_cursor.fetchall()
+                if len(rows) < 1:
+                    current_dividend_factor = 1.0
+                else:
+                    current_dividend_factor = float(rows[0]['backward_adjusted_close'])/float(rows[0]['close'])
+                backward_adjusted_close = close*current_dividend_factor
+                backward_adjusted_open = open*current_dividend_factor
+                query = "UPDATE %s SET open='%f', high='%f', low='%f', close ='%f', backward_adjusted_close='%f', forward_adjusted_close='%f', backward_adjusted_open='%f', forward_adjusted_open='%f', volume='%d' WHERE date='%s' and product='%s'" \
+                        % (table[product], open, high, low, close, backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, date, product)
+            else:
+                query = "INSERT INTO %s ( date, product, open, high,low, close, backward_adjusted_close, forward_adjusted_close, backward_adjusted_open, forward_adjusted_open, volume, dividend ) VALUES('%s','%s','%f','%f','%f','%f','%f','%f','%f','%f','%d','0.0')" % ( table[product], date, product, open, high, low, close, close, forward_adjusted_close, open, forward_adjusted_open, volume)
             print query
             db_cursor.execute(query)
             db.commit()
-        except:
+        except Exception, err:
+            print traceback.format_exc()
             db.rollback()
             print('EXCEPTION in add_stock_quote %s'%record)
             #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_stock_quote %s'%record)
@@ -155,7 +156,8 @@ def add_stock_quote(date, record, error_correction):
             print query
             db_cursor.execute(query)
             db.commit()
-        except:
+        except Exception, err:
+            print traceback.format_exc()
             db.rollback()
             print('EXCEPTION in add_stock_quote(index) %s'%record)
             #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_stock_quote(index) %s'%record)
@@ -189,7 +191,8 @@ def add_fund_quote(date, record, error_correction):
         print query
         db_cursor.execute(query)
         db.commit()
-    except:
+    except Exception, err:
+        print traceback.format_exc()
         db.rollback()
         print('EXCEPTION in add_fund_quote %s'%record)
         #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_fund_quote %s'%record)
@@ -212,7 +215,8 @@ def add_forex_quote(date, forex_tuple , record, error_correction):
         print query
         db_cursor.execute(query)
         db.commit()
-    except:
+    except Exception, err:
+        print traceback.format_exc()
         db.rollback()
         print('EXCEPTION in add_forex_quote %s'%record)
         #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_forex_quote %s'%record)
@@ -245,7 +249,8 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
                 print query
                 db_cursor.execute(query)
                 db.commit()
-            except:
+            except Exception, err:
+                print traceback.format_exc()
                 db.rollback()
                 print('EXCEPTION in add_future_quote block 3 %s %s'% (record, date))
                 #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 3 %s %s'% (record, date))
@@ -262,11 +267,13 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
                     print query
                     db_cursor.execute(query)
                     db.commit()
-            except:
+            except Exception, err:
+                print traceback.format_exc()
                 db.rollback()
                 #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 2 %s %s'% (record, date))
                 print('EXCEPTION in add_future_quote block 2 %s %s'% (record, date))
-    except:
+    except Exception, err:
+        print traceback.format_exc()
         print('EXCEPTION in add_future_quote block 1  %s %s'% (record, date))
         #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 1 %s %s'% (record, date))
 
@@ -286,7 +293,8 @@ def dividend_quote(date, record):
             print query
             db_cursor.execute(query)
         db.commit()
-    except:
+    except Exception, err:
+        print traceback.format_exc()
         db.rollback()
         print('EXCEPTION in dividend_quote %s'%record)
         #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in dividend_quote %s'%record)
@@ -340,7 +348,8 @@ def dividend_adjust(date, product):
                 print query
                 db_cursor.execute(query)
                 db.commit()
-    except:
+    except Exception, err:
+        print traceback.format_exc()
         db.rollback()
         print('EXCEPTION in dividend adjust %s')
         #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in dividend adjust %s')
@@ -357,7 +366,8 @@ def split_quote(date, record):
         print query
         db_cursor.execute(query)
         db.commit()
-    except:
+    except Exception, err:
+        print traceback.format_exc()
         db.rollback()
         print('EXCEPTION in split_quote %s'%record)
         #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in split_quote %s'%record)
@@ -372,7 +382,8 @@ def delete_quote(date, record):
         query = "DELETE FROM %s WHERE date='%s' AND product='%s'"
         db_cursor.execute(query)
         db.commit()
-    except:
+    except Exception, err:
+        print traceback.format_exc()
         db.rollback()
         print('EXCEPTION in delete_quote %s'%record)
         #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in delete_quote %s'%record)
@@ -418,14 +429,16 @@ def daily_update(filename, products):
                 #print record
                 try:
                     future_volume_date = datetime.strptime(record[7], '%Y%m%d').strftime('%Y-%m-%d')
-                except:
+                except Exception, err:
+                    print traceback.format_exc()
                     future_volume_date = '1500-01-01'
             else:
                 future_volume_date = volume_date
             if len(record) > 8:
                 try:
                     future_oi_date = datetime.strptime(record[8], '%Y%m%d').strftime('%Y-%m-%d')
-                except:
+                except Exception, err:
+                    print traceback.format_exc()
                     future_oi_date = '1500-01-01'
             else:
                 future_oi_date = oi_date
@@ -531,7 +544,8 @@ def update_last_trading_day(k):
                     print 'Seems to be a problem in update_last_trading_day %s %s'%(_base_symbol, _date) #ADD MAIL
                     #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Seems to be a problem in update_last_trading_day %s'%(generic_ticker))
                     continue
-        except:
+        except Exception, err:
+            print traceback.format_exc()
             print 'EXCEPTION in update_last_trading_day %s on %s'%(generic_ticker, _date)
             #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
             continue
@@ -540,7 +554,8 @@ def update_last_trading_day(k):
             print query
             db_cursor.execute(query)
             db.commit()
-        except:
+        except Exception, err:
+            print traceback.format_exc()
             print "EXCEPTION in update_last_trading_day Tried to update last trading day after finding date but couldn't"
             db.rollback()
             #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
