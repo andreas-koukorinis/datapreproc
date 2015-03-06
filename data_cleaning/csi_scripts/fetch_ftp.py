@@ -15,15 +15,16 @@ try:
     ftp_files = ftp.nlst()
 except:
     print "Setting passive mode as False and trying"
+    ftp.set_pasv(False)
+    try:
+        ftp_files = ftp.nlst()
+    except:
+        print "Cannot connect to CSI Data FTP"
+#       server.sendmail("debidatta.dwibedi@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Cannot connect to CSI FTP Server.')     
+        sys.exit(0)
 
-ftp.set_pasv(False)\
-#try:
-#    ftp_files = ftp.nlst()
-#except:
-#    print "Cannot connect to CSI Data FTP"
-#    server.sendmail("debidatta.dwibedi@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Cannot connect to CSI FTP Server.')     
-ftp_files = ftp.nlst()
-print ftp_files
+#ftp_files = ftp.nlst()
+#print ftp_files
 
 if len(sys.argv) <= 1:
     #List the files in the current directory
