@@ -7,7 +7,7 @@ import os
 from subprocess import call
 
 server = smtplib.SMTP("localhost")
-
+data_path = '/apps/data/csi/'
 #Open ftp connection
 ftp = ftplib.FTP('ftp.csidata.com', 'circulumvite','sv13tjmd')
 
@@ -31,7 +31,7 @@ if len(sys.argv) <= 1:
     ftp_files = ftp.nlst()
     #print 'FTP FILES:',ftp_files
 
-    our_files = [f for f in os.listdir('/apps/data/csi/') if os.path.isfile(f)]
+    our_files = [f for f in os.listdir(data_path) if os.path.isfile(f)]
 
     #print ftp_files,our_files
     #Get the files not present in out directory
