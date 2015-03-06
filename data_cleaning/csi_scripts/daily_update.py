@@ -531,11 +531,12 @@ def update_last_trading_day(k):
         _contract_numbers = futures_contract_list.get(_base_symbol,[1,2]) # TODO should have mapping for this
         try:
             #query = "SELECT date, count(*) AS c FROM %s WHERE product LIKE '%s\_%%' GROUP BY date HAVING c=%d ORDER BY date DESC LIMIT 1"%(table[_base_symbol+'_1'], _base_symbol, len(_contract_numbers))
-            query = "SELECT a.date, count(*) as count from %s as a, (SELECT date from %s where product LIKE '%s\_%%' ORDER BY date DESC LIMIT 1) as b WHERE a.date = b.date AND a.product LIKE '%s\_%%';"
+            query = "SELECT a.date, count(*) as count from %s as a, (SELECT date from %s where product LIKE '%s\_%%' ORDER BY date DESC LIMIT 1) as b WHERE a.date = b.date AND a.product LIKE '%s\_%%';"%\
+                    (table[_base_symbol+'_1'],table[_base_symbol+'_1'], _base_symbol, _base_symbol) 
             print query
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
-            if rows[0]['count'] < len(contract_numbers):
+            if rows[0]['count'] < len(_contract_numbers):
                 print "EXCEPTION in update_last_trading_day : rows < nontract_numbers"
                 #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day : rows < nontract_numbers')
                 continue
@@ -548,7 +549,7 @@ def update_last_trading_day(k):
                     continue
         except Exception, err:
             print traceback.format_exc()
-            print 'EXCEPTION in update_last_trading_day %s on %s'%(generic_ticker, _date)
+            print 'EXCEPTION in update_last_trading_day %s on %s'%(_base_symbol, _date)
             #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
             continue
         try:

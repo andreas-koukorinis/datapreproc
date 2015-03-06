@@ -5,10 +5,10 @@ COUNTER=125
 >log
 while [  $COUNTER -gt 0 ]; do
     echo The counter is $COUNTER
-#    python daily_update.py us-stocks $COUNTER VTI VTV VBR VEA VWO VXUS VT IEMG BND MUB LQD VWOB SHV VNQ BNDX TIP VTIP VIG>> log
-#    python daily_update.py funds $COUNTER AQRIX AQMIX QGMIX SRPFX ABRZX VBLTX VTSMX >> log
+    python daily_update.py us-stocks $COUNTER VTI VTV VBR VEA VWO VXUS VT IEMG BND MUB LQD VWOB SHV VNQ BNDX TIP VTIP VIG>> log
+    python daily_update.py funds $COUNTER AQRIX AQMIX QGMIX SRPFX ABRZX VBLTX VTSMX >> log
     python daily_update.py futures $COUNTER TU FV TY US NK NIY ES EMD NQ YM AD BP CD CU1 JY MP NE2 SF GC SI HG PL PA LH ZW ZC ZS ZM ZL EBS EBM EBL SXE FDX SMI SXF CGB FFI FLG AEX KC CT CC SB JTI JGB JNI SIN SSG HCE HSI ALS YAP MFX KOS VX JPYUSD CADUSD GBPUSD EURUSD AUDUSD NZDUSD CHFUSD SEKUSD NOKUSD TRYUSD MXNUSD ZARUSD ILSUSD SGDUSD HKDUSD TWDUSD >> log
-#    python daily_update.py indices $COUNTER VIX >> log
+    python daily_update.py indices $COUNTER VIX >> log
     #echo "python daily_update.py futures $COUNTER TU"
     let COUNTER=COUNTER-1 
 done
