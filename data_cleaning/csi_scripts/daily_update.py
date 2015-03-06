@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-#import traceback
+import traceback
 import sys
 import os
+from sets import Set
 import imp
 import gzip
 import smtplib
@@ -11,6 +12,7 @@ import pandas as pd
 from datetime import datetime,timedelta,date
 #from exchange_symbol_manager import ExchangeSymbolManager 
 
+dividend_adjust_products = Set()
 futures_contract_list = {'VX':[1,2,3,4,5,6,7]}
 indices = ['VIX']
 table = {}
@@ -223,7 +225,7 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
             _base_symbol = mappings[product]
         else:
             _base_symbol = product
-        is_last_trading_day = 0.0
+        
         #print str(_last_trading_date),date,_base_symbol
         contract_number = get_contract_number(datetime.strptime(date, '%Y-%m-%d').date(), _base_symbol, YYMM)
         #print contract_number
@@ -238,9 +240,8 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
                         (table[generic_ticker], open1, high, low, close, future_someday_volume, future_someday_oi, date, specific_ticker)
                     else:
                         query = "UPDATE %s SET open='%f', high='%f', low='%f', close='%f' WHERE date='%s' AND specific_ticker='%s'" % (table[generic_ticker], open1, high, low, close, specific_ticker)
-
                 else:
-                    query = "INSERT INTO %s ( date, product, specific_ticker, open, high, low, close, is_last_trading_day, contract_volume, contract_oi, total_volume, total_oi ) VALUES('%s','%s','%s','%f','%f','%f','%f','%0.1f','0','0','0','0')" % ( table[generic_ticker], date, generic_ticker, specific_ticker, open1, high, low, close, is_last_trading_day )
+                    query = "INSERT INTO %s ( date, product, specific_ticker, open, high, low, close, is_last_trading_day, contract_volume, contract_oi, total_volume, total_oi ) VALUES('%s','%s','%s','%f','%f','%f','%f','0.0','0','0','0','0')" % ( table[generic_ticker], date, generic_ticker, specific_ticker, open1, high, low, close)
                 print query
                 db_cursor.execute(query)
                 db.commit()
@@ -289,7 +290,7 @@ def dividend_quote(date, record):
         db.rollback()
         print('EXCEPTION in dividend_quote %s'%record)
         #server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in dividend_quote %s'%record)
-
+    dividend_adjust_products.add(product)
     # Peform dividend adjust on entire dataset just to be sure we are doing this corectly 
     # because CSI might change date of dividend distribution during error correction
     #dividend_adjust(date, product, record)
@@ -570,7 +571,7 @@ def __main__() :
     if file_type == 'futures':
         update_last_trading_day(delay)
     elif not (file_type == 'indices' or file_type=='f-indices'):
-        for product in products:
+        for product in dividend_adjust_products:
             _date = date.today() + timedelta(days=-delay)
             dividend_adjust(_date, product)
     server.quit()
