@@ -38,7 +38,7 @@ def fetch_from_db(db_conn, db_cursor, prod, output_path):
             curr_contract = int(prod[-1])
             # Use next contract's close price on the day after last trading day
             query = "SELECT * from %s WHERE product = '%s';" % (table, prod[:-1]+str(curr_contract+1))
-            df2 = pd.read_sql(query, con=db_conn)
+            df2 = pd.io.sql.read_sql(query, con=db_conn)
             df2 = df.convert_objects(convert_numeric=True)
             for idx in df[df.is_last_trading_day==1.0].index:
                 df.ix[idx+1, 'Log Returns'] = np.log(df.iloc[idx+1]['close']/df2.iloc[idx]['close'])

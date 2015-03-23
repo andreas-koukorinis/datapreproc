@@ -14,19 +14,19 @@ parse = lambda x: datetime.strptime(x, '%Y%m%d')
 
 def get_correlation_monthly_returns(path, df_prod_bf, prod, product_type):
     # Adjust for splits and create backward dividend adjusted file
-    if not product_type == 'index':
+    if product_type == 'index':
+        columns = ['date','open','high','low','close','volume','dividend']
+        prod_file = path+prod[0]+'/'+prod+'.csv'
+        df_prod = pd.read_csv(prod_file,names=columns, parse_dates=['date'], date_parser=parse)
+        returns = compute_daily_log_returns(df_prod['close'].values)
+    else:
         adjust_for_splits(path, [prod], product_type)
         backward_adjust_dividends(path, [prod], product_type)
         # Read data from CSVs to datarframe
         prod_file = path+prod+'_backward_dividend_adjusted.csv'
         df_prod = pd.read_csv(prod_file, parse_dates=['date'], date_parser=parse)
         returns = compute_daily_log_returns(df_prod['backward_adjusted_close'].values)
-    else:
-        columns = ['date','open','high','low','close','volume','dividend']
-        prod_file = path+prod[0]+'/'+prod+'.csv'
-        df_prod = pd.read_csv(prod_file,names=columns, parse_dates=['date'], date_parser=parse)
-        returns = compute_daily_log_returns(df_prod['close'].values)
-    
+            
     returns_bf = compute_daily_log_returns(df_prod_bf['backward_adjusted_close'].values)
     labels_monthly_returns_prod_bf = convert_daily_returns_to_yyyymm_monthly_returns_pair(df_prod_bf['date'], returns_bf)
     labels_monthly_returns_prod = convert_daily_returns_to_yyyymm_monthly_returns_pair(df_prod['date'], returns)
@@ -130,22 +130,27 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
     #df_prod_bf = pd.read_csv(path+prod_backfill+'_split_adjusted.csv')
     df_prod_bf = pd.read_csv(path+prod_backfill+'_backward_dividend_adjusted.csv', parse_dates=['date'], date_parser=parse)
 
-    products = ['VTSMX', 'GMHBX', 'VBMFX']
-    products_type = ['fund', 'fund', 'fund']
+    products = ['VTSMX', 'GMHBX', 'VBMFX', 'VEIEX', '^MXEA', '@DJCI', 'VWAHX', 'VFISX', 'VIPSX', 'VSIIX', 'CVK', 'DFSVX', \
+                '^XMSC', 'MARFX', 'XMSW', 'VIVAX', 'VGTSX', 'VGSIX', 'VEIEX', 'RUI']
+    products_type = ['fund', 'fund', 'fund', 'fund', 'index', 'fund', 'fund', 'fund', 'fund', 'fund', 'index', 'fund', \
+                 'index', 'fund', 'index', 'fund', 'fund', 'fund', 'fund', 'index']
     correlations = []
     for i in xrange(len(products)):
         correlations.append(get_correlation_monthly_returns(path, df_prod_bf, products[i], products_type[i]))
+    if max(correlations) < 0.7:
+        sys.exit('Product not highly correlated with any of our proxy products. Please backfill manually.')
+
     backfill_choice = correlations.index(max(correlations))
 
-    print "%s being backfilled with %s. Correlation between them is: %0.2f" % (prod_backfill, products[backfill_choice], max(correlations))
+    print "%s being backfilled with %s. Correlation between them is: %0.3f" % (prod_backfill, products[backfill_choice], max(correlations))
     
     df_prod_bf, starting_date = backfill_each_product(path, df_prod_bf, products[backfill_choice], products_type[backfill_choice], beta_adjust=True)
     df_prod_bf['date'] = df_prod_bf['date'].apply(lambda x: x.strftime('%Y%m%d'))
 
     df_prod_bf.to_csv(output_path+prod_backfill+'_backfilled'+'.csv',index=False)
-    df_prod_bf = pd.read_csv(output_path+prod_backfill+'_backfilled'+'.csv')
-
+    
     if plot_option.lower() == 'y':
+        df_prod_bf = pd.read_csv(output_path+prod_backfill+'_backfilled'+'.csv')
         ax = df_prod_bf.plot(y='close',use_index=False)
         starting_index = df_prod_bf[df_prod_bf['date']==int(starting_date)].index[0]
         ax.axvline(x=starting_index)
@@ -186,9 +191,9 @@ def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_op
     # Output to file
     df_prod_bf['date'] = df_prod_bf['date'].apply(lambda x: x.strftime('%Y%m%d'))
     df_prod_bf.to_csv(output_path+prod_backfill+'_backfilled'+'.csv',index=False)
-    df_prod_bf = pd.read_csv(output_path+prod_backfill+'_backfilled'+'.csv')
-    
+        
     if plot_option.lower() == 'y':
+        df_prod_bf = pd.read_csv(output_path+prod_backfill+'_backfilled'+'.csv')
         # ax = df_prod.plot(y='backward_adjusted_close',use_index=False,legend=False)
         # patches1, labels1 = ax.get_legend_handles_labels()
         # ax2 = df_prod_bf.plot(y='close',ax=ax,use_index=False,secondary_y=True,legend=False)
@@ -223,7 +228,6 @@ def __main__() :
         auto_backfill(args.path, args.output_path, args.prod_backfill, args.plot_option)
     else:
         backfill(args.path, args.output_path, args.prod_backfill, products, product_types, args.plot_option)
-
 
 if __name__ == '__main__':
     __main__();
