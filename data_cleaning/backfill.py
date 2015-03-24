@@ -22,7 +22,7 @@ def get_correlation_monthly_returns(path, df_prod_bf, prod, product_type):
     else:
         adjust_for_splits(path, [prod], product_type)
         backward_adjust_dividends(path, [prod], product_type)
-        # Read data from CSVs to datarframe
+        # Read data from CSVs to dataframe
         prod_file = path+prod+'_backward_dividend_adjusted.csv'
         df_prod = pd.read_csv(prod_file, parse_dates=['date'], date_parser=parse)
         returns = compute_daily_log_returns(df_prod['backward_adjusted_close'].values)
@@ -131,17 +131,18 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
     df_prod_bf = pd.read_csv(path+prod_backfill+'_backward_dividend_adjusted.csv', parse_dates=['date'], date_parser=parse)
 
     products = ['VTSMX', 'GMHBX', 'VBMFX', 'VEIEX', '^MXEA', '@DJCI', 'VWAHX', 'VFISX', 'VIPSX', 'VSIIX', 'CVK', 'DFSVX', \
-                '^XMSC', 'MARFX', 'XMSW', 'VIVAX', 'VGTSX', 'VGSIX', 'VEIEX', 'RUI']
-    products_type = ['fund', 'fund', 'fund', 'fund', 'index', 'fund', 'fund', 'fund', 'fund', 'fund', 'index', 'fund', \
-                 'index', 'fund', 'index', 'fund', 'fund', 'fund', 'fund', 'index']
+                '^XMSC', 'MARFX', 'XMSW', 'VIVAX', 'VGTSX', 'VGSIX', 'VEIEX', 'RUI', 'PEBIX']
+    products_type = ['fund', 'fund', 'fund', 'fund', 'index', 'index', 'fund', 'fund', 'fund', 'fund', 'index', 'fund', \
+                 'index', 'fund', 'index', 'fund', 'fund', 'fund', 'fund', 'index', 'fund']
     correlations = []
     for i in xrange(len(products)):
         correlations.append(get_correlation_monthly_returns(path, df_prod_bf, products[i], products_type[i]))
+    
+    #print zip(products, correlations)
     if max(correlations) < 0.7:
-        sys.exit('Product not highly correlated with any of our proxy products. Please backfill manually.')
+        sys.exit('Product %s not highly correlated with any of our proxy products. Please backfill manually.'%prod_backfill)
 
     backfill_choice = correlations.index(max(correlations))
-
     print "%s being backfilled with %s. Correlation between them is: %0.3f" % (prod_backfill, products[backfill_choice], max(correlations))
     
     df_prod_bf, starting_date = backfill_each_product(path, df_prod_bf, products[backfill_choice], products_type[backfill_choice], beta_adjust=True)
