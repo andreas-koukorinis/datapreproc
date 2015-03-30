@@ -128,6 +128,8 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
     3) Use beta-adjusted values of the chosen fund or index to backfill.
     4) If maximum correlation is below a certain threshold don't backfill. This asset will be advised to be backfilled manually.
     """
+    if os.path.isfile(output_path+prod_backfill+'_backfilled'+'.csv'):
+        return True
     prod_backfill_file = path+prod_backfill[0]+'/'+prod_backfill+'.csv'
     adjust_for_splits(path, [prod_backfill], 'etf', output_path)
     backward_adjust_dividends(output_path, [prod_backfill], 'etf')
@@ -145,7 +147,7 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
     #print zip(products, correlations)
     if max(correlations) < 0.7:
         print ('Product %s not highly correlated with any of our proxy products. Please backfill manually.'%prod_backfill)
-        return 0
+        return False
 
     backfill_choice = correlations.index(max(correlations))
     
@@ -161,6 +163,8 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
         starting_index = df_prod_bf[df_prod_bf['date']==int(starting_date)].index[0]
         ax.axvline(x=starting_index)
         plt.savefig(output_path+"plot_"+prod_backfill+".png")
+    
+   return True 
     
 def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_option):
     """
@@ -237,11 +241,11 @@ def __main__() :
         products.append(args.prod_list[i+1])
     
     if args.auto_option == 'y':
-        auto_backfill(args.path, args.output_path, args.prod_backfill, args.plot_option)
+        backfilled = auto_backfill(args.path, args.output_path, args.prod_backfill, args.plot_option)
     else:
         backfill(args.path, args.output_path, args.prod_backfill, products, product_types, args.plot_option)
 
-    if args.dividend_adjust == 'y':
+    if args.dividend_adjust == 'y' and backfilled == True:
         dividend_adjust(args.output_path, args.prod_backfill)
 
 if __name__ == '__main__':
