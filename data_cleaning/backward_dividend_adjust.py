@@ -5,7 +5,9 @@ import os
 import sys
 import pandas as pd
 
-def backward_adjust_dividends(path, products, product_type):
+def backward_adjust_dividends(path, products, product_type, output_path=None):
+    if output_path == None:
+        output_path = path
     for product in products:
         prices_file = path+product+'_split_adjusted.csv'
         df = pd.read_csv(prices_file,header=0)
@@ -22,7 +24,7 @@ def backward_adjust_dividends(path, products, product_type):
             for index, row in df1.iterrows(): # For each of the payouts               
                 dividend_factor = 1 + ( row['dividend'] + row['capital_gain'] ) / row['close'] # Calculate the dividend factor
                 df.loc[ (df.date < row['date']) ,'backward_adjusted_close'] /= dividend_factor # Divide all prices earlier to this payout by the dividend factor
-        df.to_csv(path+product+'_backward_dividend_adjusted'+'.csv',index=False) # Save result to csv 
+        df.to_csv(output_path+product+'_backward_dividend_adjusted'+'.csv',index=False) # Save result to csv 
 
 def __main__() :
     if len( sys.argv ) > 1:

@@ -5,7 +5,9 @@ import os
 import sys
 import pandas as pd
 
-def forward_adjust_dividends(path, products, product_type ):
+def forward_adjust_dividends(path, products, product_type, output_path=None):
+    if output_path = None:
+        output_path = path
     for product in products:
         prices_file = path+product+'_backward_dividend_adjusted.csv'
         df = pd.read_csv(prices_file,header=0)
@@ -26,19 +28,20 @@ def forward_adjust_dividends(path, products, product_type ):
                 dividend_factor = 1 + ( row['dividend'] + row['capital_gain'] ) / row['close'] # Calculate the dividend factor
                 df.loc[ (df.date >= row['date']) ,'forward_adjusted_close'] *= dividend_factor # Multiply all prices after(including) this payout by the dividend factor
         
-        df.to_csv(path+product+'_forward_dividend_adjusted'+'.csv',index=False) # Save result to csv 
+        df.to_csv(output_path+product+'_forward_dividend_adjusted'+'.csv',index=False) # Save result to csv 
 
 def __main__() :
     if len( sys.argv ) > 1:
-        product_type = sys.argv[2]
-        path = sys.argv[1]
+        product_type = sys.argv[3]
+        path = sys.argv[2]
+        output_path = sys.argv[1]
         products = []
-        for i in range(3,len(sys.argv)):
+        for i in range(4,len(sys.argv)):
             products.append(sys.argv[i])
     else:
-        print 'python forward_dividend_adjust.py path etf/fund product1 product2 product3 .. productn'
+        print 'python forward_dividend_adjust.py output_path path etf/fund product1 product2 product3 .. productn'
         sys.exit(0)
-    forward_adjust_dividends(path, products, product_type)
+    forward_adjust_dividends(path, products, product_type, output_path)
 
 if __name__ == '__main__':
     __main__();

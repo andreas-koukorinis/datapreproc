@@ -2,17 +2,19 @@
 import argparse
 from datetime import date, datetime
 import os
+import shutil
 import sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from adjust_split import adjust_for_splits
 from backward_dividend_adjust import backward_adjust_dividends
+from forward_dividend_adjust import forward_adjust_dividends
 from calculate import convert_daily_returns_to_yyyymm_monthly_returns_pair, compute_correlation, compute_daily_log_returns
 
 parse = lambda x: datetime.strptime(x, '%Y%m%d')
 
-def get_correlation_monthly_returns(path, df_prod_bf, prod, product_type):
+def get_correlation_monthly_returns(path, df_prod_bf, prod, product_type, output_path):
     # Adjust for splits and create backward dividend adjusted file
     if product_type == 'index':
         columns = ['date','open','high','low','close','volume','dividend']
@@ -20,10 +22,10 @@ def get_correlation_monthly_returns(path, df_prod_bf, prod, product_type):
         df_prod = pd.read_csv(prod_file,names=columns, parse_dates=['date'], date_parser=parse)
         returns = compute_daily_log_returns(df_prod['close'].values)
     else:
-        adjust_for_splits(path, [prod], product_type)
-        backward_adjust_dividends(path, [prod], product_type)
+        adjust_for_splits(path, [prod], product_type, output_path)
+        backward_adjust_dividends(path, [prod], product_type, output_path)
         # Read data from CSVs to dataframe
-        prod_file = path+prod+'_backward_dividend_adjusted.csv'
+        prod_file = output_path+prod+'_backward_dividend_adjusted.csv'
         df_prod = pd.read_csv(prod_file, parse_dates=['date'], date_parser=parse)
         returns = compute_daily_log_returns(df_prod['backward_adjusted_close'].values)
             
@@ -125,10 +127,10 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
     4) If maximum correlation is below a certain threshold don't backfill. This asset will be advised to be backfilled manually.
     """
     prod_backfill_file = path+prod_backfill[0]+'/'+prod_backfill+'.csv'
-    adjust_for_splits(path, [prod_backfill], 'etf')
-    backward_adjust_dividends(path, [prod_backfill], 'etf')
+    adjust_for_splits(path, [prod_backfill], 'etf', output_path)
+    backward_adjust_dividends(path, [prod_backfill], 'etf', output_path)
     #df_prod_bf = pd.read_csv(path+prod_backfill+'_split_adjusted.csv')
-    df_prod_bf = pd.read_csv(path+prod_backfill+'_backward_dividend_adjusted.csv', parse_dates=['date'], date_parser=parse)
+    df_prod_bf = pd.read_csv(outputpath+prod_backfill+'_backward_dividend_adjusted.csv', parse_dates=['date'], date_parser=parse)
 
     products = ['VTSMX', 'GMHBX', 'VBMFX', 'VEIEX', '^MXEA', '@DJCI', 'VWAHX', 'VFISX', 'VIPSX', 'VSIIX', 'CVK', 'DFSVX', \
                 '^XMSC', 'MARFX', 'XMSW', 'VIVAX', 'VGTSX', 'VGSIX', 'VEIEX', 'RUI', 'PEBIX']
@@ -136,11 +138,12 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
                  'index', 'fund', 'index', 'fund', 'fund', 'fund', 'fund', 'index', 'fund']
     correlations = []
     for i in xrange(len(products)):
-        correlations.append(get_correlation_monthly_returns(path, df_prod_bf, products[i], products_type[i]))
+        correlations.append(get_correlation_monthly_returns(path, df_prod_bf, products[i], products_type[i], output_path))
     
     #print zip(products, correlations)
     if max(correlations) < 0.7:
-        sys.exit('Product %s not highly correlated with any of our proxy products. Please backfill manually.'%prod_backfill)
+        print ('Product %s not highly correlated with any of our proxy products. Please backfill manually.'%prod_backfill)
+        return 0
 
     backfill_choice = correlations.index(max(correlations))
     print "%s being backfilled with %s. Correlation between them is: %0.3f" % (prod_backfill, products[backfill_choice], max(correlations))
@@ -157,7 +160,6 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
         ax.axvline(x=starting_index)
         plt.savefig(output_path+"plot_"+prod_backfill+".png")
     
-
 def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_option):
     """
     Backfills open, close, high and low prices for ETFs which were created recently.
@@ -181,8 +183,8 @@ def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_op
     """       
     # Read data from file
     prod_backfill_file = path+prod_backfill[0]+'/'+prod_backfill+'.csv'
-    adjust_for_splits(path, [prod_backfill], 'etf')
-    df_prod_bf = pd.read_csv(path+prod_backfill+'_split_adjusted.csv', parse_dates=['date'], date_parser=parse)
+    adjust_for_splits(path, [prod_backfill], 'etf', output_path)
+    df_prod_bf = pd.read_csv(output_path+prod_backfill+'_split_adjusted.csv', parse_dates=['date'], date_parser=parse)
     
     starting_dates = []
     for prod in zip(prod_list,product_types):
@@ -210,6 +212,12 @@ def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_op
             ax.axvline(x=starting_index)
         plt.savefig(output_path+"plot_"+prod_backfill+".png")
 
+def dividend_adjust(path, prod):
+    shutil.move(path+prod_backfill+'_backfilled.csv', path+prod_backfill+'_split_adjusted.csv')
+    backward_adjust_dividends(path, [prod], ['etf'])
+    forward_adjust_dividends(path, [prod], ['etf'])
+
+
 def __main__() :
     parser = argparse.ArgumentParser()
     parser.add_argument('path')
@@ -217,6 +225,7 @@ def __main__() :
     parser.add_argument('prod_backfill')
     parser.add_argument('-a', type=str, help='Auto-backfill', default='y', dest='auto_option')
     parser.add_argument('-p', type=str, help='Plot after backfill', default='n', dest='plot_option')
+    parser.add_argument('-d', type=str, help='Dividend adjust after backfill', default='y', dest='dividend_adjust')
     parser.add_argument('--prods', nargs='+', help='etf/fund/index1 product1 etf/fund/index2 product2...', default="", dest="prod_list")
     args = parser.parse_args()
     products = []
@@ -229,6 +238,9 @@ def __main__() :
         auto_backfill(args.path, args.output_path, args.prod_backfill, args.plot_option)
     else:
         backfill(args.path, args.output_path, args.prod_backfill, products, product_types, args.plot_option)
+
+    if args.dividend_adjust == 'y':
+        dividend_adjust(args.output_path, args.prod_backfill)
 
 if __name__ == '__main__':
     __main__();
