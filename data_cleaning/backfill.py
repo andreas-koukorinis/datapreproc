@@ -23,7 +23,7 @@ def get_correlation_monthly_returns(path, df_prod_bf, prod, product_type, output
         returns = compute_daily_log_returns(df_prod['close'].values)
     else:
         adjust_for_splits(path, [prod], product_type, output_path)
-        backward_adjust_dividends(path, [prod], product_type, output_path)
+        backward_adjust_dividends(output_path, [prod], product_type)
         # Read data from CSVs to dataframe
         prod_file = output_path+prod+'_backward_dividend_adjusted.csv'
         df_prod = pd.read_csv(prod_file, parse_dates=['date'], date_parser=parse)
@@ -35,7 +35,7 @@ def get_correlation_monthly_returns(path, df_prod_bf, prod, product_type, output
 
     return compute_correlation(labels_monthly_returns_prod_bf, labels_monthly_returns_prod)
 
-def backfill_each_product(path, df_prod_bf, prod, product_type, beta_adjust=False):
+def backfill_each_product(path, df_prod_bf, prod, product_type, beta_adjust=False, output_path=None):
     """
     If the assets are A and B and price of A when unavailable is being backfilled using price of B
     A_close_price_backfill_i/A_close_price_backfill_(i+1) = B_backward_adjusted_close_i/ B_backward_adjusted_close_(i+1)
@@ -50,12 +50,14 @@ def backfill_each_product(path, df_prod_bf, prod, product_type, beta_adjust=Fals
         df_prod_bf(dataframe): backfilled data DataFrame
         starting_index(int): index at which backfilling was started
     """
+    if output_path == None:
+        output_path = path
     # Adjust for splits and create backward dividend adjusted file
     if not product_type == 'index':
-        adjust_for_splits(path, [prod], product_type)
-        backward_adjust_dividends(path, [prod], product_type)
+        adjust_for_splits(path, [prod], product_type, output_path)
+        backward_adjust_dividends(output_path, [prod], product_type)
         # Read data from CSVs to datarframe
-        prod_file = path+prod+'_backward_dividend_adjusted.csv'
+        prod_file = output_path+prod+'_backward_dividend_adjusted.csv'
         df_prod = pd.read_csv(prod_file, parse_dates=['date'], date_parser=parse)
     else:
         columns = ['date','open','high','low','close','volume','dividend']
@@ -128,9 +130,9 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
     """
     prod_backfill_file = path+prod_backfill[0]+'/'+prod_backfill+'.csv'
     adjust_for_splits(path, [prod_backfill], 'etf', output_path)
-    backward_adjust_dividends(path, [prod_backfill], 'etf', output_path)
+    backward_adjust_dividends(output_path, [prod_backfill], 'etf')
     #df_prod_bf = pd.read_csv(path+prod_backfill+'_split_adjusted.csv')
-    df_prod_bf = pd.read_csv(outputpath+prod_backfill+'_backward_dividend_adjusted.csv', parse_dates=['date'], date_parser=parse)
+    df_prod_bf = pd.read_csv(output_path+prod_backfill+'_backward_dividend_adjusted.csv', parse_dates=['date'], date_parser=parse)
 
     products = ['VTSMX', 'GMHBX', 'VBMFX', 'VEIEX', '^MXEA', '@DJCI', 'VWAHX', 'VFISX', 'VIPSX', 'VSIIX', 'CVK', 'DFSVX', \
                 '^XMSC', 'MARFX', 'XMSW', 'VIVAX', 'VGTSX', 'VGSIX', 'VEIEX', 'RUI', 'PEBIX']
@@ -146,9 +148,9 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
         return 0
 
     backfill_choice = correlations.index(max(correlations))
-    print "%s being backfilled with %s. Correlation between them is: %0.3f" % (prod_backfill, products[backfill_choice], max(correlations))
     
-    df_prod_bf, starting_date = backfill_each_product(path, df_prod_bf, products[backfill_choice], products_type[backfill_choice], beta_adjust=True)
+    df_prod_bf, starting_date = backfill_each_product(path, df_prod_bf, products[backfill_choice], products_type[backfill_choice], beta_adjust=True, output_path=output_path)
+    print "%s being backfilled with %s from %s. Correlation between them is: %0.3f" % (prod_backfill, products[backfill_choice], starting_date, max(correlations))
     df_prod_bf['date'] = df_prod_bf['date'].apply(lambda x: x.strftime('%Y%m%d'))
 
     df_prod_bf.to_csv(output_path+prod_backfill+'_backfilled'+'.csv',index=False)
@@ -188,7 +190,7 @@ def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_op
     
     starting_dates = []
     for prod in zip(prod_list,product_types):
-        df_prod_bf,temp_dt = backfill_each_product(path, df_prod_bf, prod[0], prod[1])
+        df_prod_bf,temp_dt = backfill_each_product(path, df_prod_bf, prod[0], prod[1], output_path=output_path)
         starting_dates.append(temp_dt)
 
     # Output to file
@@ -213,9 +215,9 @@ def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_op
         plt.savefig(output_path+"plot_"+prod_backfill+".png")
 
 def dividend_adjust(path, prod):
-    shutil.move(path+prod_backfill+'_backfilled.csv', path+prod_backfill+'_split_adjusted.csv')
+    shutil.move(path+prod+'_backfilled.csv', path+prod+'_split_adjusted.csv')
     backward_adjust_dividends(path, [prod], ['etf'])
-    forward_adjust_dividends(path, [prod], ['etf'])
+    forward_adjust_dividends(path, [prod], ['etf'], path+'complete/')
 
 
 def __main__() :

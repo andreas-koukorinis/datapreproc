@@ -9,6 +9,8 @@ def backward_adjust_dividends(path, products, product_type, output_path=None):
     if output_path == None:
         output_path = path
     for product in products:
+        if os.path.isfile(output_path+product+'_backward_dividend_adjusted'+'.csv'):
+            continue
         prices_file = path+product+'_split_adjusted.csv'
         df = pd.read_csv(prices_file,header=0)
         if product_type == 'etf':# If the product type is ETF

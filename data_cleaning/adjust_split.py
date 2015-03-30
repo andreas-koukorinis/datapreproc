@@ -6,9 +6,11 @@ import sys
 import pandas as pd
 
 def adjust_for_splits( path, products, product_type, output_path=None):
-    if output_path = None:
+    if output_path == None:
         output_path = path
     for product in products:
+        if os.path.isfile(output_path+product+'_split_adjusted.csv'):
+            continue
         prices_file = path+product[0]+'/'+product+'.csv'
         split_file = path+product[0]+'/'+product+'.SPT'
         if product_type == 'etf':
