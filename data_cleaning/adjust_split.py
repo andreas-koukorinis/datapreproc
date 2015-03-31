@@ -21,7 +21,7 @@ def adjust_for_splits( path, products, product_type, output_path=None):
             df2 = pd.read_csv(split_file,names=['date','new','old'])
             split_factor = 1.0
             for index, row in df2.iterrows():
-                split_factor = split_factor*(row['new']/row['old'])
+                split_factor = split_factor*(float(row['new'])/float(row['old']))
                 df1.loc[ (df1.date < row['date']) ,'close'] /=split_factor
                 df1.loc[ (df1.date < row['date']) ,'high'] /=split_factor
                 df1.loc[ (df1.date < row['date']) ,'low'] /=split_factor
