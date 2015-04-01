@@ -188,6 +188,9 @@ def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_op
         In output_path, it creates a new file prod_backfill+'_backfilled.csv' which contains all the prices for
         the product being backfilled.
     """       
+    if os.path.isfile(output_path+prod_backfill+'_backfilled'+'.csv'):
+        print "%s already backfilled"%prod_backfill
+        return True
     # Read data from file
     prod_backfill_file = path+prod_backfill[0]+'/'+prod_backfill+'.csv'
     adjust_for_splits(path, [prod_backfill], 'etf', output_path)
@@ -218,6 +221,7 @@ def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_op
             starting_index = df_prod_bf[df_prod_bf['date']==int(starting_date)].index[0]
             ax.axvline(x=starting_index)
         plt.savefig(output_path+"plot_"+prod_backfill+".png")
+    return True
 
 def dividend_adjust(path, prod):
     shutil.copy2(path+prod+'_backfilled.csv', path+prod+'_split_adjusted.csv')
@@ -235,16 +239,18 @@ def __main__() :
     parser.add_argument('-d', type=str, help='Dividend adjust after backfill', default='y', dest='dividend_adjust')
     parser.add_argument('--prods', nargs='+', help='etf/fund/index1 product1 etf/fund/index2 product2...', default="", dest="prod_list")
     args = parser.parse_args()
+    backfiled = False
     products = []
     product_types = []
     for i in range(0,len(args.prod_list),2):
         product_types.append(args.prod_list[i])
         products.append(args.prod_list[i+1])
     
+    
     if args.auto_option == 'y':
-        auto_backfill(args.path, args.output_path, args.prod_backfill, args.plot_option)
+        backfilled = auto_backfill(args.path, args.output_path, args.prod_backfill, args.plot_option)
     else:
-        backfill(args.path, args.output_path, args.prod_backfill, products, product_types, args.plot_option)
+        backfilled = backfill(args.path, args.output_path, args.prod_backfill, products, product_types, args.plot_option)
 
     if args.dividend_adjust == 'y' and backfilled == True:
         dividend_adjust(args.output_path, args.prod_backfill)
