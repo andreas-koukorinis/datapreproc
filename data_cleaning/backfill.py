@@ -242,7 +242,7 @@ def __main__() :
         products.append(args.prod_list[i+1])
     
     if args.auto_option == 'y':
-        backfilled = auto_backfill(args.path, args.output_path, args.prod_backfill, args.plot_option)
+        auto_backfill(args.path, args.output_path, args.prod_backfill, args.plot_option)
     else:
         backfill(args.path, args.output_path, args.prod_backfill, products, product_types, args.plot_option)
 
