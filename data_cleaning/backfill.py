@@ -129,6 +129,7 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
     4) If maximum correlation is below a certain threshold don't backfill. This asset will be advised to be backfilled manually.
     """
     if os.path.isfile(output_path+prod_backfill+'_backfilled'+'.csv'):
+        print "%s already backfilled"%prod_backfill
         return True
     prod_backfill_file = path+prod_backfill[0]+'/'+prod_backfill+'.csv'
     adjust_for_splits(path, [prod_backfill], 'etf', output_path)
@@ -137,9 +138,9 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
     df_prod_bf = pd.read_csv(output_path+prod_backfill+'_backward_dividend_adjusted.csv', parse_dates=['date'], date_parser=parse)
 
     products = ['VTSMX', 'GMHBX', 'VBMFX', 'VEIEX', '^MXEA', '@DJCI', 'VWAHX', 'VFISX', 'VIPSX', 'VSIIX', 'CVK', 'DFSVX', \
-                '^XMSC', 'MARFX', 'XMSW', 'VIVAX', 'VGTSX', 'VGSIX', 'VEIEX', 'RUI', 'PEBIX']
+                '^XMSC', 'MARFX', 'XMSW', 'VIVAX', 'VGTSX', 'VGSIX', 'VEIEX', 'RUI', 'PEBIX', 'SPX', '@GU6']
     products_type = ['fund', 'fund', 'fund', 'fund', 'index', 'index', 'fund', 'fund', 'fund', 'fund', 'index', 'fund', \
-                 'index', 'fund', 'index', 'fund', 'fund', 'fund', 'fund', 'index', 'fund']
+                 'index', 'fund', 'index', 'fund', 'fund', 'fund', 'fund', 'index', 'fund', 'index', 'index']
     correlations = []
     for i in xrange(len(products)):
         correlations.append(get_correlation_monthly_returns(path, df_prod_bf, products[i], products_type[i], output_path))
@@ -150,9 +151,9 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
         return False
 
     backfill_choice = correlations.index(max(correlations))
-    
+    print "%s being backfilled with %s. Correlation between them is: %0.3f" % (prod_backfill, products[backfill_choice], max(correlations)) ,
     df_prod_bf, starting_date = backfill_each_product(path, df_prod_bf, products[backfill_choice], products_type[backfill_choice], beta_adjust=True, output_path=output_path)
-    print "%s being backfilled with %s from %s. Correlation between them is: %0.3f" % (prod_backfill, products[backfill_choice], starting_date, max(correlations))
+    print " from %s" % (starting_date)
     df_prod_bf['date'] = df_prod_bf['date'].apply(lambda x: x.strftime('%Y%m%d'))
 
     df_prod_bf.to_csv(output_path+prod_backfill+'_backfilled'+'.csv',index=False)
@@ -164,7 +165,7 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
         ax.axvline(x=starting_index)
         plt.savefig(output_path+"plot_"+prod_backfill+".png")
     
-   return True 
+    return True 
     
 def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_option):
     """
@@ -219,7 +220,7 @@ def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_op
         plt.savefig(output_path+"plot_"+prod_backfill+".png")
 
 def dividend_adjust(path, prod):
-    shutil.move(path+prod+'_backfilled.csv', path+prod+'_split_adjusted.csv')
+    shutil.copy2(path+prod+'_backfilled.csv', path+prod+'_split_adjusted.csv')
     backward_adjust_dividends(path, [prod], ['etf'])
     forward_adjust_dividends(path, [prod], ['etf'], path+'complete/')
 
