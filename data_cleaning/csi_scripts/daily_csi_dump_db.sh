@@ -16,5 +16,5 @@ echo "DB DUMP CSI DAT FOR ETF's AND FUNDS STATUS:\n" >> /apps/logs/log_`date +%Y
 # VOE VWO TIP VTIP BNDX
 python daily_update.py futures 1 TU FV TY US NK NIY ES EMD NQ YM AD BP CD CU1 JY MP NE2 SF GC SI HG PL PA LH ZW ZC ZS ZM ZL EBS EBM EBL SXE FDX SMI SXF CGB FFI FLG AEX KC CT CC SB JTI JGB JNI SIN SSG HCE HSI ALS YAP MFX KOS JPYUSD CADUSD GBPUSD EURUSD AUDUSD NZDUSD CHFUSD SEKUSD NOKUSD TRYUSD MXNUSD ZARUSD ILSUSD SGDUSD HKDUSD TWDUSD >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
 
-python daily_update.py us-stocks 1 VTI VTV VBR VEA VWO VXUS VT IEMG BND MUB LQD VWOB SHV >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
+python daily_update.py us-stocks 1 BND BNDX IEMG LQD MUB SHV TIP VBR VEA VIG VNQ VOE VT VTI VTIP VTV VWO VWOB VXUS >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
 python daily_update.py funds 1 AQRIX AQMIX QGMIX SRPFX ABRZX VBLTX VTSMX>> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
