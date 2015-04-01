@@ -1,0 +1,9 @@
+00 05 * * * bash /home/cvdev/datapreproc/data_cleaning/csi_scripts/daily_csi_dump_s3.sh
+15 05 * * * bash /home/cvdev/datapreproc/data_cleaning/csi_scripts/check_upload_s3.sh
+20 05 * * * bash /home/cvdev/datapreproc/data_cleaning/csi_scripts/daily_csi_dump_db.sh
+00 09 * * * bash /home/cvdev/datapreproc/data_cleaning/nanex_scripts/daily_nanex_dump_s3.sh
+00 11 * * * bash /home/cvdev/datapreproc/data_cleaning/nanex_scripts/check_nanex_upload_s3.sh
+00 18 * * 0 bash /home/cvdev/datapreproc/data_cleaning/nanex_scripts/sync_local_s3.sh
+00 12 * * * bash /home/cvdev/stratdev/utility_scripts/send_stats.sh
+~                                                                                                                                                                                      
+
