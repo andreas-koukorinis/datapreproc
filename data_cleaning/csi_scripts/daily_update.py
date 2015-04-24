@@ -571,12 +571,12 @@ def update_last_trading_day(k):
                 delta = _date - min_last_trading_date
                 if delta.days >= 7:
                     print 'Seems to be a problem in update_last_trading_day %s %s'%(_base_symbol, _date) #ADD MAIL
-                    server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Seems to be a problem in update_last_trading_day %s'%(generic_ticker))
+                    server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Seems to be a problem in update_last_trading_day %s'%(_base_symbol))
                     continue
         except Exception, err:
             print traceback.format_exc()
             print 'EXCEPTION in update_last_trading_day %s on %s'%(_base_symbol, _date)
-            server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
+            server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%_base_symbol)
             continue
         try:
             query = "UPDATE %s SET is_last_trading_day=1.0 WHERE product like '%s\_%%' AND date='%s'"%(table[_base_symbol+'_1'], _base_symbol, min_last_trading_date)
@@ -587,7 +587,7 @@ def update_last_trading_day(k):
             print traceback.format_exc()
             print "EXCEPTION in update_last_trading_day Tried to update last trading day after finding date but couldn't"
             db.rollback()
-            server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%generic_ticker)
+            server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%_base_symbol)
 
 def __main__() :
     if len( sys.argv ) > 1:
