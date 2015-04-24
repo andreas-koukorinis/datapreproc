@@ -43,10 +43,16 @@ def IntOrZero(value):
 def db_connect():
     global db,db_cursor
     try:
-        db = MySQLdb.connect(host="fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com", user="cvmysql",passwd="fixedcvincome", db="daily_qplum")
-        db_cursor = db.cursor(MySQLdb.cursors.DictCursor)
+        with open('/spare/local/credentials/write_credentials.txt') as f:
+            credentials = [line.strip().split(':') for line in f.readlines()]
+    except IOError:
+        sys.exit('No credentials file found')
+    try:
+        for user_id,password in credentials:
+            db = MySQLdb.connect(host=host_name, user=user_id, passwd=password, db=database)
     except MySQLdb.Error:
-        sys.exit("Error In DB Connection")
+        sys.exit("Error in DB connection")
+
 
 def product_to_table_map():
     global table,product_type
