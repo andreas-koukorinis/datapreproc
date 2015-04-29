@@ -49,7 +49,8 @@ def db_connect():
         sys.exit('No credentials file found')
     try:
         for user_id,password in credentials:
-            db = MySQLdb.connect(host=host_name, user=user_id, passwd=password, db=database)
+            db = MySQLdb.connect(host='fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com', user=user_id, passwd=password, db='daily_qplum')
+            db_cursor = db.cursor(MySQLdb.cursors.DictCursor) 
     except MySQLdb.Error:
         sys.exit("Error in DB connection")
 
