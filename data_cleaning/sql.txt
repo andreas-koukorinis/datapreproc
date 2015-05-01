@@ -396,3 +396,10 @@ insert into products values ('G_2','134','LGO','Gas Oil-(IPE) Future 2','us_futu
 LOAD DATA LOCAL INFILE '/home/deedee/benchmarks/btop50_month_end_returns.csv' INTO TABLE benchmarks FIELDS TERMINATED BY ' ';
 LOAD DATA LOCAL INFILE '/home/deedee/benchmarks/tulip_month_end_returns.csv' INTO TABLE benchmarks FIELDS TERMINATED BY ' ';
 LOAD DATA LOCAL INFILE '/home/deedee/benchmarks/ahl_div_month_end_returns.csv' INTO TABLE benchmarks FIELDS TERMINATED BY ' ';
+
+
+# Live trading important information
+CREATE TABLE `portfolio_stats` (`date` date NOT NULL, `broker_cash` varchar(20), `estimated cash` varchar(20), `broker_portfolio_value` varchar(20), `estimated_portfolio_value` varchar(20), `broker_pnl` varchar(20), `estimated_pnl` varchar(20), `maintainence_margin` varchar(20), `initial_margin` varchar(20), PRIMARY KEY (`date`));
+CREATE TABLE `positions` (`date` date NOT NULL,`product` varchar(20), `estimated_position` INT, `broker_position` INT, `estimated_average_trade_price` varchar(20), `broker_average_trade_price` varchar(20), `broker_close_price` varchar(20), PRIMARY KEY (`date`, `product`));
+CREATE TABLE `orders` (`date` date NOT NULL,`time` varchar(20) NOT NULL, `product` varchar(20) NOT NULL, `amount` varchar(20) NOT NULL, `trade_price` varchar(20) NOT NULL, `estimated_average_trade_price` varchar(20) NOT NULL, `actual_average_trade_price` varchar(20) NOT NULL, `commission` varchar(20) NOT NULL, PRIMARY KEY (`date`,`time`,`product`));
+
