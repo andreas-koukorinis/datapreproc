@@ -35,6 +35,7 @@ def main():
     positions_file = dir_path + 'pos' + date + '.csv'
     commission_file = dir_path + 'mtdvolfeed' + date + '.csv'
     money_file = dir_path + 'mny' + date + '.csv'
+    currency_rates = {}
 
     # Connect to db
     try:
@@ -77,6 +78,28 @@ def main():
         db.rollback()
         send_mail( err, 'Could not insert broker position file data into db' )
 
+    # Fetch the currency rates from money file
+    try:
+        money_df = pd.DataFrame.from_csv( money_file )
+        for fc in money_df.index:
+            currency = money_df[fc]['MCURAT']
+            if currency != 'USD':
+                currency = currency + 'USD'
+            currency_rates[currency] = money_df[fc]['MCVTFB']
+    except Exception, err:
+        send_mail( err, 'Could not process money file for currency data.EXITING' )
+        sys.exit()
+
+    # Insert the currency rates into DB
+    for currency in currency_rates.keys():
+        try:
+            query = "INSERT INTO currency_rates( date, currency, rate ) VALUES('%s','%s','%s')" % ( date, currency, currency_rates[currency] )
+            db_cursor.execute( query )
+            db.commit()
+        except Exception, err:
+            db.rollback()
+            send_mail( err, 'Could not insert broker currency data.EXITING' )
+            sys.exit()
     try:
         # TODO realized pnl and commission check
         # Process money file
@@ -98,19 +121,19 @@ def main():
             commission = 0
         except Exception, err:
             send_mail( err, 'Could not process commission file' )
+        try:
+            # TODO update if already present
+            query = "INSERT INTO portfolio_stats ( date, broker_cash, broker_portfolio_value, maintainence_margin, initial_margin, commission ) VALUES('%s','%s','%s','%s','%s', '%s')" \
+                    % ( date, broker_cash, broker_portfolio_value, maintenance_margin, initial_margin, commission )
+            db_cursor.execute( query )
+            db.commit()
+
+        except Exception, err:
+            db.rollback()
+            send_mail( err, 'Could not insert broker money file data into db' )
+          
     except Exception, err:
         send_mail( err, 'Could not process money file' )
-
-    try:
-        # TODO update if already present
-        query = "INSERT INTO portfolio_stats ( date, broker_cash, broker_portfolio_value, maintainence_margin, initial_margin, commission ) VALUES('%s','%s','%s','%s','%s', '%s')" \
-                % ( date, broker_cash, broker_portfolio_value, maintenance_margin, initial_margin, commission )
-        db_cursor.execute( query )
-        db.commit()
-
-    except Exception, err:
-        db.rollback()
-        send_mail( err, 'Could not insert broker money file data into db' )
 
     try:
         # TODO update if already present
@@ -136,7 +159,36 @@ def main():
     
     # TODO process commission file
 
-    # TODO process order file
+    # Process order file
+    try:
+        order_df = pd.DataFrame.from_csv( order_file )
+        conversion_factors = get_conversion_factors(products)
+        for fc in order_df.index:
+            contract_year_month_code = str(positions_df.loc[fc]['PCTYM'])
+            month = contract_year_month_code[-2:]
+            year = contract_year_month_code[2:4]
+            product_symbol = future_code_mappings[fc] + month_codes[month] + year
+            buy_or_sell = order_df.loc[fc]['PBS']
+            if buy_or_sell == 1:
+                amount = order_df.loc[fc]['PQTY'] # TODO what is PPRTQ
+            else:
+                amount = -1*order_df.loc[fc]['PQTY']
+            trade_price = order_df.loc[fc]['PPRTPR']* positions_df.loc[fc]['PMULTF'] / conversion_factors[future_code_mappings[fc]+'_1'] # TODO some issue with ZN
+            commission = 0
+            columns = ['PCOMM','PFEE1','PFEE2','PFEE3','PFEE4','PFEE5','PFEE6','PFEE7','PFEE8','PFEE9','PMWIRE'] #PCOMM ->  POVNC ?? same
+            # TODO Depends on currency
+            try:
+                query = "INSERT INTO broker_orders ( date, product, amount, trade_price, commission ) VALUES('%s','%s','%d','%s','%s')" \
+                        % ( date, product_symbol, amount, trade_price, commission )
+                db_cursor.execute(query)
+                db.commit()
+            except Exception, err:
+                db.rollback()
+                send_mail( err, 'Could not insert broker order data into db' )
+   
+    except Exception, err:
+        send_mail( err, 'Could not process order file' )
+
 
 if __name__ == '__main__':
     main()
