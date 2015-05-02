@@ -22,13 +22,20 @@ def parse_dt ( dt_str ):
     dt = datetime.strptime(dt_str, "%m/%d/%Y %H:%M")
     return dt.date(), dt.strftime( '%H:%M')
 
+def sign(value):
+    ret_value = 1 if value >= 0 else -1
+    return ret_value
+
 def main():
+    # TODO update realized pnl
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('order_file')
     parser.add_argument('-t', type=str, help='Type  for products being ETFs\nEg: -t etf\n Default is future i.e. trading futures',default='future', dest='product_type')
     args = parser.parse_args()
     product_type = args.product_type
+
+    current_date = datetime.strptime( os.path.splittext(order_file)[0][2:], '%Y%m%d' )
     
     # Connect to db
     try:
@@ -60,6 +67,35 @@ def main():
                         % ( place_date, exchange_symbol, place_time, fill_time, place_amount, fill_amount, order_price, fill_price )
                 db_cursor.execute(query)
                 db.commit()
+                try:
+                    # get the current position and average trade price
+                    query = "SELECT estimated_position, estimated_average_trade_price FROM positions WHERE product = '%s' AND date < '%s' ORDER BY date DESC limit 1" % ( exchange_symbol, current_date )
+                    db_cursor.execute(query)
+                    rows = db_cursor.fetchall()
+                    if len(rows) == 0:
+                        estimated_position = fill_amount
+                        estimated_average_trade_price = fill_price
+                    else:
+                        estimated_position = rows[0]['estimated_position']
+                        estimated_average_trade_price = rows[0]['estimated_average_trade_price']
+                        direction_switched = (abs(estimated_position) > 0 and abs(estimated_position + fill_amount) > 0) and \
+                                             ( not (sign(estimated_position) == sign(estimated_position + fill_amount) ) )
+                        if direction_switched or ( abs(estimated_position + fill_amount ) < abs(estimated_position) ):
+                            estimated_average_trade_price = fill_price
+                        else:
+                            estimated_average_trade_price = ( fill_amount * fill_price + estimated_position * estimated_average_trade_price ) / ( estimated_position + fill_amount )
+                        estimated_position += fill_amount
+                    try:
+                        # Update the current position and average trade price
+                        query = "Update positions SET estimated_position = '%d', estimated_average_trade_price = '%s' WHERE product = '%s' AND date = '%s'" \
+                                 % (  estimated_position,  estimated_average_trade_price, exchange_symbol, current_date )
+                        db_cursor.execute(query)
+                        db.commit()
+                    except Exception, err:
+                        db.rollback()
+                        send_mail( err, 'Could not insert updated estimated_position, estimated_average_trade_price into db' )
+                except Exception, err:
+                    send_mail( err, 'Could not calculate estimated positions based on orders placed' )
             except Exception, err:
                 db.rollback()
                 send_mail( err, 'Could not insert order into db' )
