@@ -2,7 +2,8 @@
 import sys
 import os
 import argparse
-import json
+import MySQLdb
+import smtplib
 import urllib2
 from datetime import datetime, date, timedelta
 home_path = os.path.expanduser("~")
@@ -48,7 +49,6 @@ def main():
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('current_date')
-    args = parser.parse_args()
     current_date = args.current_date
     parser.add_argument('-d', type=str, help='Data source for prices and rates\nEg: -d csi\n Default is CSI',default='csi', dest='data_source')
     parser.add_argument('-t', type=str, help='Type  for products being ETFs\nEg: -t etf\n Default is future i.e. trading futures',default='future', dest='product_type')
