@@ -12,7 +12,7 @@ from datetime import datetime,timedelta,date
 
 dividend_adjust_products = Set()
 futures_contract_list = {'VX':[1,2,3,4,5,6,7]}
-indices = ['VIX']
+indices = ['VIX','TCMP','SPX','XMSW','NYA','COMP','^AXJO','^BSES','^BVSP','^FTSE','^GDAX','^GU15','^MXX','^N500','^N150','^NZ50','^SSMI','^XMSC']
 table = {}
 product_type = {}
 server = None
