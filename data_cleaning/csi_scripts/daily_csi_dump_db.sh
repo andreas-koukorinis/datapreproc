@@ -1,4 +1,6 @@
 #!/bin/sh
+source /apps/pythonenv/py2.7/bin/activate
+
 #cd /home/cvdev/stratdev/data_cleaning/csi_scripts/
 cd /home/cvdev/datapreproc/data_cleaning/csi_scripts/
 echo "DB DUMP CSI DAT FOR ETF's AND FUNDS STATUS:\n" >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
