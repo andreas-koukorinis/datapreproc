@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 import os
+import traceback
 import argparse
 import MySQLdb
 import smtplib
@@ -8,51 +9,95 @@ import urllib2
 from datetime import datetime, date, timedelta
 home_path = os.path.expanduser("~")
 sys.path.append(home_path + '/stratdev/')
-from utils.dbqueries import get_latest_currency_and_conversion_factors, fetch_latest_prices
+from utils.dbqueries import get_latest_currency_and_conversion_factors_v1, fetch_latest_prices_v1, connect_to_db, db_connect
+from collections import deque
+from math import ceil
 
 def send_mail( err, msg ):
-  server = smtplib.SMTP( "localhost" )
-  server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", \
-      'EXCEPTION %s %s' % ( err, msg ) )
+    server = smtplib.SMTP( "localhost" )
+    server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", \
+        'EXCEPTION %s %s' % ( err, msg ) )
 
-def get_mark_to_market(products, product_type, cash, price, average_trade_price, currency_factor, conversion_factor, num_shares, map_product_to_contract):
-    mark_to_market = cash
-    for product in products:
-        if  product_type == 'future':
-            mark_to_market += (price[map_product_to_contract[product]] - average_trade_price[product]) * conversion_factor[product] * num_shares[product] * currency_factor[product]
-        else:
-            mark_to_market += price[map_product_to_contract[product]] * num_shares[product] * conversion_factor[product] * currency_factor[product]
-    return mark_to_market
+def get_match_idx( order_list, order_sign ):
+    idx = len(order_list) - 1
+    while idx >= 0:
+        if sign(order_list[idx][1]) != order_sign:
+            return idx
+        idx -= 1
+    return -1
 
-def get_factors(current_date, data_source, products, product_type):
-    price = {}
-    currency_factor = {}
+def sign(value):
+    ret_value = 1 if value >= 0 else -1
+    return ret_value
+
+def get_currency_from_column( column ):
+    currency = column.split('_')[1]
+    if currency != 'USD':
+        currency += 'USD'
+    return currency
+
+def get_column_from_currency( currency, end ):
+    currency = currency[0:3]
+    column = 'secured_' + currency + '_' + end
+    return column
+
+def get_mark_to_market(outstanding_amounts_ote, outstanding_amounts_bal, currency_rates):
+    converted_total_bal = 0
+    converted_total_ote = 0 
+    mark_to_market = 0
+    for key in outstanding_amounts_bal.keys():
+        currency = get_currency_from_column(key)
+        converted_total_bal += outstanding_amounts_bal[key] * currency_rates[currency]
+        mark_to_market += outstanding_amounts_bal[key] * currency_rates[currency]
+    for key in outstanding_amounts_ote.keys():
+        currency = get_currency_from_column(key)
+        converted_total_ote += outstanding_amounts_ote[key] * currency_rates[currency]
+        mark_to_market += outstanding_amounts_ote[key] * currency_rates[currency]
+    return (converted_total_bal, converted_total_ote, mark_to_market)
+
+def get_factors(current_date, data_source, exchange_symbols, product_type, wedbush_db_cursor):
+    prices = {}
     conversion_factor = {}
-    products_db = [product+'_1' for product in products]
-    products_db.extend([product+'_2' for product in products])
-    curr_date_str = current_date.strftime("%Y-%m-%d")
+    products = [ exchange_symbol[:-3] + '_1' for exchange_symbol in exchange_symbols ]
+    (csidb,csidb_cursor) = db_connect()
+    _format_strings = ','.join(['%s'] * len(products))
+    csidb_cursor.execute("SELECT product,conversion_factor FROM products WHERE product IN (%s)" % _format_strings,tuple(products))
+    rows = csidb_cursor.fetchall()
+    for row in rows:
+        conversion_factor[row['product'][:-2]] = float(row['conversion_factor'])
+  
     # If data source is CSI get prices and factors from db
     if data_source == 'csi':
-        conversion_factor_all, currency_factor_currencywise, product_to_currency = get_latest_currency_and_conversion_factors(products_db, curr_date_str)
-        price = fetch_latest_prices(products_db, current_date)
-    for prod in products:
-        if product_type == 'future':
-            conversion_factor[prod] = conversion_factor_all['f'+prod+'_1']
-            currency_factor[prod] = currency_factor_currencywise[product_to_currency['f'+prod+'_1']]
-        else:
-            conversion_factor[prod] = conversion_factor_all[prod]
-            currency_factor[prod] = currency_factor_currencywise[product_to_currency[prod]]
+        new_symbols = []
+        for i in range(len(exchange_symbols)):
+            basename = exchange_symbols[i][:-3]
+            if basename == "ES": # For ES we want to use SP prices
+                new_symbols.append( 'SP' + exchange_symbols[i][-3:] )
+            else:
+                new_symbols.append( exchange_symbols[i] )
+        #conversion_factor, currency_factor = get_latest_currency_and_conversion_factors_v1(basenames, curr_date_str, product_type)
+        prices = fetch_latest_prices_v1(new_symbols, current_date, product_type) # Uses exchange symbols
+        for key in prices.keys():
+            if key[:-3] == "SP":
+                prices['ES' + key[-3:]] = prices[key]
 
-    return price, conversion_factor, currency_factor
+    elif data_source == 'wedbush':
+        _format_strings = ','.join(['%s'] * len(exchange_symbols))
+        query = "SELECT product, broker_close_price FROM positions WHERE product IN (%s) and date = '%s'" % ( _format_strings, current_date.strftime("%Y-%m-%d") )
+        wedbush_db_cursor.execute(query, tuple(exchange_symbols))
+        rows = wedbush_db_cursor.fetchall()
+        for row in rows:
+            prices[row['product']] = float( row['broker_close_price'] )
+    return prices, conversion_factor
 
 def main():
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('current_date')
-    current_date = args.current_date
     parser.add_argument('-d', type=str, help='Data source for prices and rates\nEg: -d csi\n Default is CSI',default='csi', dest='data_source')
     parser.add_argument('-t', type=str, help='Type  for products being ETFs\nEg: -t etf\n Default is future i.e. trading futures',default='future', dest='product_type')
     args = parser.parse_args()
+    current_date = datetime.strptime(args.current_date, '%Y%m%d')
     product_type = args.product_type
     
     # Connect to db
@@ -61,56 +106,306 @@ def main():
         db_cursor = db.cursor(MySQLdb.cursors.DictCursor)
     except Exception, err:
         send_mail( err, 'Could not connect to db' )
+        print traceback.format_exc()
 
-    # Get positions, average trade price, yday portfolio value
+    # First update positions based on actual orders for today
+    positions = {}  
     try:
-        # TODO update if already present
-        query = "SELECT product, estimated_average_trade_price, estimated_position, estimated_average_trade_price FROM positions WHERE date = '%s'" % ( current_date )
-        db_cursor.execute(query)
+        # get the current position and average trade price
+        try:    
+            # Get YDAY position    
+            query = "SELECT date FROM positions WHERE date < '%s' ORDER BY date DESC limit 1" % ( current_date )
+            db_cursor.execute(query)
+            rows = db_cursor.fetchall()
+            query = "SELECT product, estimated_position FROM positions WHERE date = '%s' ORDER BY date DESC" % ( rows[0]['date'] )
+            db_cursor.execute(query)
+            rows = db_cursor.fetchall()
+            for row in rows:
+                positions[row['product']] = int(row['estimated_position'])
+        except Exception, err:
+            print traceback.format_exc()
+            print 'Could not fnd position for previous day'
 
+        query = "SELECT product, fill_amount FROM actual_orders WHERE date = '%s'" % ( current_date )
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        for row in rows:
+            product = row['product']
+            positions[product] = positions.get( product, 0 ) + int(row['fill_amount'])
+        for product in positions.keys():
+            # Update the current position
+            query = "UPDATE positions SET estimated_position='%s' WHERE date='%s' AND product='%s'" \
+                     % ( positions[product], current_date, product )
+            db_cursor.execute(query)
+        db.commit()
     except Exception, err:
-        send_mail( err, 'Could not find estimated position data in db' )
+        db.rollback()
+        send_mail( err, 'Could not calculate estimated positions based on orders placed' )
+        print traceback.format_exc()
 
     # Initialize with default variables
     cash = 0
     products = []
-    average_trade_price = {}
-    num_shares = {}
-    map_product_to_contract = {}
-    for row in rows:
-        if product_type == 'future':
-            products.append( row['product'][:-3] )
-            map_product_to_contract[products[-1]] = row['product'][:-3]
-        else:
-            products.append( row['product'] )
-            map_product_to_contract[products[-1]] = products[-1]
-        num_shares[product[-1]] = row['estimated_position']
-        average_trade_price[product[-1]] = row['estimated_average_trade_price']
+    #Get outstanding positions for yday
+    outstanding_currencies_bal = ['segregated_USD_bal', 'secured_USD_bal', 'secured_GBP_bal', 'secured_EUR_bal']
+    outstanding_amounts_bal = dict.fromkeys(outstanding_currencies_bal, 0.0)
 
+    columns = ','.join( outstanding_currencies_bal)
     try:
-        # TODO update if already present
-        query = "SELECT estimated_cash FROM portfolio_stats WHERE date = '%s'" % ( current_date )
+        query = "select %s from estimated_portfolio_stats where date < '%s' order by date desc limit 1" % ( columns, current_date )
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        if len(rows) == 0:
+            try:
+                query = "SELECT segregated_USD_bal from broker_portfolio_stats where date < '%s' order by date desc limit 1" % ( current_date )
+                db_cursor.execute(query)
+                rows = db_cursor.fetchall()
+                if len(rows) > 0:
+                    outstanding_amounts_bal['segregated_USD_bal'] = float( rows[0]['segregated_USD_bal'] ) 
+                else:
+                    send_mail( '', 'Something wrong with estimated segregated/secured data in db for broker while estimation' )
+                    print traceback.format_exc()
+                    sys.exit( 'Could not fetch segregated_USD_bal broker data for estimation' )
+            except Exception, err:
+                send_mail( err, 'Could not find estimated segregated/secured data in db 1' )
+                print traceback.format_exc()
+                sys.exit( 'Could not load estimated segregated/secured data from db 1' )
+        else:
+            for key in outstanding_amounts_bal.keys():
+                outstanding_amounts_bal[key] = float( rows[0][key] )
+    except Exception, err:
+        send_mail( err, 'Could not find estimated segregated/secured data in db 2' )
+        print traceback.format_exc()
+        sys.exit( 'Could not load estimated segregated/secured data from db 2' )
+
+    # Get positions, average trade price, for yday
+    try:
+        query = "SELECT date FROM positions WHERE date < '%s' ORDER BY date DESC LIMIT 1" % current_date
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
         if len(rows) == 1:
-            cash = rows[0]['estimated_cash']
-        else:
-            send_mail( err, 'Could not find estimated cash data in db' )
-            sys.exit( 'Could not load cash' )
+            query = "SELECT product FROM positions WHERE date = '%s'" % ( rows[0]['date'] )
+            db_cursor.execute(query)
+            rows = db_cursor.fetchall()
+            for row in rows:
+                products.append( row['product'] )
+
     except Exception, err:
-        send_mail( err, 'Could not find estimated cash data in db' )
-        sys.exit( 'Could not load cash' )
-    
-    price, conversion_factor, currency_factor = get_factors( current_date, args.data_source, products, product_type )
-    current_worth = get_mark_to_market(products, product_type, cash, price, average_trade_price, currency_factor, conversion_factor, num_shares, map_product_to_contract)
+        send_mail( err, 'Could not find estimated position data in db' )
+        print traceback.format_exc()
 
     try:
-        query = "Update portfolio_stats SET estimated_portfolio_value = '%s' WHERE date = '%s'" % ( current_worth, current_date )
+        query = "SELECT product FROM actual_orders WHERE date = '%s'" % ( current_date )
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        for row in rows:
+            products.append( row['product'] )
+
+    except Exception, err:
+        send_mail( err, 'Could not find estimated position data in db' )
+        print traceback.format_exc()
+        sys.exit( 'Could not load estimated position data from db' )
+
+    products = list( set ( products ) )
+    price, conversion_factor = get_factors( current_date, args.data_source, products, product_type, db_cursor )
+
+    # TODO update PNL
+    try:
+        # Get commission rates
+        commission_rates = {}
+        query = "SELECT product, currency, exchange_fee, broker_fee, clearing_fee, nfa_fee FROM commission_rates" 
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        for row in rows:
+            commission_rates[row['product']] = { 'currency' : row['currency'],
+                                                 'exchange_fee' : float(row['exchange_fee']),
+                                                 'broker_fee' : float(row['broker_fee']),
+                                                 'clearing_fee' : float(row['clearing_fee']),
+                                                 'nfa_fee' : float(row['nfa_fee'])
+                                               }
+    except Exception, err:
+        send_mail( err, 'Could not fetch commission rates data from db' )
+        print traceback.format_exc()
+        sys.exit( 'Could not load commission rates data' )
+
+    # TODO Note Overwriting here Get broker currency factor
+    # TODO probably not a good way
+    product_to_currency = {}
+    currency_rates = {}
+    try:
+        query = "SELECT currency, rate FROM currency_rates WHERE date = '%s'" % ( current_date )
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        for row in rows:
+            currency_rates[row['currency']] = float( row['rate'] )
+
+        for product in commission_rates.keys():
+            currency = commission_rates[product]['currency']
+            product_to_currency[product] = currency 
+
+    except Exception, err:
+        send_mail( err, 'Could not load currency rates from db' )
+        print traceback.format_exc()
+        sys.exit( 'Could not load currency rates from db' )
+
+    # If we reach here, this means yday cash is available
+    # Now estimate todays cash
+    commission = 0
+    realized_pnl = 0
+
+    # Go through each order for today and keep track of average trade price, commission and cash
+    orders = {}
+    net_amount = {}
+    order_queue = {}
+    try:
+        # Get YDAY cash
+        query = "SELECT date, product, fill_amount, fill_price FROM actual_orders WHERE date <= '%s' ORDER BY date ASC, fill_time ASC, place_time ASC" % ( current_date )
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        for row in rows:
+            # Update position, atp, realized pnl and cash
+            product = row['product']
+            fill_amount = int(row['fill_amount'])
+            fill_price = float(row['fill_price'])
+            order_date = row['date']
+            if product not in orders.keys():
+                net_amount[product] = 0
+                order_queue[product] = []
+                orders[product] = [ [ order_date, fill_amount, fill_price ] ]
+            else:
+                orders[product].append( [ order_date, fill_amount, fill_price ] )
+
+    except Exception, err:
+        send_mail( err, 'Could not load all orders from db' )
+        print traceback.format_exc()
+        sys.exit( 'Could not load all orders from db' )
+
+    print 'segregated_USD_bal', outstanding_amounts_bal['segregated_USD_bal']
+    print 'secured_USD_bal', outstanding_amounts_bal['secured_USD_bal']
+    for product in orders.keys():
+        basename = product[:-3]
+        for order in orders[product]:
+            if order[0] == current_date.date():
+                fill_amount = order[1]
+                commission += abs( fill_amount ) * ( ( commission_rates[basename]['broker_fee'] + commission_rates[basename]['nfa_fee'] ) + \
+                              ( commission_rates[basename]['exchange_fee'] + commission_rates[basename]['clearing_fee'] ) * currency_rates[product_to_currency[basename]] )
+
+                outstanding_amounts_bal['segregated_USD_bal'] -= abs( fill_amount ) * commission_rates[basename]['broker_fee']
+                if product_to_currency[basename] == 'USD':
+                    outstanding_amounts_bal['segregated_USD_bal'] -= abs( fill_amount ) * commission_rates[basename]['nfa_fee']
+                else:
+                    outstanding_amounts_bal['secured_USD_bal'] -= abs( fill_amount ) * commission_rates[basename]['nfa_fee']
+
+                if product_to_currency[basename] == 'USD':
+                    outstanding_amounts_bal['segregated_USD_bal'] -= abs( fill_amount ) * ( commission_rates[basename]['exchange_fee'] \
+                                                                                          + commission_rates[basename]['clearing_fee'] )
+
+                else:
+                    outstanding_amounts_bal[get_column_from_currency(product_to_currency[basename], 'bal')] -= abs( fill_amount ) * ( commission_rates[basename]['exchange_fee'] \
+                                                                                                                                    + commission_rates[basename]['clearing_fee'] )
+
+            # Do order matching to find a corresponding order
+            #if net_amount[product] == 0 or sign(net_amount[product]) == sign(order[1]): # just need to insert in the queue
+                #order_queue[product].append(order)
+            #else:
+            current_trade_amount = order[1]
+            while True:
+                if ( len( order_queue[product] ) == 0 or sign(net_amount[product]) == sign(current_trade_amount) ):
+                    if current_trade_amount != 0:
+                        new_order = [ order[0], current_trade_amount, order[2] ]
+                        order_queue[product].append(new_order)
+                    net_amount[product] += current_trade_amount
+                    break
+                elif current_trade_amount == 0:
+                    break
+                else:
+                    match_idx = get_match_idx( order_queue[product], sign(current_trade_amount) )
+                    matched_order = order_queue[product][match_idx]
+                    if abs(matched_order[1]) > abs(current_trade_amount): # Look for no more matches, long order amount > short order amount
+                        closed_amount = -current_trade_amount
+                        order_queue[product][match_idx][1] -= closed_amount
+                    else:
+                        closed_amount = matched_order[1]
+                        del order_queue[product][match_idx] 
+
+                    if order[0] == current_date.date():
+                        buy_price = ceil(matched_order[2]*100000)/100000
+                        sell_price = ceil(order[2]*100000)/100000
+                        print 'CLOSED: ', closed_amount, sell_price, buy_price, closed_amount * conversion_factor[basename] * ( sell_price - buy_price )
+                        if product_to_currency[basename] == 'USD':
+                            outstanding_amounts_bal['segregated_USD_bal'] += closed_amount * conversion_factor[basename] * ( sell_price - buy_price )
+                        else:
+                            outstanding_amounts_bal[get_column_from_currency(product_to_currency[basename], 'bal')] += closed_amount * conversion_factor[basename] * \
+                                                                                                                       ( sell_price - buy_price )
+                    current_trade_amount += closed_amount
+                    net_amount[product] -= closed_amount
+
+    average_trade_price = {}
+    current_amount = {}
+    for product in orders.keys():
+        average_trade_price[product] = 0.0 
+        current_amount[product] = 0.0
+        for order in order_queue[product]:
+            average_trade_price[product] = ( current_amount[product]*average_trade_price[product] + order[1]*order[2] )/ ( current_amount[product] + order[1] )
+            current_amount[product] += order[1]
+
+    # Update open equity using estimated open positions
+    outstanding_currencies_ote = ['segregated_USD_ote', 'secured_USD_ote', 'secured_GBP_ote', 'secured_EUR_ote']
+    outstanding_amounts_ote = dict.fromkeys(outstanding_currencies_ote, 0.0)
+    for product in orders.keys():
+        basename = product[:-3]
+        currency = commission_rates[basename]['currency']
+        if currency == 'USD':
+            outstanding_amounts_ote['segregated_USD_ote'] += current_amount[product] * conversion_factor[basename] *\
+                                                             ((ceil( price[product]*100000)/100000) - (ceil(average_trade_price[product]*100000)/100000 ))
+        else:
+            outstanding_amounts_ote[get_column_from_currency(currency, 'ote')] = current_amount[product] * conversion_factor[basename]* \
+                                                             ((ceil( price[product]*100000)/100000) - (ceil(average_trade_price[product]*100000)/100000 ))
+
+    converted_total_bal, converted_total_ote, mark_to_market = get_mark_to_market(outstanding_amounts_ote, outstanding_amounts_bal, currency_rates)
+
+    yday_portfolio_value = 1000000
+    try:
+        query = "SELECT portfolio_value FROM estimated_portfolio_stats WHERE date < '%s' ORDER BY date DESC LIMIT 1" % current_date
+        db_cursor.execute(query)
+        rows=db_cursor.fetchall()
+        yday_portfolio_value = float(rows[0]['portfolio_value'])        
+    except Exception, err:
+        send_mail( err, 'Could not fetch last day portfolio value from db' )
+        print traceback.format_exc()
+
+    pnl = mark_to_market - yday_portfolio_value
+
+    try:
+        query = "INSERT INTO estimated_portfolio_stats (date, converted_total_bal, converted_total_ote, portfolio_value, commission, pnl) VALUES('%s','%0.2f','%0.2f','%0.2f','%0.2f','%0.2f')" % ( current_date, converted_total_bal, converted_total_ote, mark_to_market, commission, pnl )
         db_cursor.execute(query)
         db.commit()
     except Exception, err:
-        send_mail( err, 'Could not update estimated portfolio value in db' )
-        sys.exit( 'Could not load cash' )
+        send_mail( err, 'Could not update estimated portfolio data in db' )
+        print traceback.format_exc()
+        sys.exit( 'Could not update estimated portfolio data in db' )
+
+    # Update outstanding balance in DB
+    try:
+        for key in outstanding_amounts_bal.keys():
+            query = "UPDATE estimated_portfolio_stats SET %s = '%0.2f' WHERE date = '%s' " % ( key, outstanding_amounts_bal[key], current_date )
+            db_cursor.execute( query )
+        db.commit()
+    except Exception, err:
+        db.rollback()
+        send_mail( err, 'Could not insert outstanding amounts bal data into db' )
+        print traceback.format_exc()
+
+    # Update outstanding ote in DB
+    try:
+        for key in outstanding_amounts_ote.keys():
+            query = "UPDATE estimated_portfolio_stats SET %s = '%0.2f' WHERE date = '%s' " % ( key, outstanding_amounts_ote[key], current_date )
+            db_cursor.execute( query )
+            db.commit()
+    except Exception, err:
+        db.rollback()
+        send_mail( err, 'Could not insert outstanding amounts ote data into db' )
+        print traceback.format_exc()
 
 if __name__ == '__main__':
     main()
