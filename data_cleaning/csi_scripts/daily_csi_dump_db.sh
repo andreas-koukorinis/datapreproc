@@ -20,3 +20,5 @@ python daily_update.py futures 1 TU FV TY US NK NIY ES SP EMD NQ YM AD BP CD CU1
 
 python daily_update.py us-stocks 1 BND BNDX IEMG LQD MUB SHV TIP VBR VEA VIG VNQ VOE VT VTI VTIP VTV VWO VWOB VXUS >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
 python daily_update.py funds 1 AQRIX AQMIX QGMIX SRPFX ABRZX VBLTX VTSMX>> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
+python daily_update.py f-indices 1 XMSW ^AXJO ^BSES ^BVSP ^FTSE ^GDAX ^GU15 ^MXX ^N500 ^N150 ^NZ50 ^SSMI ^XMSC >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`
+python daily_update.py indices 1 VIX TCMP SPX NYA COMP >> /apps/logs/log_`date +%Y%m%d -d "yesterday"`

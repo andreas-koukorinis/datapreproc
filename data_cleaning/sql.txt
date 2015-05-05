@@ -392,14 +392,51 @@ insert into products values ('NG_2','191','NG','Natural Gas-Henry Hub-NYMEX Futu
 insert into products values ('G_1','134','LGO','Gas Oil-(IPE) Future 1','us_futures','future','energy','0.050000','5.000000','100.000000','USD','ICEUK');
 insert into products values ('G_2','134','LGO','Gas Oil-(IPE) Future 2','us_futures','future','energy','0.050000','5.000000','100.000000','USD','ICEUK');
 
+# Insert Indices
+# Used USD for indices currency so that no currency factor is fetched for them
+INSERT INTO products VALUES('COMP','5799','COMP','Nasdaq Composite Index','indices','index','na','1','1','1','USD','NASDAQ')
+INSERT INTO products VALUES('NYA','19900','NYA','NYSE Composite Index','indices','index','na','1','1','1','USD','NYSE')
+INSERT INTO products VALUES('SPX','5676','SPX','S&P 500 Index','indices','index','na','1','1','1','USD','CBOE')
+INSERT INTO products VALUES('VIX','19883','VIX','CBOE SPX Market Volatility Index','indices','index','na','1','1','1','USD','CBOE')
+INSERT INTO products VALUES('XMSW','3972','XMSW','MSCI World Index','indices','index','na','1','1','1','USD','MSCI')
+INSERT INTO products VALUES('^XMSC','6799','^XMSC','MSCI EAFE','indices','index','na','1','1','1','USD','MSCI')
+INSERT INTO products VALUES('SPX','5676','SPX','S&P 500 Index','indices','index','na','1','1','1','USD','NA');
+INSERT INTO products VALUES('TCMP','5574','TCMP','S&P/TSX Composite Index','indices','index','na','1','1','1','USD','NA');
+INSERT INTO products VALUES('^AXJO','3847','^AXJO','S&P/ASX 200','indices','index','na','1','1','1','USD','NA');
+INSERT INTO products VALUES('^BSES','3803','^BSES','S&P BSE Sensex Index','indices','index','na','1','1','1','USD','NA');
+INSERT INTO products VALUES('^BVSP','3830','^BVSP','Brazil Bovespa Index','indices','index','na','1','1','1','USD','NA');
+INSERT INTO products VALUES('^FTSE','3827','^FTSE','FTSE 100 Index','indices','index','na','1','1','1','USD','NA');
+INSERT INTO products VALUES('^GDAX','3817','^GDAX','Germany DAX Index','indices','index','na','1','1','1','USD','NA');
+INSERT INTO products VALUES('^GU15','51596','^GU15','FTSE Italia All-Share','indices','index','na','1','1','1','USD','NA');
+INSERT INTO products VALUES('^MXX','6785','^MXX','Mexico I P C','indices','index','na','1','1','1','USD','NA');
+INSERT INTO products VALUES('^N150','3842','^N150','Euronext 150 Index','indices','index','na','1','1','1','USD','NA');
+INSERT INTO products VALUES('^N500','114097','^N500','Nikkei 500','indices','index','na','1','1','1','USD','NA');
+INSERT INTO products VALUES('^NZ50','3854','^NZ50','New Zealand 50 Index','indices','index','na','1','1','1','USD','NA');
+INSERT INTO products VALUES('^SSMI','6792','^SSMI','Swiss Market Index','indices','index','na','1','1','1','USD','NA');
+
 # Insert Benchmarks
 LOAD DATA LOCAL INFILE '/home/deedee/benchmarks/btop50_month_end_returns.csv' INTO TABLE benchmarks FIELDS TERMINATED BY ' ';
 LOAD DATA LOCAL INFILE '/home/deedee/benchmarks/tulip_month_end_returns.csv' INTO TABLE benchmarks FIELDS TERMINATED BY ' ';
 LOAD DATA LOCAL INFILE '/home/deedee/benchmarks/ahl_div_month_end_returns.csv' INTO TABLE benchmarks FIELDS TERMINATED BY ' ';
 
+# Insert Indices
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^AXJO.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^BSES.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^BVSP.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^FTSE.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^GDAX.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^GU15.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^MXX.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^N150.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^N500.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^NZ50.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^SSMI.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/SPX.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/TCMP.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 
 # Live trading important information
-CREATE TABLE `portfolio_stats` (`date` date NOT NULL, `broker_cash` varchar(20), `estimated cash` varchar(20), `broker_portfolio_value` varchar(20), `estimated_portfolio_value` varchar(20), `broker_pnl` varchar(20), `estimated_pnl` varchar(20), `maintainence_margin` varchar(20), `initial_margin` varchar(20), PRIMARY KEY (`date`));
+CREATE TABLE `portfolio_stats` (`date` date NOT NULL, `broker_cash` varchar(20), `estimated cash` varchar(20), `broker_portfolio_value` varchar(20), `estimated_portfolio_value` varchar(20), `broker_pnl` varchar(20), `estimated_pnl` varchar(20), `maintainence_margin` varchar(20), `initial_margin` varchar(20), `commission` VARCHAR(20), `realized_pnl` VARCHAR(20), PRIMARY KEY (`date`));
 CREATE TABLE `positions` (`date` date NOT NULL,`product` varchar(20), `estimated_position` INT, `broker_position` INT, `estimated_average_trade_price` varchar(20), `broker_average_trade_price` varchar(20), `broker_close_price` varchar(20), PRIMARY KEY (`date`, `product`));
-CREATE TABLE `orders` (`date` date NOT NULL,`time` varchar(20) NOT NULL, `product` varchar(20) NOT NULL, `amount` varchar(20) NOT NULL, `trade_price` varchar(20) NOT NULL, `estimated_average_trade_price` varchar(20) NOT NULL, `actual_average_trade_price` varchar(20) NOT NULL, `commission` varchar(20) NOT NULL, PRIMARY KEY (`date`,`time`,`product`));
-
+CREATE TABLE `broker_orders` (`date` date NOT NULL,`product` varchar(20) NOT NULL, `amount` varchar(20) NOT NULL, `trade_price` varchar(20) NOT NULL, `commission` varchar(20) NOT NULL);
+CREATE TABLE `actual_orders` (`date` date NOT NULL,`product` varchar(20) NOT NULL, `place_time` time NOT NULL, `fill_time` time NOT NULL, `place_amount` INT NOT NULL, `fill_amount` INT NOT NULL, `order_price` varchar(20) NOT NULL, `fill_price` varchar(20), `commission` varchar(20) NULL, PRIMARY KEY (`date`, `product`, `place_time`));
+CREATE TABLE `commissions_rates` ( `product` VARCHAR(20), `exchange_fee` VARCHAR(20), `broker_fee` VARCHAR(20), `clearing_fee` VARCHAR(20), `nfa_fee` VARCHAR(20), PRIMARY KEY (`product`) );
