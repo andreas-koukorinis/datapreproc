@@ -154,6 +154,8 @@ LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/ILSUSD.csv' INTO
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/SGDUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/HKDUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/TWDUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/BRLUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/INRUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/KC_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/CT_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
@@ -345,7 +347,8 @@ insert into products values ('ILSUSD','69055','USK','ILS/USD','forex','fx','fx',
 insert into products values ('SGDUSD','39052','QE{','SGD/USD','forex','fx','fx','1','1','1','USD','FX');
 insert into products values ('HKDUSD','39044','QE7','HKD/USD','forex','fx','fx','1','1','1','USD','FX');
 insert into products values ('TWDUSD','69053','USI','TWD/USD','forex','fx','fx','1','1','1','USD','FX');
-
+insert into products values ('BRLUSD','69039','US5','BRL/USD','forex','fx','fx','1','1','1','USD','fx');
+insert into products values ('INRUSD','69045','USA','INR/USD','forex','fx','fx','1','1','1','USD','fx');
 
 insert into products values ('KC_1','10','KC','Coffee (Floor trading only)-CSCE Future 1','us_futures','future','agriculture','0.050000','18.750000','375.000000','USD','ICEUS');
 insert into products values ('KC_2','10','KC','Coffee (Floor trading only)-CSCE Future 2','us_futures','future','agriculture','0.050000','18.750000','375.000000','USD','ICEUS');
