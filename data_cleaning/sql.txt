@@ -414,13 +414,25 @@ INSERT INTO products VALUES('^N500','114097','^N500','Nikkei 500','indices','ind
 INSERT INTO products VALUES('^NZ50','3854','^NZ50','New Zealand 50 Index','indices','index','na','1','1','1','USD','NA');
 INSERT INTO products VALUES('^SSMI','6792','^SSMI','Swiss Market Index','indices','index','na','1','1','1','USD','NA');
 
-
-
 # Insert Benchmarks
 LOAD DATA LOCAL INFILE '/home/deedee/benchmarks/btop50_month_end_returns.csv' INTO TABLE benchmarks FIELDS TERMINATED BY ' ';
 LOAD DATA LOCAL INFILE '/home/deedee/benchmarks/tulip_month_end_returns.csv' INTO TABLE benchmarks FIELDS TERMINATED BY ' ';
 LOAD DATA LOCAL INFILE '/home/deedee/benchmarks/ahl_div_month_end_returns.csv' INTO TABLE benchmarks FIELDS TERMINATED BY ' ';
 
+# Insert Indices
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^AXJO.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^BSES.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^BVSP.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^FTSE.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^GDAX.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^GU15.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^MXX.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^N150.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^N500.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^NZ50.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^SSMI.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/SPX.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/TCMP.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 
 # Live trading important information
 CREATE TABLE `portfolio_stats` (`date` date NOT NULL, `broker_cash` varchar(20), `estimated cash` varchar(20), `broker_portfolio_value` varchar(20), `estimated_portfolio_value` varchar(20), `broker_pnl` varchar(20), `estimated_pnl` varchar(20), `maintainence_margin` varchar(20), `initial_margin` varchar(20), `commission` VARCHAR(20), `realized_pnl` VARCHAR(20), PRIMARY KEY (`date`));
