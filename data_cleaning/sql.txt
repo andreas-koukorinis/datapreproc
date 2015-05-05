@@ -399,8 +399,89 @@ LOAD DATA LOCAL INFILE '/home/deedee/benchmarks/ahl_div_month_end_returns.csv' I
 
 
 # Live trading important information
-CREATE TABLE `portfolio_stats` (`date` date NOT NULL, `broker_cash` varchar(20), `estimated cash` varchar(20), `broker_portfolio_value` varchar(20), `estimated_portfolio_value` varchar(20), `broker_pnl` varchar(20), `estimated_pnl` varchar(20), `maintainence_margin` varchar(20), `initial_margin` varchar(20), `commission` VARCHAR(20), `realized_pnl` VARCHAR(20), PRIMARY KEY (`date`));
-CREATE TABLE `positions` (`date` date NOT NULL,`product` varchar(20), `estimated_position` INT, `broker_position` INT, `estimated_average_trade_price` varchar(20), `broker_average_trade_price` varchar(20), `broker_close_price` varchar(20), PRIMARY KEY (`date`, `product`));
-CREATE TABLE `broker_orders` (`date` date NOT NULL,`product` varchar(20) NOT NULL, `amount` varchar(20) NOT NULL, `trade_price` varchar(20) NOT NULL, `commission` varchar(20) NOT NULL);
-CREATE TABLE `actual_orders` (`date` date NOT NULL,`product` varchar(20) NOT NULL, `place_time` time NOT NULL, `fill_time` time NOT NULL, `place_amount` INT NOT NULL, `fill_amount` INT NOT NULL, `order_price` varchar(20) NOT NULL, `fill_price` varchar(20), `commission` varchar(20) NULL, PRIMARY KEY (`date`, `product`, `place_time`));
-CREATE TABLE `commissions_rates` ( `product` VARCHAR(20), `exchange_fee` VARCHAR(20), `broker_fee` VARCHAR(20), `clearing_fee` VARCHAR(20), `nfa_fee` VARCHAR(20), PRIMARY KEY (`product`) );
+CREATE TABLE `actual_orders` (
+  `date` date NOT NULL,
+  `product` varchar(20) NOT NULL,
+  `place_time` time NOT NULL,
+  `fill_time` time NOT NULL,
+  `place_amount` int(11) NOT NULL,
+  `fill_amount` int(11) NOT NULL,
+  `order_price` varchar(20) NOT NULL,
+  `fill_price` varchar(20) DEFAULT NULL,
+  `commission` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`date`,`product`,`place_time`)
+)
+
+CREATE TABLE `broker_orders` (
+  `date` date NOT NULL,
+  `product` varchar(20) NOT NULL,
+  `amount` varchar(20) NOT NULL,
+  `trade_price` varchar(20) NOT NULL,
+  `commission` varchar(20) NOT NULL
+)
+
+CREATE TABLE `broker_portfolio_stats` (
+  `date` date NOT NULL,
+  `converted_total_bal` varchar(20) DEFAULT NULL,
+  `converted_total_ote` varchar(20) DEFAULT NULL,
+  `segregated_USD_bal` varchar(20) DEFAULT NULL,
+  `segregated_USD_ote` varchar(20) DEFAULT NULL,
+  `secured_USD_bal` varchar(20) DEFAULT NULL,
+  `secured_USD_ote` varchar(20) DEFAULT NULL,
+  `secured_EUR_bal` varchar(20) DEFAULT NULL,
+  `secured_EUR_ote` varchar(20) DEFAULT NULL,
+  `secured_GBP_bal` varchar(20) DEFAULT NULL,
+  `secured_GBP_ote` varchar(20) DEFAULT NULL,
+  `portfolio_value` varchar(20) DEFAULT NULL,
+  `pnl` varchar(20) DEFAULT NULL,
+  `maintainence_margin` varchar(20) DEFAULT NULL,
+  `initial_margin` varchar(20) DEFAULT NULL,
+  `commission` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`date`)
+)
+
+CREATE TABLE `commission_rates` (
+  `product` varchar(20) NOT NULL DEFAULT '',
+  `currency` varchar(20) DEFAULT NULL,
+  `exchange_fee` varchar(20) DEFAULT NULL,
+  `broker_fee` varchar(20) DEFAULT NULL,
+  `clearing_fee` varchar(20) DEFAULT NULL,
+  `nfa_fee` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`product`)
+)
+
+CREATE TABLE `currency_rates` (
+  `date` date NOT NULL,
+  `currency` varchar(20) NOT NULL,
+  `rate` varchar(20) NOT NULL,
+  PRIMARY KEY (`date`,`currency`)
+)
+
+CREATE TABLE `estimated_portfolio_stats` (
+  `date` date NOT NULL,
+  `converted_total_bal` varchar(20) DEFAULT NULL,
+  `converted_total_ote` varchar(20) DEFAULT NULL,
+  `segregated_USD_bal` varchar(20) DEFAULT NULL,
+  `segregated_USD_ote` varchar(20) DEFAULT NULL,
+  `secured_USD_bal` varchar(20) DEFAULT NULL,
+  `secured_USD_ote` varchar(20) DEFAULT NULL,
+  `secured_EUR_bal` varchar(20) DEFAULT NULL,
+  `secured_EUR_ote` varchar(20) DEFAULT NULL,
+  `secured_GBP_bal` varchar(20) DEFAULT NULL,
+  `secured_GBP_ote` varchar(20) DEFAULT NULL,
+  `portfolio_value` varchar(20) DEFAULT NULL,
+  `pnl` varchar(20) DEFAULT NULL,
+  `commission` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`date`)
+)
+
+CREATE TABLE `positions` (
+  `date` date NOT NULL,
+  `product` varchar(20) NOT NULL DEFAULT '',
+  `estimated_position` int(11) DEFAULT NULL,
+  `broker_position` int(11) DEFAULT NULL,
+  `estimated_average_trade_price` varchar(20) DEFAULT NULL,
+  `broker_average_trade_price` varchar(20) DEFAULT NULL,
+  `broker_close_price` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`date`,`product`)
+)
