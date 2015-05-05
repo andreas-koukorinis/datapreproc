@@ -33,7 +33,7 @@ class ExchangeSymbolManager():
 
     def get_exchange_for_product( self, product ):
         _basename = self.get_basename( product )
-        if _basename in ['ZT','ZF','ZN','ZB','NKD','NIY','ES','EMD','NQ','YM','6A','6B','6C','6E','6J','6M','6N','6S','GC','SI','HG','PL','PA','LH','ZW','ZC','ZS','ZM','ZL']: # RB,NG,HO,CL
+        if _basename in ['ZT','ZF','ZN','ZB','NKD','NIY','ES','SP', 'EMD','NQ','YM','6A','6B','6C','6E','6J','6M','6N','6S','GC','SI','HG','PL','PA','LH','ZW','ZC','ZS','ZM','ZL']: # RB,NG,HO,CL
             return "cme"
         elif _basename in ['FGBS','FGBM','FGBL','FESX','FDAX','FSMI']: # FGBX
             return "eurex"
@@ -175,7 +175,7 @@ class ExchangeSymbolManager():
         if _basename in ['CL','BRN','HO','RB','NG','G']:
                 return True
         # Default case, forced -> PA, NIY
-        return ( _this_month % 3 ) == 0 # Quaterly contract months 3,6,9,12 -> ES,EMD,NKD,NIY,YM,NQ,6A,6B,6C,6E,6M,6N,6S,ZT,ZF,ZN,ZB
+        return ( _this_month % 3 ) == 0 # Quaterly contract months 3,6,9,12 -> ES,SP,EMD,NKD,NIY,YM,NQ,6A,6B,6C,6E,6M,6N,6S,ZT,ZF,ZN,ZB
 
     def is_eurex_month( self, _basename, _this_month ):
         return ( _this_month % 3 ) == 0
@@ -255,7 +255,7 @@ class ExchangeSymbolManager():
         #Settlement Date: The 3rd Friday of contract month or first earlier date when the index is published
         #Last Trading Day: Same as Settlement Date
         #OBSERVATION: the oi shifts towards the next future contract one week before i.e 2nd Friday -> 2014-03-14, 2014-06-13, 2014-09-12
-        if _basename in ['ES', 'NQ', 'YM']:
+        if _basename in ['ES','SP', 'NQ', 'YM']:
             date = self.get_date_from_nth_day_of_month_year(2, 'FRIDAY', _next_cme_month, _next_cme_year) # 2nd friday of that month of that year       
             return date
 
