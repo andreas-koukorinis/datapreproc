@@ -154,6 +154,8 @@ LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/ILSUSD.csv' INTO
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/SGDUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/HKDUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/TWDUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/BRLUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/INRUSD.csv' INTO TABLE forex FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/KC_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/CT_1.csv' INTO TABLE us_futures FIELDS TERMINATED BY ',' IGNORE 1 LINES;
