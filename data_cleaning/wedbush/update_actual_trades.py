@@ -5,10 +5,11 @@ import argparse
 import smtplib
 import MySQLdb
 import pandas as pd
+import traceback
 from datetime import datetime, date, timedelta
 home_path = os.path.expanduser("~")
 sys.path.append(home_path + '/stratdev/')
-from utils.dbqueries import connect_to_db, get_latest_currency_and_conversion_factors, fetch_latest_prices
+from utils.dbqueries import connect_to_db
 
 order_shortcode_map = {'EP':'ES','CA6':'6C','TYA':'ZN','DSX':'FESX','QGA':'LFR'}
 cqg_multiplier_map = {'ES': 100.0, '6C': 10000.0, 'ZN' : 1000.0, 'FESX' : 10.0, 'LFR' : 100.0} # TODO looks like this can change
@@ -35,14 +36,13 @@ def main():
     args = parser.parse_args()
     product_type = args.product_type
 
-    current_date = datetime.strptime( os.path.splittext(order_file)[0][2:], '%Y%m%d' )
-    
     # Connect to db
     try:
         db = connect_to_db("fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com", "live_trading", 'w')
         db_cursor = db.cursor(MySQLdb.cursors.DictCursor)
     except Exception, err:
         send_mail( err, 'Could not connect to db' )
+        print traceback.format_exc()
 
     # Update `date`,`product`, `place_time`, `fill_time`, `place_amount`, `fill_amount`, `order_price`, `fill_price`, `commission`
     order_df = pd.DataFrame.from_csv( args.order_file, index_col='Order #' )
@@ -56,7 +56,7 @@ def main():
             basename = order_shortcode_map[order_symbol]  
             exchange_symbol = basename + order_df.loc[fc]['Symbol'][-2] + place_date.strftime('%y')
             buy_or_sell = order_df.loc[fc]['B/S']
-            sign_amount = 1 if buy_or_sell == 'Sell' else -1
+            sign_amount = 1 if buy_or_sell == 'Buy' else -1
             place_amount = order_df.loc[fc]['Qty'] * sign_amount
             fill_amount = order_df.loc[fc]['Filled'] * sign_amount
             order_price = order_df.loc[fc]['Order Price']/cqg_multiplier_map[basename]
@@ -67,40 +67,13 @@ def main():
                         % ( place_date, exchange_symbol, place_time, fill_time, place_amount, fill_amount, order_price, fill_price )
                 db_cursor.execute(query)
                 db.commit()
-                try:
-                    # get the current position and average trade price
-                    query = "SELECT estimated_position, estimated_average_trade_price FROM positions WHERE product = '%s' AND date < '%s' ORDER BY date DESC limit 1" % ( exchange_symbol, current_date )
-                    db_cursor.execute(query)
-                    rows = db_cursor.fetchall()
-                    if len(rows) == 0:
-                        estimated_position = fill_amount
-                        estimated_average_trade_price = fill_price
-                    else:
-                        estimated_position = rows[0]['estimated_position']
-                        estimated_average_trade_price = rows[0]['estimated_average_trade_price']
-                        direction_switched = (abs(estimated_position) > 0 and abs(estimated_position + fill_amount) > 0) and \
-                                             ( not (sign(estimated_position) == sign(estimated_position + fill_amount) ) )
-                        if direction_switched or ( abs(estimated_position + fill_amount ) < abs(estimated_position) ):
-                            estimated_average_trade_price = fill_price
-                        else:
-                            estimated_average_trade_price = ( fill_amount * fill_price + estimated_position * estimated_average_trade_price ) / ( estimated_position + fill_amount )
-                        estimated_position += fill_amount
-                    try:
-                        # Update the current position and average trade price
-                        query = "Update positions SET estimated_position = '%d', estimated_average_trade_price = '%s' WHERE product = '%s' AND date = '%s'" \
-                                 % (  estimated_position,  estimated_average_trade_price, exchange_symbol, current_date )
-                        db_cursor.execute(query)
-                        db.commit()
-                    except Exception, err:
-                        db.rollback()
-                        send_mail( err, 'Could not insert updated estimated_position, estimated_average_trade_price into db' )
-                except Exception, err:
-                    send_mail( err, 'Could not calculate estimated positions based on orders placed' )
             except Exception, err:
                 db.rollback()
                 send_mail( err, 'Could not insert order into db' )
+                print traceback.format_exc()
 
     except Exception, err:
+        print traceback.format_exc()
         send_mail( err, 'Some issue in reading order file' )
 
 if __name__ == '__main__':
