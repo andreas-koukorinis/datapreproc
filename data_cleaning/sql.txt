@@ -706,6 +706,9 @@ LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/^SSMI.csv' INTO TABLE indices FIELD
 LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/SPX.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/TCMP.csv' INTO TABLE indices FIELDS TERMINATED BY ',' IGNORE 1 LINES;
 
+# Insert Yield Rates
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/yield_rates_20150504.csv' INTO TABLE yield_rates FIELDS TERMINATED BY ',' IGNORE 1 LINES;
+
 # Live trading important information
 CREATE TABLE `actual_orders` (
   `date` date NOT NULL,
