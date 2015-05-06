@@ -10,6 +10,7 @@ CREATE TABLE `other_futures` (`date` date NOT NULL,`product` varchar(20) NOT NUL
 CREATE TABLE `forex` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`open` varchar(20) NOT NULL,`high` varchar(20) NOT NULL,`low` varchar(20) NOT NULL,`close` varchar(20) NOT NULL,PRIMARY KEY (`date`,`product`));
 CREATE TABLE benchmarks (date date NOT NULL,benchmark varchar(20) NOT NULL,returns varchar(20) NOT NULL, PRIMARY KEY (date,benchmark));
 CREATE TABLE distributions (product varchar(20) NOT NULL, declaration_date date NOT NULL, ex_dividend_date date NOT NULL, record_date date NOT NULL, payment_date date NOT NULL, amount varchar(20) NOT NULL, frequency varchar(20) NOT NULL, category varchar(20) NOT NULL, distribution_type varchar(20) NOT NULL, PRIMARY KEY (ex_dividend_date,product,category,distribution_type), KEY distributionsIndex (ex_dividend_date,product,category,distribution_type));
+CREATE TABLE `yield_rates` (`date` date NOT NULL,`product` varchar(20) NOT NULL,`rate` varchar(20) NOT NULL, PRIMARY KEY (`date`,`product`));
 
 #CREATE INDEXES
 CREATE INDEX etfsIndex ON etfs (`date`, `product`);
@@ -20,6 +21,7 @@ CREATE INDEX euro_futuresIndex ON euro_futures (`date`, `product`);
 CREATE INDEX uk_futuresIndex ON uk_futures (`date`, `product`);
 CREATE INDEX other_futuresIndex ON other_futures (`date`, `product`);
 CREATE INDEX forexIndex ON forex (`date`, `product`);
+CREATE INDEX yield_ratesIndex ON yield_rates (`date`, `product`);
 
 #LOAD DATA TO TABLE
 LOAD DATA LOCAL INFILE '/home/cvdev/stratdev/data_cleaning/data/VTI.csv' INTO TABLE etfs FIELDS TERMINATED BY ',' IGNORE 1 LINES;
