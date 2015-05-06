@@ -1,4 +1,5 @@
 #!/bin/sh
+source /apps/pythonenv/py2.7/bin/activate
 
 cd /home/cvdev/stratdev/data_cleaning/csi_scripts/
 
