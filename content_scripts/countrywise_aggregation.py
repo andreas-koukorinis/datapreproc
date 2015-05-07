@@ -4,6 +4,7 @@ import math
 import sys
 import numpy as np
 import pandas as pd
+import MySQLdb
 
 parse = lambda x: datetime.strptime(x, '%Y%m%d')
 
@@ -89,6 +90,48 @@ def fiveytd_returns(dates, daily_log_returns):
     fiveytd_returns = (math.exp(_fiveytd_log_returns) - 1) * 100.0
     return fiveytd_returns
 
+def db_connect():
+    global db, db_cursor
+    try:
+        with open('/spare/local/credentials/write_credentials.txt') as f:
+            credentials = [line.strip().split(':') for line in f.readlines()]
+    except IOError:
+        sys.exit('No credentials file found')
+    try:
+        for user_id,password in credentials:
+            db = MySQLdb.connect(host='fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com', user=user_id, passwd=password, db='daily_qplum')
+            db_cursor = db.cursor(MySQLdb.cursors.DictCursor) 
+    except MySQLdb.Error:
+        sys.exit("Error in DB connection")
+
+def db_close():
+    cursor = db.cursor()
+    cursor.close()
+    del cursor
+    db.close() 
+
+def fetch_product_information(products):
+    format_strings = ','.join(['%s'] * len(products))
+    query = "SELECT * FROM products WHERE product IN (" +format_strings + ")"
+    query = query%tuple(products)
+    products_df = pd.read_sql(query, con=db)
+    return products_df
+
+def fetch_latest_prices(products_df, max_lookback):
+    cols = {'yield_rates':'rate', 'forex':'close', 'indices':'close'}
+    products = products_df['product'].unique()
+    tables = tables_df['table'].unique()
+    columns = ['date', 'product', 'close']
+    results_df = pd.DataFrame(data=np.zeros((0,len(columns))), columns=columns)
+    for table in tables:
+        format_strings = ','.join(['%s'] * len(products))
+        query = "SELECT date, product, %s FROM %s WHERE product IN (" +format_strings + ") ORDER BY date DESC LIMIT %d"
+        parameters = [cols[table], table] + products[:] + [max_lookback]
+        query = query%tuple(parameters)
+        print query
+        # result_df = pd.read_sql(query, con=db)
+        # results_df = results_df.append(result_df, ignore_index=True)
+    return results_df    
 
 # Aggragates content from a series of prices, exchange rates, interest rates etc.
 # Looks for files in <path_t-file>/<product's first letter>/
@@ -144,16 +187,23 @@ def content_for_index(symbol, path_to_file, output_path, lookback):
 
     results.to_csv(output_path+symbol+'_content.csv')
 
-# Run python countrywise_aggregation -h for help
+# Run python market_monitor.py -h for help
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('type')
-    parser.add_argument('-s','--symbols', nargs='+', help='<Required> List of symbles to find content for', required=True, dest='symbols')
-    parser.add_argument('-o','--output_path', type=str, help='Output path for content of symbols', dest='output_path', default='')
-    parser.add_argument('-l','--lookback', type=int,dest='lookback', help='lookback period for sharpe, returns and ret_to_dd ratio', default=-1)
-    parser.add_argument('-p','--pathtofile', type=str,dest='path_to_file', help='Path where files', default= '/apps/data/csi/CVHISTORICAL_STOCKS/')
-    args = parser.parse_args()
+    parser.add_argument('-p','--products', nargs='+', help='List of symbles to find content for. Default in Market Monitor product list', dest='products', default=None)
+    parser.add_argument('-l','--lookback', nargs='+', type=int, help='lookback periods for sharpe, returns and ret_to_dd ratio', dest='lookback', default=[252])
     
-    if args.type == 'index':
-        for symbol in args.symbols:
-            content_for_index(symbol, args.path_to_file, args.output_path, args.lookback)
+    args = parser.parse_args()
+    if args.products == None:
+        # Take products required by market monitor as default
+        products = ['SPY', 'TCMP', '^MXX', '^BVSP', '^FTSE', '^GDAX', '^N150', '^GU15', '^SSMI', '^N500', '^BSES', '^AXJO', '^NZ50', \
+                   'USA10Y', 'CAN10Y', 'MEX10Y', 'GBR10Y', 'DEU10Y', 'FRA10Y', 'ITA10Y', 'CHE10Y', 'JPN10Y', 'IND10Y', 'AUS10Y', 'NZL10Y', \
+                   'CADUSD', 'MXNUSD', 'GBPUSD', 'EURUSD', 'CHFUSD', 'JPYUSD', 'INRUSD', 'AUDUSD', 'NZDUSD' ]
+    else:
+        products = args.products
+
+    db_connect()
+    product_df = fetch_product_information(products)
+    returns_df = fetch_latest_prices(products_df, max(args.lookback))
+    print returns_df
+    db_close()
