@@ -1,12 +1,10 @@
 import argparse
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import math
 import sys
 import numpy as np
 import pandas as pd
 import MySQLdb
-
-parse = lambda x: datetime.strptime(x, '%Y%m%d')
 
 # Helper function from perfomance_utils to get stats
 def rolling_window(input_series, window_length):
@@ -55,13 +53,13 @@ def get_log_returns_from_prices(prices):
 def get_date_index(date, dates):
     idx = 0
     while idx < len(dates):
-        if dates[idx].date() >= date:
+        if dates[idx] >= date:
             return idx
         idx += 1
     return -1
 
 def mtd_returns(dates, daily_log_returns):
-    _current_date = dates[-1].date()
+    _current_date = dates[-1]
     _mtd_start_date = date(_current_date.year, _current_date.month, 1)
     _mtd_end_date = _current_date
     _month_start_idx = get_date_index(_mtd_start_date, dates)
@@ -71,7 +69,7 @@ def mtd_returns(dates, daily_log_returns):
     return mtd_returns
 
 def ytd_returns(dates, daily_log_returns):
-    _current_date = dates[-1].date()
+    _current_date = dates[-1]
     _ytd_start_date = date(_current_date.year, 1, 1)
     _ytd_end_date = _current_date
     _ytd_start_idx = get_date_index(_ytd_start_date, dates)
@@ -81,7 +79,7 @@ def ytd_returns(dates, daily_log_returns):
     return ytd_returns
 
 def fiveytd_returns(dates, daily_log_returns):
-    _current_date = dates[-1].date()
+    _current_date = dates[-1]
     _fiveytd_start_date = date(_current_date.year-4, 1, 1)
     _fiveytd_end_date = _current_date
     _fytd_start_idx = get_date_index(_fiveytd_start_date, dates)
@@ -111,88 +109,62 @@ def db_close():
     db.close() 
 
 def fetch_product_information(products):
-    format_strings = ','.join(['%s'] * len(products))
+    format_strings = ','.join(["'%s'"] * len(products))
     query = "SELECT * FROM products WHERE product IN (" +format_strings + ")"
     query = query%tuple(products)
     products_df = pd.read_sql(query, con=db)
     return products_df
 
-def fetch_latest_prices(products_df, max_lookback):
+def fetch_latest_prices(products_df, earliest_date):
     cols = {'yield_rates':'rate', 'forex':'close', 'indices':'close'}
     products = products_df['product'].unique()
-    tables = tables_df['table'].unique()
+    tables = products_df['table'].unique()
     columns = ['date', 'product', 'close']
     results_df = pd.DataFrame(data=np.zeros((0,len(columns))), columns=columns)
     for table in tables:
-        format_strings = ','.join(['%s'] * len(products))
-        query = "SELECT date, product, %s FROM %s WHERE product IN (" +format_strings + ") ORDER BY date DESC LIMIT %d"
-        parameters = [cols[table], table] + products[:] + [max_lookback]
+        format_strings = ','.join(["'%s'"] * len(products))
+        query = "SELECT date, product, %s as close FROM %s WHERE product IN (" +format_strings + ") AND date >= '%s' ORDER BY date"
+        parameters = [cols[table], table] + list(products) + [earliest_date]
         query = query%tuple(parameters)
-        print query
-        # result_df = pd.read_sql(query, con=db)
-        # results_df = results_df.append(result_df, ignore_index=True)
+        result_df = pd.read_sql(query, con=db)
+        results_df = results_df.append(result_df, ignore_index=True)
     return results_df    
 
-# Aggragates content from a series of prices, exchange rates, interest rates etc.
-# Looks for files in <path_t-file>/<product's first letter>/
-# Used first for country wise aggregation of stock, exchange rates and interest rates
-def content_for_index(symbol, path_to_file, output_path, lookback):
-    
-    #df = pd.read_csv(path_to_file+symbol[0]+'/'+symbol+'.csv', index_col=0, parse_dates=['date'], date_parser=parse, names=['date','open','high','low','close','volume','dividend'])
-    df = pd.read_csv(path_to_file+symbol+'.csv', index_col=0, parse_dates=['date'], date_parser=parse, names=['date','open','high','low','close','volume','dividend','x','y'])
-
-    dates = df.index[1:].to_pydatetime()
-    results = pd.DataFrame(index=dates)
-    results.index.name = 'date'
-    results['close'] = df['close'].iloc[1:]
-    daily_log_returns = get_log_returns_from_prices(df['close'].values)
-
-    mtd = []
-    ytd = []
-    fytd = []
-    sharpe = []
-    ret_to_dd = []
-    annual_volatility = []
-    returns = []
-
-    for i in xrange(1,len(df.index)):
-        mtd.append(mtd_returns(dates[:i], daily_log_returns[:i]))
-        ytd.append(ytd_returns(dates[:i], daily_log_returns[:i]))
-        fytd.append(fiveytd_returns(dates[:i], daily_log_returns[:i]))
-        annual_volatility.append(get_stdev_annual_returns(daily_log_returns[:i]))
-        if lookback == -1:
-            sharpe.append(annualized_returns(daily_log_returns[:i])/annualized_stdev(daily_log_returns[:i]))
-            returns.append(annualized_returns(daily_log_returns[:i]))
-            if drawdown(daily_log_returns[:i]) == 0 :
-                ret_to_dd.append(float('inf'))
-            else:
-                ret_to_dd.append(annualized_returns(daily_log_returns[:i])/abs((math.exp(drawdown(daily_log_returns[:i])) - 1) * 100))
+def prepare_content(results_df, products_df, lookbacks):
+    products = products_df['product'].unique()
+    for product in products:
+        df = results_df[results_df['product']==product]
+        dates = df['date'].values
+        if products_df[products_df['product']==product]['table'].values[0] == 'yield_rates':
+            daily_log_returns = (df['close'].map(lambda x: np.log((1+(float(x)/100.0)))/252.0)).values
+            print daily_log_returns
         else:
-            sharpe.append(annualized_returns(daily_log_returns[max(0,i-lookback):i])/annualized_stdev(daily_log_returns[max(0,i-lookback):i]))
-            returns.append(annualized_returns(daily_log_returns[max(0,i-lookback):i]))
-            if drawdown(daily_log_returns[max(0,i-lookback):i]) == 0 :
-                ret_to_dd.append(float('inf'))
+            daily_log_returns = get_log_returns_from_prices(df['close'].values) # in maximum lookback period
+        mtd_ret = mtd_returns(dates, daily_log_returns)
+        ytd_ret = ytd_returns(dates, daily_log_returns)
+        last_year_ret = annualized_returns(daily_log_returns[:-252])
+        sharpe = []
+        ret_dd = []
+        ann_volatility = []
+        for lookback in lookbacks:
+            _ret = annualized_returns(daily_log_returns[-lookback:])
+            _dd = drawdown(daily_log_returns[-lookback:]) 
+            _stdev = annualized_stdev(daily_log_returns[-lookback:])
+            sharpe.append(_ret/_dd)
+            if _dd == 0 :
+                ret_dd.append(float('inf'))
             else:
-                ret_to_dd.append(annualized_returns(daily_log_returns[max(0,i-lookback):i])/abs((math.exp(drawdown(daily_log_returns[max(0,i-lookback):i])) - 1) * 100))
-   
-    
-    results['returns'] = returns
-    results['mtd'] = mtd    
-    results['ytd'] = ytd    
-    results['fytd'] = fytd    
-    results['sharpe'] = sharpe
-    results['ret_to_dd'] = ret_to_dd
-    results['annual_volatility'] = annual_volatility
-    
-
-    results.to_csv(output_path+symbol+'_content.csv')
+                ret_dd.append(_ret/abs((math.exp(_dd) - 1) * 100))
+            ann_volatility.append(get_stdev_annual_returns(daily_log_returns[-lookback:]))
+        print product, mtd_ret, ytd_ret, last_year_ret, sharpe, ret_dd, ann_volatility
+         
 
 # Run python market_monitor.py -h for help
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-p','--products', nargs='+', help='List of symbles to find content for. Default in Market Monitor product list', dest='products', default=None)
     parser.add_argument('-l','--lookback', nargs='+', type=int, help='lookback periods for sharpe, returns and ret_to_dd ratio', dest='lookback', default=[252])
-    
+    parser.add_argument('-d', type=str, help='Date\nEg: -d 2014-06-01\n Default is todays date.',default=str(date.today()), dest='date')
     args = parser.parse_args()
     if args.products == None:
         # Take products required by market monitor as default
@@ -203,7 +175,8 @@ if __name__ == '__main__':
         products = args.products
 
     db_connect()
-    product_df = fetch_product_information(products)
-    returns_df = fetch_latest_prices(products_df, max(args.lookback))
-    print returns_df
+    products_df = fetch_product_information(products)
+    earliest_date = (datetime.strptime(args.date, "%Y-%m-%d") + timedelta(days=-max(400,max(args.lookback)))).strftime("%Y-%m-%d")
+    returns_df = fetch_latest_prices(products_df, earliest_date)
+    prepare_content(returns_df, products_df, args.lookback)
     db_close()
