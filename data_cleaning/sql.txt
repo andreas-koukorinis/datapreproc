@@ -685,6 +685,7 @@ INSERT INTO products VALUES('IND10Y','YC/IND10Y','IND10Y','Indian Government 10-
 INSERT INTO products VALUES('AUS2Y','YC/AUS2Y','AUS2Y','Australian Government 2-Year Bond Yield','yield_rates','yield_rate','bond','1','1','1','N/A','N/A');
 INSERT INTO products VALUES('AUS5Y','YC/AUS5Y','AUS5Y','Australian Government 5-Year Bond Yield','yield_rates','yield_rate','bond','1','1','1','N/A','N/A');
 INSERT INTO products VALUES('AUS3Y','YC/AUS3Y','AUS3Y','Australian Government 3-Year Bond Yield','yield_rates','yield_rate','bond','1','1','1','N/A','N/A');
+INSERT INTO products VALUES('AUS10Y','YC/AUS10Y','AUS10Y','Australian Government 10-Year Bond Yield','yield_rates','yield_rate','bond','1','1','1','N/A','N/A');
 
 # Insert Benchmarks
 LOAD DATA LOCAL INFILE '/home/deedee/benchmarks/btop50_month_end_returns.csv' INTO TABLE benchmarks FIELDS TERMINATED BY ' ';
