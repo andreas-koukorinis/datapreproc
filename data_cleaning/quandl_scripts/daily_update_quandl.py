@@ -83,7 +83,7 @@ def main():
 
     # By default try to get daily updates for all products in Quandl
     if args.products == None:
-        products = ['AUS2Y', 'AUS3Y', 'AUS5Y', 'BEL10Y', 'BEL12M', 'BEL12Y', 'BEL1M', 'BEL1Y', 'BEL2M', 'BEL2Y', 'BEL3M', 'BEL3Y', 'BEL4M', 'BEL4Y', \
+        products = ['AUS2Y', 'AUS3Y', 'AUS5Y', 'AUS10Y', 'BEL10Y', 'BEL12M', 'BEL12Y', 'BEL1M', 'BEL1Y', 'BEL2M', 'BEL2Y', 'BEL3M', 'BEL3Y', 'BEL4M', 'BEL4Y', \
                     'BEL5Y', 'BEL6M', 'BEL6Y', 'BEL7Y', 'BEL8Y', 'CAN10Y', 'CAN1M', 'CAN1Y', 'CAN2Y', 'CAN30Y', 'CAN3M', 'CAN3Y', 'CAN5Y', 'CAN6M', \
                     'CAN7Y', 'CHE10Y', 'CHE12M', 'CHE1M', 'CHE20Y', 'CHE2Y', 'CHE30Y', 'CHE3M', 'CHE3Y', 'CHE4Y', 'CHE5Y', 'CHE6M', 'CHE7Y', 'CHEON', \
                     'CHN10Y', 'CHN1Y', 'CHN2Y', 'CHN3Y', 'CHN4Y', 'CHN5Y', 'CHN6Y', 'CHN7Y', 'CRI1M', 'CRI1TO2M', 'CRI2TO3M', 'CRI3TO5Y', 'CRI3TO6M', \
