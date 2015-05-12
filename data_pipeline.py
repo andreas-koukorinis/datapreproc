@@ -273,6 +273,22 @@ class FetchCSI_all(luigi.Task):
                FetchCSI_funds(self.date), FetchCSI_futures(self.date), \
                FetchCSI_ukstocks(self.date), FetchCSI_usstocks(self.date)
 
+class PutInS3_briese(luigi.Task):
+    """
+    Task to put briese data in S3
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return FetchCSI_briese(self.date)
+
+    def output(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        return S3Target(self.date.strftime('s3://cvquantdata/csi/rawdata/Briese%Y%m%d.txt'), client=s3_client)
+    
+    def run(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        s3_client.put(self.input().path, self.output().path)
+
 class PutInS3_canada(luigi.Task):
     """
     Task to put canada data in S3
@@ -289,6 +305,133 @@ class PutInS3_canada(luigi.Task):
         s3_client = S3Client(aws_access_key, aws_secret_key)
         s3_client.put(self.input().path, self.output().path)
 
+class PutInS3_cftc(luigi.Task):
+    """
+    Task to put cftc data in S3
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return FetchCSI_cftc(self.date)
+
+    def output(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        return S3Target(self.date.strftime('s3://cvquantdata/csi/rawdata/CFTC%Y%m%d.txt'), client=s3_client)
+    
+    def run(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        s3_client.put(self.input().path, self.output().path)
+
+class PutInS3_econ(luigi.Task):
+    """
+    Task to put econ data in S3
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return FetchCSI_econ(self.date)
+
+    def output(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        return S3Target(self.date.strftime('s3://cvquantdata/csi/rawdata/Econ%Y%m%d.txt'), client=s3_client)
+    
+    def run(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        s3_client.put(self.input().path, self.output().path)
+
+class PutInS3_findices(luigi.Task):
+    """
+    Task to put findices data in S3
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return FetchCSI_findices(self.date)
+
+    def output(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        return S3Target(self.date.strftime('s3://cvquantdata/csi/rawdata/f-indices.%Y%m%d.gz'), client=s3_client)
+    
+    def run(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        s3_client.put(self.input().path, self.output().path)
+
+class PutInS3_funds(luigi.Task):
+    """
+    Task to put funds data in S3
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return FetchCSI_funds(self.date)
+
+    def output(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        return S3Target(self.date.strftime('s3://cvquantdata/csi/rawdata/funds.%Y%m%d.gz'), client=s3_client)
+    
+    def run(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        s3_client.put(self.input().path, self.output().path)
+
+class PutInS3_futures(luigi.Task):
+    """
+    Task to put futures data in S3
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return FetchCSI_futures(self.date)
+
+    def output(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        return S3Target(self.date.strftime('s3://cvquantdata/csi/rawdata/futures.%Y%m%d.gz'), client=s3_client)
+    
+    def run(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        s3_client.put(self.input().path, self.output().path)
+
+class PutInS3_indices(luigi.Task):
+    """
+    Task to put indices data in S3
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return FetchCSI_indices(self.date)
+
+    def output(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        return S3Target(self.date.strftime('s3://cvquantdata/csi/rawdata/indices.%Y%m%d.gz'), client=s3_client)
+    
+    def run(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        s3_client.put(self.input().path, self.output().path)
+
+class PutInS3_usstocks(luigi.Task):
+    """
+    Task to put usstocks data in S3
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return FetchCSI_usstocks(self.date)
+
+    def output(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        return S3Target(self.date.strftime('s3://cvquantdata/csi/rawdata/us-stocks.%Y%m%d.gz'), client=s3_client)
+    
+    def run(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        s3_client.put(self.input().path, self.output().path)
+
+class PutInS3_ukstocks(luigi.Task):
+    """
+    Task to put ukstocks data in S3
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return FetchCSI_ukstocks(self.date)
+
+    def output(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        return S3Target(self.date.strftime('s3://cvquantdata/csi/rawdata/uk-stocks.%Y%m%d.gz'), client=s3_client)
+    
+    def run(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        s3_client.put(self.input().path, self.output().path)
 
 class PutInS3_all(luigi.Task):
     """
