@@ -1,21 +1,43 @@
+import ConfigParser
 from datetime import date
+import sys
+import os
 import luigi
-from luigi.contrib import ftp
+from luigi.contrib.ftp import RemoteTarget
+from luigi.s3 import S3Target, S3Client
 
 #data_path = '/apps/data/csi/'
 data_path = '/home/debi/data/'
 csi_ftp_server = 'ftp.csidata.com'
-csi_ftp_username = 'circulumvite'
-csi_ftp_password = 'sv13tjmd'
 csi_ftp_port = 21
+s3_cfg = '~/.s3cfg'
 
+global csi_ftp_username, csi_ftp_password, aws_access_key, aws_secret_key
+
+def load_credentials():
+    """
+    Read credential and configuration files to get required credentials
+    """
+    global csi_ftp_username, csi_ftp_password, aws_access_key, aws_secret_key
+    
+    try:
+        with open('/spare/local/credentials/csi_ftp.txt') as f:
+            csi_ftp_username, csi_ftp_password = f.readlines()[0].strip().split(':')
+    except IOError:
+        sys.exit('No CSI FTP credentials file found')
+
+    s3_config = ConfigParser.ConfigParser()
+    s3_config.readfp(open(os.path.expanduser(s3_cfg), 'r'))
+    aws_access_key = s3_config.get('default', 'access_key')
+    aws_secret_key = s3_config.get('default', 'secret_key')
+    
 class CheckFTP_canada(luigi.ExternalTask):
     """
     Task to check CSI FTP for today's data
     """
     date = luigi.DateParameter()
     def output(self):
-        return ftp.RemoteTarget(self.date.strftime('canada.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
+        return RemoteTarget(self.date.strftime('canada.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
 class FetchCSI_canada(luigi.Task):
     """
@@ -38,7 +60,7 @@ class CheckFTP_findices(luigi.ExternalTask):
     """
     date = luigi.DateParameter()
     def output(self):
-        return ftp.RemoteTarget(self.date.strftime('f-indices.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
+        return RemoteTarget(self.date.strftime('f-indices.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
 class FetchCSI_findices(luigi.Task):
     """
@@ -61,7 +83,7 @@ class CheckFTP_funds(luigi.ExternalTask):
     """
     date = luigi.DateParameter()
     def output(self):
-        return ftp.RemoteTarget(self.date.strftime('funds.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
+        return RemoteTarget(self.date.strftime('funds.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
 class FetchCSI_funds(luigi.Task):
     """
@@ -84,7 +106,7 @@ class CheckFTP_futures(luigi.ExternalTask):
     """
     date = luigi.DateParameter()
     def output(self):
-        return ftp.RemoteTarget(self.date.strftime('futures.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
+        return RemoteTarget(self.date.strftime('futures.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
 class FetchCSI_futures(luigi.Task):
     """
@@ -107,7 +129,7 @@ class CheckFTP_indices(luigi.ExternalTask):
     """
     date = luigi.DateParameter()
     def output(self):
-        return ftp.RemoteTarget(self.date.strftime('indices.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
+        return RemoteTarget(self.date.strftime('indices.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
 class FetchCSI_indices(luigi.Task):
     """
@@ -130,7 +152,7 @@ class CheckFTP_ukstocks(luigi.ExternalTask):
     """
     date = luigi.DateParameter()
     def output(self):
-        return ftp.RemoteTarget(self.date.strftime('uk-stocks.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
+        return RemoteTarget(self.date.strftime('uk-stocks.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
 class FetchCSI_ukstocks(luigi.Task):
     """
@@ -153,7 +175,7 @@ class CheckFTP_usstocks(luigi.ExternalTask):
     """
     date = luigi.DateParameter()
     def output(self):
-        return ftp.RemoteTarget(self.date.strftime('us-stocks.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
+        return RemoteTarget(self.date.strftime('us-stocks.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
 class FetchCSI_usstocks(luigi.Task):
     """
@@ -176,7 +198,7 @@ class CheckFTP_briese(luigi.ExternalTask):
     """
     date = luigi.DateParameter()
     def output(self):
-        return ftp.RemoteTarget(self.date.strftime('Briese%Y%m%d.txt'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
+        return RemoteTarget(self.date.strftime('Briese%Y%m%d.txt'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
 class FetchCSI_briese(luigi.Task):
     """
@@ -199,7 +221,7 @@ class CheckFTP_cftc(luigi.ExternalTask):
     """
     date = luigi.DateParameter()
     def output(self):
-        return ftp.RemoteTarget(self.date.strftime('CFTC%Y%m%d.txt'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
+        return RemoteTarget(self.date.strftime('CFTC%Y%m%d.txt'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
 class FetchCSI_cftc(luigi.Task):
     """
@@ -222,7 +244,7 @@ class CheckFTP_econ(luigi.ExternalTask):
     """
     date = luigi.DateParameter()
     def output(self):
-        return ftp.RemoteTarget(self.date.strftime('Econ%Y%m%d.txt'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
+        return RemoteTarget(self.date.strftime('Econ%Y%m%d.txt'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
 class FetchCSI_econ(luigi.Task):
     """
@@ -244,7 +266,6 @@ class FetchCSI_all(luigi.Task):
     Task to fetch all CSI data
     """
     date = luigi.DateParameter(default=date.today())
-    
     def requires(self):
         return FetchCSI_briese(self.date), FetchCSI_canada(self.date), \
                FetchCSI_cftc(self.date), FetchCSI_econ(self.date), \
@@ -252,15 +273,43 @@ class FetchCSI_all(luigi.Task):
                FetchCSI_funds(self.date), FetchCSI_futures(self.date), \
                FetchCSI_ukstocks(self.date), FetchCSI_usstocks(self.date)
 
+class PutInS3_canada(luigi.Task):
+    """
+    Task to put canada data in S3
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return FetchCSI_canada(self.date)
+
+    def output(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        return S3Target(self.date.strftime('s3://cvquantdata/csi/rawdata/canada.%Y%m%d.gz'), client=s3_client)
+    
+    def run(self):
+        s3_client = S3Client(aws_access_key, aws_secret_key)
+        s3_client.put(self.input().path, self.output().path)
+
+
+class PutInS3_all(luigi.Task):
+    """
+    Task to put all CSI data in S3
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return PutInS3_briese(self.date), PutInS3_canada(self.date), \
+               PutInS3_cftc(self.date), PutInS3_econ(self.date), \
+               PutInS3_findices(self.date), PutInS3_indices(self.date), \
+               PutInS3_funds(self.date), PutInS3_futures(self.date), \
+               PutInS3_ukstocks(self.date), PutInS3_usstocks(self.date)
+
 class AllReports(luigi.Task):
     """
     Task to trigger all base tasks
     """
     date = luigi.DateParameter(default=date.today())
-    
     def requires(self):
-        yield FetchCSI_all(self.date)
-
+        yield FetchCSI_all(self.date), PutInS3_all(self.date)
 
 if __name__ == '__main__':
+    load_credentials()
     luigi.run(main_task_cls=AllReports)
