@@ -1,7 +1,9 @@
 import ConfigParser
 from datetime import date
-import sys
+import json
 import os
+import sys
+import urllib2
 import luigi
 from luigi.contrib.ftp import RemoteTarget
 from luigi.s3 import S3Target, S3Client
@@ -13,6 +15,27 @@ csi_ftp_port = 21
 s3_cfg = '~/.s3cfg'
 
 global csi_ftp_username, csi_ftp_password, aws_access_key, aws_secret_key
+
+class QPlumTask(luigi.Task):
+    """
+    Custom task that also sends error messages to Slack.
+    Other custom functionality can be added in this class.
+    All tasks in our pipeline will inherit this
+    """
+    def on_failure(self, exception):
+        """
+        Override for custom error handling.
+
+        This method gets called if an exception is raised in :py:meth:`run`.
+        Return value of this method is json encoded and sent to the scheduler as the `expl` argument. Its string representation will be used as the body of the error email sent out if any.
+
+        Default behavior is to return a string representation of the stack trace.
+        """
+        traceback_string = traceback.format_exc()
+        payload = {"channel": "#datapipeline-monitor", "username": "Luigi", "text": traceback_string}
+        req = urllib2.Request(' https://hooks.slack.com/services/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')
+        response = urllib2.urlopen(req, json.dumps(payload))
+        return "Runtime error:\n%s" % traceback_string
 
 def load_credentials():
     """
@@ -39,7 +62,7 @@ class CheckFTP_canada(luigi.ExternalTask):
     def output(self):
         return RemoteTarget(self.date.strftime('canada.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
-class FetchCSI_canada(luigi.Task):
+class FetchCSI_canada(QPlumTask):
     """
     Task that downloads canada data from CSI FTP in given folder
     """
@@ -62,7 +85,7 @@ class CheckFTP_findices(luigi.ExternalTask):
     def output(self):
         return RemoteTarget(self.date.strftime('f-indices.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
-class FetchCSI_findices(luigi.Task):
+class FetchCSI_findices(QPlumTask):
     """
     Task that downloads f-indices data from CSI FTP in given folder
     """
@@ -85,7 +108,7 @@ class CheckFTP_funds(luigi.ExternalTask):
     def output(self):
         return RemoteTarget(self.date.strftime('funds.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
-class FetchCSI_funds(luigi.Task):
+class FetchCSI_funds(QPlumTask):
     """
     Task that downloads funds data from CSI FTP in given folder
     """
@@ -108,7 +131,7 @@ class CheckFTP_futures(luigi.ExternalTask):
     def output(self):
         return RemoteTarget(self.date.strftime('futures.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
-class FetchCSI_futures(luigi.Task):
+class FetchCSI_futures(QPlumTask):
     """
     Task that downloads futures data from CSI FTP in given folder
     """
@@ -131,7 +154,7 @@ class CheckFTP_indices(luigi.ExternalTask):
     def output(self):
         return RemoteTarget(self.date.strftime('indices.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
-class FetchCSI_indices(luigi.Task):
+class FetchCSI_indices(QPlumTask):
     """
     Task that downloads indices data from CSI FTP in given folder
     """
@@ -154,7 +177,7 @@ class CheckFTP_ukstocks(luigi.ExternalTask):
     def output(self):
         return RemoteTarget(self.date.strftime('uk-stocks.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
-class FetchCSI_ukstocks(luigi.Task):
+class FetchCSI_ukstocks(QPlumTask):
     """
     Task that downloads uk-stocks data from CSI FTP in given folder
     """
@@ -177,7 +200,7 @@ class CheckFTP_usstocks(luigi.ExternalTask):
     def output(self):
         return RemoteTarget(self.date.strftime('us-stocks.%Y%m%d.gz'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
-class FetchCSI_usstocks(luigi.Task):
+class FetchCSI_usstocks(QPlumTask):
     """
     Task that downloads us-stocks data from CSI FTP in given folder
     """
@@ -200,7 +223,7 @@ class CheckFTP_briese(luigi.ExternalTask):
     def output(self):
         return RemoteTarget(self.date.strftime('Briese%Y%m%d.txt'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
-class FetchCSI_briese(luigi.Task):
+class FetchCSI_briese(QPlumTask):
     """
     Task that downloads us-stocks data from CSI FTP in given folder
     """
@@ -223,7 +246,7 @@ class CheckFTP_cftc(luigi.ExternalTask):
     def output(self):
         return RemoteTarget(self.date.strftime('CFTC%Y%m%d.txt'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
-class FetchCSI_cftc(luigi.Task):
+class FetchCSI_cftc(QPlumTask):
     """
     Task that downloads CFTC data from CSI FTP in given folder
     """
@@ -246,7 +269,7 @@ class CheckFTP_econ(luigi.ExternalTask):
     def output(self):
         return RemoteTarget(self.date.strftime('Econ%Y%m%d.txt'), csi_ftp_server, username=csi_ftp_username, password=csi_ftp_password, port=csi_ftp_port) 
 
-class FetchCSI_econ(luigi.Task):
+class FetchCSI_econ(QPlumTask):
     """
     Task that downloads Econ data from CSI FTP in given folder
     """
@@ -261,19 +284,7 @@ class FetchCSI_econ(luigi.Task):
         f = self.input()
         f.get(self.output().path)
 
-class FetchCSI_all(luigi.Task):
-    """
-    Task to fetch all CSI data
-    """
-    date = luigi.DateParameter(default=date.today())
-    def requires(self):
-        return FetchCSI_briese(self.date), FetchCSI_canada(self.date), \
-               FetchCSI_cftc(self.date), FetchCSI_econ(self.date), \
-               FetchCSI_findices(self.date), FetchCSI_indices(self.date), \
-               FetchCSI_funds(self.date), FetchCSI_futures(self.date), \
-               FetchCSI_ukstocks(self.date), FetchCSI_usstocks(self.date)
-
-class PutInS3_briese(luigi.Task):
+class PutInS3_briese(QPlumTask):
     """
     Task to put briese data in S3
     """
@@ -289,7 +300,7 @@ class PutInS3_briese(luigi.Task):
         s3_client = S3Client(aws_access_key, aws_secret_key)
         s3_client.put(self.input().path, self.output().path)
 
-class PutInS3_canada(luigi.Task):
+class PutInS3_canada(QPlumTask):
     """
     Task to put canada data in S3
     """
@@ -305,7 +316,7 @@ class PutInS3_canada(luigi.Task):
         s3_client = S3Client(aws_access_key, aws_secret_key)
         s3_client.put(self.input().path, self.output().path)
 
-class PutInS3_cftc(luigi.Task):
+class PutInS3_cftc(QPlumTask):
     """
     Task to put cftc data in S3
     """
@@ -321,7 +332,7 @@ class PutInS3_cftc(luigi.Task):
         s3_client = S3Client(aws_access_key, aws_secret_key)
         s3_client.put(self.input().path, self.output().path)
 
-class PutInS3_econ(luigi.Task):
+class PutInS3_econ(QPlumTask):
     """
     Task to put econ data in S3
     """
@@ -337,7 +348,7 @@ class PutInS3_econ(luigi.Task):
         s3_client = S3Client(aws_access_key, aws_secret_key)
         s3_client.put(self.input().path, self.output().path)
 
-class PutInS3_findices(luigi.Task):
+class PutInS3_findices(QPlumTask):
     """
     Task to put findices data in S3
     """
@@ -353,7 +364,7 @@ class PutInS3_findices(luigi.Task):
         s3_client = S3Client(aws_access_key, aws_secret_key)
         s3_client.put(self.input().path, self.output().path)
 
-class PutInS3_funds(luigi.Task):
+class PutInS3_funds(QPlumTask):
     """
     Task to put funds data in S3
     """
@@ -369,7 +380,7 @@ class PutInS3_funds(luigi.Task):
         s3_client = S3Client(aws_access_key, aws_secret_key)
         s3_client.put(self.input().path, self.output().path)
 
-class PutInS3_futures(luigi.Task):
+class PutInS3_futures(QPlumTask):
     """
     Task to put futures data in S3
     """
@@ -385,7 +396,7 @@ class PutInS3_futures(luigi.Task):
         s3_client = S3Client(aws_access_key, aws_secret_key)
         s3_client.put(self.input().path, self.output().path)
 
-class PutInS3_indices(luigi.Task):
+class PutInS3_indices(QPlumTask):
     """
     Task to put indices data in S3
     """
@@ -401,7 +412,7 @@ class PutInS3_indices(luigi.Task):
         s3_client = S3Client(aws_access_key, aws_secret_key)
         s3_client.put(self.input().path, self.output().path)
 
-class PutInS3_usstocks(luigi.Task):
+class PutInS3_usstocks(QPlumTask):
     """
     Task to put usstocks data in S3
     """
@@ -417,7 +428,7 @@ class PutInS3_usstocks(luigi.Task):
         s3_client = S3Client(aws_access_key, aws_secret_key)
         s3_client.put(self.input().path, self.output().path)
 
-class PutInS3_ukstocks(luigi.Task):
+class PutInS3_ukstocks(QPlumTask):
     """
     Task to put ukstocks data in S3
     """
@@ -433,19 +444,31 @@ class PutInS3_ukstocks(luigi.Task):
         s3_client = S3Client(aws_access_key, aws_secret_key)
         s3_client.put(self.input().path, self.output().path)
 
-class PutInS3_all(luigi.Task):
+class FetchCSI_all(QPlumTask):
+    """
+    Task to fetch all CSI data
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        yield FetchCSI_briese(self.date), FetchCSI_canada(self.date), \
+               FetchCSI_cftc(self.date), FetchCSI_econ(self.date), \
+               FetchCSI_findices(self.date), FetchCSI_indices(self.date), \
+               FetchCSI_funds(self.date), FetchCSI_futures(self.date), \
+               FetchCSI_ukstocks(self.date), FetchCSI_usstocks(self.date)
+
+class PutInS3_all(QPlumTask):
     """
     Task to put all CSI data in S3
     """
     date = luigi.DateParameter(default=date.today())
     def requires(self):
-        return PutInS3_briese(self.date), PutInS3_canada(self.date), \
+        yield PutInS3_briese(self.date), PutInS3_canada(self.date), \
                PutInS3_cftc(self.date), PutInS3_econ(self.date), \
                PutInS3_findices(self.date), PutInS3_indices(self.date), \
                PutInS3_funds(self.date), PutInS3_futures(self.date), \
                PutInS3_ukstocks(self.date), PutInS3_usstocks(self.date)
 
-class AllReports(luigi.Task):
+class AllReports(QPlumTask):
     """
     Task to trigger all base tasks
     """
