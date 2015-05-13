@@ -10,13 +10,13 @@ from luigi.contrib.ftp import RemoteTarget
 from luigi.s3 import S3Target, S3Client
 from data_cleaning.csi_scripts.daily_update import push_file_to_db
 
-#data_path = '/apps/data/csi/'
-#log_path = '/apps/logs/'
-data_path = '/home/debi/data/'
-log_path = '/home/debi/logs/'
+data_path = '/apps/data/csi/'
+log_path = '/home/deedee/logs/'
+#data_path = '/home/debi/data/'
+#log_path = '/home/debi/logs/'
 csi_ftp_server = 'ftp.csidata.com'
 csi_ftp_port = 21
-s3_cfg = '~/.s3cfg'
+s3_cfg = '/home/cvdev/.s3cfg'
 
 global csi_ftp_username, csi_ftp_password, aws_access_key, aws_secret_key
 
@@ -469,7 +469,7 @@ class PutCSIinDB_futures(QPlumTask):
                    'NOKUSD', 'TRYUSD', 'MXNUSD', 'ZARUSD', 'ILSUSD', 'SGDUSD', 'HKDUSD', 'TWDUSD',\
                    'INRUSD', 'BRLUSD']
         if push_file_to_db(self.input().path, futures):
-            with open(self.output().path) as f:
+            with open(self.output().path,'w') as f:
                 f.write("Successfully put CSI data in DB for futures")
 
 class FetchCSI_all(QPlumTask):
