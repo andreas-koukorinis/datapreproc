@@ -54,7 +54,6 @@ def db_connect():
     except MySQLdb.Error:
         sys.exit("Error in DB connection")
 
-
 def product_to_table_map():
     global table,product_type
     query = 'SELECT * FROM products'
@@ -63,6 +62,14 @@ def product_to_table_map():
     for row in rows:
         table[row['product']] = row['table']
         product_type[row['product']] = row['type']      
+
+def setup_db_esm_smtp():
+    global exchange_symbol_manager
+    module = imp.load_source('exchange_symbol_manager', '../exchange_symbol_manager.py')
+    exchange_symbol_manager = module.ExchangeSymbolManager()
+    global server
+    server = smtplib.SMTP("localhost")
+    db_connect()
 
 def get_exchange_specific(YYMM):
     YY,MM = YYMM[0:2],YYMM[2:4]
@@ -99,24 +106,19 @@ def get_contract_number(date, _base_symbol, YYMM ):
         num=-1 
     return num
 
-def get_file(filename,k):
-    filename = filename +'.' + (datetime.now() - timedelta(days=k)).strftime('%Y%m%d')
+def get_file_into_wd(raw_file):
     print filename
-    path = '/apps/data/csi/'
-    if not os.path.isfile(filename): #If the file is not present,download it
-        _file = path+filename+'.gz'
-        # is_in_s3 = subprocess.Popen(['s3cmd', 'ls', 's3://cvquantdata/csi/rawdata/'+_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
-        # if len(is_in_s3) <= 0:
-        #     #sys.exit('File %s not in s3'%_file)
-        #     print 'File %s not in s3'%_file
-        #     return None
-        # subprocess.call(['s3cmd','get','s3://cvquantdata/csi/rawdata/'+_file]) 
-        inF = gzip.open(_file, 'rb')
-        outF = open(filename, 'wb')
-        outF.write( inF.read() )
-        inF.close()
-        outF.close()
-    return filename
+    inF = gzip.open(filename, 'rb')
+    local_filename = os.path.basename(filename)[:-4]
+    outF = open(local_filename, 'wb')
+    outF.write(inF.read())
+    inF.close()
+    outF.close()
+    return local_filename
+
+def remove_file_from_wd(filename):
+    if os.path.exists(filename):
+        os.remove(filename)
 
 def add_stock_quote(date, record, error_correction):
     product, open, high, low, close, volume = record[1], FloatOrZero(record[3]), FloatOrZero(record[4]), FloatOrZero(record[5]), FloatOrZero(record[6]), IntOrZero(record[8])*100
@@ -547,77 +549,39 @@ def daily_update(filename, products):
             if len(products)==0 or symbol in products:
                 dividend_quote(date, record)
 
-def update_last_trading_day(k):
-    _date = date.today() + timedelta(days=-k)
-    for product in mappings.keys():
-        _base_symbol = mappings[product]
-        min_last_trading_date = datetime(2050,12,31).date()
-        _last_trading_date = exchange_symbol_manager.get_last_trading_date(_date, _base_symbol + '_1')
-        if _last_trading_date != _date:
-            continue
-        _contract_numbers = futures_contract_list.get(_base_symbol,[1,2]) # TODO should have mapping for this
-        try:
-            #query = "SELECT date, count(*) AS c FROM %s WHERE product LIKE '%s\_%%' GROUP BY date HAVING c=%d ORDER BY date DESC LIMIT 1"%(table[_base_symbol+'_1'], _base_symbol, len(_contract_numbers))
-            query = "SELECT a.date, count(*) as count from %s as a, (SELECT date from %s where product LIKE '%s\_%%' ORDER BY date DESC LIMIT 1) as b WHERE a.date = b.date AND a.product LIKE '%s\_%%';"%\
-                    (table[_base_symbol+'_1'],table[_base_symbol+'_1'], _base_symbol, _base_symbol) 
-            print query
-            db_cursor.execute(query)
-            rows = db_cursor.fetchall()
-            if rows[0]['count'] < len(_contract_numbers):
-                print "EXCEPTION in update_last_trading_day : rows < nontract_numbers"
-                server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day : rows < nontract_numbers')
-                continue
-            else:
-                min_last_trading_date = rows[0]['date']
-                delta = _date - min_last_trading_date
-                if delta.days >= 7:
-                    print 'Seems to be a problem in update_last_trading_day %s %s'%(_base_symbol, _date) #ADD MAIL
-                    server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'Seems to be a problem in update_last_trading_day %s'%(_base_symbol))
-                    continue
-        except Exception, err:
-            print traceback.format_exc()
-            print 'EXCEPTION in update_last_trading_day %s on %s'%(_base_symbol, _date)
-            server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%_base_symbol)
-            continue
-        try:
-            query = "UPDATE %s SET is_last_trading_day=1.0 WHERE product like '%s\_%%' AND date='%s'"%(table[_base_symbol+'_1'], _base_symbol, min_last_trading_date)
-            print query
-            db_cursor.execute(query)
-            db.commit()
-        except Exception, err:
-            print traceback.format_exc()
-            print "EXCEPTION in update_last_trading_day Tried to update last trading day after finding date but couldn't"
-            db.rollback()
-            server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%_base_symbol)
+def push_file_to_db(raw_file, products):
+    # log_file is a construct to ensure that this script has run
+    filename = get_file_into_wd(raw_file)
+    print filename
+    setup_db_esm_smtp()    
+    product_to_table_map()    
+    if filename is not None:
+        daily_update(filename, products)
+    for product in dividend_adjust_products:
+        dividend_adjust(product)
+    remove_file_from_wd(filename)
+    server.quit()
+    return True
 
 def __main__() :
     if len( sys.argv ) > 1:
-        file_type = sys.argv[1]
-        delay = int(sys.argv[2]) # Difference between today and file's date
+        raw_file = sys.argv[1]
+        delay = sys.argv[2]
         products = []
         for i in range(3,len(sys.argv)):
             products.append(sys.argv[i])
     else:
-        print 'python daily_update.py file:canada/f-indices/funds/futures/indices/uk-stocks/us-stocks delay product1 product2 ... productn'
+        print 'python daily_update.py file_name:<canada/f-indices/funds/futures/indices/uk-stocks/us-stocks>.20150505.gz product1 product2 ... productn'
         sys.exit(0)
-    global exchange_symbol_manager
-    module = imp.load_source('exchange_symbol_manager', '../exchange_symbol_manager.py')
-    exchange_symbol_manager = module.ExchangeSymbolManager()
-    filename = get_file(file_type, delay)
+    filename = get_file_into_wd(raw_file)
     print filename
-    global server
-    server = smtplib.SMTP("localhost")
-    #sys.exit()
-    db_connect()
-    product_to_table_map()
-    #print table, product_type
+    setup_db_esm_smtp()    
+    product_to_table_map()    
     if filename is not None:
         daily_update(filename, products)
-    if file_type == 'futures':
-        update_last_trading_day(delay)
-    elif not (file_type == 'indices' or file_type=='f-indices'):
-        for product in dividend_adjust_products:
-            dividend_adjust(product)
+    for product in dividend_adjust_products:
+        dividend_adjust(product)
+    remove_file_from_wd(filename)
     server.quit()
 
 if __name__ == '__main__':
