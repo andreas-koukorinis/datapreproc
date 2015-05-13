@@ -2,6 +2,7 @@ import ConfigParser
 from datetime import date
 import json
 import os
+import subprocess
 import sys
 import traceback
 import urllib2
@@ -38,7 +39,9 @@ class QPlumTask(luigi.Task):
         Default behavior is to return a string representation of the stack trace.
         """
         traceback_string = traceback.format_exc()
-        payload = {"channel": "#datapipeline-errors", "username": "Luigi", "text": traceback_string}
+        s = "*Error in %s Task*\n_Traceback_\n"%(self.__class__.__name__)
+        s += traceback_string
+        payload = {"channel": "#datapipeline-errors", "username": "Luigi", "text": s}
         req = urllib2.Request('https://hooks.slack.com/services/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')
         response = urllib2.urlopen(req, json.dumps(payload))
         return "Runtime error:\n%s" % traceback_string
@@ -577,6 +580,11 @@ class PutCsiInDb_all(QPlumTask):
         return PutCsiInDb_futures(self.date), PutCsiInDb_usstocks(self.date),\
                PutCsiInDb_findices(self.date), PutCsiInDb_indices(self.date),\
                PutCsiInDb_funds(self.date)
+    def output(self):
+        return luigi.LocalTarget(log_path+self.date.strftime('PutCsiInDb_all.%Y%m%d.SUCCESS'))
+    def run(self):
+        with open(self.output().path,'w') as f:
+            f.write("Successfully updated last trading day for all futures")
 
 class UpdateLastTradingDay(QPlumTask):
     """
@@ -604,15 +612,30 @@ class PutQuandlInDb(QPlumTask):
         with open(self.output().path,'w') as f:
             f.write("Successfully put Quandl data in DB")
 
-class AllReports(QPlumTask):
+class SendStats(QPlumTask):
+    """
+    Task to send stats emails
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return PutCsiInDb_all(self.date)
+    def output(self):
+        return luigi.LocalTarget(log_path+self.date.strftime('SendStats.%Y%m%d.SUCCESS'))
+    def run(self):
+        send_stats_script_path = "/home/cvdev/stratdev/utility_scripts/send_stats.sh"
+        subprocess.call(["bash",send_stats_script_path])
+        with open(self.output().path,'w') as f:
+            f.write("Successfully sent stats")
+
+class AllTasks(QPlumTask):
     """
     Task to trigger all base tasks
     """
     date = luigi.DateParameter(default=date.today())
     def requires(self):
         return FetchCSI_all(self.date), PutInS3_all(self.date), PutCsiInDb_all(self.date),\
-               PutQuandlInDb(self.date), UpdateLastTradingDay(self.date)
+               PutQuandlInDb(self.date), UpdateLastTradingDay(self.date), SendStats(self.date)
 
 if __name__ == '__main__':
     load_credentials()
-    luigi.run(main_task_cls=AllReports)
+    luigi.run(main_task_cls=AllTasks)
