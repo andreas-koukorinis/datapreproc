@@ -9,6 +9,7 @@ import luigi
 from luigi.contrib.ftp import RemoteTarget
 from luigi.s3 import S3Target, S3Client
 from data_cleaning.csi_scripts.daily_update import push_file_to_db
+from data_cleaning.csi_scripts.update_last_trading_day import update_last_trading_day
 
 data_path = '/apps/data/csi/'
 log_path = '/home/deedee/logs/'
@@ -576,13 +577,28 @@ class PutCSIinDB_all(QPlumTask):
                PutCSIinDB_findices(self.date), PutCSIinDB_indices(self.date),\
                PutCSIinDB_funds(self.date)
 
+class UpdateLastTradingDay(QPlumTask):
+    """
+    Task to update last trading days for all products
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return PutCSIinDB_futures(self.date)
+    def output(self):
+        return luigi.LocalTarget(log_path+self.date.strftime('UpdateLastTradingDay.%Y%m%d.SUCCESS'))
+    def run(self):
+        update_last_trading_day(self.date.strftime('%Y-%m-%d')
+        with open(self.output().path,'w') as f:
+            f.write("Successfully updated last trading day for all futures")
+
 class AllReports(QPlumTask):
     """
     Task to trigger all base tasks
     """
     date = luigi.DateParameter(default=date.today())
     def requires(self):
-        return FetchCSI_all(self.date), PutInS3_all(self.date), PutCSIinDB_futures(self.date)
+        return FetchCSI_all(self.date), PutInS3_all(self.date), PutCSIinDB_futures(self.date),\
+               UpdateLastTradingDay(self.date) 
 
 if __name__ == '__main__':
     load_credentials()
