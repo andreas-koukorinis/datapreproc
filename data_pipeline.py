@@ -8,9 +8,12 @@ import urllib2
 import luigi
 from luigi.contrib.ftp import RemoteTarget
 from luigi.s3 import S3Target, S3Client
+from data_cleaning.csi_scripts.daily_update import push_file_to_db
 
 #data_path = '/apps/data/csi/'
+#log_path = '/apps/logs/'
 data_path = '/home/debi/data/'
+log_path = '/home/debi/logs/'
 csi_ftp_server = 'ftp.csidata.com'
 csi_ftp_port = 21
 s3_cfg = '~/.s3cfg'
@@ -21,7 +24,7 @@ class QPlumTask(luigi.Task):
     """
     Custom task that also sends error messages to Slack.
     Other custom functionality can be added in this class.
-    All tasks in our pipeline will inherit this
+    All tasks in our pipeline will inherit this.
     """
     def on_failure(self, exception):
         """
@@ -445,6 +448,30 @@ class PutInS3_ukstocks(QPlumTask):
         s3_client = S3Client(aws_access_key, aws_secret_key)
         s3_client.put(self.input().path, self.output().path)
 
+class PutCSIinDB_futures(QPlumTask):
+    """
+    Task to fetch all CSI data
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return FetchCSI_futures(self.date)
+
+    def output(self):
+        return luigi.LocalTarget(log_path+self.date.strftime('PutCSIinDB_futures.%Y%m%d.SUCCESS'))
+
+    def run(self):
+        futures = ['TU', 'FV', 'TY', 'US', 'NK', 'NIY', 'ES', 'SP', 'EMD', 'NQ', 'YM', 'AD',\
+                   'BP', 'CD', 'CU1', 'JY', 'MP', 'NE2', 'SF', 'GC', 'SI', 'HG', 'PL', 'PA',\
+                   'LH', 'ZW', 'ZC', 'ZS', 'ZM', 'ZL', 'EBS', 'EBM', 'EBL', 'SXE', 'FDX', \
+                   'SMI', 'SXF', 'CGB', 'FFI', 'FLG', 'AEX', 'KC', 'CT', 'CC', 'SB', 'JTI', \
+                   'JGB', 'JNI', 'SIN', 'SSG', 'HCE', 'HSI', 'ALS', 'YAP', 'MFX', 'KOS', 'VX', \
+                   'JPYUSD', 'CADUSD', 'GBPUSD', 'EURUSD', 'AUDUSD', 'NZDUSD', 'CHFUSD', 'SEKUSD',\
+                   'NOKUSD', 'TRYUSD', 'MXNUSD', 'ZARUSD', 'ILSUSD', 'SGDUSD', 'HKDUSD', 'TWDUSD',\
+                   'INRUSD', 'BRLUSD']
+        if push_file_to_db(self.input().path, futures):
+            with open(self.output().path) as f:
+                f.write("Successfully put CSI data in DB for futures")
+
 class FetchCSI_all(QPlumTask):
     """
     Task to fetch all CSI data
@@ -475,7 +502,7 @@ class AllReports(QPlumTask):
     """
     date = luigi.DateParameter(default=date.today())
     def requires(self):
-        return FetchCSI_all(self.date), PutInS3_all(self.date)
+        return FetchCSI_all(self.date), PutInS3_all(self.date), PutCSIinDB_futures(self.date)
 
 if __name__ == '__main__':
     load_credentials()
