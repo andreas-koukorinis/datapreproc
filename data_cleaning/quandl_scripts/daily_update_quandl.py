@@ -57,9 +57,11 @@ def push_quandl_updates(products, fetch_date, dataset, fields, tables):
             print "No data to download today for %s"%prod
             continue
         field_values = []
-        for field in fields:
-            if field in list(df.columns.values):
-                field_values.append(df.iloc[0][field])
+        # Might use this later when more clarity exists on Quandl column names
+        #for field in fields:
+        #    if field in list(df.columns.values):
+        #        field_values.append(df.iloc[0][field])
+        field_values.append(df.iloc[0][0])
         if len(field_values) == 1:
             query = "INSERT INTO %s VALUES ('%s','%s', '%s')"
             query = query % ((tables[prod], fetch_date, prod) + tuple(field_values))
