@@ -596,6 +596,7 @@ class PutQuandlInDb(QPlumTask):
     """
     Task to put Quandl data in DB
     """
+    date = luigi.DateParameter(default=date.today())
     def output(self):
         return luigi.LocalTarget(log_path+self.date.strftime('PutQuandlInDb.%Y%m%d.SUCCESS'))
     def run(self):

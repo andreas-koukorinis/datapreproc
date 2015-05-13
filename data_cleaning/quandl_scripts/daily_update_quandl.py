@@ -58,27 +58,27 @@ def push_quandl_updates(products, fetch_date, dataset, fields, tables):
             continue
         field_values = []
         for field in fields:
-            field_values.append(df.iloc[0][field])
-
-        format_strings = ','.join(['%s'] * len(fields))
-        query = "INSERT INTO %s VALUES ('%s','%s', " + format_strings + ")"
-        query = query % ((tables[prod], fetch_date, prod) + tuple(field_values))
-        print query
-        try:
-            db_cursor.execute(query)
-            db.commit()
-        except Exception, err:
-            print traceback.format_exc()
-            db.rollback()
-            print('EXCEPTION in inserting Quandl data for %s'%prod)
-            server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in inserting Quandl data for %s'%prod)
+            if field in list(df.columns.values):
+                field_values.append(df.iloc[0][field])
+        if len(field_values) == 1:
+            query = "INSERT INTO %s VALUES ('%s','%s', '%s')"
+            query = query % ((tables[prod], fetch_date, prod) + tuple(field_values))
+            print query
+            try:
+                db_cursor.execute(query)
+                db.commit()
+            except Exception, err:
+                print traceback.format_exc()
+                db.rollback()
+                print('EXCEPTION in inserting Quandl data for %s'%prod)
+                server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in inserting Quandl data for %s'%prod)
 
 def daily_update_quandl(cmd=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('fetch_date')
     parser.add_argument('-p', type=str, nargs='+', help='Products to be fetched from Quandl\nEg: -p BEL12M USA1M\n', default=None, dest='products')
     parser.add_argument('-d', type=str, help='Dataset at Quandl\nEg: -d YC', default='YC', dest='dataset')
-    parser.add_argument('-f', type=str, nargs='+', help='Fields to be fetched from Quandl\nEg. -f Rate\n', default=['Rate'], dest='fields')
+    parser.add_argument('-f', type=str, nargs='+', help='Fields to be fetched from Quandl\nEg. -f Rate\n', default=['Rate','Yield'], dest='fields')
     if cmd == None:
         args = parser.parse_args()
     else:
