@@ -65,7 +65,7 @@ def product_to_table_map():
 
 def setup_db_esm_smtp():
     global exchange_symbol_manager
-    module = imp.load_source('exchange_symbol_manager', '../exchange_symbol_manager.py')
+    module = imp.load_source('exchange_symbol_manager', os.path.expanduser('~/datapreproc/data_cleaning/exchange_symbol_manager.py'))
     exchange_symbol_manager = module.ExchangeSymbolManager()
     global server
     server = smtplib.SMTP("localhost")
@@ -107,9 +107,8 @@ def get_contract_number(date, _base_symbol, YYMM ):
     return num
 
 def get_file_into_wd(raw_file):
-    print filename
-    inF = gzip.open(filename, 'rb')
-    local_filename = os.path.basename(filename)[:-4]
+    inF = gzip.open(raw_file, 'rb')
+    local_filename = os.path.basename(raw_file)[:-4]
     outF = open(local_filename, 'wb')
     outF.write(inF.read())
     inF.close()
