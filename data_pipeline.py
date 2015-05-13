@@ -10,6 +10,7 @@ from luigi.contrib.ftp import RemoteTarget
 from luigi.s3 import S3Target, S3Client
 from data_cleaning.csi_scripts.daily_update import push_file_to_db
 from data_cleaning.csi_scripts.update_last_trading_day import update_last_trading_day
+from data_cleaning.quandl_scripts.daily_update_quandl import daily_update_quandl
 
 data_path = '/apps/data/csi/'
 log_path = '/home/deedee/logs/'
@@ -38,7 +39,7 @@ class QPlumTask(luigi.Task):
         """
         traceback_string = traceback.format_exc()
         payload = {"channel": "#datapipeline-errors", "username": "Luigi", "text": traceback_string}
-        req = urllib2.Request(' https://hooks.slack.com/services/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')
+        req = urllib2.Request('https://hooks.slack.com/services/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')
         response = urllib2.urlopen(req, json.dumps(payload))
         return "Runtime error:\n%s" % traceback_string
 
@@ -449,7 +450,7 @@ class PutInS3_ukstocks(QPlumTask):
         s3_client = S3Client(aws_access_key, aws_secret_key)
         s3_client.put(self.input().path, self.output().path)
 
-class PutCSIinDB_futures(QPlumTask):
+class PutCsiInDb_futures(QPlumTask):
     """
     Task to put CSI data in database
     """
@@ -458,7 +459,7 @@ class PutCSIinDB_futures(QPlumTask):
         return FetchCSI_futures(self.date)
 
     def output(self):
-        return luigi.LocalTarget(log_path+self.date.strftime('PutCSIinDB_futures.%Y%m%d.SUCCESS'))
+        return luigi.LocalTarget(log_path+self.date.strftime('PutCsiInDb_futures.%Y%m%d.SUCCESS'))
 
     def run(self):
         futures = ['TU', 'FV', 'TY', 'US', 'NK', 'NIY', 'ES', 'SP', 'EMD', 'NQ', 'YM', 'AD',\
@@ -473,7 +474,7 @@ class PutCSIinDB_futures(QPlumTask):
             with open(self.output().path,'w') as f:
                 f.write("Successfully put CSI data in DB for futures")
 
-class PutCSIinDB_funds(QPlumTask):
+class PutCsiInDb_funds(QPlumTask):
     """
     Task to put CSI data in database
     """
@@ -482,7 +483,7 @@ class PutCSIinDB_funds(QPlumTask):
         return FetchCSI_funds(self.date)
 
     def output(self):
-        return luigi.LocalTarget(log_path+self.date.strftime('PutCSIinDB_funds.%Y%m%d.SUCCESS'))
+        return luigi.LocalTarget(log_path+self.date.strftime('PutCsiInDb_funds.%Y%m%d.SUCCESS'))
 
     def run(self):
         funds = ['AQRIX','AQMIX','QGMIX','SRPFX','ABRZX','VBLTX','VTSMX']
@@ -490,7 +491,7 @@ class PutCSIinDB_funds(QPlumTask):
             with open(self.output().path,'w') as f:
                 f.write("Successfully put CSI data in DB for funds")
 
-class PutCSIinDB_indices(QPlumTask):
+class PutCsiInDb_indices(QPlumTask):
     """
     Task to put CSI data in database
     """
@@ -499,7 +500,7 @@ class PutCSIinDB_indices(QPlumTask):
         return FetchCSI_indices(self.date)
 
     def output(self):
-        return luigi.LocalTarget(log_path+self.date.strftime('PutCSIinDB_indices.%Y%m%d.SUCCESS'))
+        return luigi.LocalTarget(log_path+self.date.strftime('PutCsiInDb_indices.%Y%m%d.SUCCESS'))
 
     def run(self):
         indices = ['VIX','TCMP','SPX','NYA','COMP']
@@ -507,16 +508,16 @@ class PutCSIinDB_indices(QPlumTask):
             with open(self.output().path,'w') as f:
                 f.write("Successfully put CSI data in DB for indices")
 
-class PutCSIinDB_findices(QPlumTask):
+class PutCsiInDb_findices(QPlumTask):
     """
-    Task to put CSI data in database
+    Task to put Quandl data in database
     """
     date = luigi.DateParameter(default=date.today())
     def requires(self):
         return FetchCSI_findices(self.date)
 
     def output(self):
-        return luigi.LocalTarget(log_path+self.date.strftime('PutCSIinDB_findices.%Y%m%d.SUCCESS'))
+        return luigi.LocalTarget(log_path+self.date.strftime('PutCsiInDb_findices.%Y%m%d.SUCCESS'))
 
     def run(self):
         findices = ['XMSW','^AXJO','^BSES','^BVSP','^FTSE','^GDAX','^GU15','^MXX',\
@@ -525,7 +526,7 @@ class PutCSIinDB_findices(QPlumTask):
             with open(self.output().path,'w') as f:
                 f.write("Successfully put CSI data in DB for f-indices")
 
-class PutCSIinDB_usstocks(QPlumTask):
+class PutCsiInDb_usstocks(QPlumTask):
     """
     Task to put CSI data in database
     """
@@ -534,7 +535,7 @@ class PutCSIinDB_usstocks(QPlumTask):
         return FetchCSI_usstocks(self.date)
 
     def output(self):
-        return luigi.LocalTarget(log_path+self.date.strftime('PutCSIinDB_usstocks.%Y%m%d.SUCCESS'))
+        return luigi.LocalTarget(log_path+self.date.strftime('PutCsiInDb_usstocks.%Y%m%d.SUCCESS'))
 
     def run(self):
         usstocks = ['BND', 'BNDX', 'IEMG', 'LQD', 'MUB', 'SHV', 'TIP', 'VBR', 'VEA', 'VIG', 'VNQ',\
@@ -567,15 +568,15 @@ class PutInS3_all(QPlumTask):
                PutInS3_funds(self.date), PutInS3_futures(self.date), \
                PutInS3_ukstocks(self.date), PutInS3_usstocks(self.date)
 
-class PutCSIinDB_all(QPlumTask):
+class PutCsiInDb_all(QPlumTask):
     """
     Task to put all CSI data in database
     """
     date = luigi.DateParameter(default=date.today())
     def requires(self):
-        return PutCSIinDB_futures(self.date), PutCSIinDB_usstocks(self.date),\
-               PutCSIinDB_findices(self.date), PutCSIinDB_indices(self.date),\
-               PutCSIinDB_funds(self.date)
+        return PutCsiInDb_futures(self.date), PutCsiInDb_usstocks(self.date),\
+               PutCsiInDb_findices(self.date), PutCsiInDb_indices(self.date),\
+               PutCsiInDb_funds(self.date)
 
 class UpdateLastTradingDay(QPlumTask):
     """
@@ -583,7 +584,7 @@ class UpdateLastTradingDay(QPlumTask):
     """
     date = luigi.DateParameter(default=date.today())
     def requires(self):
-        return PutCSIinDB_futures(self.date)
+        return PutCsiInDb_futures(self.date)
     def output(self):
         return luigi.LocalTarget(log_path+self.date.strftime('UpdateLastTradingDay.%Y%m%d.SUCCESS'))
     def run(self):
@@ -591,14 +592,25 @@ class UpdateLastTradingDay(QPlumTask):
         with open(self.output().path,'w') as f:
             f.write("Successfully updated last trading day for all futures")
 
+class PutQuandlInDb(QPlumTask):
+    """
+    Task to put Quandl data in DB
+    """
+    def output(self):
+        return luigi.LocalTarget(log_path+self.date.strftime('PutQuandlInDb.%Y%m%d.SUCCESS'))
+    def run(self):
+        daily_update_quandl(self.date.strftime('%Y%m%d'))
+        with open(self.output().path,'w') as f:
+            f.write("Successfully put Quandl data in DB")
+
 class AllReports(QPlumTask):
     """
     Task to trigger all base tasks
     """
     date = luigi.DateParameter(default=date.today())
     def requires(self):
-        return FetchCSI_all(self.date), PutInS3_all(self.date), PutCSIinDB_all(self.date),\
-               UpdateLastTradingDay(self.date) 
+        return FetchCSI_all(self.date), PutInS3_all(self.date), PutCsiInDb_all(self.date),\
+               PutQuandlInDb(self.date), UpdateLastTradingDay(self.date)
 
 if __name__ == '__main__':
     load_credentials()

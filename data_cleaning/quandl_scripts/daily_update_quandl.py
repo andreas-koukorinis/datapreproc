@@ -73,13 +73,16 @@ def push_quandl_updates(products, fetch_date, dataset, fields, tables):
             print('EXCEPTION in inserting Quandl data for %s'%prod)
             server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in inserting Quandl data for %s'%prod)
 
-def main():
+def daily_update_quandl(cmd=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('fetch_date')
     parser.add_argument('-p', type=str, nargs='+', help='Products to be fetched from Quandl\nEg: -p BEL12M USA1M\n', default=None, dest='products')
     parser.add_argument('-d', type=str, help='Dataset at Quandl\nEg: -d YC', default='YC', dest='dataset')
     parser.add_argument('-f', type=str, nargs='+', help='Fields to be fetched from Quandl\nEg. -f Rate\n', default=['Rate'], dest='fields')
-    args = parser.parse_args()
+    if cmd == None:
+        args = parser.parse_args()
+    else:
+        args = parser.parse_args(cmd.split())
 
     # By default try to get daily updates for all products in Quandl
     if args.products == None:
@@ -112,5 +115,4 @@ def main():
     db_close()
 
 if __name__ == '__main__':
-    main()
-
+    daily_update_quandl()
