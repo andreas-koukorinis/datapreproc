@@ -3,6 +3,7 @@ from datetime import date
 import json
 import os
 import sys
+import traceback
 import urllib2
 import luigi
 from luigi.contrib.ftp import RemoteTarget
@@ -32,7 +33,7 @@ class QPlumTask(luigi.Task):
         Default behavior is to return a string representation of the stack trace.
         """
         traceback_string = traceback.format_exc()
-        payload = {"channel": "#datapipeline-monitor", "username": "Luigi", "text": traceback_string}
+        payload = {"channel": "#datapipeline-errors", "username": "Luigi", "text": traceback_string}
         req = urllib2.Request(' https://hooks.slack.com/services/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')
         response = urllib2.urlopen(req, json.dumps(payload))
         return "Runtime error:\n%s" % traceback_string
@@ -450,7 +451,7 @@ class FetchCSI_all(QPlumTask):
     """
     date = luigi.DateParameter(default=date.today())
     def requires(self):
-        yield FetchCSI_briese(self.date), FetchCSI_canada(self.date), \
+        return FetchCSI_briese(self.date), FetchCSI_canada(self.date), \
                FetchCSI_cftc(self.date), FetchCSI_econ(self.date), \
                FetchCSI_findices(self.date), FetchCSI_indices(self.date), \
                FetchCSI_funds(self.date), FetchCSI_futures(self.date), \
@@ -462,7 +463,7 @@ class PutInS3_all(QPlumTask):
     """
     date = luigi.DateParameter(default=date.today())
     def requires(self):
-        yield PutInS3_briese(self.date), PutInS3_canada(self.date), \
+        return PutInS3_briese(self.date), PutInS3_canada(self.date), \
                PutInS3_cftc(self.date), PutInS3_econ(self.date), \
                PutInS3_findices(self.date), PutInS3_indices(self.date), \
                PutInS3_funds(self.date), PutInS3_futures(self.date), \
@@ -474,7 +475,7 @@ class AllReports(QPlumTask):
     """
     date = luigi.DateParameter(default=date.today())
     def requires(self):
-        yield FetchCSI_all(self.date), PutInS3_all(self.date)
+        return FetchCSI_all(self.date), PutInS3_all(self.date)
 
 if __name__ == '__main__':
     load_credentials()
