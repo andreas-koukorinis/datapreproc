@@ -54,10 +54,10 @@ def setup_db_esm_smtp():
     server = smtplib.SMTP("localhost")
     db_connect()
 
-def update_last_trading_day(date):
+def update_last_trading_day(given_date):
     setup_db_esm_smtp()
     product_to_table_map()
-    _date = date.strptime("%Y-%m-%d")
+    _date = datetime.strptime(given_date, "%Y-%m-%d")
     for product in mappings.keys():
         _base_symbol = mappings[product]
         min_last_trading_date = datetime(2050,12,31).date()

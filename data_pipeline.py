@@ -587,7 +587,7 @@ class UpdateLastTradingDay(QPlumTask):
     def output(self):
         return luigi.LocalTarget(log_path+self.date.strftime('UpdateLastTradingDay.%Y%m%d.SUCCESS'))
     def run(self):
-        update_last_trading_day(self.date.strftime('%Y-%m-%d')
+        update_last_trading_day(self.date.strftime('%Y-%m-%d'))
         with open(self.output().path,'w') as f:
             f.write("Successfully updated last trading day for all futures")
 
@@ -597,7 +597,7 @@ class AllReports(QPlumTask):
     """
     date = luigi.DateParameter(default=date.today())
     def requires(self):
-        return FetchCSI_all(self.date), PutInS3_all(self.date), PutCSIinDB_futures(self.date),\
+        return FetchCSI_all(self.date), PutInS3_all(self.date), PutCSIinDB_all(self.date),\
                UpdateLastTradingDay(self.date) 
 
 if __name__ == '__main__':
