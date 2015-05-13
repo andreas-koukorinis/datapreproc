@@ -566,7 +566,7 @@ class PutInS3_all(QPlumTask):
                PutInS3_funds(self.date), PutInS3_futures(self.date), \
                PutInS3_ukstocks(self.date), PutInS3_usstocks(self.date)
 
-class PutInS3_all(QPlumTask):
+class PutCSIinDB_all(QPlumTask):
     """
     Task to put all CSI data in database
     """
