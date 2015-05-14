@@ -46,13 +46,15 @@ def get_mark_to_market(outstanding_amounts_ote, outstanding_amounts_bal, currenc
     converted_total_ote = 0 
     mark_to_market = 0
     for key in outstanding_amounts_bal.keys():
-        currency = get_currency_from_column(key)
-        converted_total_bal += outstanding_amounts_bal[key] * currency_rates[currency]
-        mark_to_market += outstanding_amounts_bal[key] * currency_rates[currency]
+        if outstanding_amounts_bal[key] != 0:
+            currency = get_currency_from_column(key)
+            converted_total_bal += outstanding_amounts_bal[key] * currency_rates[currency]
+            mark_to_market += outstanding_amounts_bal[key] * currency_rates[currency]
     for key in outstanding_amounts_ote.keys():
-        currency = get_currency_from_column(key)
-        converted_total_ote += outstanding_amounts_ote[key] * currency_rates[currency]
-        mark_to_market += outstanding_amounts_ote[key] * currency_rates[currency]
+        if outstanding_amounts_ote[key] != 0:
+            currency = get_currency_from_column(key)
+            converted_total_ote += outstanding_amounts_ote[key] * currency_rates[currency]
+            mark_to_market += outstanding_amounts_ote[key] * currency_rates[currency]
     return (converted_total_bal, converted_total_ote, mark_to_market)
 
 def get_factors(current_date, data_source, exchange_symbols, product_type, wedbush_db_cursor):
@@ -111,7 +113,7 @@ def main():
     # First update positions based on actual orders for today
     positions = {}  
     try:
-        # get the current position and average trade price
+        # Get the current position 
         try:    
             # Get YDAY position    
             query = "SELECT date FROM positions WHERE date < '%s' ORDER BY date DESC limit 1" % ( current_date )
@@ -147,7 +149,7 @@ def main():
     cash = 0
     products = []
     #Get outstanding positions for yday
-    outstanding_currencies_bal = ['segregated_USD_bal', 'secured_USD_bal', 'secured_GBP_bal', 'secured_EUR_bal']
+    outstanding_currencies_bal = ['segregated_USD_bal', 'secured_USD_bal', 'secured_GBP_bal', 'secured_EUR_bal', 'secured_CAD_bal']
     outstanding_amounts_bal = dict.fromkeys(outstanding_currencies_bal, 0.0)
 
     columns = ','.join( outstanding_currencies_bal)
@@ -178,7 +180,7 @@ def main():
         print traceback.format_exc()
         sys.exit( 'Could not load estimated segregated/secured data from db 2' )
 
-    # Get positions, average trade price, for yday
+    # Make product list using positions till yday and orders for today
     try:
         query = "SELECT date FROM positions WHERE date < '%s' ORDER BY date DESC LIMIT 1" % current_date
         db_cursor.execute(query)
@@ -189,18 +191,15 @@ def main():
             rows = db_cursor.fetchall()
             for row in rows:
                 products.append( row['product'] )
-
     except Exception, err:
         send_mail( err, 'Could not find estimated position data in db' )
         print traceback.format_exc()
-
     try:
         query = "SELECT product FROM actual_orders WHERE date = '%s'" % ( current_date )
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
         for row in rows:
             products.append( row['product'] )
-
     except Exception, err:
         send_mail( err, 'Could not find estimated position data in db' )
         print traceback.format_exc()
@@ -209,9 +208,8 @@ def main():
     products = list( set ( products ) )
     price, conversion_factor = get_factors( current_date, args.data_source, products, product_type, db_cursor )
 
-    # TODO update PNL
+    # Get commission rates
     try:
-        # Get commission rates
         commission_rates = {}
         query = "SELECT product, currency, exchange_fee, broker_fee, clearing_fee, nfa_fee FROM commission_rates" 
         db_cursor.execute(query)
@@ -228,8 +226,6 @@ def main():
         print traceback.format_exc()
         sys.exit( 'Could not load commission rates data' )
 
-    # TODO Note Overwriting here Get broker currency factor
-    # TODO probably not a good way
     product_to_currency = {}
     currency_rates = {}
     try:
@@ -253,114 +249,196 @@ def main():
     commission = 0
     realized_pnl = 0
 
-    # Go through each order for today and keep track of average trade price, commission and cash
-    orders = {}
-    net_amount = {}
-    order_queue = {}
+    # Load todays Orders 
+    todays_orders = {}
+    unsettled_idx1 = {}
+    unsettled_idx2 = {}
     try:
-        # Get YDAY cash
-        query = "SELECT date, product, fill_amount, fill_price FROM actual_orders WHERE date <= '%s' ORDER BY date ASC, fill_time ASC, place_time ASC" % ( current_date )
+        query = "SELECT id, date, product, fill_amount, fill_price FROM actual_orders WHERE date = '%s' ORDER BY date ASC, fill_price ASC" % ( current_date )
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
         for row in rows:
-            # Update position, atp, realized pnl and cash
             product = row['product']
             fill_amount = int(row['fill_amount'])
             fill_price = float(row['fill_price'])
             order_date = row['date']
-            if product not in orders.keys():
-                net_amount[product] = 0
-                order_queue[product] = []
-                orders[product] = [ [ order_date, fill_amount, fill_price ] ]
+            order_id = int(row['id'])
+            if product not in todays_orders.keys():
+                todays_orders[product] = [ [ order_date, fill_amount, fill_price, order_id ] ]
+                unsettled_idx1[product] = [0,0] # First idx is for negative, second for positive
+                unsettled_idx2[product] = [0,0] # First idx is for negative, second for positive
             else:
-                orders[product].append( [ order_date, fill_amount, fill_price ] )
-
+                todays_orders[product].append( [ order_date, fill_amount, fill_price, order_id ] )
     except Exception, err:
-        send_mail( err, 'Could not load all orders from db' )
+        send_mail( err, 'Could not load todays orders from db' )
         print traceback.format_exc()
-        sys.exit( 'Could not load all orders from db' )
+        sys.exit( 'Could not load todays orders from db' )
 
-    print 'segregated_USD_bal', outstanding_amounts_bal['segregated_USD_bal']
-    print 'secured_USD_bal', outstanding_amounts_bal['secured_USD_bal']
-    for product in orders.keys():
+    # Load unsettled Orders 
+    unsettled_orders = {}
+    try:
+        query = "SELECT id, date, product, fill_amount, fill_price FROM unsettled_orders ORDER BY date ASC, fill_price ASC"
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        for row in rows:
+            product = row['product']
+            fill_amount = int(row['fill_amount'])
+            fill_price = float(row['fill_price'])
+            order_date = row['date']
+            order_id = int(row['id'])
+            if product not in unsettled_orders.keys():
+                unsettled_orders[product] = [ [ order_date, fill_amount, fill_price, order_id ] ]
+            else:
+                unsettled_orders[product].append( [ order_date, fill_amount, fill_price, order_id ] )
+    except Exception, err:
+        send_mail( err, 'Could not load unsettled orders from db' )
+        print traceback.format_exc()
+        sys.exit( 'Could not load unsettled orders from db' )
+
+    for product in todays_orders.keys():
         basename = product[:-3]
-        for order in orders[product]:
-            if order[0] == current_date.date():
-                fill_amount = order[1]
-                commission += abs( fill_amount ) * ( ( commission_rates[basename]['broker_fee'] + commission_rates[basename]['nfa_fee'] ) + \
-                              ( commission_rates[basename]['exchange_fee'] + commission_rates[basename]['clearing_fee'] ) * currency_rates[product_to_currency[basename]] )
+        for order in todays_orders[product]:
+            # First add the commission
+            fill_amount = order[1]
+            commission += abs( fill_amount ) * ( ( commission_rates[basename]['broker_fee'] + commission_rates[basename]['nfa_fee'] ) + \
+                          ( commission_rates[basename]['exchange_fee'] + commission_rates[basename]['clearing_fee'] ) * currency_rates[product_to_currency[basename]] )
 
-                outstanding_amounts_bal['segregated_USD_bal'] -= abs( fill_amount ) * commission_rates[basename]['broker_fee']
-                if product_to_currency[basename] == 'USD':
-                    outstanding_amounts_bal['segregated_USD_bal'] -= abs( fill_amount ) * commission_rates[basename]['nfa_fee']
-                else:
-                    outstanding_amounts_bal['secured_USD_bal'] -= abs( fill_amount ) * commission_rates[basename]['nfa_fee']
+            outstanding_amounts_bal['segregated_USD_bal'] -= abs( fill_amount ) * commission_rates[basename]['broker_fee']
+            if product_to_currency[basename] == 'USD':
+                outstanding_amounts_bal['segregated_USD_bal'] -= abs( fill_amount ) * commission_rates[basename]['nfa_fee']
+            else:
+                outstanding_amounts_bal['secured_USD_bal'] -= abs( fill_amount ) * commission_rates[basename]['nfa_fee']
 
-                if product_to_currency[basename] == 'USD':
-                    outstanding_amounts_bal['segregated_USD_bal'] -= abs( fill_amount ) * ( commission_rates[basename]['exchange_fee'] \
-                                                                                          + commission_rates[basename]['clearing_fee'] )
+            if product_to_currency[basename] == 'USD':
+                outstanding_amounts_bal['segregated_USD_bal'] -= abs( fill_amount ) * ( commission_rates[basename]['exchange_fee'] \
+                                                                                      + commission_rates[basename]['clearing_fee'] )
+            else:
+                outstanding_amounts_bal[get_column_from_currency(product_to_currency[basename], 'bal')] -= abs( fill_amount ) * ( commission_rates[basename]['exchange_fee'] \
+                                                                                                                                + commission_rates[basename]['clearing_fee'] )
 
-                else:
-                    outstanding_amounts_bal[get_column_from_currency(product_to_currency[basename], 'bal')] -= abs( fill_amount ) * ( commission_rates[basename]['exchange_fee'] \
-                                                                                                                                    + commission_rates[basename]['clearing_fee'] )
+    # Try day trade offset
+    for product in todays_orders.keys():
+        basename = product[:-3]
+        while True:
+            while unsettled_idx1[product][0] < len(todays_orders[product]) and todays_orders[product][unsettled_idx1[product][0]][1] >= 0:
+                unsettled_idx1[product][0] += 1 
+            while unsettled_idx1[product][1] < len(todays_orders[product]) and todays_orders[product][unsettled_idx1[product][1]][1] <= 0:
+                unsettled_idx1[product][1] += 1 
+            if unsettled_idx1[product][0] == len(todays_orders[product]) or unsettled_idx1[product][1] == len(todays_orders[product]):
+                break
+            closed_amount = min( abs(todays_orders[product][unsettled_idx1[product][0]][1]), abs(todays_orders[product][unsettled_idx1[product][1]][1]) )
+            buy_price = todays_orders[product][unsettled_idx1[product][1]][2]
+            sell_price = todays_orders[product][unsettled_idx1[product][0]][2]
+            todays_orders[product][unsettled_idx1[product][0]][1] += closed_amount
+            todays_orders[product][unsettled_idx1[product][1]][1] -= closed_amount
 
-            # Do order matching to find a corresponding order
-            #if net_amount[product] == 0 or sign(net_amount[product]) == sign(order[1]): # just need to insert in the queue
-                #order_queue[product].append(order)
-            #else:
-            current_trade_amount = order[1]
-            while True:
-                if ( len( order_queue[product] ) == 0 or sign(net_amount[product]) == sign(current_trade_amount) ):
-                    if current_trade_amount != 0:
-                        new_order = [ order[0], current_trade_amount, order[2] ]
-                        order_queue[product].append(new_order)
-                    net_amount[product] += current_trade_amount
-                    break
-                elif current_trade_amount == 0:
-                    break
-                else:
-                    match_idx = get_match_idx( order_queue[product], sign(current_trade_amount) )
-                    matched_order = order_queue[product][match_idx]
-                    if abs(matched_order[1]) > abs(current_trade_amount): # Look for no more matches, long order amount > short order amount
-                        closed_amount = -current_trade_amount
-                        order_queue[product][match_idx][1] -= closed_amount
-                    else:
-                        closed_amount = matched_order[1]
-                        del order_queue[product][match_idx] 
-
-                    if order[0] == current_date.date():
-                        buy_price = ceil(matched_order[2]*100000)/100000
-                        sell_price = ceil(order[2]*100000)/100000
-                        print 'CLOSED: ', closed_amount, sell_price, buy_price, closed_amount * conversion_factor[basename] * ( sell_price - buy_price )
-                        if product_to_currency[basename] == 'USD':
-                            outstanding_amounts_bal['segregated_USD_bal'] += closed_amount * conversion_factor[basename] * ( sell_price - buy_price )
-                        else:
-                            outstanding_amounts_bal[get_column_from_currency(product_to_currency[basename], 'bal')] += closed_amount * conversion_factor[basename] * \
+            if product_to_currency[basename] == 'USD':
+                outstanding_amounts_bal['segregated_USD_bal'] += closed_amount * conversion_factor[basename] * ( sell_price - buy_price )
+            else:
+                outstanding_amounts_bal[get_column_from_currency(product_to_currency[basename], 'bal')] += closed_amount * conversion_factor[basename] * \
                                                                                                                        ( sell_price - buy_price )
-                    current_trade_amount += closed_amount
-                    net_amount[product] -= closed_amount
 
-    average_trade_price = {}
-    current_amount = {}
-    for product in orders.keys():
-        average_trade_price[product] = 0.0 
-        current_amount[product] = 0.0
-        for order in order_queue[product]:
-            average_trade_price[product] = ( current_amount[product]*average_trade_price[product] + order[1]*order[2] )/ ( current_amount[product] + order[1] )
-            current_amount[product] += order[1]
+    # Try FIFO offset against unsettled orders from previous days
+    for product in todays_orders.keys():
+        basename = product[:-3]
+        if product not in unsettled_orders.keys():
+            continue
+        while True:
+            while unsettled_idx2[product][0] < len(unsettled_orders[product]) and unsettled_orders[product][unsettled_idx2[product][0]][1] >= 0:
+                unsettled_idx2[product][0] += 1 
+            while unsettled_idx2[product][1] < len(unsettled_orders[product]) and unsettled_orders[product][unsettled_idx2[product][1]][1] <= 0:
+                unsettled_idx2[product][1] += 1 
+            while unsettled_idx1[product][0] < len(todays_orders[product]) and todays_orders[product][unsettled_idx1[product][0]][1] >= 0:
+                unsettled_idx1[product][0] += 1 
+            while unsettled_idx1[product][1] < len(todays_orders[product]) and todays_orders[product][unsettled_idx1[product][1]][1] <= 0:
+                unsettled_idx1[product][1] += 1 
+
+            if ( ( unsettled_idx2[product][0] == len(unsettled_orders[product]) ) or ( unsettled_idx1[product][1] == len(todays_orders[product]) ) ) and \
+               ( ( unsettled_idx2[product][1] == len(unsettled_orders[product]) ) or ( unsettled_idx1[product][0] == len(todays_orders[product]) ) ):
+                break
+            elif ( ( unsettled_idx2[product][1] < len(unsettled_orders[product]) ) and ( unsettled_idx1[product][0] < len(todays_orders[product]) ) ):
+                closed_amount = min( abs(todays_orders[product][unsettled_idx1[product][0]][1]), abs(unsettled_orders[product][unsettled_idx2[product][1]][1]) )
+                sell_price = todays_orders[product][unsettled_idx1[product][0]][2]
+                buy_price = unsettled_orders[product][unsettled_idx2[product][1]][2]
+                todays_orders[product][unsettled_idx1[product][0]][1] += closed_amount
+                unsettled_orders[product][unsettled_idx2[product][1]][1] -= closed_amount
+
+                if product_to_currency[basename] == 'USD':
+                    outstanding_amounts_bal['segregated_USD_bal'] += closed_amount * conversion_factor[basename] * ( sell_price - buy_price )
+                else:
+                    outstanding_amounts_bal[get_column_from_currency(product_to_currency[basename], 'bal')] += closed_amount * conversion_factor[basename] * \
+                                                                                                               ( sell_price - buy_price )
+            elif ( ( unsettled_idx2[product][0] < len(unsettled_orders[product]) ) and ( unsettled_idx1[product][1] < len(todays_orders[product]) ) ):
+                closed_amount = min( abs(todays_orders[product][unsettled_idx1[product][1]][1]), abs(unsettled_orders[product][unsettled_idx2[product][0]][1]) )
+                sell_price = unsettled_orders[product][unsettled_idx2[product][0]][2]
+                buy_price = todays_orders[product][unsettled_idx1[product][1]][2]
+                todays_orders[product][unsettled_idx1[product][1]][1] -= closed_amount
+                unsettled_orders[product][unsettled_idx2[product][0]][1] += closed_amount
+
+                if product_to_currency[basename] == 'USD':
+                    outstanding_amounts_bal['segregated_USD_bal'] += closed_amount * conversion_factor[basename] * ( sell_price - buy_price )
+                else:
+                    outstanding_amounts_bal[get_column_from_currency(product_to_currency[basename], 'bal')] += closed_amount * conversion_factor[basename] * \
+                                                                                                               ( sell_price - buy_price )
+     
+    for product in unsettled_orders.keys():
+        unsettled_orders[product] = [ order for order in unsettled_orders[product] if order[1] != 0 ] 
+
+    for product in todays_orders.keys():
+        for order in todays_orders[product]:
+            if order[1] != 0:
+                if product not in unsettled_orders.keys():
+                    unsettled_orders[product] = [order]
+                else:
+                    unsettled_orders[product].append(order)  
+    
+    # Update unsettled orders in db
+    try:
+        query = "delete from unsettled_orders"
+        db_cursor.execute(query)
+        db.commit()
+    except Exception, err:
+        db.rollback()
+        send_mail( err, 'Could not delete unsettled orders from db' )
+        print traceback.format_exc()
+        sys.exit( 'Could not delete unsettled orders from db' )
+
+    for product in unsettled_orders.keys():
+        for order in unsettled_orders[product]:
+            try:
+                query = "INSERT INTO unsettled_orders(id, date, product, fill_amount, fill_price) VALUES('%s', '%s','%s','%s','%s')" % ( order[3], order[0], product, order[1], order[2])
+                db_cursor.execute(query)
+                db.commit()
+            except Exception, err:
+                db.rollback()
+                send_mail( err, 'Could not add unsettled orders to db' )
+                print traceback.format_exc()
+                sys.exit( 'Could not add unsettled orders to db' )
+            
+    #average_trade_price = {}
+    #current_amount = {}
+    #for product in unsettled_orders.keys():
+        #average_trade_price[product] = 0.0 
+        #current_amount[product] = 0.0
+        #for order in unsettled_orders[product]:
+            #average_trade_price[product] = ( current_amount[product]*average_trade_price[product] + order[1]*order[2] )/ ( current_amount[product] + order[1] )
+            #current_amount[product] += order[1]
 
     # Update open equity using estimated open positions
-    outstanding_currencies_ote = ['segregated_USD_ote', 'secured_USD_ote', 'secured_GBP_ote', 'secured_EUR_ote']
+    outstanding_currencies_ote = ['segregated_USD_ote', 'secured_USD_ote', 'secured_GBP_ote', 'secured_EUR_ote', 'secured_CAD_ote']
     outstanding_amounts_ote = dict.fromkeys(outstanding_currencies_ote, 0.0)
-    for product in orders.keys():
+    for product in unsettled_orders.keys():
         basename = product[:-3]
         currency = commission_rates[basename]['currency']
-        if currency == 'USD':
-            outstanding_amounts_ote['segregated_USD_ote'] += current_amount[product] * conversion_factor[basename] *\
-                                                             ((ceil( price[product]*100000)/100000) - (ceil(average_trade_price[product]*100000)/100000 ))
-        else:
-            outstanding_amounts_ote[get_column_from_currency(currency, 'ote')] = current_amount[product] * conversion_factor[basename]* \
-                                                             ((ceil( price[product]*100000)/100000) - (ceil(average_trade_price[product]*100000)/100000 ))
+        for order in unsettled_orders[product]:
+            if currency == 'USD':
+                outstanding_amounts_ote['segregated_USD_ote'] += order[1] * conversion_factor[basename] *\
+                                                                 (price[product] - order[2])
+                                                                 #((ceil( price[product]*100000)/100000) - (ceil(order[2]*100000)/100000 ))
+            else:
+                outstanding_amounts_ote[get_column_from_currency(currency, 'ote')] += order[1] * conversion_factor[basename]* \
+                                                                 (price[product] - order[2])
+                                                                 #((ceil( price[product]*100000)/100000) - (ceil(order[2]*100000)/100000 ))
 
     converted_total_bal, converted_total_ote, mark_to_market = get_mark_to_market(outstanding_amounts_ote, outstanding_amounts_bal, currency_rates)
 
