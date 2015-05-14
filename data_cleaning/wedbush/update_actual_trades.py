@@ -11,8 +11,8 @@ home_path = os.path.expanduser("~")
 sys.path.append(home_path + '/stratdev/')
 from utils.dbqueries import connect_to_db
 
-order_shortcode_map = {'EP':'ES','CA6':'6C','TYA':'ZN','DSX':'FESX','QGA':'LFR'}
-cqg_multiplier_map = {'ES': 100.0, '6C': 10000.0, 'ZN' : 1000.0, 'FESX' : 10.0, 'LFR' : 100.0} # TODO looks like this can change
+order_shortcode_map = {'EP':'ES','CA6':'6C','TYA':'ZN','DSX':'FESX','QGA':'LFR', 'MX6': '6M', 'DL' : 'FGBM', 'USA' : 'ZB', 'JY6' : '6J', 'TP' : 'SXF', 'CB' : 'CGB', 'FVA': 'ZF', 'DB' : 'FGBL'}
+cqg_multiplier_map = {'ES': 100.0, '6C': 10000.0, 'ZN' : 1000.0, 'FESX' : 10.0, 'LFR' : 100.0, '6M' : 1000000.0, 'FGBM': 1000.0, 'ZB' : 1000.0, '6J' : 10000.0, 'SXF': 100.0, 'CGB': 100.0, 'ZF': 1000.0, 'FGBL': 100.0 } # TODO looks like this can change
 
 def send_mail( err, msg ):
     server = smtplib.SMTP( "localhost" )

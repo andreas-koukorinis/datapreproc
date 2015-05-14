@@ -11,9 +11,9 @@ sys.path.append(home_path + '/stratdev/')
 from utils.dbqueries import get_conversion_factors, connect_to_db
 
 # TODO move to a separate class
-future_code_mappings = {'RH':'LFR','SF':'FESX','21':'ZN','ES':'ES','C1':'6C'}
+future_code_mappings = { 'ES':'ES','C1':'6C', '21':'ZN', 'SF':'FESX', 'RH':'LFR', 'MP':'6M', 'BC' : 'FGBM', '17':'ZB', 'J1': '6J', 'SX' : 'SXF', 'CG' : 'CGB', '25': 'ZF', 'BM':'FGBL'}
+  
 month_codes = {'01':'F','02':'G','03':'H','04':'J','05':'K', '06':'M','07':'N','08':'Q','09':'U', '10':'V', '11':'X', '12':'Z'}
-cqg_multiplier_map = {'ES': 100.0, '6C': 10000.0, 'ZN' : 1000.0, 'FESX' : 10.0, 'LFR' : 100.0} # TODO looks like this can change
 
 def send_mail( err, msg ):
   server = smtplib.SMTP( "localhost" )
@@ -47,8 +47,8 @@ def main():
         send_mail( err, 'Could not connect to db' )
 
     # Fetch yday outstanding currency allocations
-    outstanding_currencies_bal = ['segregated_USD_bal', 'secured_USD_bal', 'secured_GBP_bal', 'secured_EUR_bal']
-    outstanding_currencies_ote = ['segregated_USD_ote', 'secured_USD_ote', 'secured_GBP_ote', 'secured_EUR_ote']
+    outstanding_currencies_bal = ['segregated_USD_bal', 'secured_USD_bal', 'secured_GBP_bal', 'secured_EUR_bal', 'secured_CAD_bal']
+    outstanding_currencies_ote = ['segregated_USD_ote', 'secured_USD_ote', 'secured_GBP_ote', 'secured_EUR_ote', 'secured_CAD_ote']
     outstanding_amounts_bal = dict.fromkeys(outstanding_currencies_bal, 0.0)
     outstanding_amounts_ote = dict.fromkeys(outstanding_currencies_ote, 0.0)
     try:
