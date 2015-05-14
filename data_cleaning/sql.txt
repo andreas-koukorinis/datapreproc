@@ -439,6 +439,7 @@ LOAD DATA LOCAL INFILE '/home/deedee/etfs/mm/TCMP.csv' INTO TABLE indices FIELDS
 
 # Live trading important information
 CREATE TABLE `actual_orders` (
+  `id` int NOT NULL AUTO_INCREMENT,
   `date` date NOT NULL,
   `product` varchar(20) NOT NULL,
   `place_time` time NOT NULL,
@@ -523,4 +524,21 @@ CREATE TABLE `positions` (
   `broker_average_trade_price` varchar(20) DEFAULT NULL,
   `broker_close_price` varchar(20) DEFAULT NULL,
   PRIMARY KEY (`date`,`product`)
+)
+
+CREATE TABLE `unsettled_orders` (
+  `id` int NOT NULL AUTO_INCREMENT
+  `date` date NOT NULL,
+  `product` varchar(20) NOT NULL,
+  `fill_amount` int(11) NOT NULL,
+  `fill_price` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`date`,`product`,`place_time`)
+)
+CREATE TABLE `unsettled_orders` (
+`id` int NOT NULL,
+`date` date NOT NULL,
+`product` varchar(20) NOT NULL,
+`fill_amount` int(11) NOT NULL,
+`fill_price` varchar(20) DEFAULT NULL,
+PRIMARY KEY (`id`)
 )
