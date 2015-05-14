@@ -9,6 +9,9 @@ import smtplib
 import MySQLdb
 from datetime import datetime,timedelta,date
 #from exchange_symbol_manager import ExchangeSymbolManager 
+home_path = os.path.expanduser("~")
+sys.path.append(home_path + '/datapreproc/data_cleaning/')
+from quandl_scripts.daily_update_quandl import fetch_quandl_futures_prices
 
 dividend_adjust_products = Set()
 futures_contract_list = {'VX':[1,2,3,4,5,6,7]}
@@ -263,6 +266,16 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
         #print contract_number
         specific_ticker = _base_symbol + get_exchange_specific( YYMM )
         generic_ticker = _base_symbol + '_' + str( contract_number )
+
+        # If prices are 0 then fetch from Quandl
+        if open1==0 or high==0 or low==0 or close==0:
+            quandl_record = fetch_quandl_futures_prices(generic_ticker, (datetime.strptime(date, "%Y-%m-%d")).strftime("%Y%m%d"))
+        if quandl_record != None:
+            open1 = record['open']
+            high = record['high']
+            low = record['low']
+            close = record['close']
+            print "Price inserted from Quandl for %s for %s"%(generic_ticker,date)
         # get dict for VX and number of contracts
         if contract_number in futures_contract_list.get(_base_symbol,[1,2]): 
             try:
