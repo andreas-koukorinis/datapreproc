@@ -1,11 +1,15 @@
 import argparse
 import datetime
-import imp
+import os
 import smtplib
 import sys
 import traceback
 import Quandl
 import MySQLdb
+home_path = os.path.expanduser("~")
+sys.path.append(home_path + '/datapreproc/')
+from data_cleaning.exchange_symbol_manager import ExchangeSymbolManager
+exchange_symbol_manager = ExchangeSymbolManager()
 
 def db_connect():
     global db, db_cursor
@@ -57,6 +61,7 @@ def get_quandl_product_code(product, fetch_date):
     #            'FFI':'LIFFE/Z', 'FLG':'LIFFE/R', 'AEX':'LIFFE/FTI', 'KC':'ICE/KC', 'CT':'ICE/CT', 'CC':'ICE/CC',
     #            'SB':'ICE/SB', 'JTI':None, 'JGB':None, 'JNI':None, 'SIN':'SGX/IN', 'SSG':'SGX/SG', 'HCE':None,\
     #            'HSI':None, 'ALS':None, 'YAP':'ASX/AP', 'MFX':None, 'KOS':None, 'VX':'CBOE/VX'}
+    global exchange_symbol_manager
     map_product_to_quandl_code = {'EMD': 'CME/MD', 'HSI': None, 'YM': 'CME/YM', 'FGBS': 'EUREX/FGBS', 'ZT': 'CME/TU',\
                                   'FDAX': 'EUREX/FDAX', 'VX': 'CBOE/VX', 'SIN': 'SGX/IN', 'HG': 'CME/HG', 'SXF': 'MX/SXF',\
                                   'CGB': 'MX/CGB', 'LH': 'CME/LN', 'KOSPI': None, 'SPI': 'ASX/AP', '6S': 'CME/SF',\
@@ -68,7 +73,7 @@ def get_quandl_product_code(product, fetch_date):
                                   'FSMI': 'EUREX/FSMI', '6J': 'CME/JY', 'SP': 'CME/SP', '6M': 'CME/MP', '6N': 'CME/NE',\
                                   'SI': 'CME/SI', 'NIY': 'CME/N1Y', 'FGBM': 'EUREX/FGBM', 'JNK': None, 'SB': 'ICE/SB',\
                                   'HHI': None, 'FGBL': 'EUREX/FGBM', 'SG': 'SGX/SG'}
-    fetch_date = (datetime.datetime.strptime(fetch_date, "%Y%m%d")).strftime("%Y-%m-%d")
+    fetch_date = datetime.datetime.strptime(fetch_date, "%Y%m%d").date()
     specific_ticker = exchange_symbol_manager.get_exchange_symbol(fetch_date, product)
     month = specific_ticker[-3]
     return map_product_to_quandl_code[specific_ticker[:-3]] + month + '20' + specific_ticker[-2:] # Will only work till 2099    
@@ -141,10 +146,7 @@ def push_quandl_yield_rates(products, fetch_date):
             print('EXCEPTION in inserting Quandl data for %s'%prod)
             server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in inserting Quandl data for %s'%prod)
 
-def setup_db_esm_smtp():
-    global exchange_symbol_manager
-    module = imp.load_source('exchange_symbol_manager', os.path.expanduser('~/datapreproc/data_cleaning/exchange_symbol_manager.py'))
-    exchange_symbol_manager = module.ExchangeSymbolManager()
+def setup_db_smtp():
     global server
     server = smtplib.SMTP("localhost")
     db_connect()

@@ -111,7 +111,7 @@ def get_contract_number(date, _base_symbol, YYMM ):
 
 def get_file_into_wd(raw_file):
     inF = gzip.open(raw_file, 'rb')
-    local_filename = os.path.basename(raw_file)[:-4]
+    local_filename = os.path.basename(raw_file)[:-3]
     outF = open(local_filename, 'wb')
     outF.write(inF.read())
     inF.close()
@@ -266,16 +266,16 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
         #print contract_number
         specific_ticker = _base_symbol + get_exchange_specific( YYMM )
         generic_ticker = _base_symbol + '_' + str( contract_number )
-
-        # If prices are 0 then fetch from Quandl
-        if open1==0 or high==0 or low==0 or close==0:
-            quandl_record = fetch_quandl_futures_prices(generic_ticker, (datetime.strptime(date, "%Y-%m-%d")).strftime("%Y%m%d"))
-        if quandl_record != None:
-            open1 = record['open']
-            high = record['high']
-            low = record['low']
-            close = record['close']
-            print "Price inserted from Quandl for %s for %s"%(generic_ticker,date)
+        # Commenting this out till conversion factor is figured out 
+        # If close prices are 0 then fetch from Quandl
+        #if close==0:
+        #    quandl_record = fetch_quandl_futures_prices(generic_ticker, (datetime.strptime(date, "%Y-%m-%d")).strftime("%Y%m%d"))
+        #    if quandl_record != None:
+        #        open1 = quandl_record['open']
+        #        high = quandl_record['high']
+        #        low = quandl_record['low']
+        #        close = quandl_record['close']
+        #        print "Price inserted from Quandl for %s for %s"%(generic_ticker,date)
         # get dict for VX and number of contracts
         if contract_number in futures_contract_list.get(_base_symbol,[1,2]): 
             try:
@@ -578,9 +578,8 @@ def push_file_to_db(raw_file, products):
 def __main__() :
     if len( sys.argv ) > 1:
         raw_file = sys.argv[1]
-        delay = sys.argv[2]
         products = []
-        for i in range(3,len(sys.argv)):
+        for i in range(2,len(sys.argv)):
             products.append(sys.argv[i])
     else:
         print 'python daily_update.py file_name:<canada/f-indices/funds/futures/indices/uk-stocks/us-stocks>.20150505.gz product1 product2 ... productn'
