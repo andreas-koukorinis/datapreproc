@@ -1,5 +1,6 @@
 import argparse
 from datetime import date, datetime, timedelta
+import json
 import math
 import sys
 import numpy as np
@@ -148,6 +149,7 @@ def fetch_latest_prices(products_df, earliest_date):
 
 def prepare_content(results_df, products_df, lookbacks):
     products = products_df['product'].unique()
+    results = []
     for product in products:
         df = results_df[results_df['product']==product]
         dates = df['date'].values
@@ -174,8 +176,10 @@ def prepare_content(results_df, products_df, lookbacks):
             else:
                 ret_dd.append(_ret/abs((math.exp(_dd) - 1) * 100))
             ann_volatility.append(_stdev)
-        print product, mtd_ret, ytd_ret, last_year_ret, sharpe, ret_dd, ann_volatility
-         
+        result = {'product': product, 'description': products_df[(products_df['product'] == product)].iloc[0]['name'], 'mtd_ret': mtd_ret,\
+                  'ytd_ret': ytd_ret, 'last_year_ret': last_year_ret, 'sharpe':sharpe, 'ret_dd': ret_dd, 'ann_volatility': ann_volatility}
+        results.append(result)
+    return json.dumps(results)
 
 # Run python market_monitor.py -h for help
 if __name__ == '__main__':
@@ -196,5 +200,5 @@ if __name__ == '__main__':
     products_df = fetch_product_information(products)
     earliest_date = (datetime.strptime(args.date, "%Y-%m-%d") + timedelta(days=-max(400,max(args.lookback)))).strftime("%Y-%m-%d")
     returns_df = fetch_latest_prices(products_df, earliest_date)
-    prepare_content(returns_df, products_df, args.lookback)
+    print prepare_content(returns_df, products_df, args.lookback)
     db_close()
