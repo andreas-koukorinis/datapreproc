@@ -176,8 +176,9 @@ def prepare_content(results_df, products_df, lookbacks):
             else:
                 ret_dd.append(_ret/abs((math.exp(_dd) - 1) * 100))
             ann_volatility.append(_stdev)
-        result = {'product': product, 'description': products_df[(products_df['product'] == product)].iloc[0]['name'], 'mtd_ret': mtd_ret,\
-                  'ytd_ret': ytd_ret, 'last_year_ret': last_year_ret, 'sharpe':sharpe, 'ret_dd': ret_dd, 'ann_volatility': ann_volatility}
+        prod_df = products_df[(products_df['product'] == product)]
+        result = {'product': product, 'description': prod_df.iloc[0]['name'], 'type': prod_df.iloc[0]['type'],\
+                  'mtd_ret': mtd_ret, 'ytd_ret': ytd_ret, 'last_year_ret': last_year_ret, 'sharpe':sharpe, 'ret_dd': ret_dd, 'ann_volatility': ann_volatility}
         results.append(result)
     return json.dumps(results)
 
