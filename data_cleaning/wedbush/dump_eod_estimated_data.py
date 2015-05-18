@@ -277,7 +277,10 @@ def main():
     # Load unsettled Orders 
     unsettled_orders = {}
     try:
-        query = "SELECT id, date, product, fill_amount, fill_price FROM unsettled_orders ORDER BY date ASC, fill_price ASC"
+        query = "SELECT unsettled_date FROM unsettled_orders WHERE unsettled_date < '%s' ORDER BY unsettled_date DESC LIMIT 1" % current_date
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        query = "SELECT id, date, product, fill_amount, fill_price FROM unsettled_orders WHERE unsettled_date = '%s' ORDER BY date ASC, fill_price ASC" % rows[0]['unsettled_date']
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
         for row in rows:
@@ -392,21 +395,12 @@ def main():
                 else:
                     unsettled_orders[product].append(order)  
     
+    print unsettled_orders
     # Update unsettled orders in db
-    try:
-        query = "delete from unsettled_orders"
-        db_cursor.execute(query)
-        db.commit()
-    except Exception, err:
-        db.rollback()
-        send_mail( err, 'Could not delete unsettled orders from db' )
-        print traceback.format_exc()
-        sys.exit( 'Could not delete unsettled orders from db' )
-
     for product in unsettled_orders.keys():
         for order in unsettled_orders[product]:
             try:
-                query = "INSERT INTO unsettled_orders(id, date, product, fill_amount, fill_price) VALUES('%s', '%s','%s','%s','%s')" % ( order[3], order[0], product, order[1], order[2])
+                query = "INSERT INTO unsettled_orders(id, date, unsettled_date, product, fill_amount, fill_price) VALUES('%s', '%s','%s', '%s','%s','%s')" % ( order[3], order[0], current_date, product, order[1], order[2])
                 db_cursor.execute(query)
                 db.commit()
             except Exception, err:
