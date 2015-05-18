@@ -799,14 +799,24 @@ CREATE TABLE `positions` (
   PRIMARY KEY (`date`,`product`)
 )
 
-CREATE TABLE `unsettled_orders` (
-  `id` int NOT NULL AUTO_INCREMENT
+CREATE TABLE `inventory` (
   `date` date NOT NULL,
   `product` varchar(20) NOT NULL,
-  `fill_amount` int(11) NOT NULL,
-  `fill_price` varchar(20) DEFAULT NULL,
-  PRIMARY KEY (`date`,`product`,`place_time`)
+  `net_position` int(11) DEFAULT NULL,
+  `strategy_position` VARCHAR(20) DEFAULT NULL,
+  `inventory_position` VARCHAR(20) DEFAULT NULL,
+  `net_USD_bal` VARCHAR(20) DEFAULT NULL,
+  `strategy_USD_bal` VARCHAR(20) DEFAULT NULL,
+  `inventory_USD_bal` VARCHAR(20) DEFAULT NULL,
+  `net_bal` VARCHAR(20) DEFAULT NULL,
+  `strategy_bal` VARCHAR(20) DEFAULT NULL,
+  `inventory_bal` VARCHAR(20) DEFAULT NULL,
+  `net_ote` VARCHAR(20) DEFAULT NULL,
+  `strategy_ote` VARCHAR(20) DEFAULT NULL,
+  `inventory_ote` VARCHAR(20) DEFAULT NULL,
+  PRIMARY KEY (`date`,`product`)
 )
+
 CREATE TABLE `unsettled_orders` (
 `id` int NOT NULL,
 `date` date NOT NULL,
