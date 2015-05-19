@@ -1,5 +1,6 @@
 import argparse
 from datetime import date, datetime, timedelta
+import json
 import math
 import sys
 import numpy as np
@@ -13,12 +14,11 @@ def rolling_window(input_series, window_length):
     return np.lib.stride_tricks.as_strided(input_series, shape=shape, strides=strides)
 
 def get_stdev_annual_returns(daily_log_returns):
-    if daily_log_returns.shape[0] < 252:
+    if daily_log_returns.shape[0] <= 252:
         stdev_annual_returns = annualized_stdev(daily_log_returns)
     else:
         stdev_annual_log_returns = np.std(np.sum(rolling_window(daily_log_returns, 252), 1))
         stdev_annual_returns = ((math.exp(stdev_annual_log_returns) - 1) + (1 - math.exp(-stdev_annual_log_returns)))/2.0 * 100
-        stdev_annual_returns = max(1.0, min(200.0, stdev_annual_returns))
     return stdev_annual_returns   
 
 def annualized_returns(daily_log_returns):
@@ -34,7 +34,6 @@ def annualized_stdev(daily_log_returns):
     else:
         _estimate_of_annual_range = math.sqrt(252.0) * np.std(daily_log_returns) # under normal distribution
         annualized_stdev = ((math.exp(_estimate_of_annual_range) - 1) + (1 - math.exp(-_estimate_of_annual_range)))/2.0 * 100.0 
-        annualized_stdev = max(1.0, min(200.0, annualized_stdev))
     return annualized_stdev
 
 def drawdown(returns):
@@ -48,6 +47,14 @@ def get_log_returns_from_prices(prices):
     daily_log_returns = []
     for i in xrange(len(prices)-1):
         daily_log_returns.append(math.log(float(prices[i+1])/float(prices[i])))
+    return np.array(daily_log_returns)
+
+def get_log_returns_from_yields(yields):
+    daily_log_returns = []
+    for i in xrange(len(yields)-1):
+        y1 = float(yields[i])
+        y2 = float(yields[i+1])
+        daily_log_returns.append(math.log(1 - 1/((1+y2/100.0)**10) + 1/((1+y1/100.0)**10) + y1/100.0/252))
     return np.array(daily_log_returns)
 
 def get_date_index(date, dates):
@@ -87,6 +94,16 @@ def fiveytd_returns(dates, daily_log_returns):
     _fiveytd_log_returns = np.sum(daily_log_returns[_fytd_start_idx:_fytd_end_idx])
     fiveytd_returns = (math.exp(_fiveytd_log_returns) - 1) * 100.0
     return fiveytd_returns
+
+def ly_returns(dates, daily_log_returns):
+    _current_date = dates[-1]
+    _ly_start_date = date(_current_date.year-1, _current_date.month, _current_date.day)
+    _ly_end_date = _current_date
+    _ly_start_idx = get_date_index(_ly_start_date, dates)
+    _ly_end_idx = get_date_index(_ly_end_date, dates)
+    _ly_log_returns = np.sum(daily_log_returns[_ly_start_idx:_ly_end_idx])
+    ly_returns = (math.exp(_ly_log_returns) - 1) * 100.0
+    return ly_returns
 
 def db_connect():
     global db, db_cursor
@@ -132,17 +149,17 @@ def fetch_latest_prices(products_df, earliest_date):
 
 def prepare_content(results_df, products_df, lookbacks):
     products = products_df['product'].unique()
+    results = []
     for product in products:
         df = results_df[results_df['product']==product]
         dates = df['date'].values
         if products_df[products_df['product']==product]['table'].values[0] == 'yield_rates':
-            daily_log_returns = (df['close'].map(lambda x: np.log((1+(float(x)/100.0)))/252.0)).values
-            print daily_log_returns
+            daily_log_returns = get_log_returns_from_yields(df['close'].values) # in maximum lookback period
         else:
             daily_log_returns = get_log_returns_from_prices(df['close'].values) # in maximum lookback period
         mtd_ret = mtd_returns(dates, daily_log_returns)
         ytd_ret = ytd_returns(dates, daily_log_returns)
-        last_year_ret = annualized_returns(daily_log_returns[:-252])
+        last_year_ret = ly_returns(dates, daily_log_returns)
         sharpe = []
         ret_dd = []
         ann_volatility = []
@@ -150,21 +167,27 @@ def prepare_content(results_df, products_df, lookbacks):
             _ret = annualized_returns(daily_log_returns[-lookback:])
             _dd = drawdown(daily_log_returns[-lookback:]) 
             _stdev = annualized_stdev(daily_log_returns[-lookback:])
-            sharpe.append(_ret/_dd)
+            if _dd == 0 :
+                sharpe.append(float('inf'))
+            else:
+                sharpe.append(_ret/_stdev)
             if _dd == 0 :
                 ret_dd.append(float('inf'))
             else:
                 ret_dd.append(_ret/abs((math.exp(_dd) - 1) * 100))
-            ann_volatility.append(get_stdev_annual_returns(daily_log_returns[-lookback:]))
-        print product, mtd_ret, ytd_ret, last_year_ret, sharpe, ret_dd, ann_volatility
-         
+            ann_volatility.append(_stdev)
+        prod_df = products_df[(products_df['product'] == product)]
+        result = {'product': product, 'description': prod_df.iloc[0]['name'], 'type': prod_df.iloc[0]['type'],\
+                  'mtd_ret': mtd_ret, 'ytd_ret': ytd_ret, 'last_year_ret': last_year_ret, 'sharpe':sharpe, 'ret_dd': ret_dd, 'ann_volatility': ann_volatility}
+        results.append(result)
+    return json.dumps(results)
 
 # Run python market_monitor.py -h for help
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p','--products', nargs='+', help='List of symbles to find content for. Default in Market Monitor product list', dest='products', default=None)
+    parser.add_argument('-p','--products', nargs='+', help='List of symbols to find content for. Default is Market Monitor product list', dest='products', default=None)
     parser.add_argument('-l','--lookback', nargs='+', type=int, help='lookback periods for sharpe, returns and ret_to_dd ratio', dest='lookback', default=[252])
-    parser.add_argument('-d', type=str, help='Date\nEg: -d 2014-06-01\n Default is todays date.',default=str(date.today()), dest='date')
+    parser.add_argument('-d', type=str, help='Date\nEg: -d 2014-06-01\n Default is todays date.',default=str(date.today()+timedelta(days=-1)), dest='date')
     args = parser.parse_args()
     if args.products == None:
         # Take products required by market monitor as default
@@ -178,5 +201,5 @@ if __name__ == '__main__':
     products_df = fetch_product_information(products)
     earliest_date = (datetime.strptime(args.date, "%Y-%m-%d") + timedelta(days=-max(400,max(args.lookback)))).strftime("%Y-%m-%d")
     returns_df = fetch_latest_prices(products_df, earliest_date)
-    prepare_content(returns_df, products_df, args.lookback)
+    print prepare_content(returns_df, products_df, args.lookback)
     db_close()
