@@ -54,7 +54,8 @@ def get_factors(current_date, data_source, exchange_symbols, product_type):
     products = [ exchange_symbol[:-3] + '_1' for exchange_symbol in exchange_symbols ]
     (csidb,csidb_cursor) = db_connect()
     _format_strings = ','.join(['%s'] * len(products))
-    csidb_cursor.execute("SELECT product,conversion_factor FROM products WHERE product IN (%s)" % _format_strings,tuple(products))
+    query = "SELECT product,conversion_factor FROM products WHERE product IN (%s)" % _format_strings
+    csidb_cursor.execute(query, tuple(products))
     rows = csidb_cursor.fetchall()
     for row in rows:
         conversion_factor[row['product'][:-2]] = float(row['conversion_factor'])
@@ -84,6 +85,7 @@ def main():
     parser.add_argument('portfolio_file')
     parser.add_argument('-d', type=str, help='Data source for prices and rates\nEg: -d csi\n Default is CSI',default='csi', dest='data_source')
     parser.add_argument('-t', type=str, help='Type  for products being ETFs\nEg: -t etf\n Default is future i.e. trading futures',default='future', dest='product_type')
+    parser.add_argument('-read_positions',type=str, help='Read desired startegy positons from file\nEg: -read_positions desired_pos_20150101.txt\n Default is to use gen orders', default=None, dest='read_positions')
     args = parser.parse_args()
     current_date = datetime.strptime(args.current_date, '%Y%m%d')
     product_type = args.product_type
@@ -109,6 +111,8 @@ def main():
     net_positions = {}  
     inventory_positions = {}  
     strategy_positions = {}  
+    latest_inventory_date = date(2050, 1, 1)
+    products = []
     try:
         # Get the current position 
         try:    
@@ -116,11 +120,13 @@ def main():
             query = "SELECT date FROM inventory WHERE date < '%s' ORDER BY date DESC limit 1" % ( current_date )
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
-            query = "SELECT product, net_position, inventory_position, strategy_position FROM inventory WHERE date = '%s' ORDER BY date DESC" % ( rows[0]['date'] )
+            latest_inventory_date = rows[0]['date']
+            query = "SELECT product, net_position, inventory_position, strategy_position FROM inventory WHERE date = '%s' ORDER BY date DESC" % ( latest_inventory_date )
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
             for row in rows:
                 try:
+                    products.append(row['product'])
                     net_positions[row['product']] = int(row['net_position'])
                     inventory_positions[row['product']] = float(row['inventory_position'])
                     strategy_positions[row['product']] = float(row['strategy_position'])
@@ -135,10 +141,10 @@ def main():
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
         for row in rows:
+            products.append(row['product'])
             product = row['product']
             net_positions[product] = net_positions.get( product, 0 ) + int(row['fill_amount'])
-            strategy_positions[product] = strategy_positions.get( product, 0 )
-            inventory_positions[product] = inventory_positions.get( product, 0 )
+            inventory_positions[product] = inventory_positions.get( product, 0 ) + int(row['fill_amount'])
         for product in net_positions.keys():
             # Update the current position
             query = "UPDATE inventory SET net_position='%s' WHERE date='%s' AND product='%s'" \
@@ -150,71 +156,59 @@ def main():
         send_mail( err, 'Could not calculate net positions based on orders placed' )
         print traceback.format_exc()
 
+    strategy_desired_positions = {}
+    if args.read_positions is not None:
+        with open(os.path.expanduser(args.read_positions)) as f:
+            positions_file_lines = [ln.strip('\n') for ln in f.readlines()]
+            if len(positions_file_lines) < 1:
+                sys.exit("Empty positions file!")
+            else:
+                for i in xrange(0,len(positions_file_lines)):
+                    prod_wt_price = positions_file_lines[i].split(' ')
+                    product = prod_wt_price[0]
+                    strategy_desired_positions[product] = float(prod_wt_price[1]) 
+    else:
+        strategy_desired_positions = get_desired_positions(args.config_file, args.portfolio_file, float(current_worth), '1995-01-01', current_date.strftime('%Y-%m-%d')) #TODO
+
     # Initialize with default variables
-    products = []
+    products = list(set(products + strategy_desired_positions.keys()))
     #Get outstanding positions for yday
-    outstanding_bal_col = ['net_USD_bal', 'strategy_USD_bal', 'inventory_USD_bal', 'net_bal', 'strategy_bal', 'inventory_bal']
-    outstanding_ote_col = ['net_ote', 'strategy_ote', 'inventory_ote']
+    outstanding_bal_col = ['inventory_USD_bal', 'net_bal', 'strategy_bal', 'inventory_bal']
+    outstanding_ote_col = ['inventory_ote']
     outstanding_bal = {}
     outstanding_ote = {}
 
-    columns = ','.join( outstanding_bal_col + outstanding_ote_col ) 
+    for product in products:
+        strategy_positions[product] = strategy_positions.get(product, 0.0)
+        inventory_positions[product] = inventory_positions.get(product, 0.0)
+        net_positions[product] = net_positions.get(product, 0.0)
+        outstanding_bal[product] = {}
+        outstanding_ote[product] = {}
+        for col in outstanding_bal_col:
+            outstanding_bal[product][col] = 0.0   
+        for col in outstanding_ote_col:
+            outstanding_ote[product][col] = 0.0   
+
     try:
-        query = "select product, %s from inventory where date < '%s' order by date desc limit 1" % ( columns, current_date )
+        query = "SELECT a.product, net_bal, strategy_bal, inventory_bal FROM inventory AS a JOIN (SELECT product, max(date) AS date FROM inventory WHERE date < '%s' GROUP BY 1) AS b \
+                 ON a.product = b.product AND a.date = b.date" % ( current_date )
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
         if len(rows) != 0:
             for row in rows:
                 product = row['product']
-                outstanding_bal[product] = {}
-                outstanding_ote[product] = {}
-                for key in outstanding_bal_col:
+                for key in ['net_bal', 'strategy_bal', 'inventory_bal']:
                     try:
                         outstanding_bal[product][key] = float( row[key] )
                     except:
-                        print 'outstanding_bal %s issue' % product
-                        outstanding_bal[product][key] = 0
-                for key in outstanding_ote_col:
-                    try:
-                        outstanding_ote[product][key] = float( row[key] )
-                    except:
-                        print 'outstanding_ote %s issue' % product
-                        outstanding_ote[product][key] = 0
+                        pass
     except Exception, err:
         send_mail( err, 'Could not find net,startegy,inventory bal in db for prior date' )
         print traceback.format_exc()
         sys.exit( 'Could not find net,startegy,inventory bal in db for prior date' )
 
-    strategy_desired_positions = get_desired_positions(args.config_file, args.portfolio_file, float(current_worth))
 
-    # Make product list using positions till yday and orders for today
-    try:
-        query = "SELECT date FROM inventory WHERE date < '%s' ORDER BY date DESC LIMIT 1" % current_date
-        db_cursor.execute(query)
-        rows = db_cursor.fetchall()
-        if len(rows) == 1:
-            query = "SELECT product FROM inventory WHERE date = '%s'" % ( rows[0]['date'] )
-            db_cursor.execute(query)
-            rows = db_cursor.fetchall()
-            for row in rows:
-                products.append( row['product'] )
-    except Exception, err:
-        send_mail( err, 'Could not find inventory data in db' )
-        print traceback.format_exc()
-    try:
-        query = "SELECT product FROM actual_orders WHERE date = '%s'" % ( current_date )
-        db_cursor.execute(query)
-        rows = db_cursor.fetchall()
-        for row in rows:
-            products.append( row['product'] )
-    except Exception, err:
-        send_mail( err, 'Could not find actual orders data in db' )
-        print traceback.format_exc()
-        sys.exit( 'Could not load actual orders data from db' )
-
-    products = list( set ( products ) )
     open_price_2, close_price_1, close_price_2, conversion_factor = get_factors( current_date, args.data_source, products, product_type) #TODO
-
     # Get commission rates
     try:
         commission_rates = {}
@@ -232,24 +226,6 @@ def main():
         send_mail( err, 'Could not fetch commission rates data from db' )
         print traceback.format_exc()
         sys.exit( 'Could not load commission rates data' )
-
-    product_to_currency = {}
-    currency_rates = {}
-    try:
-        query = "SELECT currency, rate FROM currency_rates WHERE date = '%s'" % ( current_date )
-        db_cursor.execute(query)
-        rows = db_cursor.fetchall()
-        for row in rows:
-            currency_rates[row['currency']] = float( row['rate'] )
-
-        for product in commission_rates.keys():
-            currency = commission_rates[product]['currency']
-            product_to_currency[product] = currency 
-
-    except Exception, err:
-        send_mail( err, 'Could not load currency rates from db' )
-        print traceback.format_exc()
-        sys.exit( 'Could not load currency rates from db' )
 
     # Load todays Orders 
     todays_orders = {}
@@ -283,7 +259,7 @@ def main():
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
         if len(rows) == 1:
-            query = "SELECT id, date, product, fill_amount, fill_price FROM unsettled_orders WHERE unsettled_date = '%s' ORDER BY date ASC, fill_price ASC" % ( rows[0]['date'] )
+            query = "SELECT id, date, product, fill_amount, fill_price FROM unsettled_orders WHERE unsettled_date = '%s' ORDER BY date ASC, fill_price ASC" % ( rows[0]['unsettled_date'] )
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
             for row in rows:
@@ -303,32 +279,21 @@ def main():
 
     # Fake trades between strategy and inventory
     # Update positions as well
-    strategy_products = list( set( strategy_desired_positions.keys() + strategy_positions.keys() ) )                
-    for product in strategy_products:
-        if product not in outstanding_ote.keys():
-            outstanding_ote[product] = {}
-            for key in outstanding_ote_col:
-                outstanding_ote[product][key] = 0
-        if product not in outstanding_bal.keys():
-            outstanding_bal[product] = {}
-            for key in outstanding_bal_col:
-                outstanding_bal[product][key] = 0
+    for product in products:
         basename = product[:-3]
-        outstanding_bal[product]['strategy_bal'] = conversion_factor[basename] * ( strategy_positions[product] * ( close_price_2[product] - close_price_1[product]) + \
+        outstanding_bal[product]['strategy_bal'] += conversion_factor[basename] * ( strategy_positions[product] * ( close_price_2[product] - close_price_1[product]) + \
                                                    ( strategy_desired_positions[product] - strategy_positions[product] ) * ( close_price_2[product] - open_price_2[product] ) )
-        outstanding_bal[product]['inventory_bal'] = conversion_factor[basename]* ( inventory_positions[product] * ( close_price_2[product] - close_price_1[product]) - \
+        outstanding_bal[product]['inventory_bal'] -= conversion_factor[basename] * ( strategy_positions[product] * ( close_price_2[product] - close_price_1[product]) + \
                                                    ( strategy_desired_positions[product] - strategy_positions[product] ) * ( close_price_2[product] - open_price_2[product] ) )
-        strategy_positions[product] += ( strategy_desired_positions[product] - strategy_positions[product] )
+
         inventory_positions[product] -= ( strategy_desired_positions[product] - strategy_positions[product] )
+        strategy_positions[product] += ( strategy_desired_positions[product] - strategy_positions[product] )
          
     for product in todays_orders.keys():
         basename = product[:-3]
         for order in todays_orders[product]:
             # First add the commission
             fill_amount = order[1]
-            commission += abs( fill_amount ) * ( ( commission_rates[basename]['broker_fee'] + commission_rates[basename]['nfa_fee'] ) + \
-                          ( commission_rates[basename]['exchange_fee'] + commission_rates[basename]['clearing_fee'] ) * currency_rates[product_to_currency[basename]] )
-
             outstanding_bal[product]['inventory_USD_bal'] -= abs( fill_amount ) * commission_rates[basename]['broker_fee']
             outstanding_bal[product]['inventory_USD_bal'] -= abs( fill_amount ) * commission_rates[basename]['nfa_fee']
             outstanding_bal[product]['inventory_bal'] -= abs( fill_amount ) * ( commission_rates[basename]['exchange_fee'] \
@@ -384,7 +349,7 @@ def main():
                 todays_orders[product][unsettled_idx1[product][1]][1] -= closed_amount
                 unsettled_orders[product][unsettled_idx2[product][0]][1] += closed_amount
                 outstanding_bal[product]['inventory_bal'] += closed_amount * conversion_factor[basename] * ( sell_price - buy_price )
-     
+                 
     for product in unsettled_orders.keys():
         unsettled_orders[product] = [ order for order in unsettled_orders[product] if order[1] != 0 ] 
 
@@ -401,19 +366,17 @@ def main():
         basename = product[:-3]
         currency = commission_rates[basename]['currency']
         for order in unsettled_orders[product]:
-
-            outstanding_ote[product]['inventory_ote'] = order[1] * conversion_factor[basename] * (price[product] - order[2])
-                                                                 #((ceil( price[product]*100000)/100000) - (ceil(order[2]*100000)/100000 ))
+            outstanding_ote[product]['inventory_ote'] += order[1] * conversion_factor[basename] * (close_price_2[product] - order[2])
 
     try:
         for product in outstanding_bal.keys():
-            query = "INSERT INTO inventory (date, product, net_position, strategy_position, inventory_position, inventory_USD_bal, strategy_bal, inventory_bal, strategy_ote, inventory_ote) VALUES('%s','%s','%d','%s','%s','%s','%s','%s','%s','%s')" % ( current_date, product, strategy_position[product] + inventory_position[product], strategy_position[product], inventory_position[product], outstanding_bal[product]['inventory_USD_bal'], outstanding_bal[product]['strategy_bal'], outstanding_bal[product]['inventory_bal'], outstanding_bal[product]['strategy_ote'], outstanding_bal[product]['inventory_ote']  )
+            query = "INSERT INTO inventory (date, product, net_position, strategy_position, inventory_position, inventory_USD_bal, strategy_bal, inventory_bal, net_bal, inventory_ote) VALUES('%s','%s','%d','%s','%s','%s','%s', '%s','%s','%s')" % ( current_date, product, net_positions[product], strategy_positions[product], inventory_positions[product], outstanding_bal[product]['inventory_USD_bal'], outstanding_bal[product]['strategy_bal'], outstanding_bal[product]['inventory_bal'], outstanding_bal[product]['strategy_bal'] + outstanding_bal[product]['inventory_bal'], outstanding_ote[product]['inventory_ote']  )
             db_cursor.execute(query)
             db.commit()
     except Exception, err:
-        send_mail( err, 'Could not update estimated portfolio data in db' )
+        send_mail( err, 'Could not update inventory data in db' )
         print traceback.format_exc()
-        sys.exit( 'Could not update estimated portfolio data in db' )
+        sys.exit( 'Could not update inventory data in db' )
 
 if __name__ == '__main__':
     main()
