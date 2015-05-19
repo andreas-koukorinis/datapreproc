@@ -43,9 +43,14 @@ def fetch_latest_prices(exchange_symbols, required_date, product_type):
             query = "SELECT date, product, open, close FROM %s WHERE product = '%s' AND date <= '%s' ORDER BY date DESC LIMIT 2" % ( rows[0]['table'], exchange_symbol, required_date )
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
-        close_price_2[exchange_symbol] = float(rows[0]['close'])
-        close_price_1[exchange_symbol] = float(rows[1]['close'])
-        open_price_2[exchange_symbol] = float(rows[0]['open'])
+        if rows[0]['date'] == required_date.date():
+            close_price_2[exchange_symbol] = float(rows[0]['close'])
+            close_price_1[exchange_symbol] = float(rows[1]['close'])
+            open_price_2[exchange_symbol] = float(rows[0]['open'])
+        else:
+            close_price_2[exchange_symbol] = float(rows[0]['close'])
+            close_price_1[exchange_symbol] = float(rows[0]['close'])
+            open_price_2[exchange_symbol] = float(rows[0]['close'])
     db_close(db)
     return open_price_2, close_price_1, close_price_2
 
@@ -168,7 +173,7 @@ def main():
                     product = prod_wt_price[0]
                     strategy_desired_positions[product] = float(prod_wt_price[1]) 
     else:
-        strategy_desired_positions = get_desired_positions(args.config_file, args.portfolio_file, float(current_worth), '1995-01-01', current_date.strftime('%Y-%m-%d')) #TODO
+        strategy_desired_positions = get_desired_positions(args.config_file, args.portfolio_file, float(current_worth), '2015-01-01', current_date.strftime('%Y-%m-%d')) #TODO
 
     # Initialize with default variables
     products = list(set(products + strategy_desired_positions.keys()))
