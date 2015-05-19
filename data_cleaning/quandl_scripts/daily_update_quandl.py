@@ -185,10 +185,10 @@ def daily_update_quandl(cmd=None):
     else:
         products = args.products
     global server
-    setup_db_esm_smtp()
-    if args.type == 'yield_rates':
+    setup_db_smtp()
+    if args.product_type == 'yield_rates':
         push_quandl_yield_rates(products, args.fetch_date)
-    elif args.type == 'futures':
+    elif args.product_type == 'futures':
         push_quandl_futures_prices(products, args.fetch_date)
     db_close()
 

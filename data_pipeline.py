@@ -14,9 +14,7 @@ from data_cleaning.csi_scripts.update_last_trading_day import update_last_tradin
 from data_cleaning.quandl_scripts.daily_update_quandl import daily_update_quandl
 
 data_path = '/apps/data/csi/'
-log_path = '/home/deedee/logs/'
-#data_path = '/home/debi/data/'
-#log_path = '/home/debi/logs/'
+log_path = '/apps/logs/luigi/'
 csi_ftp_server = 'ftp.csidata.com'
 csi_ftp_port = 21
 s3_cfg = '/home/cvdev/.s3cfg'
