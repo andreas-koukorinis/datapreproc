@@ -127,7 +127,6 @@ def get_product_currencies( ):
 def get_products_pnl(current_date):
     product_pnl_strategy = {}
     product_pnl_inventory = {}
-    product_pnl_net = {}
     query = "SELECT date FROM inventory WHERE date <= '%s' group by 1 ORDER by date desc LIMIT 2" % ( current_date )
     db_cursor.execute(query)
     rows1 = db_cursor.fetchall()
@@ -180,10 +179,11 @@ def get_turnover( current_date, portfolio_value ):
     query = "SELECT COUNT(*) AS num_days FROM broker_portfolio_stats WHERE date <= '%s'" % current_date
     db_cursor.execute(query)
     rows = db_cursor.fetchall()
-    num_trading_days = float(rows[0]['num_days'])
+    num_trading_days = float(rows[0]['num_days']) - 1
 
     # Get all orders
-    query = "SELECT date, product, fill_amount, fill_price FROM actual_orders WHERE date <= '%s'" % current_date
+    # TODO Do not include initial buys
+    query = "SELECT date, product, fill_amount, fill_price FROM actual_orders WHERE date <= '%s' AND date > '2015-04-27'" % current_date
     db_cursor.execute(query)
     rows = db_cursor.fetchall()
 
@@ -196,13 +196,14 @@ def get_turnover( current_date, portfolio_value ):
         else:
             short_amount_transacted += abs(row['fill_amount']) * conversion_factor[basename] * float(row['fill_price']) * all_currency_rates[row['date']][basename_to_currency[basename]]
         #TODO num days  > 252
-    return (252.0/num_trading_days) * min(long_amount_transacted, short_amount_transacted)/portfolio_value 
+    return (252.0*100.0/num_trading_days) * min(long_amount_transacted, short_amount_transacted)/portfolio_value
 
-def get_leverage( positions, portfolio_value ):
+def get_leverage( current_date, positions, portfolio_value ):
     leverage = 0.0
+    currency_rates = get_currency_rates( current_date )
     for product in positions.keys():
         basename = product[:-3]
-        leverage += abs(positions[product] * conversion_factor[basename] * price[product])
+        leverage += abs(positions[product] * conversion_factor[basename] * price[product] * currency_rates[basename_to_currency[basename]])
     leverage /= portfolio_value
     return leverage
 
@@ -300,7 +301,7 @@ def main():
     output += '\n*Todays Pnl ( Return )* :   Net Pnl : $%0.2f (%0.2f %%)   |   Strategy Pnl : $%.2f (%0.2f%%)   |   Inventory Pnl : $%.2f (%0.2f%%)\n' % ( (today_pv - yday_pv), 100.0 * (today_pv - yday_pv)/yday_pv, \
                strategy_pnl, 100.0 * strategy_pnl/yday_pv, inventory_pnl, 100.0 * inventory_pnl/yday_pv )
     output += '\n*Summary Stats* :   Turnover : %0.2f%%   |   Leverage : %0.2f   |   Commission : $%0.2f\n' % ( get_turnover( args.current_date, today_pv ), \
-                get_leverage(net_positions, today_pv), get_commission( args.current_date ) )
+                get_leverage(args.current_date, net_positions, today_pv), get_commission( args.current_date ) )
     output += "\n*Benchmark Returns:*  %s\n" % _print_benchmark_returns
     output += '\n*Positions*\n'
     output += '*Product  |  Strategy  |  Inventory  |  Net*\n'
