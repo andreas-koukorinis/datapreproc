@@ -1,9 +1,15 @@
 import argparse
+import datetime
+import os
 import smtplib
 import sys
 import traceback
 import Quandl
 import MySQLdb
+home_path = os.path.expanduser("~")
+sys.path.append(home_path + '/datapreproc/')
+from data_cleaning.exchange_symbol_manager import ExchangeSymbolManager
+exchange_symbol_manager = ExchangeSymbolManager()
 
 def db_connect():
     global db, db_cursor
@@ -35,7 +41,77 @@ def fetch_tables(products):
         tables[row['product']] = row['table']
     return tables
 
-def push_quandl_updates(products, fetch_date, dataset, fields, tables):
+def get_quandl_product_code(product, fetch_date):
+    # Might be useful to cross-check CSI, Quandl and our future codes
+    # mappings = {'TU':'ZT','FV':'ZF','TY':'ZN','US':'ZB','NK':'NKD','NIY':'NIY','ES':'ES','EMD':'EMD','NQ':'NQ',\
+    #             'YM':'YM','AD':'6A','BP':'6B','CD':'6C','CU1':'6E','JY':'6J','MP':'6M','NE2':'6N','SF':'6S',\
+    #             'GC':'GC','SI':'SI','HG':'HG','PL':'PL','PA':'PA','LH':'LH','ZW':'ZW','ZC':'ZC','ZS':'ZS','ZM':'ZM',\
+    #             'ZL':'ZL','EBS':'FGBS','EBM':'FGBM','EBL':'FGBL','SXE':'FESX','FDX':'FDAX','SMI':'FSMI','SXF':'SXF',\
+    #             'CGB':'CGB','FFI':'LFZ','FLG': 'LFR','AEX': 'FTI','KC':'KC','CT':'CT','CC':'CC','SB':'SB','JTI':'TOPIX',\
+    #             'JGB':'JGBL','JNI':'JNK','SIN':'SIN','SSG':'SG','HCE':'HHI','HSI':'HSI','ALS':'ALSI','YAP':'SPI',\
+    #             'MFX':'MFX','KOS':'KOSPI','VX':'VX','SP':'SP'}
+    
+    # futures = {'TU':'CME/TU', 'FV':'CME/FV', 'TY':'CME/TY', 'US':'CME/US', 'NK':'CME/NK',\
+    #            'NIY': 'CME/N1Y', 'ES':'CME/ES', 'SP':'CME/SP', 'EMD:CME/MD', 'NQ:CME/NQ', 'YM:CME/YM', \
+    #            'AD': 'CME/AD', 'BP': 'CME/BP', 'CD':'CME/CD', 'CU1':'CME/EC', 'JY':'CME/JY', \
+    #            'MP':'CME/MP', 'NE2':'CME/NE', 'SF':'CME/SF', 'GC':'CME/GC', 'SI':'CME/SI', 'HG':'CME/HG',\
+    #            'PL':'CME/PL', 'PA':'CME/PA', 'LH':'CME/LN', 'ZW':'CME/W', 'ZC':'CME/C', 'ZS':'CME/S',\
+    #            'ZM':'CME/SM', 'ZL':'CME/BO', 'EBS':'EUREX/FGBS', 'EBM':'EUREX/FGBM', 'EBL':'EUREX/FGBM',\
+    #            'SXE':'EUREX/FESX', 'FDX':'EUREX/FDAX', 'SMI':'EUREX/FSMI', 'SXF':'MX/SXF', 'CGB':'MX/CGB',\
+    #            'FFI':'LIFFE/Z', 'FLG':'LIFFE/R', 'AEX':'LIFFE/FTI', 'KC':'ICE/KC', 'CT':'ICE/CT', 'CC':'ICE/CC',
+    #            'SB':'ICE/SB', 'JTI':None, 'JGB':None, 'JNI':None, 'SIN':'SGX/IN', 'SSG':'SGX/SG', 'HCE':None,\
+    #            'HSI':None, 'ALS':None, 'YAP':'ASX/AP', 'MFX':None, 'KOS':None, 'VX':'CBOE/VX'}
+    global exchange_symbol_manager
+    map_product_to_quandl_code = {'EMD': 'CME/MD', 'HSI': None, 'YM': 'CME/YM', 'FGBS': 'EUREX/FGBS', 'ZT': 'CME/TU',\
+                                  'FDAX': 'EUREX/FDAX', 'VX': 'CBOE/VX', 'SIN': 'SGX/IN', 'HG': 'CME/HG', 'SXF': 'MX/SXF',\
+                                  'CGB': 'MX/CGB', 'LH': 'CME/LN', 'KOSPI': None, 'SPI': 'ASX/AP', '6S': 'CME/SF',\
+                                  'ES': 'CME/ES', 'LFR': 'LIFFE/R', 'MFX': None, 'NQ': 'CME/NQ', 'ZS': 'CME/S', 'PL': 'CME/PL',\
+                                  'LFZ': 'LIFFE/Z', 'ZL': 'CME/BO', 'ZM': 'CME/SM', 'ZN': 'CME/TY', '6E': 'CME/EC', 'CC': 'ICE/CC',
+                                  'ZF': 'CME/FV', 'ALSI': None, 'ZB': 'CME/US', 'ZC': 'CME/C', 'TOPIX': None, 'JGBL': None,\
+                                  'GC': 'CME/GC', 'FTI': 'LIFFE/FTI', 'ZW': 'CME/W', 'FESX': 'EUREX/FESX', 'CT': 'ICE/CT',\
+                                  'KC': 'ICE/KC', '6A': 'CME/AD', '6B': 'CME/BP', '6C': 'CME/CD', 'NKD': 'CME/NK', 'PA': 'CME/PA',\
+                                  'FSMI': 'EUREX/FSMI', '6J': 'CME/JY', 'SP': 'CME/SP', '6M': 'CME/MP', '6N': 'CME/NE',\
+                                  'SI': 'CME/SI', 'NIY': 'CME/N1Y', 'FGBM': 'EUREX/FGBM', 'JNK': None, 'SB': 'ICE/SB',\
+                                  'HHI': None, 'FGBL': 'EUREX/FGBM', 'SG': 'SGX/SG'}
+    fetch_date = datetime.datetime.strptime(fetch_date, "%Y%m%d").date()
+    specific_ticker = exchange_symbol_manager.get_exchange_symbol(fetch_date, product)
+    month = specific_ticker[-3]
+    return map_product_to_quandl_code[specific_ticker[:-3]] + month + '20' + specific_ticker[-2:] # Will only work till 2099    
+
+def fetch_quandl_futures_prices(product, fetch_date):
+    try:
+        with open('/spare/local/credentials/quandl_credentials.txt') as f:
+            authorization_token = f.readlines()[0].strip()
+    except IOError:
+        sys.exit('No Quandl credentials file found')
+    
+    quandl_product_code = get_quandl_product_code(product, fetch_date)
+    try:
+        df = Quandl.get(quandl_product_code, authtoken=authorization_token, trim_start=fetch_date, trim_end=fetch_date)
+    except Quandl.Quandl.ErrorDownloading:
+        print "Couldn't download Quandl data for %s"%product
+        server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in downloading Quandl data for %s'%prod)
+        return None
+    except Exception, err:
+        print traceback.format_exc()
+        print "EXCEPTION in fetching Quandl data for %s"%product
+        return None
+    
+    if len(df.index) == 0:
+        print "No data to download today for %s"%product
+        return None
+
+    record = {}
+    record[product] = product
+    record['open'] = df.iloc[0][0]
+    record['high'] = df.iloc[0][1]
+    record['low'] = df.iloc[0][2]
+    record['close'] = df.iloc[0][3]
+    return record
+
+def push_quandl_yield_rates(products, fetch_date):
+    dataset = 'YC'
+    tables = fetch_tables(products)
     try:
         with open('/spare/local/credentials/quandl_credentials.txt') as f:
             authorization_token = f.readlines()[0].strip()
@@ -57,11 +133,8 @@ def push_quandl_updates(products, fetch_date, dataset, fields, tables):
             print "No data to download today for %s"%prod
             continue
         field_values = []
-        for field in fields:
-            field_values.append(df.iloc[0][field])
-
-        format_strings = ','.join(['%s'] * len(fields))
-        query = "INSERT INTO %s VALUES ('%s','%s', " + format_strings + ")"
+        field_values.append(df.iloc[0][0])
+        query = "INSERT INTO %s VALUES ('%s','%s', '%s')"
         query = query % ((tables[prod], fetch_date, prod) + tuple(field_values))
         print query
         try:
@@ -73,13 +146,20 @@ def push_quandl_updates(products, fetch_date, dataset, fields, tables):
             print('EXCEPTION in inserting Quandl data for %s'%prod)
             server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in inserting Quandl data for %s'%prod)
 
-def main():
+def setup_db_smtp():
+    global server
+    server = smtplib.SMTP("localhost")
+    db_connect()
+
+def daily_update_quandl(cmd=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('fetch_date')
     parser.add_argument('-p', type=str, nargs='+', help='Products to be fetched from Quandl\nEg: -p BEL12M USA1M\n', default=None, dest='products')
-    parser.add_argument('-d', type=str, help='Dataset at Quandl\nEg: -d YC', default='YC', dest='dataset')
-    parser.add_argument('-f', type=str, nargs='+', help='Fields to be fetched from Quandl\nEg. -f Rate\n', default=['Rate'], dest='fields')
-    args = parser.parse_args()
+    parser.add_argument('-t', type=str, help='Type of product\nEg: -t futures\n', default='yield_rates', dest='product_type')
+    if cmd == None:
+        args = parser.parse_args()
+    else:
+        args = parser.parse_args(cmd.split())
 
     # By default try to get daily updates for all products in Quandl
     if args.products == None:
@@ -105,12 +185,12 @@ def main():
     else:
         products = args.products
     global server
-    server = smtplib.SMTP("localhost") 
-    db_connect()
-    tables = fetch_tables(products)
-    push_quandl_updates(products, args.fetch_date, args.dataset, args.fields, tables)
+    setup_db_smtp()
+    if args.product_type == 'yield_rates':
+        push_quandl_yield_rates(products, args.fetch_date)
+    elif args.product_type == 'futures':
+        push_quandl_futures_prices(products, args.fetch_date)
     db_close()
 
 if __name__ == '__main__':
-    main()
-
+    daily_update_quandl()
