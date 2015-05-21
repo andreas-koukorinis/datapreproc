@@ -25,6 +25,7 @@ def fetch_latest_prices(exchange_symbols, required_date, product_type):
     close_price_1 = {}
     close_price_2 = {}
     tables = {}
+    is_valid = dict.fromkeys(exchange_symbols, True)
     (db,db_cursor) = db_connect()
     for exchange_symbol in exchange_symbols:
         if product_type == 'future':
@@ -48,11 +49,12 @@ def fetch_latest_prices(exchange_symbols, required_date, product_type):
             close_price_1[exchange_symbol] = float(rows[1]['close'])
             open_price_2[exchange_symbol] = float(rows[0]['open'])
         else:
+            is_valid[exchange_symbol] = False
             close_price_2[exchange_symbol] = float(rows[0]['close'])
             close_price_1[exchange_symbol] = float(rows[0]['close'])
             open_price_2[exchange_symbol] = float(rows[0]['close'])
     db_close(db)
-    return open_price_2, close_price_1, close_price_2
+    return open_price_2, close_price_1, close_price_2, is_valid
 
 def get_factors(current_date, data_source, exchange_symbols, product_type):
     conversion_factor = {}
@@ -67,20 +69,8 @@ def get_factors(current_date, data_source, exchange_symbols, product_type):
   
     # If data source is CSI get prices and factors from db
     if data_source == 'csi':
-        new_symbols = []
-        for i in range(len(exchange_symbols)):
-            basename = exchange_symbols[i][:-3]
-            if basename == "ES": # For ES we want to use SP prices
-                new_symbols.append( 'SP' + exchange_symbols[i][-3:] )
-            else:
-                new_symbols.append( exchange_symbols[i] )
-        open_price_2, close_price_1, close_price_2 = fetch_latest_prices(new_symbols, current_date, product_type) # Uses exchange symbols
-        for key in open_price_2.keys():
-            if key[:-3] == "SP":
-                open_price_2['ES' + key[-3:]] = open_price_2[key]
-                close_price_1['ES' + key[-3:]] = close_price_1[key]
-                close_price_2['ES' + key[-3:]] = close_price_2[key]
-    return open_price_2, close_price_1, close_price_2, conversion_factor
+        open_price_2, close_price_1, close_price_2, is_valid = fetch_latest_prices(exchange_symbols, current_date, product_type) # Uses exchange symbols
+    return open_price_2, close_price_1, close_price_2, conversion_factor, is_valid
 
 def main():
     # Parse arguments
@@ -213,7 +203,8 @@ def main():
         sys.exit( 'Could not find net,startegy,inventory bal in db for prior date' )
 
 
-    open_price_2, close_price_1, close_price_2, conversion_factor = get_factors( current_date, args.data_source, products, product_type) #TODO
+    open_price_2, close_price_1, close_price_2, conversion_factor, is_valid = get_factors( current_date, args.data_source, products, product_type) #TODO
+    print open_price_2, close_price_1, close_price_2
     # Get commission rates
     try:
         commission_rates = {}
@@ -286,13 +277,14 @@ def main():
     # Update positions as well
     for product in products:
         basename = product[:-3]
-        outstanding_bal[product]['strategy_bal'] += conversion_factor[basename] * ( strategy_positions[product] * ( close_price_2[product] - close_price_1[product]) + \
-                                                   ( strategy_desired_positions[product] - strategy_positions[product] ) * ( close_price_2[product] - open_price_2[product] ) )
-        outstanding_bal[product]['inventory_bal'] -= conversion_factor[basename] * ( strategy_positions[product] * ( close_price_2[product] - close_price_1[product]) + \
-                                                   ( strategy_desired_positions[product] - strategy_positions[product] ) * ( close_price_2[product] - open_price_2[product] ) )
+        if is_valid[product]:
+            outstanding_bal[product]['strategy_bal'] += conversion_factor[basename] * ( strategy_positions[product] * ( close_price_2[product] - close_price_1[product]) + \
+                                                       ( strategy_desired_positions[product] - strategy_positions[product] ) * ( close_price_2[product] - open_price_2[product] ) )
+            outstanding_bal[product]['inventory_bal'] -= conversion_factor[basename] * ( strategy_positions[product] * ( close_price_2[product] - close_price_1[product]) + \
+                                                       ( strategy_desired_positions[product] - strategy_positions[product] ) * ( close_price_2[product] - open_price_2[product] ) )
 
-        inventory_positions[product] -= ( strategy_desired_positions[product] - strategy_positions[product] )
-        strategy_positions[product] += ( strategy_desired_positions[product] - strategy_positions[product] )
+            inventory_positions[product] -= ( strategy_desired_positions[product] - strategy_positions[product] )
+            strategy_positions[product] += ( strategy_desired_positions[product] - strategy_positions[product] )
          
     for product in todays_orders.keys():
         basename = product[:-3]
