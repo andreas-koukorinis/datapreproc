@@ -156,6 +156,24 @@ def get_products_pnl(current_date):
             product_pnl_inventory[basename] -= ( float(row['inventory_ote']) + float(row['inventory_bal'])  ) * currency_rates[basename_to_currency[basename]] 
     return product_pnl_strategy, product_pnl_inventory
 
+def get_net_products_pnl(current_date):
+    net_product_pnl_strategy = {}
+    net_product_pnl_inventory = {}
+    currency_rates = get_currency_rates( current_date )
+    query = "SELECT SUBSTRING(a.product, 1, CHAR_LENGTH(a.product)-3) as base_product, a.product as product,  strategy_bal, inventory_bal, inventory_USD_bal,\
+             inventory_ote  FROM inventory as a JOIN ( SELECT product, max(date) as recent_dt FROM inventory GROUP BY 1) as b WHERE a.product=b.product AND a.date = b.recent_dt"
+    db_cursor.execute(query)
+    rows = db_cursor.fetchall()
+    
+    for row in rows:
+        basename = row['base_product']
+        product = row['product']
+        net_product_pnl_strategy[basename] = net_product_pnl_strategy.get(basename, 0.0) + float(row['strategy_bal']) * currency_rates[basename_to_currency[basename]]
+        net_product_pnl_inventory[basename] = net_product_pnl_inventory.get(basename, 0.0) + float(row['inventory_USD_bal']) +\
+                                              ( float(row['inventory_ote']) + float(row['inventory_bal'])  ) * currency_rates[basename_to_currency[basename]] 
+    return net_product_pnl_strategy, net_product_pnl_inventory
+    
+
 # TODO get from broker
 def get_commission( current_date ):
     query = "SELECT SUM(commission) AS comm FROM estimated_portfolio_stats WHERE date <= '%s'" % current_date
@@ -289,6 +307,23 @@ def main():
 
     get_factors( args.current_date, products )
 
+    # Get net PNL per product
+    net_product_pnl_strategy, net_product_pnl_inventory = get_net_products_pnl( args.current_date )
+    net_pnl_strategy = 0.0
+    net_pnl_inventory = 0.0
+    net_sector_ret_str = ""
+    net_strategy_sector_pnl = {}
+    net_inventory_sector_pnl = {}
+    for key in net_product_pnl_strategy.keys():
+        net_pnl_strategy += net_product_pnl_strategy[key]
+        net_pnl_inventory += net_product_pnl_inventory[key]
+        net_strategy_sector_pnl[sector[key]] = net_strategy_sector_pnl.get( sector[key], 0.0 ) + net_product_pnl_strategy[key]
+        net_inventory_sector_pnl[sector[key]] = net_inventory_sector_pnl.get( sector[key], 0.0 ) + net_product_pnl_inventory[key]
+
+    for key in net_strategy_sector_pnl.keys():
+        net_sector_ret_str += '%s | %0.2f%% | %0.2f%% | %0.2f%%\n' % ( key, 100.0 * net_strategy_sector_pnl[key]/initial_pv, 100.0 * net_inventory_sector_pnl[key]/initial_pv,\
+                                                             100.0 * ( net_strategy_sector_pnl[key] + net_inventory_sector_pnl[key] )/initial_pv )
+
     # Get benchmark returns
     benchmark_returns = get_todays_benchmark_returns(benchmarks, datetime.strptime(args.current_date, '%Y%m%d'))
     _print_benchmark_returns = ''
@@ -297,16 +332,18 @@ def main():
         
     output = '------------------------------------------------------\n*PNL Demystification Report for Date: %s*\n------------------------------------------------------' % (args.current_date)
  
-    output += '\n*LTD Pnl ( Return )* :      $%0.2f (%0.2f %%)\n' % ( (today_pv - initial_pv), 100.0 * (today_pv - initial_pv)/initial_pv )
-    output += '\n*Todays Pnl ( Return )* :   Net Pnl : $%0.2f (%0.2f %%)   |   Strategy Pnl : $%.2f (%0.2f%%)   |   Inventory Pnl : $%.2f (%0.2f%%)\n' % ( (today_pv - yday_pv), 100.0 * (today_pv - yday_pv)/yday_pv, \
-               strategy_pnl, 100.0 * strategy_pnl/yday_pv, inventory_pnl, 100.0 * inventory_pnl/yday_pv )
+    output += '\n*LTD Pnl ( Return )* :    Net Pnl : $%0.2f (%0.2f %%)   |   Strategy Pnl : $%.2f (%0.2f%%)   |   Inventory Pnl : $%.2f (%0.2f%%)\n' % ( (today_pv - initial_pv), 100.0 * (today_pv - initial_pv)/initial_pv, net_pnl_strategy, 100.0*net_pnl_strategy/initial_pv, net_pnl_inventory, 100.0*net_pnl_inventory/initial_pv )
+    output += '\n*Todays Pnl ( Return )* :   Net Pnl : $%0.2f (%0.2f %%)   |   Strategy Pnl : $%.2f (%0.2f%%)   |   Inventory Pnl : $%.2f (%0.2f%%)\n' % ( (today_pv - yday_pv), 100.0 * (today_pv - yday_pv)/yday_pv, strategy_pnl, 100.0 * strategy_pnl/yday_pv, inventory_pnl, 100.0 * inventory_pnl/yday_pv )
     output += '\n*Summary Stats* :   Turnover : %0.2f%%   |   Leverage : %0.2f   |   Commission : $%0.2f\n' % ( get_turnover( args.current_date, today_pv ), \
                 get_leverage(args.current_date, net_positions, today_pv), get_commission( args.current_date ) )
     output += "\n*Benchmark Returns:*  %s\n" % _print_benchmark_returns
     output += '\n*Positions*\n'
     output += '*Product  |  Strategy  |  Inventory  |  Net*\n'
     output += positions_str
-    output += '\n*Sector Return*\n'
+    output += '\n*Sector Return LTD*\n'
+    output += '*Product  |  Strategy  |  Inventory  |  Net*\n'
+    output += net_sector_ret_str
+    output += '\n*Sector Return Today*\n'
     output += '*Product  |  Strategy  |  Inventory  |  Net*\n'
     output += sector_ret_str
 
