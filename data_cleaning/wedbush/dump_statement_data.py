@@ -20,17 +20,7 @@ def send_mail( err, msg ):
   server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", \
       'EXCEPTION %s %s' % ( err, msg ) )
 
-def main():
-    # Parse arguments
-    parser = argparse.ArgumentParser()
-    # Statement file: includes trades and cash transfers: st420150428.csv
-    # Positions of positions in portfolio: pos20150428.csv
-    # Commission paid on each trade: mtdvolfeed20140428.csv
-    # Has information on cash, open equity, margin etc: mny20150428.csv
-    parser.add_argument('date')
-    args = parser.parse_args()
-    date = args.date
-
+def dump_statement_data(date):
     # mny20150427.csv  mtdvolfeed20150427.csv  pos20150427.csv  prltrades2_20150427.csv  st420150427.csv  statement.pdf
     dir_path = '/apps/wedbush/' + date + '/'
     order_file = dir_path + 'st4' + date + '.csv'
@@ -265,6 +255,27 @@ def main():
     except Exception, err:
         send_mail( err, 'Could not process order file' )
         print traceback.format_exc()
+    
+    try:
+        query = "SELECT date from broker_portfolio_stats WHERE date = '%s')" % date
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        if len(rows) > 0:
+            return True
+        else:
+            return False
+    except Exception, err:
+        send_mail( err, 'Could not insert into db' )
+        print traceback.format_exc()
+        
 
 if __name__ == '__main__':
-    main()
+    # Parse arguments
+    parser = argparse.ArgumentParser()
+    # Statement file: includes trades and cash transfers: st420150428.csv
+    # Positions of positions in portfolio: pos20150428.csv
+    # Commission paid on each trade: mtdvolfeed20140428.csv
+    # Has information on cash, open equity, margin etc: mny20150428.csv
+    parser.add_argument('date')
+    args = parser.parse_args()
+    dump_statement_data(args.date)

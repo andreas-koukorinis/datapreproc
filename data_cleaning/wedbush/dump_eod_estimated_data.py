@@ -92,16 +92,7 @@ def get_factors(current_date, data_source, exchange_symbols, product_type, wedbu
             prices[row['product']] = float( row['broker_close_price'] )
     return prices, conversion_factor
 
-def main():
-    # Parse arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('current_date')
-    parser.add_argument('-d', type=str, help='Data source for prices and rates\nEg: -d csi\n Default is CSI',default='csi', dest='data_source')
-    parser.add_argument('-t', type=str, help='Type  for products being ETFs\nEg: -t etf\n Default is future i.e. trading futures',default='future', dest='product_type')
-    args = parser.parse_args()
-    current_date = datetime.strptime(args.current_date, '%Y%m%d')
-    product_type = args.product_type
-    
+def dump_eod_estimated_data(current_date, product_type='future', data_source='csi'):
     # Connect to db
     try:
         db = connect_to_db("fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com", "live_trading", 'w')
@@ -206,7 +197,7 @@ def main():
         sys.exit( 'Could not load estimated position data from db' )
 
     products = list( set ( products ) )
-    price, conversion_factor = get_factors( current_date, args.data_source, products, product_type, db_cursor )
+    price, conversion_factor = get_factors( current_date, data_source, products, product_type, db_cursor )
 
     # Get commission rates
     try:
@@ -479,5 +470,26 @@ def main():
         send_mail( err, 'Could not insert outstanding amounts ote data into db' )
         print traceback.format_exc()
 
+    try:
+        query = "SELECT date from estimated_portfolio_stats WHERE date = '%s')" % current_date
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        if len(rows) > 0:
+            return True
+        else:
+            return False
+    except Exception, err:
+        send_mail( err, 'Could not insert into db' )
+        print traceback.format_exc()
+
 if __name__ == '__main__':
-    main()
+    # Parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('current_date')
+    parser.add_argument('-d', type=str, help='Data source for prices and rates\nEg: -d csi\n Default is CSI',default='csi', dest='data_source')
+    parser.add_argument('-t', type=str, help='Type  for products being ETFs\nEg: -t etf\n Default is future i.e. trading futures',default='future', dest='product_type')
+    args = parser.parse_args()
+    current_date = datetime.strptime(args.current_date, '%Y%m%d')
+    product_type = args.product_type
+
+    dump_eod_estimated_data(current_date, product_type, args.data_source)

@@ -17,13 +17,8 @@ def send_mail( err, msg ):
   server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", \
       'EXCEPTION %s %s' % ( err, msg ) )
 
-def main():
-    # Parse arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('current_date')
-    args = parser.parse_args()
-    current_date = args.current_date
-    
+def reconcile(current_date):    
+    all_good = True
     # Connect to db
     try:
         db = connect_to_db("fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com", "live_trading", 'w')
@@ -48,6 +43,11 @@ def main():
         estimated_pnl = rows[0]['pnl']
         is_pnl_consistent = broker_pnl == estimated_pnl
         is_mtm_consistent = broker_portfolio_value == estimated_portfolio_value
+
+        # Send orders even if there is failure of exact match but within 1 dollar
+        all_good = all_good and round(abs(broker_pnl - estimated_pnl))<=2.0
+        all_good = all_good and round(abs(broker_portfolio_value - estimated_portfolio_value))<=2.0
+
         if is_pnl_consistent:
             output += "_PNL Reconciliation Status_ : *SUCCESS*\nEstimated PNL | Broker PNL \n%s | %s \n" % ( estimated_pnl, broker_pnl )
         else:
@@ -71,10 +71,10 @@ def main():
             send_mail( err, 'No record in positions to reconcile for today %s ' % current_date )
             sys.exit( 'No record in positions to reconcile for today' )
         else:
-            all_good = True
             output += "\n_Position Reconciliation_ :\nProduct | Estimated Position | Broker Position | Status\n"
             for row in rows:
                 is_position_consistent = row['broker_position'] == row['estimated_position'] # string comparison
+                all_good = all_good and is_position_consistent 
                 if is_position_consistent:
                     output += "%s | %s | %s | *SUCCESS*\n" % ( row['product'], row['estimated_position'], row['broker_position'] )
                 else:
@@ -89,6 +89,20 @@ def main():
     payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": output}
     req = urllib2.Request('https://hooks.slack.com/services/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')
     response = urllib2.urlopen(req, json.dumps(payload))
+
+    if all_good:
+        return True
+    else:
+        print "Reconciliation failed"
+        # payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": "*Reconciliation failed*\nOrders won't be generated."}
+        # req = urllib2.Request('https://hooks.slack.com/services/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')
+        # response = urllib2.urlopen(req, json.dumps(payload))
+        return False
             
 if __name__ == '__main__':
-    main()
+    # Parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('current_date')
+    args = parser.parse_args()
+    current_date = args.current_date
+    reconcile(current_date)
