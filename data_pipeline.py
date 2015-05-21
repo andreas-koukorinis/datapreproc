@@ -12,9 +12,13 @@ from luigi.s3 import S3Target, S3Client
 from data_cleaning.csi_scripts.daily_update import push_file_to_db
 from data_cleaning.csi_scripts.update_last_trading_day import update_last_trading_day
 from data_cleaning.quandl_scripts.daily_update_quandl import daily_update_quandl
+from data_cleaning.wedbush.dump_statement_data import dump_statement_data
+from data_cleaning.wedbush.dump_eod_estimated_data import dump_eod_estimated_data
+from data_cleaning.wedbush.reconcile import reconcile
 
 data_path = '/apps/data/csi/'
 log_path = '/apps/logs/luigi/'
+wedbush_path = '/apps/wedbush/'
 csi_ftp_server = 'ftp.csidata.com'
 csi_ftp_port = 21
 s3_cfg = '/home/cvdev/.s3cfg'
@@ -37,7 +41,7 @@ class QPlumTask(luigi.Task):
         Default behavior is to return a string representation of the stack trace.
         """
         traceback_string = traceback.format_exc()
-        s = "*Error in %s Task*\n_Traceback_\n"%(self.__class__.__name__)
+        s = "*Error in %s Task*\n"%(self.__class__.__name__)
         s += traceback_string
         payload = {"channel": "#datapipeline-errors", "username": "Luigi", "text": s}
         req = urllib2.Request('https://hooks.slack.com/services/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')
@@ -627,6 +631,59 @@ class SendStats(QPlumTask):
         with open(self.output().path,'w') as f:
             f.write("Successfully sent stats")
 
+class FetchWedbushFromSFTP(QPlumTask):
+    """
+    Task to fetch Wedbush statements from SFTP
+    """
+    date = luigi.DateParameter(default=date.today())
+    def output(self):
+        return luigi.LocalTarget(wedbush_path+self.date.strftime('%Y%m%d/mny%Y%m%d.csv'))
+    def run(self):
+        wedbush_download_script_path = "/home/cvdev/datapreproc/data_cleaning/wedbush/download_statements.sh"
+        subprocess.call(["bash",wedbush_download_script_path])
+
+class PutWedbushStmtInDb(QPlumTask):
+    """
+    Task to parse statemetns and put them in DB
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return FetchWedbushFromSFTP(self.date)
+    def output(self):
+        return luigi.LocalTarget(log_path+self.date.strftime('PutWedbushStmtInDb.%Y%m%d.SUCCESS'))    
+    def run(self):
+        if dump_statement_data(self.date.strftime('%Y%m%d')):
+            with open(self.output().path,'w') as f:
+                f.write("Successfully put statement in db")
+
+class PutEODEstimatesInDb(QPlumTask):
+    """
+    Task to estimate EOD stats and put them in DB
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return PutWedbushStmtInDb(self.date), PutCsiInDb_all(self.date)
+    def output(self):
+        return luigi.LocalTarget(log_path+self.date.strftime('PutEODEstimatesInDb.%Y%m%d.SUCCESS'))    
+    def run(self):
+        if dump_eod_estimated_data(self.date.strftime('%Y%m%d')):
+            with open(self.output().path,'w') as f:
+                f.write("Successfully put EOD estimates in db")
+
+class ReconcileWedbush(QPlumTask):
+    """
+    Task to reconcile ours and Wedbush accounts
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return PutEODEstimatesInDb(self.date)
+    def output(self):
+        return luigi.LocalTarget(log_path+self.date.strftime('ReconcileWedbush.%Y%m%d.SUCCESS'))    
+    def run(self):
+        if reconcile(self.date.strftime('%Y%m%d')):
+            with open(self.output().path,'w') as f:
+                f.write("Successfully Reconciled Wedbush")
+
 class AllTasks(QPlumTask):
     """
     Task to trigger all base tasks
@@ -634,7 +691,8 @@ class AllTasks(QPlumTask):
     date = luigi.DateParameter(default=date.today())
     def requires(self):
         return FetchCSI_all(self.date), PutInS3_all(self.date), PutCsiInDb_all(self.date),\
-               PutQuandlInDb(self.date), UpdateLastTradingDay(self.date), SendStats(self.date)
+               PutQuandlInDb(self.date), UpdateLastTradingDay(self.date), SendStats(self.date),\
+               FetchWedbushFromSFTP(self.date)
 
 if __name__ == '__main__':
     load_credentials()
