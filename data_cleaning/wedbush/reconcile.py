@@ -45,8 +45,8 @@ def reconcile(current_date):
         is_mtm_consistent = broker_portfolio_value == estimated_portfolio_value
 
         # Send orders even if there is failure of exact match but within 1 dollar
-        all_good = all_good and round(abs(broker_pnl - estimated_pnl))<=2.0
-        all_good = all_good and round(abs(broker_portfolio_value - estimated_portfolio_value))<=2.0
+        all_good = all_good and round(abs(float(broker_pnl) - float(estimated_pnl)))<=2.0
+        all_good = all_good and round(abs(float(broker_portfolio_value) - float(estimated_portfolio_value)))<=2.0
 
         if is_pnl_consistent:
             output += "_PNL Reconciliation Status_ : *SUCCESS*\nEstimated PNL | Broker PNL \n%s | %s \n" % ( estimated_pnl, broker_pnl )
@@ -83,8 +83,6 @@ def reconcile(current_date):
     except Exception, err:
         print traceback.format_exc()
         send_mail( err, 'RECONCILIATION ISSUE: Some error while reconciling Positions %s ' % current_date )
-
-    print output
 
     payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": output}
     req = urllib2.Request('https://hooks.slack.com/services/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')

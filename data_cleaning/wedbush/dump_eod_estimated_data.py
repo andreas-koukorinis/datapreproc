@@ -385,8 +385,7 @@ def dump_eod_estimated_data(current_date, product_type='future', data_source='cs
                     unsettled_orders[product] = [order]
                 else:
                     unsettled_orders[product].append(order)  
-    
-    print unsettled_orders
+
     # Update unsettled orders in db
     for product in unsettled_orders.keys():
         for order in unsettled_orders[product]:
@@ -398,7 +397,6 @@ def dump_eod_estimated_data(current_date, product_type='future', data_source='cs
                 db.rollback()
                 send_mail( err, 'Could not add unsettled orders to db' )
                 print traceback.format_exc()
-                sys.exit( 'Could not add unsettled orders to db' )
             
     #average_trade_price = {}
     #current_amount = {}
@@ -471,7 +469,7 @@ def dump_eod_estimated_data(current_date, product_type='future', data_source='cs
         print traceback.format_exc()
 
     try:
-        query = "SELECT date from estimated_portfolio_stats WHERE date = '%s')" % current_date
+        query = "SELECT date from estimated_portfolio_stats WHERE date = '%s'" % current_date
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
         if len(rows) > 0:

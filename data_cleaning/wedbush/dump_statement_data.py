@@ -257,7 +257,7 @@ def dump_statement_data(date):
         print traceback.format_exc()
     
     try:
-        query = "SELECT date from broker_portfolio_stats WHERE date = '%s')" % date
+        query = "SELECT date from broker_portfolio_stats WHERE date = '%s'" % date
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
         if len(rows) > 0:
