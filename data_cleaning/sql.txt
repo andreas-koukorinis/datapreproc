@@ -825,3 +825,171 @@ CREATE TABLE `unsettled_orders` (
 `fill_price` varchar(20) DEFAULT NULL,
 PRIMARY KEY (`id`)
 )
+
+# simula tables MySQL queries
+
+CREATE TABLE `strategy_static` (
+`strat_id` INT NOT NULL AUTO_INCREMENT,
+`name` VARCHAR(20) DEFAULT NULL,
+`description` VARCHAR(252) DEFAULT NULL,
+`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+`config_hash` VARCHAR(252) NOT NULL,
+`initial_capital` FLOAT DEFAULT NULL,
+`config_path` VARCHAR(255) NOT NULL,
+PRIMARY KEY (`strat_id`)
+);
+
+CREATE TABLE `strategy_dyn` (
+`strat_id` INT NOT NULL,
+`updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+`pool` VARCHAR(20) DEFAULT NULL,
+`primary_label_id` INT DEFAULT NULL,
+`secondary_label_id` INT DEFAULT NULL,
+`tertiary_label_id` INT DEFAULT NULL,
+`initial_capital` float DEFAULT NULL,
+`net_pnl` float DEFAULT NULL,
+`trading_cost` float DEFAULT NULL,
+`net_ret` float DEFAULT NULL,
+`ann_pnl` float DEFAULT NULL,
+`ann_std_pnl` float DEFAULT NULL,
+`ann_ret` float DEFAULT NULL,
+`sharpe` float DEFAULT NULL,
+`omega` float DEFAULT NULL,
+`sortino` float DEFAULT NULL,
+`skew` float DEFAULT NULL,
+`kurtosis` float DEFAULT NULL,
+`d_var` float DEFAULT NULL,
+`m_var` float DEFAULT NULL,
+`q_var` float DEFAULT NULL,
+`y_var` float DEFAULT NULL,
+`max_dd` float DEFAULT NULL,
+`dd_period` varchar(300) DEFAULT NULL,
+`std_ann_ret` float DEFAULT NULL,
+`ann_std_qret` float DEFAULT NULL,
+`ann_std_mret` float DEFAULT NULL,
+`ymean_std` float DEFAULT NULL,
+`dd_recovery_period` varchar(300) DEFAULT NULL,
+`max_dd_dollar` float DEFAULT NULL,
+`ann_pnl_by_dd` float DEFAULT NULL,
+`ret_dd` float DEFAULT NULL,
+`ret_var10` float DEFAULT NULL,
+`ann_sharpe` varchar(300) DEFAULT NULL,
+`hit_loss` float DEFAULT NULL,
+`gain_pain` float DEFAULT NULL,
+`max_num_days_with_no_new_high` varchar(300) DEFAULT NULL,
+`losing_month_streak` varchar(300) DEFAULT NULL,
+`turnover` float DEFAULT NULL,
+`total_money_transacted` float DEFAULT NULL,
+`total_orders_placed` int(11) DEFAULT NULL,
+`worst_5_days` varchar(300) DEFAULT NULL,
+`best_5_days` varchar(300) DEFAULT NULL,
+`worst_5_weeks` varchar(300) DEFAULT NULL,
+`best_5_weeks` varchar(300) DEFAULT NULL,
+`VBLTX_net_ret` float DEFAULT NULL,
+`VBLTX_sharpe` float DEFAULT NULL,
+`VBLTX_dd` float DEFAULT NULL,
+`VBLTX_corr` float DEFAULT NULL,
+`VTSMX_net_ret` float DEFAULT NULL,
+`VTSMX_sharpe` float DEFAULT NULL,
+`VTSMX_dd` float DEFAULT NULL,
+`VTSMX_corr` float DEFAULT NULL,
+`AQRIX_net_ret` float DEFAULT NULL,
+`AQRIX_sharpe` float DEFAULT NULL,
+`AQRIX_dd` float DEFAULT NULL,
+`AQRIX_corr` float DEFAULT NULL,
+`AQMIX_net_ret` float DEFAULT NULL,
+`AQMIX_sharpe` float DEFAULT NULL,
+`AQMIX_dd` float DEFAULT NULL,
+`AQMIX_corr` float DEFAULT NULL,
+`BTOP50_net_ret` float DEFAULT NULL,
+`BTOP50_sharpe` float DEFAULT NULL,
+`BTOP50_dd` float DEFAULT NULL,
+`BTOP50_corr` float DEFAULT NULL,
+`TULIP_net_ret` float DEFAULT NULL,
+`TULIP_sharpe` float DEFAULT NULL,
+`TULIP_dd` float DEFAULT NULL,
+`TULIP_corr` float DEFAULT NULL,
+`AHLDIV_net_ret` float DEFAULT NULL,
+`AHLDIV_sharpe` float DEFAULT NULL,
+`AHLDIV_dd` float DEFAULT NULL,
+`AHLDIV_corr` float DEFAULT NULL,
+`labels` varchar(255) DEFAULT NULL,
+`ann_std` float DEFAULT NULL,
+
+PRIMARY KEY (`strat_id`),
+CONSTRAINT strat_id_static FOREIGN KEY (`strat_id`) REFERENCES strategy_static(strat_id),
+CONSTRAINT primary_label FOREIGN KEY (`primary_label_id`) REFERENCES label(label_id),
+CONSTRAINT secondary_label FOREIGN KEY (`secondary_label_id`) REFERENCES label(label_id),
+CONSTRAINT tertiary_label FOREIGN KEY (`tertiary_label_id`) REFERENCES label(label_id)
+);
+
+CREATE TABLE `label` (
+`label_id` INT(4) NOT NULL AUTO_INCREMENT,
+`key_word` VARCHAR(20) NOT NULL,
+`abbreviation` VARCHAR(8) NOT NULL,
+`description` VARCHAR(200) DEFAULT NULL,
+`class` VARCHAR(20) NOT NULL,
+
+PRIMARY KEY (`label_id`)
+);
+
+CREATE TABLE `strategy_daily` (
+`strat_id` INT(11) NOT NULL,
+`date` DATE NOT NULL,
+`updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+`daily_log_return` FLOAT NOT NULL,
+`leverage` FLOAT NOT NULL,
+
+PRIMARY KEY (`strat_id`, `date`),
+CONSTRAINT strat_id_daily FOREIGN KEY (`strat_id`) REFERENCES strategy_static(strat_id)
+);
+
+CREATE TABLE `strategy_label` (
+`strat_id` INT(11) NOT NULL,
+`label_id` INT(4) NOT NULL,
+`priority_index` INT(4) DEFAULT NULL,
+
+PRIMARY KEY (`strat_id`, `label_id`),
+CONSTRAINT strat_id_label FOREIGN KEY (`strat_id`) REFERENCES strategy_static(strat_id),
+CONSTRAINT label FOREIGN KEY (`label_id`) REFERENCES label(label_id)
+);
+
+CREATE TABLE `user` (
+`id` INT(4) NOT NULL AUTO_INCREMENT,
+`email` VARCHAR(32) NOT NULL UNIQUE,
+`user_id` VARCHAR(20) DEFAULT NULL,
+`name` VARCHAR(50) DEFAULT NULL,
+
+PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `user_favourite` (
+`id` INT(4) NOT NULL,
+`strat_id` INT(11) NOT NULL,
+
+PRIMARY KEY (`id`, `strat_id`),
+CONSTRAINT strat_id_user FOREIGN KEY (`strat_id`) REFERENCES strategy_static(strat_id),
+CONSTRAINT user_id FOREIGN KEY (`id`) REFERENCES user(id)
+);
+
+CREATE TABLE `base_product` (
+`product_id` INT(6) NOT NULL AUTO_INCREMENT,
+`base_product` VARCHAR(20) NOT NULL,
+`product_description` VARCHAR(100) DEFAULT NULL,
+`sector` VARCHAR(20) NOT NULL,
+
+PRIMARY KEY (`product_id`)
+);
+
+# Can add high, low, open, close prices, log_returns but don't think we will use prices/returns separately, plus there will be redundancy here. If needed, we can create a product table
+CREATE TABLE `strategy_product` (
+`strat_id` INT(11) NOT NULL,
+`product_id` INT(6) NOT NULL,
+`date` DATE NOT NULL,
+`updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+`weight` FLOAT NOT NULL,
+
+PRIMARY KEY (`strat_id`, `product_id`, `date`),
+CONSTRAINT strat_id_product FOREIGN KEY (`strat_id`) REFERENCES strategy_static(strat_id),
+CONSTRAINT product_id_static FOREIGN KEY (`product_id`) REFERENCES base_product(product_id)
+);
