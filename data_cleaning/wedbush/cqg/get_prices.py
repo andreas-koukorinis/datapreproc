@@ -1,4 +1,5 @@
 import argparse
+import calendar
 import sys
 import time
 from webapi_1_pb2 import *
@@ -64,11 +65,13 @@ def get_prices(symbol_name, msg_id=1, subscribe=None):
         time_bar_request.request_id = 1
         time_bar_request.time_bar_parameters.contract_id = contract_id
         time_bar_request.time_bar_parameters.bar_unit = TimeBarParameters.MIN
-        time_bar_request.time_bar_parameters.from_utc_time = 0
+        print(calendar.timegm(base_time), time.time())
+        time_bar_request.time_bar_parameters.from_utc_time = int((time.time()-calendar.timegm(base_time) - 300)*1000)
         client.send_client_message(client_msg)
         server_msg = client.receive_server_message()
 
-        # Takeing index 1 as that is guaranteed to be available
+        if server_msg.time_bar_report[0].status_code != 0:
+            continue
         last_min_bar_close_price = server_msg.time_bar_report[0].time_bar[0].close_price
         
     client.disconnect()
