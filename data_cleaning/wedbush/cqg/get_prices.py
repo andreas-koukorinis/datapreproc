@@ -72,13 +72,14 @@ def get_prices(symbol_name, msg_id=1, subscribe=None):
         client.send_client_message(client_msg)
         server_msg = client.receive_server_message()
 
-        if server_msg.time_bar_report[0].status_code != 0:
+        if server_msg.time_bar_report[0].status_code == 103:
+            return ('NA','NA')
+        elif server_msg.time_bar_report[0].status_code != 0:
             continue
         i = 0
         while i < len(server_msg.time_bar_report[0].time_bar) and last_min_bar_close_price == 0:
             last_min_bar_close_price = server_msg.time_bar_report[0].time_bar[i].close_price
             i += 1
-
         
     client.disconnect()
 
