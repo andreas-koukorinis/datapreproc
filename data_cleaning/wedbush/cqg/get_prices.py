@@ -59,20 +59,26 @@ def get_prices(symbol_name, msg_id=1, subscribe=None):
     tick_size = server_msg.information_report[0].symbol_resolution_report.contract_metadata.tick_size
 
     last_min_bar_close_price = 0
+    
     while last_min_bar_close_price == 0:
         client_msg = ClientMsg()
         time_bar_request = client_msg.time_bar_request.add()
         time_bar_request.request_id = 1
         time_bar_request.time_bar_parameters.contract_id = contract_id
         time_bar_request.time_bar_parameters.bar_unit = TimeBarParameters.MIN
-        print(calendar.timegm(base_time), time.time())
-        time_bar_request.time_bar_parameters.from_utc_time = int((time.time()-calendar.timegm(base_time) - 300)*1000)
+        time_bar_request.time_bar_parameters.from_utc_time = int((time.time()-calendar.timegm(base_time)-600)*1000)
+        time_bar_request.time_bar_parameters.to_utc_time = int((time.time()-calendar.timegm(base_time)-60)*1000)
+        
         client.send_client_message(client_msg)
         server_msg = client.receive_server_message()
 
         if server_msg.time_bar_report[0].status_code != 0:
             continue
-        last_min_bar_close_price = server_msg.time_bar_report[0].time_bar[0].close_price
+        i = 0
+        while i < len(server_msg.time_bar_report[0].time_bar) and last_min_bar_close_price == 0:
+            last_min_bar_close_price = server_msg.time_bar_report[0].time_bar[i].close_price
+            i += 1
+
         
     client.disconnect()
 
