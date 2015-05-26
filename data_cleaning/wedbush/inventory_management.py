@@ -163,7 +163,7 @@ def main():
                     product = prod_wt_price[0]
                     strategy_desired_positions[product] = float(prod_wt_price[1]) 
     else:
-        strategy_desired_positions = get_desired_positions(args.config_file, args.portfolio_file, float(current_worth), '2015-01-01', current_date.strftime('%Y-%m-%d')) #TODO
+        strategy_desired_positions = get_desired_positions(args.config_file, args.portfolio_file, float(current_worth), '1995-01-01', current_date.strftime('%Y-%m-%d')) #TODO
 
     # Initialize with default variables
     products = list(set(products + strategy_desired_positions.keys()))
