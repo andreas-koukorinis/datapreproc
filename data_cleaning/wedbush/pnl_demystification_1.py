@@ -241,6 +241,7 @@ def main():
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-cd', type=str, help='PnL-Comparison Date\nEg: -cd 2015-04-27\n',default=None, dest='current_date')
+    parser.add_argument('--check', help='Do not send to slack\nEg: --check\n Default is to send to slack', default=False, dest='check', action='store_true')
     args = parser.parse_args()
     benchmarks = ['VBLTX', 'VTSMX', 'AQRIX', 'AQMIX']
 
@@ -347,10 +348,12 @@ def main():
     output += '*Product  |  Strategy  |  Inventory  |  Net*\n'
     output += sector_ret_str
 
-    payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": output}
-    req = urllib2.Request('https://hooks.slack.com/services/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')
-    response = urllib2.urlopen(req, json.dumps(payload))
-    #send_mail(subject, output)
+    if args.check:
+        print output
+    else:
+        payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": output}
+        req = urllib2.Request('https://hooks.slack.com/services/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')
+        response = urllib2.urlopen(req, json.dumps(payload))
 
 if __name__ == '__main__':
     main()
