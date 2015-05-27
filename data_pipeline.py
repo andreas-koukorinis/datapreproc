@@ -631,16 +631,16 @@ class SendStats(QPlumTask):
         with open(self.output().path,'w') as f:
             f.write("Successfully sent stats")
 
-class FetchWedbushFromSFTP(QPlumTask):
+class FetchWedbushFromSFTP(luigi.ExternalTask):
     """
     Task to fetch Wedbush statements from SFTP
     """
     date = luigi.DateParameter(default=date.today())
     def output(self):
+        if os.path.isfile(wedbush_path+self.date.strftime('%Y%m%d/mny%Y%m%d.csv')) == False:
+            wedbush_download_script_path = "/home/cvdev/datapreproc/data_cleaning/wedbush/download_statements.sh"
+            subprocess.call(["bash",wedbush_download_script_path])
         return luigi.LocalTarget(wedbush_path+self.date.strftime('%Y%m%d/mny%Y%m%d.csv'))
-    def run(self):
-        wedbush_download_script_path = "/home/cvdev/datapreproc/data_cleaning/wedbush/download_statements.sh"
-        subprocess.call(["bash",wedbush_download_script_path])
 
 class PutWedbushStmtInDb(QPlumTask):
     """
