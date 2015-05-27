@@ -564,7 +564,7 @@ class ExchangeSymbolManager():
         # First notice day : Two business days prior to the first day of the delivery month
         if _basename == 'LFR':
             date = datetime.date(day=1, month=_next_liffe_month, year=_next_liffe_year)
-            for i in range(0,6):
+            for i in range(0,4):
                 date += datetime.timedelta(days=-1)
                 while not self.is_liffe_exchange_date(_basename, date):
                     date += datetime.timedelta(days=-1)
