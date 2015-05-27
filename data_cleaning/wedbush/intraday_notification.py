@@ -1,3 +1,4 @@
+import argparse
 import os
 import pandas as pd
 import math
@@ -102,6 +103,10 @@ def float_len(number, decimal):
     return digits
 
 def main():
+    # Parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--check', help='Do not send to slack\nEg: --check\n Default is to send to slack', default=False, dest='check', action='store_true')
+    args = parser.parse_args()
 
     global db
     global db_cursor
@@ -174,14 +179,14 @@ def main():
     for key in sector_pnl.keys():
         sector_ret_str += '%s %s | %0.2f %s | %0.2f%%\n' % ( key, repeat_to_length(' ', (17-len(key))),  sector_pnl[key], repeat_to_length(' ', 17 - float_len(sector_pnl[key], 2)), 100.0 * sector_pnl[key]/yday_pv)
     sector_ret_str += '------------------------------------------------------------\n'
-    print sector_ret_str
-    sys.exit()
 
-
-    payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": output}
-    req = urllib2.Request('https://hooks.slack.com/services/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')
-    response = urllib2.urlopen(req, json.dumps(payload))
-    #send_mail(subject, output)
+    if args.check:
+        print sector_ret_str
+    else:
+        payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": sector_ret_str}
+        req = urllib2.Request('https://hooks.slack.com/services/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')
+        response = urllib2.urlopen(req, json.dumps(payload))
+        #send_mail(subject, output)
 
 if __name__ == '__main__':
     main()
