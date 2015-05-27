@@ -204,7 +204,6 @@ def main():
 
 
     open_price_2, close_price_1, close_price_2, conversion_factor, is_valid = get_factors( current_date, args.data_source, products, product_type) #TODO
-    print open_price_2, close_price_1, close_price_2
     # Get commission rates
     try:
         commission_rates = {}
@@ -275,16 +274,20 @@ def main():
 
     # Fake trades between strategy and inventory
     # Update positions as well
+    print products
+    print strategy_positions
+    print inventory_positions
+    print strategy_desired_positions
     for product in products:
         basename = product[:-3]
         if is_valid[product]:
             outstanding_bal[product]['strategy_bal'] += conversion_factor[basename] * ( strategy_positions[product] * ( close_price_2[product] - close_price_1[product]) + \
-                                                       ( strategy_desired_positions[product] - strategy_positions[product] ) * ( close_price_2[product] - open_price_2[product] ) )
+                                                       ( strategy_desired_positions[product] - strategy_positions.get(product, 0.0 ) ) * ( close_price_2[product] - open_price_2[product] ) )
             outstanding_bal[product]['inventory_bal'] -= conversion_factor[basename] * ( strategy_positions[product] * ( close_price_2[product] - close_price_1[product]) + \
-                                                       ( strategy_desired_positions[product] - strategy_positions[product] ) * ( close_price_2[product] - open_price_2[product] ) )
+                                                       ( strategy_desired_positions[product] - strategy_positions.get( product,0.0 ) ) * ( close_price_2[product] - open_price_2[product] ) )
 
-            inventory_positions[product] -= ( strategy_desired_positions[product] - strategy_positions[product] )
-            strategy_positions[product] += ( strategy_desired_positions[product] - strategy_positions[product] )
+            inventory_positions[product] -= ( strategy_desired_positions[product] - strategy_positions.get(product, 0.0 ) )
+            strategy_positions[product] += ( strategy_desired_positions[product] - strategy_positions.get(product, 0.0 ) )
          
     for product in todays_orders.keys():
         basename = product[:-3]
