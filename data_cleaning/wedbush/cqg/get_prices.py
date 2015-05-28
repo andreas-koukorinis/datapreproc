@@ -1,5 +1,6 @@
 import argparse
 import calendar
+import datetime
 import sys
 import time
 from webapi_1_pb2 import *
@@ -60,30 +61,51 @@ def get_prices(symbol_name, msg_id=1, subscribe=None):
 
     last_min_bar_close_price = 0
     
-    while last_min_bar_close_price == 0:
+    client_msg = ClientMsg()
+    time_bar_request = client_msg.time_bar_request.add()
+    time_bar_request.request_id = 1
+    time_bar_request.time_bar_parameters.contract_id = contract_id
+    time_bar_request.time_bar_parameters.bar_unit = TimeBarParameters.MIN
+    time_bar_request.time_bar_parameters.from_utc_time = int((time.time()-calendar.timegm(base_time)-3600)*1000)
+    time_bar_request.time_bar_parameters.to_utc_time = int((time.time()-calendar.timegm(base_time)-60)*1000)
+      
+    client.send_client_message(client_msg)
+    server_msg = client.receive_server_message()
+
+    if server_msg.time_bar_report[0].status_code == 103:
+        return ('NA','NA','NA')
+    elif server_msg.time_bar_report[0].status_code != 0:
+        return ('NA','NA','NA')
+    i = 0
+    while i < len(server_msg.time_bar_report[0].time_bar) and last_min_bar_close_price == 0:
+        last_min_bar_close_price = server_msg.time_bar_report[0].time_bar[i].close_price
+        matched_timestamp = datetime.datetime.fromtimestamp(calendar.timegm(base_time)+server_msg.time_bar_report[0].time_bar[i].bar_utc_time/1000.0)
+        i += 1
+     
+    if last_min_bar_close_price == 0:
         client_msg = ClientMsg()
         time_bar_request = client_msg.time_bar_request.add()
         time_bar_request.request_id = 1
         time_bar_request.time_bar_parameters.contract_id = contract_id
-        time_bar_request.time_bar_parameters.bar_unit = TimeBarParameters.MIN
-        time_bar_request.time_bar_parameters.from_utc_time = int((time.time()-calendar.timegm(base_time)-600)*1000)
+        time_bar_request.time_bar_parameters.bar_unit = TimeBarParameters.HOUR
+        time_bar_request.time_bar_parameters.from_utc_time = int((time.time()-calendar.timegm(base_time)-36000)*1000)
         time_bar_request.time_bar_parameters.to_utc_time = int((time.time()-calendar.timegm(base_time)-60)*1000)
-        
-        client.send_client_message(client_msg)
-        server_msg = client.receive_server_message()
 
         if server_msg.time_bar_report[0].status_code == 103:
-            return ('NA','NA')
+            return ('NA','NA','NA')
         elif server_msg.time_bar_report[0].status_code != 0:
-            continue
+            return ('NA','NA','NA')
         i = 0
         while i < len(server_msg.time_bar_report[0].time_bar) and last_min_bar_close_price == 0:
             last_min_bar_close_price = server_msg.time_bar_report[0].time_bar[i].close_price
+            matched_timestamp = datetime.datetime.fromtimestamp(calendar.timegm(base_time)+server_msg.time_bar_report[0].time_bar[i].bar_utc_time/1000.0)
             i += 1
-        
+
+    client.send_client_message(client_msg)
+    server_msg = client.receive_server_message()
     client.disconnect()
 
-    return (last_min_bar_close_price * correct_price_scale, tick_value/tick_size)
+    return (last_min_bar_close_price * correct_price_scale, tick_value/tick_size, matched_timestamp)
 
     # Get rtealtime updates using the following snippet
     # client_msg = ClientMsg()
@@ -140,7 +162,7 @@ if __name__ == '__main__':
             prices[product] = get_prices(product)
 
     with open(args.output_path,'w') as f:
-        f.write("Product,Current Price,Conversion Factor\n")
+        f.write("Product,Current_Price,Conversion_Factor,Latest_snapshot\n")
         for k,v in prices.items():
-            f.write("%s,%s,%s\n"%(k,v[0],v[1]))
+            f.write("%s,%s,%s,%s\n"%(k,v[0],v[1],v[2]))
     #get_currency_rates()
