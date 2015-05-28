@@ -123,6 +123,14 @@ def main():
     global basename_to_currency 
     basename_to_currency = get_product_currencies()
 
+    # Fetch starting portfolio value
+    query = "SELECT portfolio_value FROM broker_portfolio_stats ORDER BY date ASC LIMIT 1"
+    db_cursor.execute(query)
+    rows = db_cursor.fetchall()
+    initial_pv = 0.0
+    if len(rows) == 1:
+        initial_pv = float(rows[0]['portfolio_value'])
+
     # Fetch the portfolio value for YDAY
     query = "SELECT date, portfolio_value FROM broker_portfolio_stats ORDER BY date DESC LIMIT 1"
     db_cursor.execute(query)
@@ -174,21 +182,30 @@ def main():
         total_pnl += product_pnl[product]
         sector_pnl[sector[product[:-3]]] = sector_pnl.get(sector[product[:-3]], 0.0) + product_pnl[product]
 
-    separator = '-----------------------------------------------------------------------------------'
+ 
+    main_separator = '========================================================='
+    init_separator = '------------------------------------------------------------------------------------------------------'
+    separator = '-----------------------------------------------------------------------'
     from_zone = tz.gettz('UTC')
     to_zone = tz.gettz('America/New_York')
     utc = datetime.datetime.fromtimestamp(time.time())
     utc = utc.replace(tzinfo=from_zone)
     eastern = utc.astimezone(to_zone)
 
-    sector_ret_str = '%s\n*Sector wise Return on %s EST*\n%s\n' % (separator, eastern.strftime('%Y-%m-%d %H:%M:%S'), separator)
+    # Insert portfolio value today, yesterday and initial, plus changes in %
+    sector_ret_str = '%s\n' % main_separator
+    sector_ret_str += '*Intraday Portfolio Status on %s EST*\n' % eastern.strftime('%Y-%m-%d %H:%M:%S')
+    sector_ret_str += '%s\n' % init_separator
+    sector_ret_str += 'Current Portfolio: %0.2f | LTD PnL: %0.2f | LTD PnL (%%): %0.2f%%\n' %(yday_pv + total_pnl, yday_pv - initial_pv + total_pnl, (yday_pv - initial_pv + total_pnl)/initial_pv*100)
+
+    sector_ret_str += '%s\n*Sector wise Return*\n%s\n' % (init_separator, separator)
     sector_ret_str += 'Sector %s | Return ($) %s | Return (%%)\n' % (repeat_to_length(' ', int(52-2.5*len('Sector'))), repeat_to_length(' ', (17-len('Return ($)'))))
     sector_ret_str += '%s\n' % separator
     for key in sector_pnl.keys():
         sector_ret_str += '%s %s | %0.2f %s | %0.2f%%\n' % ( key, repeat_to_length(' ', int(52-2.5*len(key))),  sector_pnl[key], repeat_to_length(' ', 17 - float_len(sector_pnl[key], 2)), 100.0 * sector_pnl[key]/yday_pv)
     sector_ret_str += '%s\n' % separator
     sector_ret_str += '%s %s | %0.2f %s | %0.2f%%\n' % ( 'Portfolio', repeat_to_length(' ', int(55-2.5*len('Portfolio'))),  total_pnl, repeat_to_length(' ', 17 - float_len(total_pnl, 2)), 100.0 * total_pnl/yday_pv)
-    sector_ret_str += '%s\n' % separator
+    sector_ret_str += '%s\n' % main_separator
     if args.check:
         print sector_ret_str
     else:
