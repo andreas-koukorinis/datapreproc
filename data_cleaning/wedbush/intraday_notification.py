@@ -173,13 +173,15 @@ def main():
         total_pnl += product_pnl[product]
         sector_pnl[sector[product[:-3]]] = sector_pnl.get(sector[product[:-3]], 0.0) + product_pnl[product]
 
-    sector_ret_str = '------------------------------------------------------------\n*Sector wise Return today*\n------------------------------------------------------------\n'
-    sector_ret_str += 'Sector %s | Return ($) %s | Return (%%)\n' % (repeat_to_length(' ', (17-len('Sector'))), repeat_to_length(' ', (17-len('Return ($)'))))
-    sector_ret_str += '------------------------------------------------------------\n'
+    separator = '-----------------------------------------------------------------------------------'
+    sector_ret_str = '%s\n*Sector wise Return today*\n%s\n' % (separator, separator)
+    sector_ret_str += 'Sector %s | Return ($) %s | Return (%%)\n' % (repeat_to_length(' ', int(52-2.5*len('Sector'))), repeat_to_length(' ', (17-len('Return ($)'))))
+    sector_ret_str += '%s\n' % separator
     for key in sector_pnl.keys():
-        sector_ret_str += '%s %s | %0.2f %s | %0.2f%%\n' % ( key, repeat_to_length(' ', (17-len(key))),  sector_pnl[key], repeat_to_length(' ', 17 - float_len(sector_pnl[key], 2)), 100.0 * sector_pnl[key]/yday_pv)
-    sector_ret_str += '------------------------------------------------------------\n'
-
+        sector_ret_str += '%s %s | %0.2f %s | %0.2f%%\n' % ( key, repeat_to_length(' ', int(52-2.5*len(key))),  sector_pnl[key], repeat_to_length(' ', 17 - float_len(sector_pnl[key], 2)), 100.0 * sector_pnl[key]/yday_pv)
+    sector_ret_str += '%s\n' % separator
+    sector_ret_str += '%s %s | %0.2f %s | %0.2f%%\n' % ( 'Portfolio', repeat_to_length(' ', int(55-2.5*len('Portfolio'))),  total_pnl, repeat_to_length(' ', 17 - float_len(total_pnl, 2)), 100.0 * total_pnl/yday_pv)
+    sector_ret_str += '%s\n' % separator
     if args.check:
         print sector_ret_str
     else:
