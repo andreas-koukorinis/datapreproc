@@ -10,7 +10,9 @@ import json
 import urllib2
 import MySQLdb
 import scipy.stats as ss
-from datetime import datetime, date, timedelta
+import datetime
+import time
+from dateutil import tz
 
 home_path = os.path.expanduser("~")
 sys.path.append(home_path + '/stratdev/')
@@ -165,7 +167,6 @@ def main():
     total_pnl = 0.0
     get_factors( last_day, products )
     currency_rates = get_currency_rates( last_day )
-
     for product in products:
         product_value_yday[product] = yday_positions[product] * yday_close[product] * conversion_factor[product[:-3]] * currency_rates[basename_to_currency[product[:-3]]]
         product_value_now[product] = yday_positions[product] * latest_price[product] * cqg_conversion[product] * currency_rates[basename_to_currency[product[:-3]]]
@@ -174,7 +175,13 @@ def main():
         sector_pnl[sector[product[:-3]]] = sector_pnl.get(sector[product[:-3]], 0.0) + product_pnl[product]
 
     separator = '-----------------------------------------------------------------------------------'
-    sector_ret_str = '%s\n*Sector wise Return today*\n%s\n' % (separator, separator)
+    from_zone = tz.gettz('UTC')
+    to_zone = tz.gettz('America/New_York')
+    utc = datetime.datetime.fromtimestamp(time.time())
+    utc = utc.replace(tzinfo=from_zone)
+    eastern = utc.astimezone(to_zone)
+
+    sector_ret_str = '%s\n*Sector wise Return on %s EST*\n%s\n' % (separator, eastern.strftime('%Y-%m-%d %H:%M:%S'), separator)
     sector_ret_str += 'Sector %s | Return ($) %s | Return (%%)\n' % (repeat_to_length(' ', int(52-2.5*len('Sector'))), repeat_to_length(' ', (17-len('Return ($)'))))
     sector_ret_str += '%s\n' % separator
     for key in sector_pnl.keys():
