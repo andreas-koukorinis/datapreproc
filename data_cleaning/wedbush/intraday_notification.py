@@ -166,6 +166,14 @@ def main():
     df = pd.read_csv(price_file)
     latest_price = pd.Series(df.Current_Price.values, index = df.Product).to_dict()
     cqg_conversion = pd.Series(df.Conversion_Factor.values, index = df.Product).to_dict()
+    get_factors( last_day, products )
+    currency_rates = get_currency_rates( last_day )
+ 
+    # Check for 'NA' values in intraday CQG prices
+    for key in latest_price.keys():
+        if math.isnan(latest_price[key]) or math.isnan(cqg_conversion[key]):
+            latest_price[key] = float(yday_close[key])
+            cqg_conversion[key] = float(conversion_factor[key[:-3]])
  
     # Compute today's PnL, portfolio value, sector wise PnL contribution
     product_value_yday = {}
@@ -173,8 +181,6 @@ def main():
     product_pnl = {}
     sector_pnl = {}
     total_pnl = 0.0
-    get_factors( last_day, products )
-    currency_rates = get_currency_rates( last_day )
     for product in products:
         product_value_yday[product] = yday_positions[product] * yday_close[product] * conversion_factor[product[:-3]] * currency_rates[basename_to_currency[product[:-3]]]
         product_value_now[product] = yday_positions[product] * latest_price[product] * cqg_conversion[product] * currency_rates[basename_to_currency[product[:-3]]]
