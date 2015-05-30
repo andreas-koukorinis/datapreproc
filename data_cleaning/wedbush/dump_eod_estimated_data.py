@@ -398,14 +398,16 @@ def dump_eod_estimated_data(current_date, product_type='future', data_source='cs
                 send_mail( err, 'Could not add unsettled orders to db' )
                 print traceback.format_exc()
             
-    #average_trade_price = {}
-    #current_amount = {}
-    #for product in unsettled_orders.keys():
-        #average_trade_price[product] = 0.0 
-        #current_amount[product] = 0.0
-        #for order in unsettled_orders[product]:
-            #average_trade_price[product] = ( current_amount[product]*average_trade_price[product] + order[1]*order[2] )/ ( current_amount[product] + order[1] )
-            #current_amount[product] += order[1]
+    # Fecth oter fees from broker portfolio stats
+    try:
+        query = "SELECT other_fees FROM broker_portfolio_stats WHERE date = '%s'" % current_date
+        db_cursor.execute(query)
+        rows=db_cursor.fetchall()
+        other_fees = rows[0]['other_fees']     
+    except Exception, err:
+        send_mail( err, 'Could not fetch other fees from db' )
+        print traceback.format_exc()
+    outstanding_amounts_bal['segregated_USD_bal'] += other_fees
 
     # Update open equity using estimated open positions
     outstanding_currencies_ote = ['segregated_USD_ote', 'secured_USD_ote', 'secured_GBP_ote', 'secured_EUR_ote', 'secured_CAD_ote']
@@ -438,7 +440,7 @@ def dump_eod_estimated_data(current_date, product_type='future', data_source='cs
     pnl = mark_to_market - yday_portfolio_value
 
     try:
-        query = "INSERT INTO estimated_portfolio_stats (date, converted_total_bal, converted_total_ote, portfolio_value, commission, pnl) VALUES('%s','%0.2f','%0.2f','%0.2f','%0.2f','%0.2f')" % ( current_date, converted_total_bal, converted_total_ote, mark_to_market, commission, pnl )
+        query = "INSERT INTO estimated_portfolio_stats (date, converted_total_bal, converted_total_ote, portfolio_value, commission, pnl, other_fees) VALUES('%s','%0.2f','%0.2f','%0.2f','%0.2f','%0.2f','%0.2f')" % ( current_date, converted_total_bal, converted_total_ote, mark_to_market, commission, pnl, other_fees )
         db_cursor.execute(query)
         db.commit()
     except Exception, err:

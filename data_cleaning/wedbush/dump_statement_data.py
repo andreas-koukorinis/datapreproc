@@ -95,6 +95,7 @@ def dump_statement_data(date):
         portfolio_value = money_df.iloc[last_idx]['MLQVAL'] # Portfolio Value
         maintenance_margin = money_df.iloc[last_idx]['MFMR'] 
         initial_margin = money_df.iloc[last_idx]['MFIR']
+        other_fees = money_df.iloc[last_idx]['MCCDNT']
         commission = 0
         try:
             commissions_df = pd.DataFrame.from_csv( commission_file )
@@ -117,7 +118,7 @@ def dump_statement_data(date):
             send_mail( err, 'Could not process commission file' )
             print traceback.format_exc()
         try:
-            query = "INSERT INTO broker_portfolio_stats ( date, converted_total_bal, converted_total_ote, portfolio_value, maintainence_margin, initial_margin,commission ) VALUES('%s','%s','%s','%s','%s','%s', '%0.2f')" % ( date, converted_total_bal, converted_total_ote, portfolio_value, maintenance_margin, initial_margin, abs( commission ) )
+            query = "INSERT INTO broker_portfolio_stats ( date, converted_total_bal, converted_total_ote, portfolio_value, maintainence_margin, initial_margin,commission, other_fees ) VALUES('%s','%s','%s','%s','%s','%s', '%0.2f', '%s')" % ( date, converted_total_bal, converted_total_ote, portfolio_value, maintenance_margin, initial_margin, abs( commission ), other_fees )
             db_cursor.execute( query )
             db.commit()
             # Update PNL

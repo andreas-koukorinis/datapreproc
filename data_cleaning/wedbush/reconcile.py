@@ -31,11 +31,12 @@ def reconcile(current_date):
     # Reconcile PNL and Mark To Market
     output = "*Reconciliation for Date : %s*\n\n" % current_date
     try:
-        query = "SELECT portfolio_value, pnl FROM broker_portfolio_stats WHERE date = '%s'" % ( current_date )
+        query = "SELECT portfolio_value, pnl, other_fees FROM broker_portfolio_stats WHERE date = '%s'" % ( current_date )
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
         broker_portfolio_value = rows[0]['portfolio_value']
         broker_pnl = rows[0]['pnl']
+        other_fees = rows[0]['other_fees']
         query = "SELECT portfolio_value, pnl FROM estimated_portfolio_stats WHERE date = '%s'" % ( current_date )
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
@@ -48,6 +49,8 @@ def reconcile(current_date):
         all_good = all_good and round(abs(float(broker_pnl) - float(estimated_pnl)))<=2.0
         all_good = all_good and round(abs(float(broker_portfolio_value) - float(estimated_portfolio_value)))<=2.0
 
+        if other_fees > 0:
+            output += 'Alert Extra Fees Charged: $%s\n\n' % other_fees
         if is_pnl_consistent:
             output += "_PNL Reconciliation Status_ : *SUCCESS*\nEstimated PNL | Broker PNL \n%s | %s \n" % ( estimated_pnl, broker_pnl )
         else:
@@ -84,17 +87,18 @@ def reconcile(current_date):
         print traceback.format_exc()
         send_mail( err, 'RECONCILIATION ISSUE: Some error while reconciling Positions %s ' % current_date )
 
-    #payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": output}
-    #req = urllib2.Request('https://hooks.slack.com/services/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')
-    #response = urllib2.urlopen(req, json.dumps(payload))
+    print output
+    payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": output}
+    req = urllib2.Request('https://hooks.slack.com/services/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')
+    response = urllib2.urlopen(req, json.dumps(payload))
 
     if all_good:
         return True
     else:
         print "Reconciliation failed"
-        # payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": "*Reconciliation failed*\nOrders won't be generated."}
-        # req = urllib2.Request('https://hooks.slack.com/services/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')
-        # response = urllib2.urlopen(req, json.dumps(payload))
+        payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": "*Reconciliation failed*\nOrders won't be generated."}
+        req = urllib2.Request('https://hooks.slack.com/services/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')
+        response = urllib2.urlopen(req, json.dumps(payload))
         return False
             
 if __name__ == '__main__':

@@ -274,14 +274,31 @@ def main():
     today_pv = 0.0
     if len(rows) >= 1:
         today_pv = float(rows[0]['portfolio_value'])
+
     if len(rows) == 2:
         yday_pv = float(rows[1]['portfolio_value'])
+
+    # Fetch the net trading fees
+    query = "SELECT SUM(other_fees) as sum_fees FROM broker_portfolio_stats WHERE date <= '%s'" % ( args.current_date )
+    db_cursor.execute(query)
+    rows = db_cursor.fetchall()
+    net_other_fees = 0.0
+    if len(rows) >= 1:
+        net_other_fees = rows[0]['sum_fees']
+
+    # Fetch the trading fees for today
+    query = "SELECT other_fees FROM broker_portfolio_stats WHERE date = '%s'" % ( args.current_date )
+    db_cursor.execute(query)
+    rows = db_cursor.fetchall()
+    today_other_fees = 0.0
+    if len(rows) >= 1:
+        today_other_fees = rows[0]['other_fees']
 
     # Get sector returns and strategy, inventory pnl
     sector_ret_str = ""
     product_pnl_strategy, product_pnl_inventory = get_products_pnl( args.current_date )
     strategy_pnl = 0.0
-    inventory_pnl = 0.0
+    inventory_pnl = today_other_fees
     strategy_sector_pnl = {}
     inventory_sector_pnl = {}
     for key in product_pnl_strategy.keys():
@@ -311,7 +328,7 @@ def main():
     # Get net PNL per product
     net_product_pnl_strategy, net_product_pnl_inventory = get_net_products_pnl( args.current_date )
     net_pnl_strategy = 0.0
-    net_pnl_inventory = 0.0
+    net_pnl_inventory = net_other_fees
     net_sector_ret_str = ""
     net_strategy_sector_pnl = {}
     net_inventory_sector_pnl = {}
@@ -335,7 +352,7 @@ def main():
  
     output += '\n*LTD Pnl ( Return )* :    Net Pnl : $%0.2f (%0.2f %%)   |   Strategy Pnl : $%.2f (%0.2f%%)   |   Inventory Pnl : $%.2f (%0.2f%%)\n' % ( (today_pv - initial_pv), 100.0 * (today_pv - initial_pv)/initial_pv, net_pnl_strategy, 100.0*net_pnl_strategy/initial_pv, net_pnl_inventory, 100.0*net_pnl_inventory/initial_pv )
     output += '\n*Todays Pnl ( Return )* :   Net Pnl : $%0.2f (%0.2f %%)   |   Strategy Pnl : $%.2f (%0.2f%%)   |   Inventory Pnl : $%.2f (%0.2f%%)\n' % ( (today_pv - yday_pv), 100.0 * (today_pv - yday_pv)/yday_pv, strategy_pnl, 100.0 * strategy_pnl/yday_pv, inventory_pnl, 100.0 * inventory_pnl/yday_pv )
-    output += '\n*Summary Stats* :   Turnover : %0.2f%%   |   Leverage : %0.2f   |   Commission : $%0.2f\n' % ( get_turnover( args.current_date, today_pv ), \
+    output += '\n*Summary Stats* :   Turnover : %0.2f%%   |   Leverage : %0.2f   |   Commission : $%0.2f | Fees : $%0.2f\n' % ( get_turnover( args.current_date, today_pv, net_other_fees ), \
                 get_leverage(args.current_date, net_positions, today_pv), get_commission( args.current_date ) )
     output += "\n*Benchmark Returns:*  %s\n" % _print_benchmark_returns
     output += '\n*Positions*\n'
