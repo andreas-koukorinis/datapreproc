@@ -319,9 +319,10 @@ def main():
     db_cursor.execute(query)
     rows = db_cursor.fetchall()
     for row in rows:
-        products.append(row['product'])
-        net_positions[row['product']] = row['net_position']
-        positions_str += '%s | %0.2f | %0.2f | %d\n' % ( row['product'], float(row['strategy_position']), float(row['inventory_position']), row['net_position'])
+        if abs(float(row['strategy_position'])) > 0.0000001 or abs(float(row['inventory_position'])) > 0.0000001 or abs(row['net_position']) > 0:
+            products.append(row['product'])
+            net_positions[row['product']] = row['net_position']
+            positions_str += '%s | %0.2f | %0.2f | %d\n' % ( row['product'], float(row['strategy_position']), float(row['inventory_position']), row['net_position'])
 
     get_factors( args.current_date, products )
 
@@ -352,8 +353,8 @@ def main():
  
     output += '\n*LTD Pnl ( Return )* :    Net Pnl : $%0.2f (%0.2f %%)   |   Strategy Pnl : $%.2f (%0.2f%%)   |   Inventory Pnl : $%.2f (%0.2f%%)\n' % ( (today_pv - initial_pv), 100.0 * (today_pv - initial_pv)/initial_pv, net_pnl_strategy, 100.0*net_pnl_strategy/initial_pv, net_pnl_inventory, 100.0*net_pnl_inventory/initial_pv )
     output += '\n*Todays Pnl ( Return )* :   Net Pnl : $%0.2f (%0.2f %%)   |   Strategy Pnl : $%.2f (%0.2f%%)   |   Inventory Pnl : $%.2f (%0.2f%%)\n' % ( (today_pv - yday_pv), 100.0 * (today_pv - yday_pv)/yday_pv, strategy_pnl, 100.0 * strategy_pnl/yday_pv, inventory_pnl, 100.0 * inventory_pnl/yday_pv )
-    output += '\n*Summary Stats* :   Turnover : %0.2f%%   |   Leverage : %0.2f   |   Commission : $%0.2f | Fees : $%0.2f\n' % ( get_turnover( args.current_date, today_pv, net_other_fees ), \
-                get_leverage(args.current_date, net_positions, today_pv), get_commission( args.current_date ) )
+    output += '\n*Summary Stats* :   Turnover : %0.2f%%   |   Leverage : %0.2f   |   Commission : $%0.2f | Fees : $%0.2f\n' % ( get_turnover( args.current_date, today_pv), \
+                get_leverage(args.current_date, net_positions, today_pv), get_commission( args.current_date ), net_other_fees  )
     output += "\n*Benchmark Returns:*  %s\n" % _print_benchmark_returns
     output += '\n*Positions*\n'
     output += '*Product  |  Strategy  |  Inventory  |  Net*\n'
