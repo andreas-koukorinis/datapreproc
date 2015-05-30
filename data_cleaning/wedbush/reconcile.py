@@ -84,9 +84,9 @@ def reconcile(current_date):
         print traceback.format_exc()
         send_mail( err, 'RECONCILIATION ISSUE: Some error while reconciling Positions %s ' % current_date )
 
-    payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": output}
-    req = urllib2.Request('https://hooks.slack.com/services/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')
-    response = urllib2.urlopen(req, json.dumps(payload))
+    #payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": output}
+    #req = urllib2.Request('https://hooks.slack.com/services/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')
+    #response = urllib2.urlopen(req, json.dumps(payload))
 
     if all_good:
         return True
