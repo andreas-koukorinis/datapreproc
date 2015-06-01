@@ -44,8 +44,8 @@ class QPlumTask(luigi.Task):
         s = "*Error in %s Task*\n"%(self.__class__.__name__)
         s += traceback_string
         payload = {"channel": "#datapipeline-errors", "username": "Luigi", "text": s}
-        #req = urllib2.Request('https://hooks.slack.com/services/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')
-        #response = urllib2.urlopen(req, json.dumps(payload))
+        req = urllib2.Request('https://hooks.slack.com/services/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')
+        response = urllib2.urlopen(req, json.dumps(payload))
         return "Runtime error:\n%s" % traceback_string
 
 def load_credentials():
