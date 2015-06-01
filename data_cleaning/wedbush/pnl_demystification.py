@@ -319,9 +319,9 @@ def main():
     db_cursor.execute(query)
     rows = db_cursor.fetchall()
     for row in rows:
-        if abs(float(row['strategy_position'])) > 0.0000001 or abs(float(row['inventory_position'])) > 0.0000001 or abs(row['net_position']) > 0:
-            products.append(row['product'])
-            net_positions[row['product']] = row['net_position']
+        products.append(row['product'])
+        net_positions[row['product']] = row['net_position']
+        if not ( row['net_position'] == 0 and abs(float(row['strategy_position'])) < 0.000001 and abs(float(row['inventory_position'])) < 0.00001 ):
             positions_str += '%s | %0.2f | %0.2f | %d\n' % ( row['product'], float(row['strategy_position']), float(row['inventory_position']), row['net_position'])
 
     get_factors( args.current_date, products )
