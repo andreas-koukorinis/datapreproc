@@ -1,6 +1,33 @@
 #!/usr/bin/env python 
 """API for building workbench"""
 
+import hashlib
+import json
+import sys
+import MySQLdb
+import pandas as pd
+import numpy as np
+
+def db_connect():
+    global db, db_cursor
+    try:
+        with open('/spare/local/credentials/readonly_credentials.txt') as f:
+            credentials = [line.strip().split(':') for line in f.readlines()]
+    except IOError:
+        sys.exit('No credentials file found')
+    try:
+        for user_id,password in credentials:
+            db = MySQLdb.connect(host='fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com', user=user_id, passwd=password, db='webapp')
+            db_cursor = db.cursor(MySQLdb.cursors.DictCursor) 
+    except MySQLdb.Error:
+        sys.exit("Error in DB connection")
+
+def db_close():
+    cursor = db.cursor()
+    cursor.close()
+    del cursor
+    db.close() 
+
 def get_base_strategies():
     """Get base stratefy ids and descriptions
     Returns:
@@ -15,7 +42,7 @@ def get_base_strategies():
                        '11':'Correlation and Risk Aware Allocation Strategy(ETFs)', '12':'Equalized Risk Allocation Strategy(ETFs)',\
                        '13':'Equalized Risk Momentum Strategy(ETFs)', '14':'Variance Aware Momentum Strategy(ETFs)',\
                        '15':'Discretized Momentum Strategy(ETFs)'}
-    return base_strategies
+    return json.dumps(base_strategies)
 
 def get_params_for_base_strategy(base_strategy_id):
     """Get available parameter combinations for that strategy
@@ -209,12 +236,12 @@ def get_params_for_base_strategy(base_strategy_id):
     for i in xrange(len(strat_to_combn_map[base_strategy_id][1])):
         params_dict = {}
         for j in xrange(len(strat_to_combn_map[base_strategy_id][0])):
-            params_dict[strat_to_combn_map[base_strategy_id][0][j]] = strat_to_combn_map[base_strategy_id][1][i]
+            params_dict[strat_to_combn_map[base_strategy_id][0][j]] = strat_to_combn_map[base_strategy_id][1][i][j]
         params_for_strategy.append(params_dict) 
     
-    return params_for_strategy
+    return json.dumps(params_for_strategy)
 
-def get_stats_for_strategy(base_strategy_id, chosen_params):
+def get_stats_for_strategy(base_strategy_id, chosen_params={}):
     """Maps combination of parameters and base strategy to a strategy id
        and returns stats for that strategy
     Parameters:
@@ -225,3 +252,25 @@ def get_stats_for_strategy(base_strategy_id, chosen_params):
         All stats (dict)
         e.g. {'daily_log_returns':[0.1,0.2],'dates':['2015-05-05','2015-05-06'],'sharpe':1.5}
     """
+    if base_strategy_id not in json.loads(get_base_strategies()).keys():
+        return '{}'
+    
+    # Send mock data from db for now
+    db_connect()        
+    query = "SELECT id FROM strategies"
+    ids_df = pd.read_sql(query, con=db)
+
+    try:
+        base_strategy_id = int(base_strategy_id)
+    except:
+        base_strategy_id = 10
+
+    strategy_id = base_strategy_id*20 % len(ids_df.index)
+
+    query = "SELECT * FROM strategies where id = %s"%ids_df.iloc[strategy_id]['id']
+    strategy_df = pd.read_sql(query, con=db)
+    strategy_df = strategy_df.drop('updated_at', 1)
+    strategy_df = strategy_df.drop('created_at', 1)
+    db_close()
+
+    return json.dumps(strategy_df.iloc[0].to_dict())
