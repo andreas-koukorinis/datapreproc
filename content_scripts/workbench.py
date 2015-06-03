@@ -3,6 +3,7 @@
 
 import hashlib
 import json
+from random import randint
 import sys
 import MySQLdb
 import pandas as pd
@@ -260,17 +261,36 @@ def get_stats_for_strategy(base_strategy_id, chosen_params={}):
     query = "SELECT id FROM strategies"
     ids_df = pd.read_sql(query, con=db)
 
-    try:
-        base_strategy_id = int(base_strategy_id)
-    except:
-        base_strategy_id = 10
+    base_strategy_id = randint(1400,1401)
 
-    strategy_id = base_strategy_id*20 % len(ids_df.index)
-
-    query = "SELECT * FROM strategies where id = %s"%ids_df.iloc[strategy_id]['id']
+    query = "SELECT * FROM strategies where id = %s"%ids_df.iloc[base_strategy_id]['id']
     strategy_df = pd.read_sql(query, con=db)
-    strategy_df = strategy_df.drop('updated_at', 1)
-    strategy_df = strategy_df.drop('created_at', 1)
     db_close()
 
+    daily_weights = json.loads(strategy_df.iloc[0]['daily_weights'])
+    dates = json.loads(strategy_df.iloc[0]['dates'])
+    log_returns = json.loads(strategy_df.iloc[0]['daily_log_returns'])
+    leverage =  json.loads(strategy_df.iloc[0]['daily_leverage'])
+    strategy_df['daily_log_returns'] = [log_returns]
+    strategy_df['daily_leverage'] = [leverage]
+    strategy_df['products'] = [daily_weights[0]]
+    
+    # Unpack weights from daily_weights 
+    for i, product in enumerate(strategy_df['products'][0]):
+        allocation = []
+        for j in  xrange(1,len(dates)+1):
+           allocation.append(daily_weights[j][i])
+        strategy_df[product] = [allocation]
+    
+    columns = strategy_df['products'][0] + ['daily_log_returns', 'daily_leverage']
+    
+    # Round to reduce precision and data being sent
+    for c in columns:
+        strategy_df[c] = [[round(x,3) for x in strategy_df.iloc[0][c]]]
+
+    # Drop unserializable columns
+    strategy_df = strategy_df.drop('updated_at', 1)
+    strategy_df = strategy_df.drop('created_at', 1)
+    strategy_df = strategy_df.drop('daily_weights', 1)
+    
     return json.dumps(strategy_df.iloc[0].to_dict())
