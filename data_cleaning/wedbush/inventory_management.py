@@ -274,13 +274,10 @@ def main():
 
     # Fake trades between strategy and inventory
     # Update positions as well
-    print products
-    print strategy_positions
-    print inventory_positions
-    print strategy_desired_positions
     for product in products:
         basename = product[:-3]
         if is_valid[product]:
+            #print basename, strategy_positions[product], conversion_factor[basename], close_price_2[product], close_price_1[product]
             outstanding_bal[product]['strategy_bal'] += conversion_factor[basename] * ( strategy_positions[product] * ( close_price_2[product] - close_price_1[product]) + \
                                                        ( strategy_desired_positions[product] - strategy_positions.get(product, 0.0 ) ) * ( close_price_2[product] - open_price_2[product] ) )
             outstanding_bal[product]['inventory_bal'] -= conversion_factor[basename] * ( strategy_positions[product] * ( close_price_2[product] - close_price_1[product]) + \
