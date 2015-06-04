@@ -993,3 +993,6 @@ PRIMARY KEY (`strat_id`, `product_id`, `date`),
 CONSTRAINT strat_id_product FOREIGN KEY (`strat_id`) REFERENCES strategy_static(strat_id),
 CONSTRAINT product_id_static FOREIGN KEY (`product_id`) REFERENCES base_product(product_id)
 );
+
+# Table for storing base strategies
+CREATE TABLE `base_strategies` (`id` varchar(10) NOT NULL,`base_strategy` varchar(100) NOT NULL, PRIMARY KEY (`id`));
