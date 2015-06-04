@@ -42,8 +42,10 @@ def reconcile(current_date):
         rows = db_cursor.fetchall()
         estimated_portfolio_value = rows[0]['portfolio_value']
         estimated_pnl = rows[0]['pnl']
-        is_pnl_consistent = broker_pnl == estimated_pnl
-        is_mtm_consistent = broker_portfolio_value == estimated_portfolio_value
+        #is_pnl_consistent = broker_pnl == estimated_pnl
+        #is_mtm_consistent = broker_portfolio_value == estimated_portfolio_value
+        is_pnl_consistent = round(abs(float(broker_pnl) - float(estimated_pnl)))<=2.0
+        is_mtm_consistent = round(abs(float(broker_portfolio_value) - float(estimated_portfolio_value)))<=2.0
 
         # Send orders even if there is failure of exact match but within 1 dollar
         all_good = all_good and round(abs(float(broker_pnl) - float(estimated_pnl)))<=2.0
