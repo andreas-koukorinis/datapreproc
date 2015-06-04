@@ -171,7 +171,7 @@ def main():
  
     # Check for 'NA' values in intraday CQG prices
     for key in latest_price.keys():
-        if math.isnan(latest_price[key]) or math.isnan(cqg_conversion[key]):
+        if math.isnan(latest_price[key]) or math.isnan(cqg_conversion[key]) or latest_price[key] <= 0.0000: # Check for 0.0 prices
             latest_price[key] = float(yday_close[key])
             cqg_conversion[key] = float(conversion_factor[key[:-3]])
  

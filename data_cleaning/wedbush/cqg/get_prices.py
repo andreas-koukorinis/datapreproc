@@ -60,6 +60,7 @@ def get_prices(symbol_name, msg_id=1, subscribe=None):
     tick_size = server_msg.information_report[0].symbol_resolution_report.contract_metadata.tick_size
 
     last_min_bar_close_price = 0
+    matched_timestamp = datetime.datetime.fromtimestamp(calendar.timegm(base_time)) # Default matched time_stamp
     
     client_msg = ClientMsg()
     time_bar_request = client_msg.time_bar_request.add()
@@ -107,7 +108,7 @@ def get_prices(symbol_name, msg_id=1, subscribe=None):
 
     return (last_min_bar_close_price * correct_price_scale, tick_value/tick_size, matched_timestamp)
 
-    # Get rtealtime updates using the following snippet
+    # Get realtime updates using the following snippet
     # client_msg = ClientMsg()
     # market_data_subscription = client_msg.market_data_subscription.add()
     # market_data_subscription.contract_id = contract_id
