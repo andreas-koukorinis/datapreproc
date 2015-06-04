@@ -996,3 +996,4 @@ CONSTRAINT product_id_static FOREIGN KEY (`product_id`) REFERENCES base_product(
 
 # Table for storing base strategies
 CREATE TABLE `base_strategies` (`id` varchar(10) NOT NULL,`base_strategy` varchar(100) NOT NULL, PRIMARY KEY (`id`));
+LOAD DATA LOCAL INFILE '/home/deedee/etfs/base_strats.csv' INTO TABLE base_strategies FIELDS TERMINATED BY ',' ;
