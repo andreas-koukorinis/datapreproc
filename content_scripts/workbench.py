@@ -54,7 +54,7 @@ def get_params_for_base_strategy(base_strategy_id):
         All permissible sets of parameter configurations for a selected base strategy(List of tuples of ids and parameter combination dicts)
         e.g. [('2145',{'average_discretized_trend':21, 'average_std_lookback':21}),
               ('2123',{'average_discretized_trend':252, 'average_std_lookback':252}),
-              ('1123',{'average_discretized_trend':[21, 63, 252], 'std_lookback':63})]
+              ('1123',{'average_discretized_trend':[21, 63, 252], 'average_std_lookback':63})]
     """
     db_connect()
     query = "SELECT simulation_id, param_combn FROM workbench_strategies WHERE base_strategy_id='%s'"%base_strategy_id
@@ -65,7 +65,7 @@ def get_params_for_base_strategy(base_strategy_id):
     for i in xrange(len(strats_df.index)):
         params_for_strategy.append((strats_df.iloc[i]['simulation_id'], strats_df.iloc[i]['param_combn']))
     
-    return json.dumps(params_for_strategy)
+    return params_for_strategy
 
 def get_stats_for_strategy(simulation_id):
     """Maps combination of parameters and base strategy to a strategy id
@@ -80,7 +80,7 @@ def get_stats_for_strategy(simulation_id):
     query = "SELECT * FROM strategies where id = %s"%simulation_id
     strategy_df = pd.read_sql(query, con=db)
     db_close()
-
+    print strategy_df
     daily_weights = json.loads(strategy_df.iloc[0]['daily_weights'])
     dates = json.loads(strategy_df.iloc[0]['dates'])
     log_returns = json.loads(strategy_df.iloc[0]['daily_log_returns'])
