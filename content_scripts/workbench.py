@@ -63,9 +63,9 @@ def get_params_for_base_strategy(base_strategy_id):
     
     params_for_strategy = []
     for i in xrange(len(strats_df.index)):
-        params_for_strategy.append((strats_df.iloc[i]['simulation_id'], strats_df.iloc[i]['param_combn']))
+        params_for_strategy.append((strats_df.iloc[i]['simulation_id'], json.loads(strats_df.iloc[i]['param_combn'])))
     
-    return params_for_strategy
+    return json.dumps(params_for_strategy)
 
 def get_stats_for_strategy(simulation_id):
     """Maps combination of parameters and base strategy to a strategy id
