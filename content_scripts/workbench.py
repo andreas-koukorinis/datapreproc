@@ -44,7 +44,7 @@ def get_base_strategies():
     for i in xrange(len(base_strats_df.index)):
         base_strats[base_strats_df.iloc[i]['id']] = base_strats_df.iloc[i]['base_strategy']
     
-    return json.dumps(base_strats)
+    return base_strats
 
 def get_params_for_base_strategy(base_strategy_id):
     """Get available parameter combinations for that strategy
@@ -109,4 +109,4 @@ def get_stats_for_strategy(simulation_id):
     strategy_df = strategy_df.drop('created_at', 1)
     strategy_df = strategy_df.drop('daily_weights', 1)
     
-    return json.dumps(strategy_df.iloc[0].to_dict())
+    return strategy_df.iloc[0].to_dict()
