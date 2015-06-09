@@ -77,7 +77,7 @@ def get_stats_for_strategy(simulation_id):
         e.g. {'daily_log_returns':[0.1,0.2],'dates':['2015-05-05','2015-05-06'],'sharpe':1.5}
     """
     db_connect()
-    query = "SELECT * FROM strategies where id = %s"%simulation_id
+    query = "SELECT * FROM wb_strategies where id = %s"%simulation_id
     strategy_df = pd.read_sql(query, con=db)
     db_close()
     print strategy_df
