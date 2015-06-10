@@ -134,18 +134,43 @@ def push_quandl_yield_rates(products, fetch_date):
             continue
         field_values = []
         field_values.append(df.iloc[0][0])
-        query = "INSERT INTO %s VALUES ('%s','%s', '%s')"
+        query = "SELECT (1) FROM %s WHERE date='%s' AND product='%s' AND rate='%s' LIMIT 1"
         query = query % ((tables[prod], fetch_date, prod) + tuple(field_values))
         print query
-        try:
-            db_cursor.execute(query)
-            db.commit()
-        except Exception, err:
-            print traceback.format_exc()
-            db.rollback()
-            print('EXCEPTION in inserting Quandl data for %s'%prod)
-            server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in inserting Quandl data for %s'%prod)
+        exact_match = db_cursor.execute(query)
+        # If record doesn't exist then only go ahead and insert record
+        if exact_match == 0:
+            query = "SELECT (1) FROM %s WHERE date='%s' AND product='%s' LIMIT 1"
+            query = query % (tables[prod], fetch_date, prod)
+            print query
+            # If record doesn't exist then only go ahead and insert record
+            correction = db_cursor.execute(query)
 
+            if correction:
+                query = "UPDATE %s SET rate='%s' WHERE date='%s' AND product='%s'"
+                query = query % ((tables[prod],) + tuple(field_values) + (fetch_date, prod))
+                print query
+                try:
+                    db_cursor.execute(query)
+                    db.commit()
+                except Exception, err:
+                    print traceback.format_exc()
+                    db.rollback()
+                    print('EXCEPTION in updating Quandl data for %s in case of correction'%prod)
+                    server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in inserting Quandl data for %s'%prod)
+            else:
+                query = "INSERT INTO %s VALUES ('%s','%s', '%s')"
+                query = query % ((tables[prod], fetch_date, prod) + tuple(field_values))
+                print query
+                try:
+                    db_cursor.execute(query)
+                    db.commit()
+                except Exception, err:
+                    print traceback.format_exc()
+                    db.rollback()
+                    print('EXCEPTION in inserting Quandl data for %s'%prod)
+                    server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in inserting Quandl data for %s'%prod)
+            
 def setup_db_smtp():
     global server
     server = smtplib.SMTP("localhost")
