@@ -998,3 +998,76 @@ CONSTRAINT product_id_static FOREIGN KEY (`product_id`) REFERENCES base_product(
 CREATE TABLE `base_strategies` (`id` varchar(10) NOT NULL,`base_strategy` varchar(100) NOT NULL, PRIMARY KEY (`id`));
 LOAD DATA LOCAL INFILE '/home/deedee/etfs/base_strats.csv' INTO TABLE base_strategies FIELDS TERMINATED BY ',' ;
 CREATE TABLE `workbench_strategies` (`simulation_id` varchar(10) NOT NULL,`base_strategy_id` varchar(10) NOT NULL, `param_combn` varchar(500) NOT NULL, PRIMARY KEY (`simulation_id`));
+
+# Query for workbench
+# 1) create table param_definitions
+# 2) create table param_value
+# 3) INSERT values in to both tables
+# 4) Add code to update base_startegy
+
+CREATE TABLE `param_definitions` (
+`param_id` INT NOT NULL AUTO_INCREMENT,
+`internal_name` VARCHAR(100) NOT NULL UNIQUE,
+`display_name` VARCHAR(100) NOT NULL,
+
+PRIMARY KEY (`param_id`)
+);
+
+CREATE TABLE `param_values` (
+`param_value_id` INT NOT NULL AUTO_INCREMENT,
+`param_id` INT NOT NULL,
+`internal_name` VARCHAR(100) NOT NULL,
+`display_name` VARCHAR(100) NOT NULL,
+
+PRIMARY KEY (`param_value_id`),
+CONSTRAINT param_id_constraint FOREIGN KEY (`param_id`) REFERENCES param_definitions(param_id)
+);
+
+INSERT INTO param_definitions (internal_name, display_name) 
+VALUES
+('rebalance_frequency', 'Rebalancing Frequency'),
+('risk_manager', 'Risk Manager'),
+('TargetRisk', 'Target Risk'),
+('trade_products', 'Sector'),
+('SectorAllocation', 'Allocation Method'),
+('CorrelationComputationParameters', 'Correlation Risk Lookback'),
+('StdDevComputationParameters', 'Risk Lookback'),
+('ScoreComputationParameters', 'Trend Lookback'),
+('ExpectedReturnsComputationParameters', 'Trend Lookback'),
+('TrendComputationParameters', 'Trend Lookback')
+;
+
+INSERT INTO param_values (param_id, internal_name, display_name)
+VALUES 
+(1, '5', 'Weekly'),
+(1, '21', 'Monthly'),
+(1, '63', 'Quarterly'),
+(2, 'Risk-averse', 'Risk-averse'),
+(2, 'Risk-moderate', 'Risk-moderate'),
+(2, 'Risk-prone', 'Risk-prone'),
+(3, '5', 'Medium'),
+(3, '10', 'High'),
+(4, 'ETF-equity-only', 'ETF-equity-only'),
+(4, 'ETF-bond-only', 'ETF-bond-only'),
+(4, 'ETF-all', 'ETF-all'),
+(5, 'Single-sector-ETF-equity-only', 'Single-sector-ETF-equity-only'),
+(5, 'Single-sector-ETF-bond-only', 'Single-sector-ETF-bond-only'),
+(5, 'Equal-sector-ETF-all', 'Equal-sector-ETF-all'),
+(5, '60-40-ETF-all', '60-40-ETF-all'),
+(6, '63', 'Short-lookback'),
+(6, '126', 'Medium-lookback'),
+(6, '252', 'Long-lookback'),
+(7, '63', 'Short-risk-lookback'),
+(7, '126', 'Medium-risk-lookback'),
+(7, '252', 'Long-risk-lookback'),
+(8, '63', 'Short-trend'),
+(8, '126', 'Medium-trend'),
+(8, '252', 'Long-trend'),
+(9, '63', 'Short-trend'),
+(9, '126', 'Medium-trend'),
+(9, '252', 'Long-trend'),
+(10, '63', 'Short-trend'),
+(10, '126', 'Medium-trend'),
+(10, '252', 'Long-trend')
+;
+
