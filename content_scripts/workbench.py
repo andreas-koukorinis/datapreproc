@@ -82,7 +82,6 @@ def get_stats_for_strategy(simulation_id):
     query = "SELECT * FROM wb_strategies where id = %s"%simulation_id
     strategy_df = pd.read_sql(query, con=db)
     db_close()
-    print strategy_df
     daily_weights = json.loads(strategy_df.iloc[0]['daily_weights'])
     dates = json.loads(strategy_df.iloc[0]['dates'])
     log_returns = json.loads(strategy_df.iloc[0]['daily_log_returns'])
