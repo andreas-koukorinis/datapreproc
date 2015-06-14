@@ -5,6 +5,7 @@ import hashlib
 import json
 from random import randint
 import sys
+import yaml
 import MySQLdb
 import pandas as pd
 import numpy as np
@@ -45,6 +46,41 @@ def get_base_strategies():
         base_strats[base_strats_df.iloc[i]['id']] = base_strats_df.iloc[i]['base_strategy']
     
     return base_strats
+
+def get_editable_params(base_strategy_id):
+    '''Get all editable parameters and their allowed values for the given base strategy ids
+        VALID for Workbench API version 1 (as needs all param values combination to be valid
+        Takes base_strategy_id as input
+        Example of expected output :
+        [
+          {"id": 1, "name": "Rebalance Frequency", "allowed_values": [
+              {"id": 1, "name": "Weekly"},
+              {"id": 2, "name": "Monthly"},
+              {"id": 3, "name": "Quarterly"}
+            ]
+          },
+          {"id": 2, "name": "Risk Manager", "allowed_values": [
+            {"id": 1, "name": "Risk-averse"},
+            {"id": 2, "name": "Risk-moderate"},
+            {"id": 3, "name": "Risk-prone"}
+          ]},
+          {"id": 3, "name": "Allocation_Method", "allowed_values": [
+            {"id": 1, "name": "Single-sector-ETF-equity-only"},
+            {"id": 2, "name": "Single-sector-ETF-bond-only"},
+            {"id": 3, "name": "Equal-sector-ETF-all"},
+            {"id": 4, "name": "60-40-ETF-all"}
+          ]}
+       ]
+    '''
+    db_connect()
+    query = "SELECT editable_params FROM base_strategies WHERE id = '%s'" % base_strategy_id
+    try:
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+    except:
+        sys.exit("Failed to fetch editable params for base strategy '%s'" % base_strategy_id)
+    editable_params = yaml.safe_load(rows[0]['editable_params'])
+    return editable_params
 
 def get_params_for_base_strategy(base_strategy_id):
     """Get available parameter combinations for that strategy
