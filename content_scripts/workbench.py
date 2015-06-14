@@ -105,6 +105,51 @@ def get_params_for_base_strategy(base_strategy_id):
     
     return params_for_strategy
 
+# Function to get stats given base strategy id and dict of param_id - param_value_id
+def get_stats_for_base_strategy(base_strategy_id, param_id_to_value_id):
+    """Maps combination of parameters and base strategy to a strategy id
+       and returns stats for that strategy
+    Parameters:
+        1. base_strategy_id(string)
+        2. param_id_to_value_id (currently assumes dict, can be updated for json)
+    Returns:
+        All stats (dict)
+        e.g. {'daily_log_returns':[0.1,0.2],'dates':['2015-05-05','2015-05-06'],'sharpe':1.5}
+    """
+    paramid_valueid_hash = hashlib.md5(json.dumps(param_id_to_value_id, sort_keys=True)).hexdigest()
+    db_connect()
+    query = "SELECT a.* FROM wb_strategies AS a JOIN workbench_strategies AS b on a.id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
+    strategy_df = pd.read_sql(query, con=db)
+    db_close()
+    print strategy_df
+    daily_weights = json.loads(strategy_df.iloc[0]['daily_weights'])
+    dates = json.loads(strategy_df.iloc[0]['dates'])
+    log_returns = json.loads(strategy_df.iloc[0]['daily_log_returns'])
+    leverage =  json.loads(strategy_df.iloc[0]['daily_leverage'])
+    strategy_df['daily_log_returns'] = [log_returns]
+    strategy_df['daily_leverage'] = [leverage]
+    strategy_df['products'] = [daily_weights[0]]
+    
+    # Unpack weights from daily_weights 
+    for i, product in enumerate(strategy_df['products'][0]):
+        allocation = []
+        for j in  xrange(1,len(dates)+1):
+           allocation.append(daily_weights[j][i])
+        strategy_df[product] = [allocation]
+    
+    columns = strategy_df['products'][0] + ['daily_log_returns', 'daily_leverage']
+    
+    # Round to reduce precision and data being sent
+    for c in columns:
+        strategy_df[c] = [[round(x,3) for x in strategy_df.iloc[0][c]]]
+
+    # Drop unserializable columns
+    strategy_df = strategy_df.drop('updated_at', 1)
+    strategy_df = strategy_df.drop('created_at', 1)
+    strategy_df = strategy_df.drop('daily_weights', 1)
+
+    return strategy_df.iloc[0].to_dict()
+
 def get_stats_for_strategy(simulation_id):
     """Maps combination of parameters and base strategy to a strategy id
        and returns stats for that strategy
