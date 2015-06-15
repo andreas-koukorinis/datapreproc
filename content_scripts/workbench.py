@@ -121,7 +121,6 @@ def get_stats_for_base_strategy(base_strategy_id, param_id_to_value_id):
     query = "SELECT a.* FROM wb_strategies AS a JOIN workbench_strategies AS b on a.id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
     strategy_df = pd.read_sql(query, con=db)
     db_close()
-    print strategy_df
     daily_weights = json.loads(strategy_df.iloc[0]['daily_weights'])
     dates = json.loads(strategy_df.iloc[0]['dates'])
     log_returns = json.loads(strategy_df.iloc[0]['daily_log_returns'])
@@ -163,7 +162,6 @@ def get_stats_for_strategy(simulation_id):
     query = "SELECT * FROM wb_strategies where id = %s"%simulation_id
     strategy_df = pd.read_sql(query, con=db)
     db_close()
-    print strategy_df
     daily_weights = json.loads(strategy_df.iloc[0]['daily_weights'])
     dates = json.loads(strategy_df.iloc[0]['dates'])
     log_returns = json.loads(strategy_df.iloc[0]['daily_log_returns'])
