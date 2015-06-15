@@ -111,12 +111,12 @@ def get_stats_for_base_strategy(base_strategy_id, param_id_to_value_id):
        and returns stats for that strategy
     Parameters:
         1. base_strategy_id(string)
-        2. param_id_to_value_id (currently assumes dict, can be updated for json)
+        2. param_id_to_value_id (currently assumes json as input, may not be sorted by key)
     Returns:
         All stats (dict)
         e.g. {'daily_log_returns':[0.1,0.2],'dates':['2015-05-05','2015-05-06'],'sharpe':1.5}
     """
-    paramid_valueid_hash = hashlib.md5(json.dumps(param_id_to_value_id, sort_keys=True)).hexdigest()
+    paramid_valueid_hash = hashlib.md5(json.dumps(json.loads(param_id_to_value_id), sort_keys=True)).hexdigest()
     db_connect()
     query = "SELECT a.* FROM wb_strategies AS a JOIN workbench_strategies AS b on a.id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
     strategy_df = pd.read_sql(query, con=db)
