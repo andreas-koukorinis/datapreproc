@@ -127,6 +127,7 @@ def get_stats_for_base_strategy(base_strategy_id, param_id_to_value_id):
     leverage =  json.loads(strategy_df.iloc[0]['daily_leverage'])
     strategy_df['daily_log_returns'] = [log_returns]
     strategy_df['daily_leverage'] = [leverage]
+    strategy_df['dates'] = [dates]
     strategy_df['products'] = [daily_weights[0]]
     
     # Unpack weights from daily_weights 
@@ -146,7 +147,6 @@ def get_stats_for_base_strategy(base_strategy_id, param_id_to_value_id):
     strategy_df = strategy_df.drop('updated_at', 1)
     strategy_df = strategy_df.drop('created_at', 1)
     strategy_df = strategy_df.drop('daily_weights', 1)
-
     return strategy_df.iloc[0].to_dict()
 
 def get_stats_for_strategy(simulation_id):
@@ -168,6 +168,7 @@ def get_stats_for_strategy(simulation_id):
     leverage =  json.loads(strategy_df.iloc[0]['daily_leverage'])
     strategy_df['daily_log_returns'] = [log_returns]
     strategy_df['daily_leverage'] = [leverage]
+    strategy_df['dates'] = [dates]
     strategy_df['products'] = [daily_weights[0]]
     
     # Unpack weights from daily_weights 
@@ -187,5 +188,4 @@ def get_stats_for_strategy(simulation_id):
     strategy_df = strategy_df.drop('updated_at', 1)
     strategy_df = strategy_df.drop('created_at', 1)
     strategy_df = strategy_df.drop('daily_weights', 1)
-    
     return strategy_df.iloc[0].to_dict()
