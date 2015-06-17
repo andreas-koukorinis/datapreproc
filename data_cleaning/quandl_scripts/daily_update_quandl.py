@@ -120,15 +120,15 @@ def push_quandl_yield_rates(products, fetch_date):
     for prod in products:
         quandl_product_code = dataset + '/' + prod
 
-        query = "SELECT max(date) as date FROM '%s' WHERE product='%s'"
+        query = "SELECT max(date) as date FROM %s WHERE product='%s'"
         query = query % (tables[prod], prod)
         print query
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
-        if len(rows) > 0:
+        if len(rows) > 0 and rows[0]['date'] is not None:
             latest_date = rows[0]['date']
-            fetch_start_date = datetime.datetime.strptime(latest_date, '%Y-%m-%d').date() + datetime.timedelta(days=1)
-            if fetch_date < fetch_start_date:
+            fetch_start_date = latest_date + datetime.timedelta(days=1)
+            if fetch_date < fetch_start_date.strftime('%Y%m%d'):
                 continue
             try:
                 df = Quandl.get(quandl_product_code, authtoken=authorization_token, trim_start=fetch_start_date, trim_end=fetch_date)
@@ -147,7 +147,7 @@ def push_quandl_yield_rates(products, fetch_date):
             for i in xrange(len(df.index)):
                 rate = df.iloc[i][0]
                 query = "INSERT INTO %s VALUES ('%s','%s', '%s')"
-                query = query % (tables[prod], dates[i], prod, rate)
+                query = query % (tables[prod], dates[i].date(), prod, rate)
                 print query
                 try:
                     db_cursor.execute(query)
