@@ -1,5 +1,6 @@
-from celery import Celery
+import os
 from subprocess import call
+from celery import Celery
 
 try:
    with open('/spare/local/credentials/rabbitmq_credentials.txt') as f:
