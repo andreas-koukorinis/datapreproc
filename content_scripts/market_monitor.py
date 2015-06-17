@@ -191,30 +191,27 @@ def prepare_content(results_df, products_df, lookbacks):
         results.append(result)
     return results
 
-def get_market_monitor_content(cmd=None):
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-p','--products', nargs='+', help='List of symbols to find content for. Default is Market Monitor product list', dest='products', default=None)
-    parser.add_argument('-l','--lookback', nargs='+', type=int, help='lookback periods in days for sharpe, returns and ret_to_dd ratio', dest='lookback', default=[365, 730])
-    parser.add_argument('-d', type=str, help='Date\nEg: -d 2014-06-01\n Default is yesterdays date.',default=str(date.today()+timedelta(days=-1)), dest='date')
-    if cmd == None:
-        args = parser.parse_args()
-    else:
-        args = parser.parse_args(cmd.split())
-    if args.products == None:
+def get_market_monitor_content(products=None, lookback=[365, 730], fetch_date=None):
+    if products == None:
         # Take products required by market monitor as default
         products = ['SPY', 'TCMP', '^MXX', '^BVSP', '^FTSE', '^GDAX', '^N150', '^GU15', '^SSMI', '^N500', '^BSES', '^AXJO', '^NZ50', \
                    'USA10Y', 'CAN10Y', 'MEX10Y', 'GBR10Y', 'DEU10Y', 'FRA10Y', 'ITA10Y', 'CHE10Y', 'JPN10Y', 'IND10Y', 'AUS10Y', 'NZL10Y', \
                    'CADUSD', 'MXNUSD', 'GBPUSD', 'EURUSD', 'CHFUSD', 'JPYUSD', 'INRUSD', 'AUDUSD', 'NZDUSD' ]
-    else:
-        products = args.products
+    if fetch_date == None:
+        fetch_date = str(date.today()+timedelta(days=-1))
 
     db_connect()
     products_df = fetch_product_information(products)
-    earliest_date = (datetime.strptime(args.date, "%Y-%m-%d") + timedelta(days=-max(400,max(args.lookback)))).strftime("%Y-%m-%d")
+    earliest_date = (datetime.strptime(fetch_date, "%Y-%m-%d") + timedelta(days=-max(400,max(lookback)))).strftime("%Y-%m-%d")
     returns_df = fetch_latest_prices(products_df, earliest_date)
     db_close()
-    return prepare_content(returns_df, products_df, args.lookback)
+    return prepare_content(returns_df, products_df, lookback)
 
 # Run python market_monitor.py -h for help
 if __name__ == '__main__':
-    print get_market_monitor_content()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p','--products', nargs='+', help='List of symbols to find content for. Default is Market Monitor product list', dest='products', default=None)
+    parser.add_argument('-l','--lookback', nargs='+', type=int, help='lookback periods in days for sharpe, returns and ret_to_dd ratio', dest='lookback', default=[365, 730])
+    parser.add_argument('-d', type=str, help='Date\nEg: -d 2014-06-01\n Default is yesterdays date.',default=str(date.today()+timedelta(days=-1)), dest='date')
+    args = parser.parse_args()
+    print get_market_monitor_content(args.products, args.lookback, args.date)
