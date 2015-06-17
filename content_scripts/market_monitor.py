@@ -108,7 +108,7 @@ def ly_returns(dates, daily_log_returns):
 def db_connect():
     global db, db_cursor
     try:
-        with open('/spare/local/credentials/write_credentials.txt') as f:
+        with open('/spare/local/credentials/readonly_credentials.txt') as f:
             credentials = [line.strip().split(':') for line in f.readlines()]
     except IOError:
         sys.exit('No credentials file found')

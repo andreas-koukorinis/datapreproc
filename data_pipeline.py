@@ -610,8 +610,6 @@ class PutQuandlInDb(QPlumTask):
     def output(self):
         return luigi.LocalTarget(log_path+self.date.strftime('PutQuandlInDb.%Y%m%d.SUCCESS'))
     def run(self):
-        # Push Quandl updates for yesterday too as they keep coming throughout the day
-        daily_update_quandl((self.date+timedelta(days=-1)).strftime('%Y%m%d'))
         daily_update_quandl(self.date.strftime('%Y%m%d'))
         with open(self.output().path,'w') as f:
             f.write("Successfully put Quandl data in DB")
