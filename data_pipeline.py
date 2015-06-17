@@ -15,6 +15,7 @@ from data_cleaning.quandl_scripts.daily_update_quandl import daily_update_quandl
 from data_cleaning.wedbush.dump_statement_data import dump_statement_data
 from data_cleaning.wedbush.dump_eod_estimated_data import dump_eod_estimated_data
 from data_cleaning.wedbush.reconcile import reconcile
+from tasks import send_stats
 
 data_path = '/apps/data/csi/'
 log_path = '/apps/logs/luigi/'
@@ -624,10 +625,29 @@ class SendStats(QPlumTask):
     def output(self):
         return luigi.LocalTarget(log_path+self.date.strftime('SendStats.%Y%m%d.SUCCESS'))
     def run(self):
-        send_stats_script_path = "/home/cvdev/stratdev/utility_scripts/send_stats.sh"
-        subprocess.call(["bash",send_stats_script_path])
+        #send_stats_script_path = "/home/cvdev/stratdev/utility_scripts/send_stats.sh"
+        #subprocess.call(["bash",send_stats_script_path])
+        send_stats_configs = ["~/modeling/sample_strats/selected_strats/TRVP-aqrix-mimic.cfg -sd 2010-01-01 --dontsend",\
+                              "~/modeling/sample_strats/selected_strats/TRVP-aqrix-mimic.cfg -sd 2014-01-01 --dontsend"]
+        # send_stats_configs = ["~/modeling/sample_strats/selected_strats/TRVP-aqrix-mimic.cfg",\
+        #                       "~/modeling/sample_strats/selected_strats/ACWAS_0.25MVO_0.25TRVP_0.25TRMSHC_0.25SMS.cfg",\
+        #                       "~/modeling/sample_strats/selected_strats/SMS_rb21_trend252_std21_63_252_corr252.cfg",\
+        #                       "~/modeling/sample_strats/selected_strats/MVO_rb21_ret252_std21_63_252_corr252.cfg",\
+        #                       "~/modeling/sample_strats/selected_strats/TRMSHC_rb21_std21_63_252_corr252.cfg",\
+        #                       "~/modeling/sample_strats/selected_strats/TRVP_rb21_std21_63_252_corr252.cfg",\
+        #                       "~/modeling/sample_strats_etfs/selected_strats/ETF-TRERCL_rb21.cfg",\
+        #                       "~/modeling/sample_strats_etfs/selected_strats/ETF-TRVP_rb21.cfg",\
+        #                       "~/modeling/sample_strats_etfs/selected_strats/ETF-TRMSHC_rb21.cfg",\
+        #                       "~/modeling/sample_strats_etfs/selected_strats/ETF-MVO_rb21.cfg",\
+        #                       "~/modeling/sample_strats_etfs/selected_strats/ETF-SMS_rb21.cfg",\
+        #                       "~/modeling/sample_strats_etfs/selected_strats/ETF-ACWAS_0.25MVO_0.25SMS_0.25TRMSHC_0.25TRVP.cfg",\
+        #                       "~/modeling/livetrading/strategies/t_avg.cfg -sd 1995-01-01 -n LiveTrading",\
+        #                       "~/modeling/livetrading/strategies/t_treerc_component.cfg -sd 1995-01-01 -n LiveTradingEERCComponent",\
+        #                       "~/modeling/livetrading/strategies/t_trmshc_component.cfg -sd 1995-01-01 -n LiveTradingMSHCComponent"]
+        for config in send_stats_configs:
+            send_stats.delay()
         with open(self.output().path,'w') as f:
-            f.write("Successfully sent stats")
+            f.write("Successfully scheduled sent stats")
 
 class FetchWedbushFromSFTP(luigi.ExternalTask):
     """
