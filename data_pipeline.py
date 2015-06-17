@@ -645,7 +645,7 @@ class SendStats(QPlumTask):
         #                       "~/modeling/livetrading/strategies/t_treerc_component.cfg -sd 1995-01-01 -n LiveTradingEERCComponent",\
         #                       "~/modeling/livetrading/strategies/t_trmshc_component.cfg -sd 1995-01-01 -n LiveTradingMSHCComponent"]
         for config in send_stats_configs:
-            send_stats.delay()
+            send_stats.delay(config)
         with open(self.output().path,'w') as f:
             f.write("Successfully scheduled sent stats")
 
