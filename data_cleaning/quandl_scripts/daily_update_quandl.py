@@ -119,48 +119,35 @@ def push_quandl_yield_rates(products, fetch_date):
         sys.exit('No Quandl credentials file found')
     for prod in products:
         quandl_product_code = dataset + '/' + prod
-        try:
-            df = Quandl.get(quandl_product_code, authtoken=authorization_token, trim_start=fetch_date, trim_end=fetch_date)
-        except Quandl.Quandl.ErrorDownloading:
-            print "Couldn't download Quandl data for %s"%prod
-            server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in downloading Quandl data for %s'%prod)
-            continue
-        except Exception, err:
-            print traceback.format_exc()
-            print "EXCEPTION in fetching Quandl data for %s"%prod
-            continue
-        if len(df.index) == 0:
-            print "No data to download today for %s"%prod
-            continue
-        field_values = []
-        field_values.append(df.iloc[0][0])
-        query = "SELECT (1) FROM %s WHERE date='%s' AND product='%s' AND rate='%s' LIMIT 1"
-        query = query % ((tables[prod], fetch_date, prod) + tuple(field_values))
-        print query
-        exact_match = db_cursor.execute(query)
-        # If record doesn't exist then only go ahead and insert record
-        if exact_match == 0:
-            query = "SELECT (1) FROM %s WHERE date='%s' AND product='%s' LIMIT 1"
-            query = query % (tables[prod], fetch_date, prod)
-            print query
-            # If record doesn't exist then only go ahead and insert record
-            correction = db_cursor.execute(query)
 
-            if correction:
-                query = "UPDATE %s SET rate='%s' WHERE date='%s' AND product='%s'"
-                query = query % ((tables[prod],) + tuple(field_values) + (fetch_date, prod))
-                print query
-                try:
-                    db_cursor.execute(query)
-                    db.commit()
-                except Exception, err:
-                    print traceback.format_exc()
-                    db.rollback()
-                    print('EXCEPTION in updating Quandl data for %s in case of correction'%prod)
-                    server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in inserting Quandl data for %s'%prod)
-            else:
+        query = "SELECT max(date) as date FROM %s WHERE product='%s'"
+        query = query % (tables[prod], prod)
+        print query
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        if len(rows) > 0 and rows[0]['date'] is not None:
+            latest_date = rows[0]['date']
+            fetch_start_date = latest_date + datetime.timedelta(days=1)
+            if fetch_date < fetch_start_date.strftime('%Y%m%d'):
+                continue
+            try:
+                df = Quandl.get(quandl_product_code, authtoken=authorization_token, trim_start=fetch_start_date, trim_end=fetch_date)
+            except Quandl.Quandl.ErrorDownloading:
+                print "Couldn't download Quandl data for %s"%prod
+                server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in downloading Quandl data for %s'%prod)
+                continue
+            except Exception, err:
+                print traceback.format_exc()
+                print "EXCEPTION in fetching Quandl data for %s"%prod
+                continue
+            if len(df.index) == 0:
+                print "No data to download today for %s"%prod
+                continue
+            dates = df.index.to_pydatetime()
+            for i in xrange(len(df.index)):
+                rate = df.iloc[i][0]
                 query = "INSERT INTO %s VALUES ('%s','%s', '%s')"
-                query = query % ((tables[prod], fetch_date, prod) + tuple(field_values))
+                query = query % (tables[prod], dates[i].date(), prod, rate)
                 print query
                 try:
                     db_cursor.execute(query)
@@ -170,6 +157,44 @@ def push_quandl_yield_rates(products, fetch_date):
                     db.rollback()
                     print('EXCEPTION in inserting Quandl data for %s'%prod)
                     server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in inserting Quandl data for %s'%prod)
+ 
+        # Will be used when error correction policy from Quandl is known
+        # query = "SELECT (1) FROM %s WHERE date='%s' AND product='%s' AND rate='%s' LIMIT 1"
+        # query = query % (tables[prod], fetch_date, prod, rate)
+        # print query
+        # exact_match = db_cursor.execute(query)
+        # # If record doesn't exist then only go ahead and insert record
+        # if exact_match == 0:
+        #     query = "SELECT (1) FROM %s WHERE date='%s' AND product='%s' LIMIT 1"
+        #     query = query % (tables[prod], fetch_date, prod)
+        #     print query
+        #     # If record doesn't exist then only go ahead and insert record
+        #     correction = db_cursor.execute(query)
+
+        #     if correction:
+        #         query = "UPDATE %s SET rate='%s' WHERE date='%s' AND product='%s'"
+        #         query = query % (tables[prod],rate, fetch_date, prod)
+        #         print query
+        #         try:
+        #             db_cursor.execute(query)
+        #             db.commit()
+        #         except Exception, err:
+        #             print traceback.format_exc()
+        #             db.rollback()
+        #             print('EXCEPTION in updating Quandl data for %s in case of correction'%prod)
+        #             server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in inserting Quandl data for %s'%prod)
+        #     else:
+        #         query = "INSERT INTO %s VALUES ('%s','%s', '%s')"
+        #         query = query % (tables[prod], fetch_date, prod, rate)
+        #         print query
+        #         try:
+        #             db_cursor.execute(query)
+        #             db.commit()
+        #         except Exception, err:
+        #             print traceback.format_exc()
+        #             db.rollback()
+        #             print('EXCEPTION in inserting Quandl data for %s'%prod)
+        #             server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in inserting Quandl data for %s'%prod)
             
 def setup_db_smtp():
     global server

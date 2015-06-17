@@ -1,6 +1,5 @@
 import argparse
 from datetime import date, datetime, timedelta
-import json
 import math
 import sys
 import numpy as np
@@ -105,10 +104,19 @@ def ly_returns(dates, daily_log_returns):
     ly_returns = (math.exp(_ly_log_returns) - 1) * 100.0
     return ly_returns
 
+def last_n_days_returns(dates, daily_log_returns, lookback):
+    _current_date = dates[-1]
+    _last_n_days_start_date = date(_current_date.year, _current_date.month, _current_date.day) - timedelta(days=lookback)
+    _last_n_days_end_date = _current_date
+    _last_n_days_start_idx = get_date_index(_last_n_days_start_date, dates)
+    _last_n_days_end_idx = get_date_index(_last_n_days_end_date, dates)
+    last_n_days_log_returns = daily_log_returns[_last_n_days_start_idx:_last_n_days_end_idx]
+    return last_n_days_log_returns
+
 def db_connect():
     global db, db_cursor
     try:
-        with open('/spare/local/credentials/write_credentials.txt') as f:
+        with open('/spare/local/credentials/readonly_credentials.txt') as f:
             credentials = [line.strip().split(':') for line in f.readlines()]
     except IOError:
         sys.exit('No credentials file found')
@@ -164,9 +172,10 @@ def prepare_content(results_df, products_df, lookbacks):
         ret_dd = []
         ann_volatility = []
         for lookback in lookbacks:
-            _ret = annualized_returns(daily_log_returns[-lookback:])
-            _dd = drawdown(daily_log_returns[-lookback:]) 
-            _stdev = annualized_stdev(daily_log_returns[-lookback:])
+            _last_n_days_daily_returns = last_n_days_returns(dates, daily_log_returns, lookback)
+            _ret = annualized_returns(_last_n_days_daily_returns)
+            _dd = drawdown(_last_n_days_daily_returns) 
+            _stdev = annualized_stdev(_last_n_days_daily_returns)
             if _dd == 0 :
                 sharpe.append(float('inf'))
             else:
@@ -180,26 +189,29 @@ def prepare_content(results_df, products_df, lookbacks):
         result = {'product': product, 'description': prod_df.iloc[0]['name'], 'type': prod_df.iloc[0]['type'],\
                   'mtd_ret': mtd_ret, 'ytd_ret': ytd_ret, 'last_year_ret': last_year_ret, 'sharpe':sharpe, 'ret_dd': ret_dd, 'ann_volatility': ann_volatility}
         results.append(result)
-    return json.dumps(results)
+    return results
+
+def get_market_monitor_content(products=None, lookback=[365, 730], fetch_date=None):
+    if products == None:
+        # Take products required by market monitor as default
+        products = ['SPY', 'TCMP', '^MXX', '^BVSP', '^FTSE', '^GDAX', '^N150', '^GU15', '^SSMI', '^N500', '^BSES', '^AXJO', '^NZ50', \
+                   'USA10Y', 'CAN10Y', 'MEX10Y', 'GBR10Y', 'DEU10Y', 'FRA10Y', 'ITA10Y', 'CHE10Y', 'JPN10Y', 'IND10Y', 'AUS10Y', 'NZL10Y', \
+                   'CADUSD', 'MXNUSD', 'GBPUSD', 'EURUSD', 'CHFUSD', 'JPYUSD', 'INRUSD', 'AUDUSD', 'NZDUSD' ]
+    if fetch_date == None:
+        fetch_date = str(date.today()+timedelta(days=-1))
+
+    db_connect()
+    products_df = fetch_product_information(products)
+    earliest_date = (datetime.strptime(fetch_date, "%Y-%m-%d") + timedelta(days=-max(400,max(lookback)))).strftime("%Y-%m-%d")
+    returns_df = fetch_latest_prices(products_df, earliest_date)
+    db_close()
+    return prepare_content(returns_df, products_df, lookback)
 
 # Run python market_monitor.py -h for help
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-p','--products', nargs='+', help='List of symbols to find content for. Default is Market Monitor product list', dest='products', default=None)
-    parser.add_argument('-l','--lookback', nargs='+', type=int, help='lookback periods for sharpe, returns and ret_to_dd ratio', dest='lookback', default=[252])
-    parser.add_argument('-d', type=str, help='Date\nEg: -d 2014-06-01\n Default is todays date.',default=str(date.today()+timedelta(days=-1)), dest='date')
+    parser.add_argument('-l','--lookback', nargs='+', type=int, help='lookback periods in days for sharpe, returns and ret_to_dd ratio', dest='lookback', default=[365, 730])
+    parser.add_argument('-d', type=str, help='Date\nEg: -d 2014-06-01\n Default is yesterdays date.',default=str(date.today()+timedelta(days=-1)), dest='date')
     args = parser.parse_args()
-    if args.products == None:
-        # Take products required by market monitor as default
-        products = ['SPY', 'TCMP', '^MXX', '^BVSP', '^FTSE', '^GDAX', '^N150', '^GU15', '^SSMI', '^N500', '^BSES', '^AXJO', '^NZ50', \
-                   'USA10Y', 'CAN10Y', 'MEX10Y', 'GBR10Y', 'DEU10Y', 'FRA10Y', 'ITA10Y', 'CHE10Y', 'JPN10Y', 'IND10Y', 'AUS10Y', 'NZL10Y', \
-                   'CADUSD', 'MXNUSD', 'GBPUSD', 'EURUSD', 'CHFUSD', 'JPYUSD', 'INRUSD', 'AUDUSD', 'NZDUSD' ]
-    else:
-        products = args.products
-
-    db_connect()
-    products_df = fetch_product_information(products)
-    earliest_date = (datetime.strptime(args.date, "%Y-%m-%d") + timedelta(days=-max(400,max(args.lookback)))).strftime("%Y-%m-%d")
-    returns_df = fetch_latest_prices(products_df, earliest_date)
-    print prepare_content(returns_df, products_df, args.lookback)
-    db_close()
+    print get_market_monitor_content(args.products, args.lookback, args.date)
