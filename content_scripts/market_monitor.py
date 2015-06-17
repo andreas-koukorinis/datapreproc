@@ -1,6 +1,5 @@
 import argparse
 from datetime import date, datetime, timedelta
-import json
 import math
 import sys
 import numpy as np
@@ -190,7 +189,7 @@ def prepare_content(results_df, products_df, lookbacks):
         result = {'product': product, 'description': prod_df.iloc[0]['name'], 'type': prod_df.iloc[0]['type'],\
                   'mtd_ret': mtd_ret, 'ytd_ret': ytd_ret, 'last_year_ret': last_year_ret, 'sharpe':sharpe, 'ret_dd': ret_dd, 'ann_volatility': ann_volatility}
         results.append(result)
-    return json.dumps(results)
+    return results
 
 def get_market_monitor_content(cmd=None):
     parser = argparse.ArgumentParser()
