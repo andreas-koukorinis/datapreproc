@@ -1,10 +1,15 @@
 import os
+<<<<<<< HEAD
+import sys
+from subprocess import Popen
+=======
 from subprocess import call
+>>>>>>> 2d6bfc184b3f74433ce77873e3d38fe383ddb33c
 from celery import Celery
 
 try:
    with open('/spare/local/credentials/rabbitmq_credentials.txt') as f:
-       user,password = f.readlines()[0].strip().split(':') 
+       user,password = f.readlines()[0].strip().split(':')
 except IOError:
     sys.exit('No credentials file found')
 
@@ -13,9 +18,8 @@ backend = 'db+sqlite:////apps/logs/celery-results.db'
 app = Celery('tasks', broker=broker, backend=backend)
 
 @app.task
-def send_stats(config):
-    call(["source","/apps/pythonenv/py2.7/bin/activate"],stdout=open(os.devnull, 'w'))
-    call(["cd","/home/cvdev/stratdev/"],stdout=open(os.devnull, 'w'))
-    call(["git","pull","origin","beta"],stdout=open(os.devnull, 'w'))
-    ret_code = call(["python", "utility_scripts/send_stats.py"] + config.split(),stdout=open(os.devnull, 'w'))
-    return ret_code
+def schedule_send_stats(config):
+    sys.path.append('/home/cvdev/stratdev/utility_scripts/')
+    from send_stats import send_stats
+    send_stats(config['config'],name=config.get('name',None),dontsend=False,sim_start_date=config.get('start_date',None),sim_end_date=config.get('end_date',None))
+    return 0

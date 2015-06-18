@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd /apps/data/nanex/
-for name in 201504*.nxc ; do 
+for name in 2015*.nxc ; do 
     localsize=`ls -altr $name | awk '{print $5}'`; 
     ists3=`s3cmd ls s3://cvquantdata/nanex/rawdata/$name | wc -l`; 
     if [ $ists3 -eq 0 ] ; then 
