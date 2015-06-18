@@ -195,8 +195,8 @@ def get_market_monitor_content(products=None, lookback=[365, 730], fetch_date=No
     if products == None:
         # Take products required by market monitor as default
         products = ['SPY', 'TCMP', '^MXX', '^BVSP', '^FTSE', '^GDAX', '^N150', '^GU15', '^SSMI', '^N500', '^BSES', '^AXJO', '^NZ50', \
-                   'USA10Y', 'CAN10Y', 'MEX10Y', 'GBR10Y', 'DEU10Y', 'FRA10Y', 'ITA10Y', 'CHE10Y', 'JPN10Y', 'IND10Y', 'AUS10Y', 'NZL10Y', \
-                   'CADUSD', 'MXNUSD', 'GBPUSD', 'EURUSD', 'CHFUSD', 'JPYUSD', 'INRUSD', 'AUDUSD', 'NZDUSD' ]
+                   'USA10Y', 'CAN10Y', 'GBR10Y', 'DEU10Y', 'FRA10Y', 'ITA10Y', 'CHE10Y', 'JPN10Y', 'IND10Y', 'AUS10Y', 'NZL10Y', \
+                   'CADUSD', 'MXNUSD', 'GBPUSD', 'EURUSD', 'CHFUSD', 'JPYUSD', 'INRUSD', 'AUDUSD', 'NZDUSD' ] # MEX10Y
     if fetch_date == None:
         fetch_date = str(date.today()+timedelta(days=-1))
 
