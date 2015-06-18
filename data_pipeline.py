@@ -15,7 +15,7 @@ from data_cleaning.quandl_scripts.daily_update_quandl import daily_update_quandl
 from data_cleaning.wedbush.dump_statement_data import dump_statement_data
 from data_cleaning.wedbush.dump_eod_estimated_data import dump_eod_estimated_data
 from data_cleaning.wedbush.reconcile import reconcile
-from tasks import send_stats
+from tasks import schedule_send_stats
 
 data_path = '/apps/data/csi/'
 log_path = '/apps/logs/luigi/'
@@ -45,8 +45,8 @@ class QPlumTask(luigi.Task):
         s = "*Error in %s Task*\n"%(self.__class__.__name__)
         s += traceback_string
         payload = {"channel": "#datapipeline-errors", "username": "Luigi", "text": s}
-        req = urllib2.Request('https://hooks.slack.com/services/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')
-        response = urllib2.urlopen(req, json.dumps(payload))
+        #req = urllib2.Request('https://hooks.slack.com/services/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')
+        #response = urllib2.urlopen(req, json.dumps(payload))
         return "Runtime error:\n%s" % traceback_string
 
 def load_credentials():
@@ -625,27 +625,23 @@ class SendStats(QPlumTask):
     def output(self):
         return luigi.LocalTarget(log_path+self.date.strftime('SendStats.%Y%m%d.SUCCESS'))
     def run(self):
-        #send_stats_script_path = "/home/cvdev/stratdev/utility_scripts/send_stats.sh"
-        #subprocess.call(["bash",send_stats_script_path])
-        send_stats_configs = ["~/modeling/sample_strats/selected_strats/TRVP-aqrix-mimic.cfg -sd 2010-01-01 --dontsend",\
-                              "~/modeling/sample_strats/selected_strats/TRVP-aqrix-mimic.cfg -sd 2014-01-01 --dontsend"]
-        # send_stats_configs = ["~/modeling/sample_strats/selected_strats/TRVP-aqrix-mimic.cfg",\
-        #                       "~/modeling/sample_strats/selected_strats/ACWAS_0.25MVO_0.25TRVP_0.25TRMSHC_0.25SMS.cfg",\
-        #                       "~/modeling/sample_strats/selected_strats/SMS_rb21_trend252_std21_63_252_corr252.cfg",\
-        #                       "~/modeling/sample_strats/selected_strats/MVO_rb21_ret252_std21_63_252_corr252.cfg",\
-        #                       "~/modeling/sample_strats/selected_strats/TRMSHC_rb21_std21_63_252_corr252.cfg",\
-        #                       "~/modeling/sample_strats/selected_strats/TRVP_rb21_std21_63_252_corr252.cfg",\
-        #                       "~/modeling/sample_strats_etfs/selected_strats/ETF-TRERCL_rb21.cfg",\
-        #                       "~/modeling/sample_strats_etfs/selected_strats/ETF-TRVP_rb21.cfg",\
-        #                       "~/modeling/sample_strats_etfs/selected_strats/ETF-TRMSHC_rb21.cfg",\
-        #                       "~/modeling/sample_strats_etfs/selected_strats/ETF-MVO_rb21.cfg",\
-        #                       "~/modeling/sample_strats_etfs/selected_strats/ETF-SMS_rb21.cfg",\
-        #                       "~/modeling/sample_strats_etfs/selected_strats/ETF-ACWAS_0.25MVO_0.25SMS_0.25TRMSHC_0.25TRVP.cfg",\
-        #                       "~/modeling/livetrading/strategies/t_avg.cfg -sd 1995-01-01 -n LiveTrading",\
-        #                       "~/modeling/livetrading/strategies/t_treerc_component.cfg -sd 1995-01-01 -n LiveTradingEERCComponent",\
-        #                       "~/modeling/livetrading/strategies/t_trmshc_component.cfg -sd 1995-01-01 -n LiveTradingMSHCComponent"]
+        send_stats_configs = [{'config':"~/modeling/sample_strats/selected_strats/TRVP-aqrix-mimic.cfg"},\
+                              {'config':"~/modeling/sample_strats/selected_strats/ACWAS_0.25MVO_0.25TRVP_0.25TRMSHC_0.25SMS.cfg"},\
+                              {'config':"~/modeling/sample_strats/selected_strats/SMS_rb21_trend252_std21_63_252_corr252.cfg"},\
+                              {'config':"~/modeling/sample_strats/selected_strats/MVO_rb21_ret252_std21_63_252_corr252.cfg"},\
+                              {'config':"~/modeling/sample_strats/selected_strats/TRMSHC_rb21_std21_63_252_corr252.cfg"},\
+                              {'config':"~/modeling/sample_strats/selected_strats/TRVP_rb21_std21_63_252_corr252.cfg"},\
+                              {'config':"~/modeling/sample_strats_etfs/selected_strats/ETF-TRERCL_rb21.cfg"},\
+                              {'config':"~/modeling/sample_strats_etfs/selected_strats/ETF-TRVP_rb21.cfg"},\
+                              {'config':"~/modeling/sample_strats_etfs/selected_strats/ETF-TRMSHC_rb21.cfg"},\
+                              {'config':"~/modeling/sample_strats_etfs/selected_strats/ETF-MVO_rb21.cfg"},\
+                              {'config':"~/modeling/sample_strats_etfs/selected_strats/ETF-SMS_rb21.cfg"},\
+                              {'config':"~/modeling/sample_strats_etfs/selected_strats/ETF-ACWAS_0.25MVO_0.25SMS_0.25TRMSHC_0.25TRVP.cfg"},\
+                              {'config':"~/modeling/livetrading/strategies/t_avg.cfg",'start_date':'1995-01-01','name':'LiveTrading'},\
+                              {'config':"~/modeling/livetrading/strategies/t_treerc_component.cfg",'start_date':'1995-01-01','name':'LiveTradingEERCComponent'},\
+                              {'config':"~/modeling/livetrading/strategies/t_trmshc_component.cfg",'start_date':'1995-01-01','name':'LiveTradingMSHCComponent'}]
         for config in send_stats_configs:
-            send_stats.delay()
+            schedule_send_stats.delay(config)
         with open(self.output().path,'w') as f:
             f.write("Successfully scheduled sent stats")
 
