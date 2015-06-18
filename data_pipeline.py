@@ -702,6 +702,48 @@ class ReconcileWedbush(QPlumTask):
             with open(self.output().path,'w') as f:
                 f.write("Successfully Reconciled Wedbush")
 
+class ManageInventory(QPlumTask):
+    """
+    Task to separate positions between inventory and strategy, store them in db
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return ReconcileWedbush(self.date)
+    def output(self):
+        return luigi.LocalTarget(log_path+self.date.strftime('ManageInventory.%Y%m%d.SUCCESS'))    
+    def run(self):
+        if manage_inventory(self.date.strftime('%Y%m%d')):
+            with open(self.output().path,'w') as f:
+                f.write("Successfully Managed Inventory")
+
+class DemystifyPnl(QPlumTask):
+    """
+    Task to separate positions between inventory and strategy, store them in db
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return ManageInventory(self.date)
+    def output(self):
+        return luigi.LocalTarget(log_path+self.date.strftime('DemystifyPnl.%Y%m%d.SUCCESS'))    
+    def run(self):
+        if demystify_pnl(self.date.strftime('%Y%m%d')):
+            with open(self.output().path,'w') as f:
+                f.write("Successfully Demystified Pnl")
+
+class GenerateOrders(QPlumTask):
+    """
+    Task to separate positions between inventory and strategy, store them in db
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return DemystifyPnl(self.date)
+    def output(self):
+        return luigi.LocalTarget(log_path+self.date.strftime('GenerateOrders.%Y%m%d.SUCCESS'))    
+    def run(self):
+        if generate_orders(self.date.strftime('%Y%m%d')):
+            with open(self.output().path,'w') as f:
+                f.write("Successfully Generated Orders")
+
 class AllTasks(QPlumTask):
     """
     Task to trigger all base tasks
