@@ -72,17 +72,7 @@ def get_factors(current_date, data_source, exchange_symbols, product_type):
         open_price_2, close_price_1, close_price_2, is_valid = fetch_latest_prices(exchange_symbols, current_date, product_type) # Uses exchange symbols
     return open_price_2, close_price_1, close_price_2, conversion_factor, is_valid
 
-def main():
-    # Parse arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('current_date')
-    parser.add_argument('config_file')
-    parser.add_argument('-d', type=str, help='Data source for prices and rates\nEg: -d csi\n Default is CSI',default='csi', dest='data_source')
-    parser.add_argument('-t', type=str, help='Type  for products being ETFs\nEg: -t etf\n Default is future i.e. trading futures',default='future', dest='product_type')
-    parser.add_argument('-read_positions',type=str, help='Read desired startegy positons from file\nEg: -read_positions desired_pos_20150101.txt\n Default is to use gen orders', default=None, dest='read_positions')
-    args = parser.parse_args()
-    current_date = datetime.strptime(args.current_date, '%Y%m%d')
-    product_type = args.product_type
+def manage_inventory( current_date, config_file, data_source, product_type, read_positions ):
     
     # Connect to db
     try:
@@ -151,8 +141,8 @@ def main():
         print traceback.format_exc()
 
     strategy_desired_positions = {}
-    if args.read_positions is not None:
-        with open(os.path.expanduser(args.read_positions)) as f:
+    if read_positions is not None:
+        with open(os.path.expanduser(read_positions)) as f:
             positions_file_lines = [ln.strip('\n') for ln in f.readlines()]
             if len(positions_file_lines) < 1:
                 sys.exit("Empty positions file!")
@@ -162,7 +152,7 @@ def main():
                     product = prod_wt_price[0]
                     strategy_desired_positions[product] = float(prod_wt_price[1]) 
     else:
-        strategy_desired_positions = get_desired_positions(args.config_file, float(current_worth), '1995-01-01', current_date.strftime('%Y-%m-%d')) #TODO
+        strategy_desired_positions = get_desired_positions(config_file, float(current_worth), '1995-01-01', current_date.strftime('%Y-%m-%d')) #TODO
 
     # Initialize with default variables
     products = list(set(products + strategy_desired_positions.keys()))
@@ -202,7 +192,7 @@ def main():
         sys.exit( 'Could not find net,startegy,inventory bal in db for prior date' )
 
 
-    open_price_2, close_price_1, close_price_2, conversion_factor, is_valid = get_factors( current_date, args.data_source, products, product_type) #TODO
+    open_price_2, close_price_1, close_price_2, conversion_factor, is_valid = get_factors( current_date, data_source, products, product_type) #TODO
     # Get commission rates
     try:
         commission_rates = {}
@@ -375,4 +365,13 @@ def main():
         sys.exit( 'Could not update inventory data in db' )
 
 if __name__ == '__main__':
-    main()
+    # Parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('current_date')
+    parser.add_argument('config_file')
+    parser.add_argument('-d', type=str, help='Data source for prices and rates\nEg: -d csi\n Default is CSI',default='csi', dest='data_source')
+    parser.add_argument('-t', type=str, help='Type  for products being ETFs\nEg: -t etf\n Default is future i.e. trading futures',default='future', dest='product_type')
+    parser.add_argument('-read_positions',type=str, help='Read desired startegy positons from file\nEg: -read_positions desired_pos_20150101.txt\n Default is to use gen orders', default=None, dest='read_positions')
+    args = parser.parse_args()
+    current_date = datetime.strptime(args.current_date, '%Y%m%d')
+    manage_inventory( current_date, args.config_file, args.data_source, args.product_type, args.read_positions )

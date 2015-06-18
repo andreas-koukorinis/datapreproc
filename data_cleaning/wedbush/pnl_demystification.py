@@ -237,12 +237,7 @@ def get_factors( current_date, exchange_symbols ):
         conversion_factor[row['product'][:-2]] = float(row['conversion_factor'])
     price = fetch_latest_prices_v1(exchange_symbols, current_date, 'future') # Uses exchange symbols
 
-def main():
-    # Parse arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-cd', type=str, help='PnL-Comparison Date\nEg: -cd 2015-04-27\n',default=None, dest='current_date')
-    parser.add_argument('--check', help='Do not send to slack\nEg: --check\n Default is to send to slack', default=False, dest='check', action='store_true')
-    args = parser.parse_args()
+def demystify_pnl( current_date, to_check ):
     benchmarks = ['VBLTX', 'VTSMX', 'AQRIX', 'AQMIX']
 
     global db
@@ -267,7 +262,7 @@ def main():
         initial_pv = float(rows[0]['portfolio_value'])
 
     # Fetch the portfolio value for YDAY and TODAY
-    query = "SELECT portfolio_value FROM broker_portfolio_stats WHERE date <= '%s' ORDER BY date DESC LIMIT 2" % ( args.current_date )
+    query = "SELECT portfolio_value FROM broker_portfolio_stats WHERE date <= '%s' ORDER BY date DESC LIMIT 2" % ( current_date )
     db_cursor.execute(query)
     rows = db_cursor.fetchall()
     yday_pv = 100000000.0
@@ -279,7 +274,7 @@ def main():
         yday_pv = float(rows[1]['portfolio_value'])
 
     # Fetch the net trading fees
-    query = "SELECT SUM(other_fees) as sum_fees FROM broker_portfolio_stats WHERE date <= '%s'" % ( args.current_date )
+    query = "SELECT SUM(other_fees) as sum_fees FROM broker_portfolio_stats WHERE date <= '%s'" % ( current_date )
     db_cursor.execute(query)
     rows = db_cursor.fetchall()
     net_other_fees = 0.0
@@ -287,7 +282,7 @@ def main():
         net_other_fees = rows[0]['sum_fees']
 
     # Fetch the trading fees for today
-    query = "SELECT other_fees FROM broker_portfolio_stats WHERE date = '%s'" % ( args.current_date )
+    query = "SELECT other_fees FROM broker_portfolio_stats WHERE date = '%s'" % ( current_date )
     db_cursor.execute(query)
     rows = db_cursor.fetchall()
     today_other_fees = 0.0
@@ -296,7 +291,7 @@ def main():
 
     # Get sector returns and strategy, inventory pnl
     sector_ret_str = ""
-    product_pnl_strategy, product_pnl_inventory = get_products_pnl( args.current_date )
+    product_pnl_strategy, product_pnl_inventory = get_products_pnl( current_date )
     strategy_pnl = 0.0
     inventory_pnl = today_other_fees
     strategy_sector_pnl = {}
@@ -315,7 +310,7 @@ def main():
     # Get Product Positions
     positions_str = ""
     net_positions = {}
-    query = "SELECT product, net_position, strategy_position, inventory_position FROM inventory WHERE date = '%s'" % ( args.current_date )
+    query = "SELECT product, net_position, strategy_position, inventory_position FROM inventory WHERE date = '%s'" % ( current_date )
     db_cursor.execute(query)
     rows = db_cursor.fetchall()
     for row in rows:
@@ -324,10 +319,10 @@ def main():
         if not ( row['net_position'] == 0 and abs(float(row['strategy_position'])) < 0.000001 and abs(float(row['inventory_position'])) < 0.00001 ):
             positions_str += '%s | %0.2f | %0.2f | %d\n' % ( row['product'], float(row['strategy_position']), float(row['inventory_position']), row['net_position'])
 
-    get_factors( args.current_date, products )
+    get_factors( current_date, products )
 
     # Get net PNL per product
-    net_product_pnl_strategy, net_product_pnl_inventory = get_net_products_pnl( args.current_date )
+    net_product_pnl_strategy, net_product_pnl_inventory = get_net_products_pnl( current_date )
     net_pnl_strategy = 0.0
     net_pnl_inventory = net_other_fees
     net_sector_ret_str = ""
@@ -344,17 +339,17 @@ def main():
                                                              100.0 * ( net_strategy_sector_pnl[key] + net_inventory_sector_pnl[key] )/initial_pv )
 
     # Get benchmark returns
-    benchmark_returns = get_todays_benchmark_returns(benchmarks, datetime.strptime(args.current_date, '%Y%m%d'))
+    benchmark_returns = get_todays_benchmark_returns(benchmarks, datetime.strptime( current_date, '%Y%m%d'))
     _print_benchmark_returns = ''
     for item in benchmark_returns:
         _print_benchmark_returns += '%s : %0.2f%%\t' % (item[0], item[1])
         
-    output = '------------------------------------------------------\n*PNL Demystification Report for Date: %s*\n------------------------------------------------------' % (args.current_date)
+    output = '------------------------------------------------------\n*PNL Demystification Report for Date: %s*\n------------------------------------------------------' % (current_date)
  
     output += '\n*LTD Pnl ( Return )* :    Net Pnl : $%0.2f (%0.2f %%)   |   Strategy Pnl : $%.2f (%0.2f%%)   |   Inventory Pnl : $%.2f (%0.2f%%)\n' % ( (today_pv - initial_pv), 100.0 * (today_pv - initial_pv)/initial_pv, net_pnl_strategy, 100.0*net_pnl_strategy/initial_pv, net_pnl_inventory, 100.0*net_pnl_inventory/initial_pv )
     output += '\n*Todays Pnl ( Return )* :   Net Pnl : $%0.2f (%0.2f %%)   |   Strategy Pnl : $%.2f (%0.2f%%)   |   Inventory Pnl : $%.2f (%0.2f%%)\n' % ( (today_pv - yday_pv), 100.0 * (today_pv - yday_pv)/yday_pv, strategy_pnl, 100.0 * strategy_pnl/yday_pv, inventory_pnl, 100.0 * inventory_pnl/yday_pv )
-    output += '\n*Summary Stats* :   Turnover : %0.2f%%   |   Leverage : %0.2f   |   Commission : $%0.2f | Fees : $%0.2f\n' % ( get_turnover( args.current_date, today_pv), \
-                get_leverage(args.current_date, net_positions, today_pv), get_commission( args.current_date ), net_other_fees  )
+    output += '\n*Summary Stats* :   Turnover : %0.2f%%   |   Leverage : %0.2f   |   Commission : $%0.2f | Fees : $%0.2f\n' % ( get_turnover( current_date, today_pv), \
+                get_leverage( current_date, net_positions, today_pv), get_commission( current_date ), net_other_fees  )
     output += "\n*Benchmark Returns:*  %s\n" % _print_benchmark_returns
     output += '\n*Positions*\n'
     output += '*Product  |  Strategy  |  Inventory  |  Net*\n'
@@ -366,7 +361,7 @@ def main():
     output += '*Product  |  Strategy  |  Inventory  |  Net*\n'
     output += sector_ret_str
 
-    if args.check:
+    if to_check:
         print output
     else:
         payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": output}
@@ -374,4 +369,9 @@ def main():
         response = urllib2.urlopen(req, json.dumps(payload))
 
 if __name__ == '__main__':
-    main()
+    # Parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-cd', type=str, help='PnL-Comparison Date\nEg: -cd 2015-04-27\n',default=None, dest='current_date')
+    parser.add_argument('--check', help='Do not send to slack\nEg: --check\n Default is to send to slack', default=False, dest='check', action='store_true')
+    args = parser.parse_args()
+    demystify_pnl( args.current_date, args.check )
