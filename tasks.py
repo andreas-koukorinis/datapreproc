@@ -1,6 +1,10 @@
 import os
+<<<<<<< HEAD
 import sys
 from subprocess import Popen
+=======
+from subprocess import call
+>>>>>>> 2d6bfc184b3f74433ce77873e3d38fe383ddb33c
 from celery import Celery
 
 try:

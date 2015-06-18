@@ -11,7 +11,7 @@ sys.path.append(home_path + '/stratdev/')
 from utils.dbqueries import get_conversion_factors, connect_to_db
 
 # TODO move to a separate class
-future_code_mappings = { 'ES':'ES','C1':'6C', '21':'ZN', 'SF':'FESX', 'RH':'LFR', 'MP':'6M', 'BC' : 'FGBM', '17':'ZB', 'J1': '6J', 'SX' : 'SXF', 'CG' : 'CGB', '25': 'ZF', 'BM':'FGBL'}
+future_code_mappings = { 'ES':'ES','C1':'6C', 'A1' : '6A', '21':'ZN', 'SF':'FESX', 'RH':'LFR', 'MP':'6M', 'BC' : 'FGBM', '17':'ZB', 'J1': '6J', 'SX' : 'SXF', 'CG' : 'CGB', '25': 'ZF', 'BM':'FGBL'}
   
 month_codes = {'01':'F','02':'G','03':'H','04':'J','05':'K', '06':'M','07':'N','08':'Q','09':'U', '10':'V', '11':'X', '12':'Z'}
 

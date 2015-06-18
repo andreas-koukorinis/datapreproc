@@ -77,7 +77,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('current_date')
     parser.add_argument('config_file')
-    parser.add_argument('portfolio_file')
     parser.add_argument('-d', type=str, help='Data source for prices and rates\nEg: -d csi\n Default is CSI',default='csi', dest='data_source')
     parser.add_argument('-t', type=str, help='Type  for products being ETFs\nEg: -t etf\n Default is future i.e. trading futures',default='future', dest='product_type')
     parser.add_argument('-read_positions',type=str, help='Read desired startegy positons from file\nEg: -read_positions desired_pos_20150101.txt\n Default is to use gen orders', default=None, dest='read_positions')
@@ -163,7 +162,7 @@ def main():
                     product = prod_wt_price[0]
                     strategy_desired_positions[product] = float(prod_wt_price[1]) 
     else:
-        strategy_desired_positions = get_desired_positions(args.config_file, args.portfolio_file, float(current_worth), '1995-01-01', current_date.strftime('%Y-%m-%d')) #TODO
+        strategy_desired_positions = get_desired_positions(args.config_file, float(current_worth), '1995-01-01', current_date.strftime('%Y-%m-%d')) #TODO
 
     # Initialize with default variables
     products = list(set(products + strategy_desired_positions.keys()))
