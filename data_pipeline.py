@@ -15,6 +15,10 @@ from data_cleaning.quandl_scripts.daily_update_quandl import daily_update_quandl
 from data_cleaning.wedbush.dump_statement_data import dump_statement_data
 from data_cleaning.wedbush.dump_eod_estimated_data import dump_eod_estimated_data
 from data_cleaning.wedbush.reconcile import reconcile
+from data_cleaning.wedbush.inventory_management import manage_inventory
+from data_cleaning.wedbush.pnl_demystification import demystify_pnl
+sys.path.append('/home/cvdev/stratdev/')
+from utility_scripts.generate_orders import get_desired_positions
 from tasks import schedule_send_stats
 
 data_path = '/apps/data/csi/'
@@ -23,6 +27,8 @@ wedbush_path = '/apps/wedbush/'
 csi_ftp_server = 'ftp.csidata.com'
 csi_ftp_port = 21
 s3_cfg = '/home/cvdev/.s3cfg'
+
+os.environ["HOME"] = "/home/cvdev/"
 
 global csi_ftp_username, csi_ftp_password, aws_access_key, aws_secret_key
 
@@ -708,7 +714,7 @@ class ManageInventory(QPlumTask):
     def output(self):
         return luigi.LocalTarget(log_path+self.date.strftime('ManageInventory.%Y%m%d.SUCCESS'))    
     def run(self):
-        if manage_inventory(self.date.strftime('%Y%m%d')):
+        if manage_inventory(self.date, '/home/cvdev/modeling/livetrading/strategies/t_avg.cfg', 'csi', 'future', None):
             with open(self.output().path,'w') as f:
                 f.write("Successfully Managed Inventory")
 
@@ -722,7 +728,7 @@ class DemystifyPnl(QPlumTask):
     def output(self):
         return luigi.LocalTarget(log_path+self.date.strftime('DemystifyPnl.%Y%m%d.SUCCESS'))    
     def run(self):
-        if demystify_pnl(self.date.strftime('%Y%m%d')):
+        if demystify_pnl(self.date.strftime('%Y%m%d'), False):
             with open(self.output().path,'w') as f:
                 f.write("Successfully Demystified Pnl")
 
@@ -736,7 +742,7 @@ class GenerateOrders(QPlumTask):
     def output(self):
         return luigi.LocalTarget(log_path+self.date.strftime('GenerateOrders.%Y%m%d.SUCCESS'))    
     def run(self):
-        if generate_orders(self.date.strftime('%Y%m%d')):
+        if generate_orders('/home/cvdev/modeling/livetrading/strategies/t_avg.cfg', 'csi', 'future', '1995-01-01', self.date + timedelta(days=1), False, False):
             with open(self.output().path,'w') as f:
                 f.write("Successfully Generated Orders")
 
@@ -747,8 +753,8 @@ class AllTasks(QPlumTask):
     date = luigi.DateParameter(default=date.today())
     def requires(self):
         return FetchCSI_all(self.date), PutInS3_all(self.date), PutCsiInDb_all(self.date),\
-               PutQuandlInDb(self.date), UpdateLastTradingDay(self.date), SendStats(self.date),\
-               ReconcileWedbush(self.date)
+               PutQuandlInDb(self.date), UpdateLastTradingDay(self.date), SendStats(self.date)#,\
+               #GenerateOrders(self.date)
 
 if __name__ == '__main__':
     load_credentials()
