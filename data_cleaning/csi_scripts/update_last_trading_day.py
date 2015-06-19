@@ -21,7 +21,7 @@ mappings = {'TU':'ZT','FV':'ZF','TY':'ZN','US':'ZB','NK':'NKD','NIY':'NIY','ES':
 
 forex_mappings = { 'US$_46' : ('JPYUSD',True) ,'US$_39' : ('CADUSD',True), 'GB2_60' : ('GBPUSD',False), 'EU2_60' : ('EURUSD',False), 'US$_37': ('AUDUSD', True), 'US$_51': ('NZDUSD', True), 'US$_53': ('CHFUSD', True), 'US$_58': ('SEKUSD', True), 'US$_49': ('NOKUSD', True), 'FX1_39': ('TRYUSD', True), 'US$_56': ('MXNUSD', True), 'US$_57': ('ZARUSD', True), 'U2$_55': ('ILSUSD', True), 'US$_52': ('SGDUSD', True), 'US$_44': ('HKDUSD', True), 'U2$_53': ('TWDUSD', True), 'U2$_39': ('BRLUSD', True), 'U2$_45': ('INRUSD', True) }
 
-exchange_symbol_mamager = None
+exchange_symbol_manager = None
 
 def db_connect():
     global db,db_cursor
@@ -55,6 +55,9 @@ def setup_db_esm_smtp():
     db_connect()
 
 def update_last_trading_day(given_date):
+    # Temporarily redirect output to log file
+    stdout = sys.stdout
+    sys.stdout = open("/apps/logs/log_"+given_date, 'a+')
     setup_db_esm_smtp()
     product_to_table_map()
     _date = datetime.strptime(given_date, "%Y-%m-%d").date()
@@ -99,6 +102,8 @@ def update_last_trading_day(given_date):
             db.rollback()
             server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in update_last_trading_day %s'%_base_symbol)
     server.quit()
+    # Return print output to stdout
+    sys.stdout = stdout
 
 if __name__ == '__main__':
     update_last_trading_day(sys.argv[1])

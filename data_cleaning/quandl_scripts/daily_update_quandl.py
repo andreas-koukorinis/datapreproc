@@ -236,11 +236,18 @@ def daily_update_quandl(cmd=None):
         products = args.products
     global server
     setup_db_smtp()
+
+    # Temporarily redirect output to log file
+    stdout = sys.stdout
+    sys.stdout = open("/apps/logs/log_"+datetime.strptime(args.fetch_date, '%Y%m%d').strftime('%Y-%m-%d'), 'a+')
+
     if args.product_type == 'yield_rates':
         push_quandl_yield_rates(products, args.fetch_date)
     elif args.product_type == 'futures':
         push_quandl_futures_prices(products, args.fetch_date)
     db_close()
+    # Return print output to stdout
+    sys.stdout = stdout
 
 if __name__ == '__main__':
     daily_update_quandl()

@@ -447,6 +447,10 @@ def daily_update(filename, products):
     
     error_correction = False
     
+    # Temporarily redirect output to log file
+    stdout = sys.stdout
+    sys.stdout = open("/apps/logs/log_"+record_date, 'a+')
+
     for item in records[1:]:
         if error_correction:
             # Reset ecord date and date which might have changed due to error correction
@@ -560,6 +564,9 @@ def daily_update(filename, products):
         elif record[0]=='37': #Type '07' with prices in decimal
             if len(products)==0 or symbol in products:
                 dividend_quote(date, record)
+
+    # Return print output to stdout
+    sys.stdout = stdout
 
 def push_file_to_db(raw_file, products):
     # log_file is a construct to ensure that this script has run
