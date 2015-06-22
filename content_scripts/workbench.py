@@ -152,6 +152,31 @@ def get_editable_params(base_strategy_id):
     editable_params = yaml.safe_load(rows[0]['editable_params'])
     return editable_params
 
+def get_ticker_for_strategy(base_strategy_id, param_id_to_value_id):
+    # Returns something like {"name": "Fixed Allocation Strategy(ETFs)", ticker: "1234-some-ticker-name" }
+    # TODO Will change this logic once tickers are inserted in DB, for now returning base_name shortcode with strat_id
+    paramid_valueid_hash = hashlib.md5(json.dumps(json.loads(param_id_to_value_id), sort_keys=True)).hexdigest()
+    db_connect()
+    query = "SELECT a.id FROM wb_strategies AS a JOIN workbench_strategies AS b on a.id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
+    db_connect()
+    try:
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        ticker = rows[0]['id'] # TODO change this part when we have tickers implemented
+    except:
+        sys.exit("Failed to fetch ticker for selected variant of base strategy '%s'" % base_strategy_id)
+    # Base strategy short code for now, will not need it as tickers will include this part going forward
+    query = "SELECT shortcode, base_strategy FROM base_strategies WHERE id = '%s'" %(base_strategy_id)
+    db_connect()
+    try:
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        shortcode = rows[0]['shortcode'] # TODO change this part when we have tickers implemented
+        base_strategy = rows[0]['base_strategy'] # Name
+    except:
+        sys.exit("Failed to fetch ticker for selected variant of base strategy '%s'" % base_strategy_id)
+    return { 'name' : base_strategy, 'ticker' : shortcode + str(ticker)}
+
 def get_params_for_base_strategy(base_strategy_id):
     """Get available parameter combinations for that strategy
     Parameters:
@@ -188,7 +213,7 @@ def get_stats_for_base_strategy(base_strategy_id, param_id_to_value_id):
     """
     paramid_valueid_hash = hashlib.md5(json.dumps(json.loads(param_id_to_value_id), sort_keys=True)).hexdigest()
     db_connect()
-    query = "SELECT a.dates, a.daily_log_returns, a.daily_weights FROM wb_strategies AS a JOIN workbench_strategies AS b on a.id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
+    query = "SELECT a.id, a.dates, a.daily_log_returns, a.daily_weights FROM wb_strategies AS a JOIN workbench_strategies AS b on a.id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
     strategy_df = pd.read_sql(query, con=db)
     daily_weights = json.loads(strategy_df.iloc[0]['daily_weights'])
     dates = json.loads(strategy_df.iloc[0]['dates'])
@@ -212,7 +237,7 @@ def get_stats_for_base_strategy(base_strategy_id, param_id_to_value_id):
     benchmark_dates = json.loads(strategy_df_1.iloc[0]['benchmark_dates'])
     strategy_df['benchmark_name'] = "VTSMX"
     strategy_df['benchmark_dates'] = [ benchmark_dates ]
-    strategy_df['benchmark_log_returns'] = [list( 100 + ( numpy.exp(numpy.array(benchmark_daily_log_returns).cumsum()) - 1 ) * 100.0) ]
+    strategy_df['benchmark_log_returns'] = [benchmark_daily_log_returns]
     #strategy_df['benchmark_percentage_cumulative_returns'] = [list( ( numpy.exp(numpy.array(benchmark_daily_log_returns).cumsum()) - 1 ) * 100.0) ]
     #strategy_df['benchmark_turnover'] = 90.0 #TODO
     #strategy_df['benchmark_return'] = round( strategy_df_1['benchmark_return'], 3 )
@@ -225,7 +250,7 @@ def get_stats_for_base_strategy(base_strategy_id, param_id_to_value_id):
     
     ## Round to reduce precision and data being sent
     for c in columns:
-        strategy_df[c] = [[round(x,3) for x in strategy_df.iloc[0][c]]]
+        strategy_df[c] = [[round(x,5) for x in strategy_df.iloc[0][c]]]
 
     strategy_df = strategy_df.drop('daily_log_returns', 1)
     strategy_df = strategy_df.drop('daily_weights', 1)
