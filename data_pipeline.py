@@ -643,9 +643,7 @@ class SendStats(QPlumTask):
                               {'config':"~/modeling/sample_strats_etfs/selected_strats/ETF-MVO_rb21.cfg"},\
                               {'config':"~/modeling/sample_strats_etfs/selected_strats/ETF-SMS_rb21.cfg"},\
                               {'config':"~/modeling/sample_strats_etfs/selected_strats/ETF-ACWAS_0.25MVO_0.25SMS_0.25TRMSHC_0.25TRVP.cfg"},\
-                              {'config':"~/modeling/livetrading/strategies/t_avg.cfg",'start_date':'1995-01-01','name':'LiveTrading'},\
-                              {'config':"~/modeling/livetrading/strategies/t_treerc_component.cfg",'start_date':'1995-01-01','name':'LiveTradingEERCComponent'},\
-                              {'config':"~/modeling/livetrading/strategies/t_trmshc_component.cfg",'start_date':'1995-01-01','name':'LiveTradingMSHCComponent'}]
+                              {'config':"~/modeling/livetrading/strategies/t_avg.cfg",'start_date':'1995-01-01','name':'LiveTrading'}]
         for config in send_stats_configs:
             schedule_send_stats.delay(config)
         with open(self.output().path,'w') as f:
@@ -753,8 +751,8 @@ class AllTasks(QPlumTask):
     date = luigi.DateParameter(default=date.today())
     def requires(self):
         return FetchCSI_all(self.date), PutInS3_all(self.date), PutCsiInDb_all(self.date),\
-               PutQuandlInDb(self.date), UpdateLastTradingDay(self.date), SendStats(self.date)#,\
-               #GenerateOrders(self.date)
+               PutQuandlInDb(self.date), UpdateLastTradingDay(self.date), SendStats(self.date),\
+               ReconcileWedbush(self.date)#GenerateOrders(self.date)
 
 if __name__ == '__main__':
     load_credentials()
