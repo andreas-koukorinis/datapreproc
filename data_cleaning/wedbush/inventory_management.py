@@ -44,7 +44,7 @@ def fetch_latest_prices(exchange_symbols, required_date, product_type):
             query = "SELECT date, product, open, close FROM %s WHERE product = '%s' AND date <= '%s' ORDER BY date DESC LIMIT 2" % ( rows[0]['table'], exchange_symbol, required_date )
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
-        if rows[0]['date'] == required_date.date():
+        if rows[0]['date'] == required_date:
             close_price_2[exchange_symbol] = float(rows[0]['close'])
             close_price_1[exchange_symbol] = float(rows[1]['close'])
             open_price_2[exchange_symbol] = float(rows[0]['open'])
@@ -353,7 +353,6 @@ def manage_inventory( current_date, config_file, data_source, product_type, read
         currency = commission_rates[basename]['currency']
         for order in unsettled_orders[product]:
             outstanding_ote[product]['inventory_ote'] += order[1] * conversion_factor[basename] * (close_price_2[product] - order[2])
-
     try:
         for product in outstanding_bal.keys():
             query = "INSERT INTO inventory (date, product, net_position, strategy_position, inventory_position, inventory_USD_bal, strategy_bal, inventory_bal, net_bal, inventory_ote) VALUES('%s','%s','%d','%s','%s','%s','%s', '%s','%s','%s')" % ( current_date, product, net_positions[product], strategy_positions[product], inventory_positions[product], outstanding_bal[product]['inventory_USD_bal'], outstanding_bal[product]['strategy_bal'], outstanding_bal[product]['inventory_bal'], outstanding_bal[product]['strategy_bal'] + outstanding_bal[product]['inventory_bal'], outstanding_ote[product]['inventory_ote']  )
