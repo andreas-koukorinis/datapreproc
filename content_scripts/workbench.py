@@ -89,7 +89,7 @@ def db_connect():
         sys.exit('No credentials file found')
     try:
         for user_id,password in credentials:
-            db = MySQLdb.connect(host='fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com', user=user_id, passwd=password, db='webapp')
+            db = MySQLdb.connect(host='fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com', user=user_id, passwd=password, db='workbench')
             db_cursor = db.cursor(MySQLdb.cursors.DictCursor) 
     except MySQLdb.Error:
         sys.exit("Error in DB connection")
@@ -164,7 +164,7 @@ def get_ticker_for_strategy(base_strategy_id, param_id_to_value_id):
     paramid_valueid_hash = hashlib.md5(json.dumps(param_id_to_value_id_dict, sort_keys=True)).hexdigest()
     
     db_connect()
-    query = "SELECT a.id FROM wb_strategies AS a JOIN workbench_strategies AS b on a.id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
+    query = "SELECT simulation_id as id FROM workbench_strategies WHERE base_strategy_id = '%s' AND paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
     try:
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
@@ -183,29 +183,6 @@ def get_ticker_for_strategy(base_strategy_id, param_id_to_value_id):
     db_close()
     return { 'name' : base_strategy, 'ticker' : shortcode + str(ticker)}
 
-def get_params_for_base_strategy(base_strategy_id):
-    """Get available parameter combinations for that strategy
-    Parameters:
-        1. base_strategy_id(string)
-    Returns:
-        All permissible sets of parameter configurations for a selected base strategy(List of tuples of ids and parameter combination dicts)
-        e.g. [('2145',{'average_discretized_trend':21, 'average_std_lookback':21}),
-              ('2123',{'average_discretized_trend':252, 'average_std_lookback':252}),
-              ('1123',{'average_discretized_trend':[21, 63, 252], 'average_std_lookback':63})]
-    """
-    db_connect()
-    query = "SELECT simulation_id, param_combn FROM workbench_strategies WHERE base_strategy_id='%s'"%base_strategy_id
-    strats_df = pd.read_sql(query, con=db)
-    db_close()
-    
-    params_for_strategy = []
-    for i in xrange(len(strats_df.index)):
-        id_params_dict = json.loads(strats_df.iloc[i]['param_combn'])
-        id_params_dict['id'] = strats_df.iloc[i]['simulation_id']
-        params_for_strategy.append(id_params_dict)
-    
-    return params_for_strategy
-
 # Function to get stats given base strategy id and dict of param_id - param_value_id
 def get_stats_for_base_strategy(base_strategy_id, param_id_to_value_id):
     """Maps combination of parameters and base strategy to a strategy id
@@ -223,7 +200,16 @@ def get_stats_for_base_strategy(base_strategy_id, param_id_to_value_id):
     paramid_valueid_hash = hashlib.md5(json.dumps(param_id_to_value_id_dict, sort_keys=True)).hexdigest()
 
     db_connect()
-    query = "SELECT a.id, a.dates, a.daily_log_returns, a.daily_weights FROM wb_strategies AS a JOIN workbench_strategies AS b on a.id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
+    query = "SELECT strat_id as id, sector_list FROM strategy_static AS a JOIN workbench_strategies AS b ON a.strat_id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s' AND b.is_taxable = False" %(base_strategy_id, paramid_valueid_hash)
+    try:
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        ret_dict['id'] = rows[0]['id']
+        sector_list = json.loads(rows[0]['sector_list'])
+    except:
+        sys.exit("Failed to fetch sectors for this variant of base strategy '%s'" % base_strategy_id)
+
+    query = "SELECT a.strat_id as id, a.date as strategy_dates, a.daily_log_return as strategy_pretax_log_returns, a.daily_sector_weights, b.daily_log_return as strategy_posttax_log_returns FROM wb_strategies AS a JOIN workbench_strategies AS b on a.id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
     strategy_df = pd.read_sql(query, con=db)
     daily_weights = json.loads(strategy_df.iloc[0]['daily_weights'])
     dates = json.loads(strategy_df.iloc[0]['dates'])
@@ -297,72 +283,23 @@ def get_stats_for_base_strategy(base_strategy_id, param_id_to_value_id):
 
 # Function to get stats given base strategy id and dict of param_id - param_value_id
 def get_product_allocations_for_base_strategy(base_strategy_id, param_id_to_value_id, end_date):
-    paramid_valueid_hash = hashlib.md5(json.dumps(json.loads(param_id_to_value_id), sort_keys=True)).hexdigest()
+    param_id_to_value_id_dict = {}
+    for k,v in json.loads(param_id_to_value_id).items():
+        param_id_to_value_id_dict[int(k)] = v
+    paramid_valueid_hash = hashlib.md5(json.dumps(param_id_to_value_id_dict, sort_keys=True)).hexdigest()
+
     db_connect()
-    query = "SELECT a.dates, a.daily_weights FROM wb_strategies AS a JOIN workbench_strategies AS b on a.id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
-    strategy_df = pd.read_sql(query, con=db)
+    query = "SELECT a.date, a.daily_weights, b.product_list FROM strategy_static AS b JOIN strategy_daily AS a on a.strat_id = b.strat_id JOIN workbench_strategies AS c on b.strat_id = c.simulation_id WHERE c.base_strategy_id = '%s' AND c.paramid_valueid_hash = '%s' AND a.date <= '%s' ORDER BY a.date DESC LIMIT 1" %(base_strategy_id, paramid_valueid_hash, end_date)
+    product_df = pd.read_sql(query, con=db)
     db_close()
-    daily_weights = json.loads(strategy_df.iloc[0]['daily_weights'])
-    dates = json.loads(strategy_df.iloc[0]['dates'])
-    ret_dict = {}
+    daily_weights = json.loads(product_df.iloc[0]['daily_weights'])
+    products = json.loads(product_df.iloc[0]['product_list'])
 
-    date_idx = 0
-    end_date = datetime.datetime.strptime(end_date, '%Y%m%d').date()
-    for i in range( len( dates ) ):
-        this_date = datetime.datetime.strptime( dates[i+1], '%Y-%m-%d' ).date()
-        if i == len(dates) - 1 or this_date > end_date:
-            date_idx = i
-            break    
-    ret_dict['date'] = dates[date_idx]
-    ret_dict['product_allocation'] = {}
-    ret_dict['product_sector'] = {} #TODO
-    alloc_sum = 0.0
-
-    products = daily_weights[0]
-    for i, product in enumerate( products ):
-        alloc_sum += abs( daily_weights[date_idx+1][i] )
-        ret_dict['product_sector'][product] = sector_map[product]
-    for i, product in enumerate( products ):
-        ret_dict['product_allocation'][product] = round( 100*daily_weights[date_idx+1][i]/alloc_sum, 3 )  if alloc_sum != 0.0 else 0.0# Use latest allocation
-    return ret_dict
-
-def get_stats_for_strategy(simulation_id):
-    """Maps combination of parameters and base strategy to a strategy id
-       and returns stats for that strategy
-    Parameters:
-        1. simulation_id(string)
-    Returns:
-        All stats (dict)
-        e.g. {'daily_log_returns':[0.1,0.2],'dates':['2015-05-05','2015-05-06'],'sharpe':1.5}
-    """
-    db_connect()
-    query = "SELECT * FROM wb_strategies where id = %s"%simulation_id
-    strategy_df = pd.read_sql(query, con=db)
-    db_close()
-    daily_weights = json.loads(strategy_df.iloc[0]['daily_weights'])
-    dates = json.loads(strategy_df.iloc[0]['dates'])
-    log_returns = json.loads(strategy_df.iloc[0]['daily_log_returns'])
-    leverage =  json.loads(strategy_df.iloc[0]['daily_leverage'])
-    strategy_df['daily_log_returns'] = [log_returns]
-    strategy_df['daily_leverage'] = [leverage]
-    strategy_df['dates'] = [dates]
-    strategy_df['products'] = [daily_weights[0]]
-    
-    # Unpack weights from daily_weights 
-    for i, product in enumerate(strategy_df['products'][0]):
-        allocation = []
-        for j in  xrange(1,len(dates)+1):
-           allocation.append(daily_weights[j][i])
-        strategy_df[product] = [allocation]
-    
-    columns = strategy_df['products'][0] + ['daily_log_returns', 'daily_leverage']
-    
-    # Round to reduce precision and data being sent
-    for c in columns:
-        strategy_df[c] = [[round(x,3) for x in strategy_df.iloc[0][c]]]
-
-    # Drop unserializable columns
-    strategy_df = strategy_df.drop('updated_at', 1)
-    strategy_df = strategy_df.drop('created_at', 1)
-    strategy_df = strategy_df.drop('daily_weights', 1)
-    return strategy_df.iloc[0].to_dict()
+    product_dict = {}
+    product_dict['date'] = product_df.iloc[0]['date'].strftime('%Y-%m-%d')
+    product_dict['product_allocation'] = {}
+    product_dict['product_sector'] = {}
+    for idx in xrange(len(products)):
+        product_dict['product_allocation'][products[idx]] = round( 100*daily_weights[idx], 3 )
+        product_dict['product_sector'][products[idx]] = sector_map[products[idx]]
+    return product_dict
