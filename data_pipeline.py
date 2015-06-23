@@ -7,6 +7,8 @@ import sys
 import traceback
 import urllib2
 import luigi
+import MySQLdb
+import pandas as pd
 from luigi.contrib.ftp import RemoteTarget
 from luigi.s3 import S3Target, S3Client
 from data_cleaning.csi_scripts.daily_update import push_file_to_db
@@ -19,7 +21,7 @@ from data_cleaning.wedbush.inventory_management import manage_inventory
 from data_cleaning.wedbush.pnl_demystification import demystify_pnl
 sys.path.append('/home/cvdev/stratdev/')
 from utility_scripts.generate_orders import get_desired_positions
-from tasks import schedule_send_stats
+from tasks import schedule_send_stats, schedule_workbench_update
 
 data_path = '/apps/data/csi/'
 log_path = '/apps/logs/luigi/'
@@ -30,7 +32,27 @@ s3_cfg = '/home/cvdev/.s3cfg'
 
 os.environ["HOME"] = "/home/cvdev/"
 
-global csi_ftp_username, csi_ftp_password, aws_access_key, aws_secret_key
+global csi_ftp_username, csi_ftp_password, aws_access_key, aws_secret_key, db, db_cursor
+
+def db_connect():
+    global db, db_cursor
+    try:
+        with open('/spare/local/credentials/readonly_credentials.txt') as f:
+            credentials = [line.strip().split(':') for line in f.readlines()]
+    except IOError:
+        sys.exit('No credentials file found')
+    try:
+        for user_id,password in credentials:
+            db = MySQLdb.connect(host='fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com', user=user_id, passwd=password, db='workbench')
+            db_cursor = db.cursor(MySQLdb.cursors.DictCursor) 
+    except MySQLdb.Error:
+        sys.exit("Error in DB connection")
+
+def db_close():
+    cursor = db.cursor()
+    cursor.close()
+    del cursor
+    db.close()
 
 class QPlumTask(luigi.Task):
     """
@@ -649,6 +671,25 @@ class SendStats(QPlumTask):
         with open(self.output().path,'w') as f:
             f.write("Successfully scheduled sent stats")
 
+class UpdateWorkbenchStats(QPlumTask):
+    """
+    Task to update workbench stats
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return PutCsiInDb_all(self.date)
+    def output(self):
+        return luigi.LocalTarget(log_path+self.date.strftime('UpdateWorkbenchStats.%Y%m%d.SUCCESS'))
+    def run(self):
+        db_connect()
+        query = "SELECT strat_id, config_path FROM strategy_static"
+        wb_strategies_df = pd.read_sql(query, con=db)
+        db_close()
+        for i in xrange(len(wb_strategies_df.index)):
+            schedule_workbench_update.delay(wb_strategies_df.iloc[i]['config_path'], wb_strategies_df.iloc[i]['strat_id'])
+        with open(self.output().path,'w') as f:
+            f.write("Successfully scheduled workbench updates")
+
 class FetchWedbushFromSFTP(luigi.ExternalTask):
     """
     Task to fetch Wedbush statements from SFTP
@@ -752,7 +793,7 @@ class AllTasks(QPlumTask):
     def requires(self):
         return FetchCSI_all(self.date), PutInS3_all(self.date), PutCsiInDb_all(self.date),\
                PutQuandlInDb(self.date), UpdateLastTradingDay(self.date), SendStats(self.date),\
-               ReconcileWedbush(self.date)#GenerateOrders(self.date)
+               UpdateWorkbenchStats(self.date), #ReconcileWedbush(self.date)#GenerateOrders(self.date)
 
 if __name__ == '__main__':
     load_credentials()
