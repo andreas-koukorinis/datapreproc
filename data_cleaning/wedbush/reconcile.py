@@ -17,7 +17,7 @@ def send_mail( err, msg ):
   server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", \
       'EXCEPTION %s %s' % ( err, msg ) )
 
-def reconcile(current_date):    
+def reconcile(current_date, to_check):    
     all_good = True
     # Connect to db
     try:
@@ -90,23 +90,26 @@ def reconcile(current_date):
         send_mail( err, 'RECONCILIATION ISSUE: Some error while reconciling Positions %s ' % current_date )
 
     print output
-    payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": output}
-    req = urllib2.Request('https://hooks.slack.com/services/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')
-    response = urllib2.urlopen(req, json.dumps(payload))
+    if not to_check:
+        payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": output}
+        req = urllib2.Request('https://hooks.slack.com/services/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')
+        response = urllib2.urlopen(req, json.dumps(payload))
 
     if all_good:
         return True
     else:
         print "Reconciliation failed"
-        payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": "*Reconciliation failed*\nOrders won't be generated."}
-        req = urllib2.Request('https://hooks.slack.com/services/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')
-        response = urllib2.urlopen(req, json.dumps(payload))
+        if not to_check:
+            payload = {"channel": "#portfolio-monitor", "username": "monitor", "text": "*Reconciliation failed*\nOrders won't be generated."}
+            req = urllib2.Request('https://hooks.slack.com/services/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')
+            response = urllib2.urlopen(req, json.dumps(payload))
         return False
             
 if __name__ == '__main__':
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('current_date')
+    parser.add_argument('--check', help='Dont post on slack \nEg: --check\n', default=False, dest='check', action='store_true')
     args = parser.parse_args()
     current_date = args.current_date
-    reconcile(current_date)
+    reconcile(current_date, args.check )
