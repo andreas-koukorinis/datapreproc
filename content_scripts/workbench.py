@@ -113,7 +113,9 @@ def get_base_strategies():
 
     base_strats = {}
     for i in xrange(len(base_strats_df.index)):
-        base_strats[base_strats_df.iloc[i]['id']] = base_strats_df.iloc[i]['base_strategy']
+        base_strats[base_strats_df.iloc[i]['id']] = {}
+        base_strats[base_strats_df.iloc[i]['id']]['name'] = base_strats_df.iloc[i]['base_strategy']
+        base_strats[base_strats_df.iloc[i]['id']]['description'] = base_strats_df.iloc[i]['description']
     
     return base_strats
 
@@ -147,9 +149,10 @@ def get_editable_params(base_strategy_id):
     try:
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
+        editable_params = yaml.safe_load(rows[0]['editable_params'])
     except:
         sys.exit("Failed to fetch editable params for base strategy '%s'" % base_strategy_id)
-    editable_params = yaml.safe_load(rows[0]['editable_params'])
+    db_close()
     return editable_params
 
 def get_ticker_for_strategy(base_strategy_id, param_id_to_value_id):
@@ -162,7 +165,6 @@ def get_ticker_for_strategy(base_strategy_id, param_id_to_value_id):
     
     db_connect()
     query = "SELECT a.id FROM wb_strategies AS a JOIN workbench_strategies AS b on a.id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
-    db_connect()
     try:
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
@@ -171,7 +173,6 @@ def get_ticker_for_strategy(base_strategy_id, param_id_to_value_id):
         sys.exit("Failed to fetch ticker for selected variant of base strategy '%s'" % base_strategy_id)
     # Base strategy short code for now, will not need it as tickers will include this part going forward
     query = "SELECT shortcode, base_strategy FROM base_strategies WHERE id = '%s'" %(base_strategy_id)
-    db_connect()
     try:
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
@@ -179,6 +180,7 @@ def get_ticker_for_strategy(base_strategy_id, param_id_to_value_id):
         base_strategy = rows[0]['base_strategy'] # Name
     except:
         sys.exit("Failed to fetch ticker for selected variant of base strategy '%s'" % base_strategy_id)
+    db_close()
     return { 'name' : base_strategy, 'ticker' : shortcode + str(ticker)}
 
 def get_params_for_base_strategy(base_strategy_id):
@@ -299,6 +301,7 @@ def get_product_allocations_for_base_strategy(base_strategy_id, param_id_to_valu
     db_connect()
     query = "SELECT a.dates, a.daily_weights FROM wb_strategies AS a JOIN workbench_strategies AS b on a.id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
     strategy_df = pd.read_sql(query, con=db)
+    db_close()
     daily_weights = json.loads(strategy_df.iloc[0]['daily_weights'])
     dates = json.loads(strategy_df.iloc[0]['dates'])
     ret_dict = {}
