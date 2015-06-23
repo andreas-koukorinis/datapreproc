@@ -18,3 +18,15 @@ def schedule_send_stats(config):
     from send_stats import send_stats
     send_stats(os.path.expanduser(config['config']),name=config.get('name',None),dontsend=False,sim_start_date=config.get('start_date',None),sim_end_date=config.get('end_date',None))
     return 0
+
+@app.task
+def schedule_workbench_update(config, strat_id):
+    sys.path.append('/home/cvdev/stratdev/')
+    from simulator import Simulator
+    from utils.regular import make_args_from_cmd_string
+    _config_file = os.path.expanduser(config)
+    cmd = _config_file + "-update" + str(strat_id) + "-db workbench"
+    args = make_args_from_cmd_string(cmd)    
+    #sim = Simulator(args)
+    sim.run()
+    return cmd
