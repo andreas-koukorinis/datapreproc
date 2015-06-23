@@ -239,7 +239,7 @@ def daily_update_quandl(cmd=None):
 
     # Temporarily redirect output to log file
     stdout = sys.stdout
-    sys.stdout = open("/apps/logs/log_"+datetime.datetime.strptime(args.fetch_date, '%Y%m%d').strftime('%Y-%m-%d'), 'a+')
+    sys.stdout = open("/apps/logs/log_"+args.fetch_date, 'a+')
 
     if args.product_type == 'yield_rates':
         push_quandl_yield_rates(products, args.fetch_date)
