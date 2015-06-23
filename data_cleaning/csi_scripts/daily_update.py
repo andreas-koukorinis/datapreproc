@@ -441,6 +441,7 @@ def daily_update(filename, products):
         record_count = IntOrZero(header[3])
         date = datetime.strptime(header[4], '%Y%m%d').strftime('%Y-%m-%d')
         record_date = date
+        record_date_str = header[4]
         day = header[5]
         volume_date = datetime.strptime(header[6], '%Y%m%d').strftime('%Y-%m-%d')
         oi_date = datetime.strptime(header[7], '%Y%m%d').strftime('%Y-%m-%d')
@@ -449,7 +450,7 @@ def daily_update(filename, products):
     
     # Temporarily redirect output to log file
     stdout = sys.stdout
-    sys.stdout = open("/apps/logs/log_"+record_date, 'a+')
+    sys.stdout = open("/apps/logs/log_"+record_date_str, 'a+')
 
     for item in records[1:]:
         if error_correction:

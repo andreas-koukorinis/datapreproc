@@ -57,7 +57,7 @@ def setup_db_esm_smtp():
 def update_last_trading_day(given_date):
     # Temporarily redirect output to log file
     stdout = sys.stdout
-    sys.stdout = open("/apps/logs/log_"+given_date, 'a+')
+    sys.stdout = open("/apps/logs/log_"+datetime.strptime(given_date, "%Y-%m-%d").strftime("Y%m%d"), 'a+')
     setup_db_esm_smtp()
     product_to_table_map()
     _date = datetime.strptime(given_date, "%Y-%m-%d").date()
