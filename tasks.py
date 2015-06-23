@@ -1,6 +1,7 @@
 import os
 import sys
 from celery import Celery
+from subprocess import Popen
 
 try:
    with open('/spare/local/credentials/rabbitmq_credentials.txt') as f:
@@ -21,12 +22,8 @@ def schedule_send_stats(config):
 
 @app.task
 def schedule_workbench_update(config, strat_id):
-    sys.path.append('/home/cvdev/stratdev/')
-    from simulator import Simulator
-    from utils.regular import make_args_from_cmd_string
     _config_file = os.path.expanduser(config)
-    cmd = _config_file + "-update" + str(strat_id) + "-db workbench"
-    args = make_args_from_cmd_string(cmd)    
-    #sim = Simulator(args)
-    sim.run()
+    cmd = [_config_file, "-update", str(strat_id),"-db","workbench"]
+    proc = Popen(['python', '-W', 'ignore', '/home/cvdev/stratdev/run_simulator.py'] + cmd, stdout=open(os.devnull,'w'))
+    proc.communicate() 
     return cmd
