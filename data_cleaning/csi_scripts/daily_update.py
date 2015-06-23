@@ -260,7 +260,9 @@ def add_future_quote(date, record, future_someday_total_volume, future_someday_t
             _base_symbol = mappings[product]
         else:
             _base_symbol = product
-        
+        # Handling conversion factor change for 6J from 2015-06-22 onwards
+        if _base_symbol == '6J' and date >= '2015-06-22':
+            open1, high, low, close = open1/10.0, high/10.0, low/10.0, close/10.0
         #print str(_last_trading_date),date,_base_symbol
         contract_number = get_contract_number(datetime.strptime(date, '%Y-%m-%d').date(), _base_symbol, YYMM)
         #print contract_number
