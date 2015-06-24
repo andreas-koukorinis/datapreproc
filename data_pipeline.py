@@ -677,12 +677,12 @@ class UpdateWorkbenchStats(QPlumTask):
     """
     date = luigi.DateParameter(default=date.today())
     def requires(self):
-        return PutCsiInDb_all(self.date)
+        return PutCsiInDb_all(self.date),SendStats(self.date) # Doing this to ensure priority till we set up routing queues in Celery
     def output(self):
         return luigi.LocalTarget(log_path+self.date.strftime('UpdateWorkbenchStats.%Y%m%d.SUCCESS'))
     def run(self):
         db_connect()
-        query = "SELECT strat_id, config_path FROM strategy_static"
+        query = "SELECT a.strat_id, a.config_path FROM strategy_static AS a INNER JOIN strategy_dyn AS b ON a.strat_id = b.strat_id WHERE b.to_update = TRUE"
         wb_strategies_df = pd.read_sql(query, con=db)
         db_close()
         for i in xrange(len(wb_strategies_df.index)):
