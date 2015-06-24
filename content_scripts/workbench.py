@@ -199,86 +199,54 @@ def get_stats_for_base_strategy(base_strategy_id, param_id_to_value_id):
         param_id_to_value_id_dict[int(k)] = v
     paramid_valueid_hash = hashlib.md5(json.dumps(param_id_to_value_id_dict, sort_keys=True)).hexdigest()
 
+    ret_dict = {}
+
     db_connect()
     query = "SELECT strat_id as id, sector_list FROM strategy_static AS a JOIN workbench_strategies AS b ON a.strat_id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s' AND b.is_taxable = False" %(base_strategy_id, paramid_valueid_hash)
     try:
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
         ret_dict['id'] = rows[0]['id']
+        pretax_id = rows[0]['id']
         sector_list = json.loads(rows[0]['sector_list'])
     except:
         sys.exit("Failed to fetch sectors for this variant of base strategy '%s'" % base_strategy_id)
 
-    query = "SELECT a.strat_id as id, a.date as strategy_dates, a.daily_log_return as strategy_pretax_log_returns, a.daily_sector_weights, b.daily_log_return as strategy_posttax_log_returns FROM wb_strategies AS a JOIN workbench_strategies AS b on a.id = b.simulation_id WHERE b.base_strategy_id = '%s' AND b.paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
+    query = "SELECT simulation_id AS posttax_id FROM workbench_strategies WHERE is_taxable = True AND paramid_valueid_hash = '%s' AND base_strategy_id = '%s'" % (paramid_valueid_hash, base_strategy_id)
+    try:
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        posttax_id = rows[0]['posttax_id']
+    except:
+        sys.exit("Failed to fetch post_tax variant for the desired parameters of base strategy '%s'" % base_strategy_id)
+
+    query = "SELECT a.date as strategy_dates, a.daily_log_return as strategy_pretax_log_returns, a.daily_sector_weights, b.daily_log_return as strategy_posttax_log_returns FROM strategy_daily AS a JOIN strategy_daily AS b on a.strat_id = '%s' AND b.strat_id = '%s' AND a.date = b.date WHERE a.strat_id = '%s' AND b.strat_id = '%s'" %(pretax_id, posttax_id, pretax_id, posttax_id)
     strategy_df = pd.read_sql(query, con=db)
-    daily_weights = json.loads(strategy_df.iloc[0]['daily_weights'])
-    dates = json.loads(strategy_df.iloc[0]['dates'])
-    log_returns = json.loads(strategy_df.iloc[0]['daily_log_returns'])
-    strategy_df['strategy_dates'] = [dates]
+    ret_dict['strategy_dates'] = map(lambda x: x.strftime("%Y-%m-%d") , list(strategy_df['strategy_dates'].values))
+    ret_dict['strategy_pretax_log_returns'] = list(numpy.round(strategy_df['strategy_pretax_log_returns'].values, 5))
+    ret_dict['strategy_posttax_log_returns'] = list(numpy.round(strategy_df['strategy_posttax_log_returns'].values, 5))
+    sector_weights = strategy_df['daily_sector_weights'].values
+    ret_dict['sector_allocation'] = {}
+    ret_dict['sector_allocation']['dates'] = map(lambda x: x.strftime("%Y-%m-%d") , list(strategy_df['strategy_dates'].values))
+    num_sectors = len(sector_list)
+    for sector in sector_list:
+        ret_dict['sector_allocation'][sector] = [] # For each sector, we keep a list of sector allocation for dates
+    for record in sector_weights:
+        sector_value = json.loads(record)
+        for idx in xrange(num_sectors):
+            ret_dict['sector_allocation'][sector_list[idx]].append(round(sector_value[idx], 3))
 
-    strategy_df['strategy_pretax_log_returns'] = [ log_returns ]
-    strategy_df['strategy_posttax_log_returns'] = [list( numpy.array(log_returns) * 0.7) ] # TODO
-
-    #strategy_df['strategy_turnover'] = round( strategy_df['strategy_turnover'], 3 )
-    #strategy_df['strategy_return'] = round( strategy_df['strategy_return'], 3 )
-    #strategy_df['strategy_volatility'] = round( strategy_df['strategy_volatility'], 3)
-    #strategy_df['strategy_drawdown'] = round( strategy_df['strategy_drawdown'], 3)
-    #strategy_df['strategy_sharpe'] = round( strategy_df['strategy_sharpe'], 3)
-    #strategy_df['strategy_return_to_drawdown'] = round( strategy_df['strategy_return_to_drawdown'], 3)
-
-    query = "SELECT dates AS benchmark_dates, daily_log_returns AS benchmark_daily_log_returns FROM wb_strategies WHERE id = '1601'"
-    strategy_df_1 = pd.read_sql(query, con=db)
+    query = "SELECT dates, daily_log_returns FROM webapp.wb_strategies WHERE id = '1601'"
+    benchmark_df = pd.read_sql(query, con=db)
     db_close()
-    benchmark_daily_log_returns = json.loads(strategy_df_1.iloc[0]['benchmark_daily_log_returns'])
-    benchmark_dates = json.loads(strategy_df_1.iloc[0]['benchmark_dates'])
-    strategy_df['benchmark_name'] = "VTSMX"
-    strategy_df['benchmark_dates'] = [ benchmark_dates ]
-    strategy_df['benchmark_log_returns'] = [benchmark_daily_log_returns]
-    #strategy_df['benchmark_percentage_cumulative_returns'] = [list( ( numpy.exp(numpy.array(benchmark_daily_log_returns).cumsum()) - 1 ) * 100.0) ]
-    #strategy_df['benchmark_turnover'] = 90.0 #TODO
-    #strategy_df['benchmark_return'] = round( strategy_df_1['benchmark_return'], 3 )
-    #strategy_df['benchmark_volatility'] = round( strategy_df_1['benchmark_volatility'], 3)
-    #strategy_df['benchmark_drawdown'] = round( strategy_df_1['benchmark_drawdown'], 3)
-    #strategy_df['benchmark_sharpe'] = round( strategy_df_1['benchmark_sharpe'], 3)
-    #strategy_df['benchmark_return_to_drawdown'] = round( strategy_df_1['benchmark_return_to_drawdown'], 3)
+    benchmark_daily_log_returns = json.loads(benchmark_df.iloc[0]['daily_log_returns'])
+    ret_dict['benchmark_dates'] = list(json.loads(benchmark_df.iloc[0]['dates']))
+    #benchmark_df['benchmark_turnover'] = 90.0 #TODO
 
-    columns = ['strategy_pretax_log_returns', 'strategy_posttax_log_returns', 'benchmark_log_returns']
-    
     ## Round to reduce precision and data being sent
-    for c in columns:
-        strategy_df[c] = [[round(x,5) for x in strategy_df.iloc[0][c]]]
+    ret_dict['benchmark_log_returns'] = [round(x,5) for x in benchmark_daily_log_returns]
+    ret_dict['benchmark_name'] = "VTSMX"
 
-    strategy_df = strategy_df.drop('daily_log_returns', 1)
-    strategy_df = strategy_df.drop('daily_weights', 1)
-    strategy_df = strategy_df.drop('dates', 1)
-
-    ret_dict = strategy_df.iloc[0].to_dict()
-    products = daily_weights[0]
-    ret_dict['sector_allocation'] = {} #TODO
-    alloc_sum = 0.0
-
-    all_sectors = []
-    for i, product in enumerate( products ):
-        alloc_sum += abs( daily_weights[-1][i] )
-        all_sectors.append( sector_map[product] )
-    all_sectors = list(set(all_sectors))
-
-    ret_dict['sector_allocation']['dates'] = []
-    for sector in all_sectors:
-        ret_dict['sector_allocation'][sector] = []
-
-    for j in  xrange(1,len(dates)+1):
-        alloc_sum = 0.0
-        ret_dict['sector_allocation']['dates'].append( dates[j-1] )
-        for sector in all_sectors:
-            ret_dict['sector_allocation'][sector].append( 0.0 )
-        
-        for i, product in enumerate( products ):
-            alloc_sum += abs( daily_weights[j][i] )
-        for i, product in enumerate( products ):
-            ret_dict['sector_allocation'][ sector_map[product] ][-1] += ( 100*daily_weights[j][i]/alloc_sum if alloc_sum != 0.0 else 0.0 )
-        for sector in all_sectors:
-            ret_dict['sector_allocation'][sector][-1] = round( ret_dict['sector_allocation'][sector][-1], 3 )
     return ret_dict
 
 # Function to get stats given base strategy id and dict of param_id - param_value_id
@@ -296,8 +264,6 @@ def get_product_allocations_for_base_strategy(base_strategy_id, param_id_to_valu
     products = json.loads(product_df.iloc[0]['product_list'])
 
     product_dict = {}
-    product_dict['date'] = product_df.iloc[0]['date'].strftime('%Y-%m-%d')
-    product_dict['product_allocation'] = {}
     product_dict['product_sector'] = {}
     for idx in xrange(len(products)):
         product_dict['product_allocation'][products[idx]] = round( 100*daily_weights[idx], 3 )
