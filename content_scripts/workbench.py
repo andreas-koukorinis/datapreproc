@@ -164,7 +164,7 @@ def get_ticker_for_strategy(base_strategy_id, param_id_to_value_id):
     paramid_valueid_hash = hashlib.md5(json.dumps(param_id_to_value_id_dict, sort_keys=True)).hexdigest()
     
     db_connect()
-    query = "SELECT simulation_id as id FROM workbench_strategies WHERE base_strategy_id = '%s' AND paramid_valueid_hash = '%s'" %(base_strategy_id, paramid_valueid_hash)
+    query = "SELECT simulation_id as id FROM workbench_strategies WHERE base_strategy_id = '%s' AND paramid_valueid_hash = '%s' AND is_taxable = False" %(base_strategy_id, paramid_valueid_hash)
     try:
         db_cursor.execute(query)
         rows = db_cursor.fetchall()
@@ -289,7 +289,7 @@ def get_product_allocations_for_base_strategy(base_strategy_id, param_id_to_valu
     paramid_valueid_hash = hashlib.md5(json.dumps(param_id_to_value_id_dict, sort_keys=True)).hexdigest()
 
     db_connect()
-    query = "SELECT a.date, a.daily_weights, b.product_list FROM strategy_static AS b JOIN strategy_daily AS a on a.strat_id = b.strat_id JOIN workbench_strategies AS c on b.strat_id = c.simulation_id WHERE c.base_strategy_id = '%s' AND c.paramid_valueid_hash = '%s' AND a.date <= '%s' ORDER BY a.date DESC LIMIT 1" %(base_strategy_id, paramid_valueid_hash, end_date)
+    query = "SELECT a.date, a.daily_weights, b.product_list FROM strategy_static AS b JOIN strategy_daily AS a on a.strat_id = b.strat_id JOIN workbench_strategies AS c on b.strat_id = c.simulation_id WHERE c.base_strategy_id = '%s' AND c.paramid_valueid_hash = '%s' AND c.is_taxable = False AND a.date <= '%s' ORDER BY a.date DESC LIMIT 1" %(base_strategy_id, paramid_valueid_hash, end_date)
     product_df = pd.read_sql(query, con=db)
     db_close()
     daily_weights = json.loads(product_df.iloc[0]['daily_weights'])
