@@ -1,5 +1,5 @@
 import ConfigParser
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import json
 import os
 import subprocess
@@ -667,7 +667,7 @@ class SendStats(QPlumTask):
                               {'config':"~/modeling/sample_strats_etfs/selected_strats/ETF-ACWAS_0.25MVO_0.25SMS_0.25TRMSHC_0.25TRVP.cfg"},\
                               {'config':"~/modeling/livetrading/strategies/t_avg.cfg",'start_date':'1995-01-01','name':'LiveTrading'}]
         for config in send_stats_configs:
-            schedule_send_stats.delay(config)
+            schedule_send_stats.apply_async((config,), serializer='json', expires=datetime.now()+timedelta(days=1))
         with open(self.output().path,'w') as f:
             f.write("Successfully scheduled sent stats")
 
@@ -686,7 +686,7 @@ class UpdateWorkbenchStats(QPlumTask):
         wb_strategies_df = pd.read_sql(query, con=db)
         db_close()
         for i in xrange(len(wb_strategies_df.index)):
-            schedule_workbench_update.delay(wb_strategies_df.iloc[i]['config_path'], wb_strategies_df.iloc[i]['strat_id'])
+            schedule_workbench_update.apply_async((wb_strategies_df.iloc[i]['config_path'], wb_strategies_df.iloc[i]['strat_id']), serializer='json', expires=datetime.now()+timedelta(days=1))
         with open(self.output().path,'w') as f:
             f.write("Successfully scheduled workbench updates")
 
