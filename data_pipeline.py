@@ -793,7 +793,7 @@ class AllTasks(QPlumTask):
     def requires(self):
         return FetchCSI_all(self.date), PutInS3_all(self.date), PutCsiInDb_all(self.date),\
                PutQuandlInDb(self.date), UpdateLastTradingDay(self.date), SendStats(self.date),\
-               UpdateWorkbenchStats(self.date), #ReconcileWedbush(self.date)#GenerateOrders(self.date)
+               UpdateWorkbenchStats(self.date), ReconcileWedbush(self.date)#GenerateOrders(self.date)
 
 if __name__ == '__main__':
     load_credentials()
