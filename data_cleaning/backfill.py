@@ -65,11 +65,11 @@ def backfill_each_product(path, df_prod_bf, prod, product_type, beta_adjust=Fals
         df_prod = pd.read_csv(prod_file,names=columns, parse_dates=['date'], date_parser=parse)
 
     if beta_adjust == True:
-        returns_bf = df_prod_bf.close / df_prod_bf.close.shift(1)
+        returns_bf = np.log(df_prod_bf.close / df_prod_bf.close.shift(1)) # Changed to log returns so that beta adjustemnet factor can be calculated
         std_prod_bf = np.std(returns_bf.values[1:])
-        returns = df_prod.close / df_prod.close.shift(1)
+        returns = np.log(df_prod.close / df_prod.close.shift(1)) # Changed to log returns in order to appropriately calculate returns standard deviation
         std_prod = np.std(returns.values[1:])
-        beta_factor = std_prod_bf/std_prod
+        beta_factor = std_prod_bf/std_prod # Beta factor is meant to scale returns of indexes/etfs that are used to backfill the desired product
     else:
         beta_factor = 1.0 
 
@@ -83,23 +83,19 @@ def backfill_each_product(path, df_prod_bf, prod, product_type, beta_adjust=Fals
     #Print gap period in between them
     #print "Gap period:" + str(starting_date - df_prod['date'].iloc[starting_index])
     
-    # Add last last available entry in dataframe to new dataframe 
+    # Add last available entry in dataframe to new dataframe
     # This dataframe will store all backfilled  values
     df_backfilled = pd.DataFrame(data=df_prod_bf.head(1).reset_index(drop=True))
     # Keeps track index in new backfilled dataframe
     n = 1
 
-    if not product_type == 'index':
-        df_prod['backward_adjusted_close'] = beta_factor*df_prod['backward_adjusted_close']
-    else:
-        df_prod['close'] = beta_factor * df_prod['close']
-    
+    # Change df_prod (product being used to backfill prices) in order to beta-adjust series to match log returns standard deviation of df_prof_bf, the product being backfilled
     for i in xrange(starting_index-1,-1,-1):
         # backfill_ratio is kept to ensure daily log returns is same between both poducts when data is unavailable
         if not product_type == 'index':
-            backfill_ratio = df_prod['backward_adjusted_close'].iloc[i]/df_prod['backward_adjusted_close'].iloc[i+1]
+            backfill_ratio = np.exp( beta_factor * np.log( df_prod['backward_adjusted_close'].iloc[i]/df_prod['backward_adjusted_close'].iloc[i+1] ) )
         else:
-            backfill_ratio = df_prod['close'].iloc[i]/df_prod['close'].iloc[i+1]
+            backfill_ratio = np.exp( beta_factor * np.log( df_prod['close'].iloc[i]/df_prod['close'].iloc[i+1] ) )
         df_backfilled.loc[n,'date'] = df_prod.loc[i,'date']
         # A_price_backfill_i/A_price_backfill_(i+1) = B_backward_adjusted_close_i/ B_backward_adjusted_close_(i+1)        
         df_backfilled.loc[n,'open'] = df_backfilled.loc[n-1,'open'] * backfill_ratio
