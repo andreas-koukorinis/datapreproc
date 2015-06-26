@@ -64,21 +64,27 @@ def backfill_each_product(path, df_prod_bf, prod, product_type, beta_adjust=Fals
         prod_file = path+prod[0]+'/'+prod+'.csv'
         df_prod = pd.read_csv(prod_file,names=columns, parse_dates=['date'], date_parser=parse)
 
-    if beta_adjust == True:
-        returns_bf = np.log(df_prod_bf.close / df_prod_bf.close.shift(1)) # Changed to log returns so that beta adjustemnet factor can be calculated
-        std_prod_bf = np.std(returns_bf.values[1:])
-        returns = np.log(df_prod.close / df_prod.close.shift(1)) # Changed to log returns in order to appropriately calculate returns standard deviation
-        std_prod = np.std(returns.values[1:])
-        beta_factor = std_prod_bf/std_prod # Beta factor is meant to scale returns of indexes/etfs that are used to backfill the desired product
-    else:
-        beta_factor = 1.0 
-
     # Get last date available in df_prod_bf
     # This is the starting date for backfill
     starting_date = df_prod_bf['date'].iloc[0]
     # Get list of all dates after which data is available in df_prod
     # Select the index of closest date to starting date as starting index
     starting_index = df_prod[df_prod['date']>=starting_date].index[0]
+
+    # Finding beta adjustment factor during common period of backfilled product and to be backfilled product
+    if beta_adjust == True:
+        common_start_dt = max (df_prod_bf['date'].iloc[0], df_prod['date'].iloc[0])
+        common_end_dt = min (df_prod_bf['date'].iloc[-1], df_prod['date'].iloc[-1])
+        common_df_bf = df_prod_bf[(df_prod_bf['date'] >= common_start_dt) & (df_prod_bf['date'] <= common_end_dt)]
+        common_df = df_prod[(df_prod['date'] >= common_start_dt) & (df_prod['date'] <= common_end_dt)]
+        returns_bf = np.log(common_df_bf.close / common_df_bf.close.shift(1)) # Changed to log returns so that beta adjustemnet factor can be calculated
+        std_prod_bf = np.std(returns_bf.values[1:])
+        returns = np.log(common_df.close / common_df.close.shift(1)) # Changed to log returns in order to appropriately calculate returns standard deviation
+        std_prod = np.std(returns.values[1:])
+        beta_factor = std_prod_bf/std_prod # Beta factor is meant to scale returns of indexes/etfs that are used to backfill the desired product
+        print 'Backfilled by', prod, 'Overlap Period:', common_start_dt.to_datetime().strftime("%Y-%m-%d"), '-', common_end_dt.to_datetime().strftime("%Y-%m-%d"), 'Actual stdev:', std_prod_bf, 'Backfiller stdev:', std_prod, 'Beta:', beta_factor
+    else:
+        beta_factor = 1.0 
 
     #Print gap period in between them
     #print "Gap period:" + str(starting_date - df_prod['date'].iloc[starting_index])
