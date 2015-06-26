@@ -128,6 +128,8 @@ def auto_backfill(path, output_path, prod_backfill, plot_option):
     backward_adjust_dividends(output_path, [prod_backfill], 'etf')
     #df_prod_bf = pd.read_csv(path+prod_backfill+'_split_adjusted.csv')
     df_prod_bf = pd.read_csv(output_path+prod_backfill+'_backward_dividend_adjusted.csv', parse_dates=['date'], date_parser=parse)
+    #remove backward dividend adjusted file because we will be doing dividend adjust later for the entire period
+    os.remove(output_path+prod_backfill+'_backward_dividend_adjusted.csv')
 
     products = ['VTSMX', 'GMHBX', 'VBMFX', 'VEIEX', '^MXEA', '@DJCI', 'VWAHX', 'VFISX', 'VIPSX', 'VSIIX', 'CVK', 'DFSVX', \
                 '^XMSC', 'MARFX', 'XMSW', 'VIVAX', 'VGTSX', 'VGSIX', 'VEIEX', 'RUI', 'PEBIX', 'SPX', '@GU6']
