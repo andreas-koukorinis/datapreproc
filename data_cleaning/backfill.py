@@ -104,10 +104,6 @@ def backfill_each_product(path, df_prod_bf, prod, product_type, beta_adjust=Fals
         df_backfilled.loc[n,'close'] = df_backfilled.loc[n-1,'close'] * backfill_ratio
         n += 1
     
-    df_backfilled['open'] = df_backfilled['open']
-    df_backfilled['low'] = df_backfilled['low']
-    df_backfilled['high'] =  df_backfilled['high']
-    df_backfilled['close'] = df_backfilled['close']
     df_backfilled['volume'] = 0  # because what we might use may be a fund and have no volume
     df_backfilled['dividend'] = 0  # assume no dividends are being given out as backwad adjusted price used already 
     
@@ -190,6 +186,7 @@ def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_op
     # Read data from file
     prod_backfill_file = path+prod_backfill[0]+'/'+prod_backfill+'.csv'
     adjust_for_splits(path, [prod_backfill], 'etf', output_path)
+    #backward_adjust_dividends(output_path, [prod_backfill], 'etf')
     df_prod_bf = pd.read_csv(output_path+prod_backfill+'_split_adjusted.csv', parse_dates=['date'], date_parser=parse)
     
     starting_dates = []
@@ -220,10 +217,8 @@ def backfill(path, output_path, prod_backfill, prod_list, product_types, plot_op
     return True
 
 def dividend_adjust(path, prod):
-    shutil.copy2(path+prod+'_backfilled.csv', path+prod+'_split_adjusted.csv')
-    backward_adjust_dividends(path, [prod], ['etf'])
-    forward_adjust_dividends(path, [prod], ['etf'], path+'complete/')
-
+    backward_adjust_dividends(path, [prod], 'etf', suffix='_backfilled')
+    forward_adjust_dividends(path, [prod], 'etf', path+'complete/')
 
 def __main__() :
     parser = argparse.ArgumentParser()
