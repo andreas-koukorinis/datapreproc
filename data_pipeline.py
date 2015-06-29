@@ -739,7 +739,7 @@ class ReconcileWedbush(QPlumTask):
     def output(self):
         return luigi.LocalTarget(log_path+self.date.strftime('ReconcileWedbush.%Y%m%d.SUCCESS'))    
     def run(self):
-        if reconcile(self.date.strftime('%Y%m%d')):
+        if reconcile(self.date.strftime('%Y%m%d'), False):
             with open(self.output().path,'w') as f:
                 f.write("Successfully Reconciled Wedbush")
 
