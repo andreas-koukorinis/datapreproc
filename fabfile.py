@@ -1,6 +1,6 @@
 from fabric.api import *
 
-env.roledefs = {'workers':['54.164.22.228','54.172.28.157']}
+env.roledefs = {'workers':['172.31.19.121','172.31.20.112']}
 env.user = 'cvdev'
 env.key_filename = '/home/cvdev/.ssh/cvdev.pem'
 
