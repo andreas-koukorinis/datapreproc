@@ -12,12 +12,15 @@ database_to_backup=( daily_qplum live_trading risk_parity simula webapp workbenc
 today_date=`date +%Y%m%d`
 older_date=`date -d "$days_to_keep day ago" +%Y%m%d`
 
->/apps/logs/database_dumps/log_$today_date
+log_file_dir='/apps/logs/database_dumps/'
+log_file=$log_file_dir'log_'$today_date
+mkdir -p $log_file_dir
+>$log_file
 
 for database in ${database_to_backup[@]}
 do
   # Notify
-  echo 'backing up '$database
+  echo 'backing up '$database >> $log_file
 
   today_dump_file=$database_dump_path$database'_'$today_date'.sql'
   older_dump_file=$database_dump_path$database'_'$older_date'.sql'
@@ -31,9 +34,9 @@ do
   # Notify
   if [ -f $today_dump_file ];
   then
-    echo $database' backed up successfully'
+    echo $database' backed up successfully' >> $log_file
   else
-    echo $database' backup failed\n'$error_msg
+    echo $database' backup failed\n'$error_msg >> $log_file
   fi
 done
 
