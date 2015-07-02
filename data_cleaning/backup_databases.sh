@@ -6,7 +6,7 @@ uname=${uname_upass_arr[0]}
 upass=${uname_upass_arr[1]}
 
 days_to_keep=7
-database_dump_path='/spare/local/database_dump/'
+database_dump_path='/spare/local/database_dumps/'
 database_to_backup=( daily_qplum fixed_income live_trading risk_parity simula webapp workbench dtcc_sdr fed_data )
 today_date=`date +%Y%m%d`
 older_date=`date -d "$days_to_keep day ago" +%Y%m%d`
