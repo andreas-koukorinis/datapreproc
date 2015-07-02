@@ -27,3 +27,15 @@ def schedule_workbench_update(config, strat_id):
     proc = Popen(['python', '-W', 'ignore', '/home/cvdev/stratdev/run_simulator.py'] + cmd, stdout=open(os.devnull,'w'))
     proc.communicate() 
     return cmd
+
+@app.task
+def schedule_simulation(config):
+    _config_file = os.path.expanduser(config)
+    cmd = [_config_file, "-db", "simula"]
+    proc = Popen(['python', '-W', 'ignore', '/home/cvdev/stratdev/run_simulator.py'] + cmd, stdout=open(os.devnull,'w'))
+    proc.communicate()
+    return cmd
+
+@app.task
+def test_workers(x):
+    return x

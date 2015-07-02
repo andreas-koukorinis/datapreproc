@@ -236,16 +236,33 @@ def get_stats_for_base_strategy(base_strategy_id, param_id_to_value_id):
         for idx in xrange(num_sectors):
             ret_dict['sector_allocation'][sector_list[idx]].append(round(sector_value[idx], 3))
 
-    query = "SELECT dates, daily_log_returns FROM webapp.wb_strategies WHERE id = '1601'"
+    # Get benchmark for base strategy
+    query = "SELECT benchmark FROM base_strategies WHERE id = '%s'" % base_strategy_id
+    try:
+        db_cursor.execute(query)
+        rows = db_cursor.fetchall()
+        benchmark = rows[0]['benchmark']
+    except:
+        sys.exit("Failed to fetch benchmark for this variant of base strategy '%s'" % base_strategy_id)
+
+    # Handling 60-40 combination with hard-coding now, will change once logic is finalized
+    # Handling of different frequency of reported returns will be handled after finalizing benchmark combination
+    # Combination benchmark assumes daily rebalancing for now
+    if benchmark == '60S40B':
+        equity_benchmark = 'VTSMX'
+        bond_benchmark = 'VBLTX'
+        ret_dict['benchmark_name'] = '60% - ' + equity_benchmark + '& 40% - ' + bond_benchmark
+        query = "SELECT a.date, 0.6 * a.logreturn + 0.4 * b.logreturn AS log_return FROM benchmark_daily AS a LEFT JOIN benchmark_daily AS b ON a.date = b.date AND a.ticker = '%s' AND b.ticker = '%s' WHERE a.ticker = '%s' AND b.ticker = '%s' UNION SELECT b.date, 0.6 * a.logreturn + 0.4 * b.logreturn AS log_return FROM benchmark_daily AS a RIGHT JOIN benchmark_daily AS b ON a.date = b.date AND a.ticker = '%s' AND b.ticker = '%s' WHERE a.ticker = '%s' AND b.ticker = '%s'" % (equity_benchmark, bond_benchmark, equity_benchmark, bond_benchmark, equity_benchmark, bond_benchmark, equity_benchmark, bond_benchmark)
+    else:
+        ret_dict['benchmark_name'] = benchmark
+        query = "SELECT date, logreturn AS log_return FROM benchmark_daily WHERE ticker = '%s'" % benchmark
     benchmark_df = pd.read_sql(query, con=db)
     db_close()
-    benchmark_daily_log_returns = json.loads(benchmark_df.iloc[0]['daily_log_returns'])
-    ret_dict['benchmark_dates'] = list(json.loads(benchmark_df.iloc[0]['dates']))
+    ret_dict['benchmark_dates'] = map(lambda x: x.strftime("%Y-%m-%d") , list(benchmark_df['date'].values))
     #benchmark_df['benchmark_turnover'] = 90.0 #TODO
 
     ## Round to reduce precision and data being sent
-    ret_dict['benchmark_log_returns'] = [round(x,5) for x in benchmark_daily_log_returns]
-    ret_dict['benchmark_name'] = "VTSMX"
+    ret_dict['benchmark_log_returns'] = list(numpy.round(benchmark_df['log_return'].values, 5))
 
     return ret_dict
 
