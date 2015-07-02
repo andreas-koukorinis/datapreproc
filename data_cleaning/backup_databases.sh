@@ -1,5 +1,12 @@
 #!/usr/bin/bash
 
+uname_upass=`cat /spare/local/credentials/write_credentials.txt`;
+uname_upass_arr=(${uname_upass//:/ })
+uname=${uname_upass_arr[0]}
+upass=${uname_upass_arr[1]}
+echo $uname
+echo $upass
+
 days_to_keep=7
 echo $days_to_keep
 database_dump_path='/spare/local/database_dump/'
@@ -19,9 +26,12 @@ do
   echo $older_dump_file
 
   # Dump this database
-  `mysqldump -h fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com -u cvqrdonly -pQPlumReadInc $database > tmp.sql` 
+  `mysqldump -h fixed-income1.clmdxgxhslqn.us-east-1.rds.amazonaws.com -u $uname -p$upass $database > $today_dump_file` 
 
   # Remove old dumps
   `rm -rf $older_dump_file`
+
+  # Notify
+  echo $database' backed up successfully'
 done
 
