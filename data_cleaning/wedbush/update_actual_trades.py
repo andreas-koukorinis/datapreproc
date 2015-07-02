@@ -18,6 +18,11 @@ def send_mail( err, msg ):
     server = smtplib.SMTP( "localhost" )
     server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION %s %s' % ( err, msg ) )
 
+def update_cqg_multiplier_map( current_date ):
+    global cqg_multiplier_map
+    if current_date > date( 2015, 6, 21 ):
+        cqg_multiplier_map[ '6J' ] = 100000.0
+
 #'4/30/2015 11:59'
 def parse_dt ( dt_str ):
     dt = datetime.strptime(dt_str, "%m/%d/%Y %H:%M")
@@ -32,6 +37,7 @@ def main():
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('order_file')
+    parser.add_argument('-t', type=str, help='Type  for products being ETFs\nEg: -t etf\n Default is future i.e. trading futures',default='future', dest='product_type')
     parser.add_argument('-t', type=str, help='Type  for products being ETFs\nEg: -t etf\n Default is future i.e. trading futures',default='future', dest='product_type')
     args = parser.parse_args()
     product_type = args.product_type
@@ -59,6 +65,7 @@ def main():
             sign_amount = 1 if buy_or_sell == 'Buy' else -1
             place_amount = order_df.loc[fc]['Qty'] * sign_amount
             fill_amount = order_df.loc[fc]['Filled'] * sign_amount
+            update_cqg_multiplier_map( place_date )
             order_price = order_df.loc[fc]['Order Price']/cqg_multiplier_map[basename]
             fill_price = order_df.loc[fc]['Fill Price']/cqg_multiplier_map[basename]
             #print place_date, exchange_symbol, place_time, fill_time, place_amount, fill_amount, order_price, fill_price
