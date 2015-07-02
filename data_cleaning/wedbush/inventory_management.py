@@ -44,6 +44,7 @@ def fetch_latest_prices(exchange_symbols, required_date, product_type):
             query = "SELECT date, product, open, close FROM %s WHERE product = '%s' AND date <= '%s' ORDER BY date DESC LIMIT 2" % ( rows[0]['table'], exchange_symbol, required_date )
             db_cursor.execute(query)
             rows = db_cursor.fetchall()
+        print exchange_symbol, rows[0]['date'], required_date, rows[0]['date'] == required_date
         if rows[0]['date'] == required_date:
             close_price_2[exchange_symbol] = float(rows[0]['close'])
             close_price_1[exchange_symbol] = float(rows[1]['close'])
@@ -154,6 +155,7 @@ def manage_inventory( current_date, config_file, data_source, product_type, read
     else:
         strategy_desired_positions = get_desired_positions(config_file, float(current_worth), '1995-01-01', current_date.strftime('%Y-%m-%d')) #TODO
 
+    print strategy_desired_positions
     # Initialize with default variables
     products = list(set(products + strategy_desired_positions.keys()))
     #Get outstanding positions for yday
@@ -372,5 +374,5 @@ if __name__ == '__main__':
     parser.add_argument('-t', type=str, help='Type  for products being ETFs\nEg: -t etf\n Default is future i.e. trading futures',default='future', dest='product_type')
     parser.add_argument('-read_positions',type=str, help='Read desired startegy positons from file\nEg: -read_positions desired_pos_20150101.txt\n Default is to use gen orders', default=None, dest='read_positions')
     args = parser.parse_args()
-    current_date = datetime.strptime(args.current_date, '%Y%m%d')
+    current_date = datetime.strptime(args.current_date, '%Y%m%d').date()
     manage_inventory( current_date, args.config_file, args.data_source, args.product_type, args.read_positions )
