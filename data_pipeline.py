@@ -11,7 +11,7 @@ import MySQLdb
 import pandas as pd
 from luigi.contrib.ftp import RemoteTarget
 from luigi.s3 import S3Target, S3Client
-from data_cleaning.csi_scripts.daily_update import push_file_to_db
+from data_cleaning.csi_scripts.daily_update import push_file_to_db, update_benchmarks
 from data_cleaning.csi_scripts.update_last_trading_day import update_last_trading_day
 from data_cleaning.quandl_scripts.daily_update_quandl import daily_update_quandl
 from data_cleaning.wedbush.dump_statement_data import dump_statement_data
@@ -631,6 +631,20 @@ class UpdateLastTradingDay(QPlumTask):
         with open(self.output().path,'w') as f:
             f.write("Successfully updated last trading day for all futures")
 
+class UpdateBenchmarks(QPlumTask):
+    """
+    Task to update benchmarks in workbench db
+    """
+    date = luigi.DateParameter(default=date.today())
+    def requires(self):
+        return PutCsiInDb_all(self.date)
+    def output(self):
+        return luigi.LocalTarget(log_path+self.date.strftime('UpdateBenchmarks.%Y%m%d.SUCCESS'))
+    def run(self):
+        update_benchmarks(['AQRIX','AQMIX','VTSMX','VBLTX'],self.date.strftime('%Y-%m-%d'))
+        with open(self.output().path,'w') as f:
+            f.write("Successfully updated benchmarks in workbench db")
+
 class PutQuandlInDb(QPlumTask):
     """
     Task to put Quandl data in DB
@@ -793,7 +807,7 @@ class AllTasks(QPlumTask):
     def requires(self):
         return FetchCSI_all(self.date), PutInS3_all(self.date), PutCsiInDb_all(self.date),\
                PutQuandlInDb(self.date), UpdateLastTradingDay(self.date), SendStats(self.date),\
-               UpdateWorkbenchStats(self.date), ReconcileWedbush(self.date)#GenerateOrders(self.date)
+               ReconcileWedbush(self.date), UpdateWorkbenchStats(self.date), UpdateBenchmarks(self.date)#, GenerateOrders(self.date)
 
 if __name__ == '__main__':
     load_credentials()

@@ -590,7 +590,7 @@ def update_benchmarks(benchmarks, start_date, end_date=None):
 
     # Temporarily redirect output to log file
     stdout = sys.stdout
-    sys.stdout = open("/apps/logs/log_"+datetime.date.today().strftime('%Y%m%d'), 'a+')
+    sys.stdout = open("/apps/logs/log_"+date.today().strftime('%Y%m%d'), 'a+')
     
     setup_db_esm_smtp()    
     product_to_table_map()
