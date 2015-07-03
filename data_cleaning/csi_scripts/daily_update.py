@@ -8,6 +8,8 @@ import gzip
 import smtplib
 import MySQLdb
 from datetime import datetime,timedelta,date
+import pandas as pd
+import numpy as np
 #from exchange_symbol_manager import ExchangeSymbolManager 
 home_path = os.path.expanduser("~")
 sys.path.append(home_path + '/datapreproc/data_cleaning/')
@@ -581,6 +583,58 @@ def push_file_to_db(raw_file, products):
     remove_file_from_wd(filename)
     server.quit()
     return True
+
+def update_benchmarks(benchmarks, start_date, end_date=None):
+    if end_date == None:
+        start_date = end_date
+
+    # Temporarily redirect output to log file
+    # stdout = sys.stdout
+    # sys.stdout = open("/apps/logs/log_"+datetime.date.today().strftime('%Y%m%d'), 'a+')
+    
+    setup_db_esm_smtp()    
+    product_to_table_map()
+
+    for benchmark in benchmarks:
+        db_cursor.execute("SELECT benchmark_id, ticker FROM workbench.benchmark_static WHERE ticker='%s'"%benchmark)
+        rows = db_cursor.fetchall()
+        if len(rows) == 0:
+            print "%s not in benchmarks table in workbench db"%benchmark
+            continue
+        
+        benchmark_id = rows[0]['benchmark_id']
+        ticker = rows[0]['ticker']
+        
+        if benchmark not in table.keys():
+            print "%s not in products table in daily_qplum db"%benchmark
+            continue
+
+        if product_type[benchmark] in ('fund','etf'):
+            closing_price_type = 'backward_adjusted_close'
+        elif product_type[benchmark]  in ('index','future'):
+            closing_price_type = 'close'
+
+        query = ("SELECT date, %s as raw_data FROM %s WHERE product='%s' AND date >= '%s' AND date <= '%s' UNION (SELECT date, %s as close FROM %s WHERE product='%s' AND date < '%s' ORDER BY 2 DESC LIMIT 1) ORDER BY 1")%(closing_price_type, table[benchmark], benchmark, start_date, end_date, closing_price_type, table[benchmark], benchmark, start_date)
+
+        df = pd.read_sql(query, con=db)
+        df['raw_data'] = df['raw_data'].map(lambda x: float(x))
+        df['logreturn'] = np.log(df['raw_data']/ df['raw_data'].shift(1))
+        df['benchmark_id'] = benchmark_id
+        df['ticker'] = ticker
+        
+        daily_basic = df.ix[1:]
+        del daily_basic['logreturn']
+        daily_basic.to_sql(name='workbench.benchmark_daily_basic', con=db, index = False, if_exists='append', flavor='mysql', chunksize=10000)
+        
+        daily = df.ix[1:]
+        del daily['raw_data']
+        daily['percent'] = None
+        daily.to_sql(name='workbench.benchmark_daily', con=db, index = False, if_exists='append', flavor='mysql', chunksize=10000)
+        
+        print daily_basic
+        print daily 
+    # Return print output to stdout
+    #sys.stdout = stdout
 
 def __main__() :
     if len( sys.argv ) > 1:
