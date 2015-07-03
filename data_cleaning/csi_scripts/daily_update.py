@@ -589,8 +589,8 @@ def update_benchmarks(benchmarks, start_date, end_date=None):
         start_date = end_date
 
     # Temporarily redirect output to log file
-    # stdout = sys.stdout
-    # sys.stdout = open("/apps/logs/log_"+datetime.date.today().strftime('%Y%m%d'), 'a+')
+    stdout = sys.stdout
+    sys.stdout = open("/apps/logs/log_"+datetime.date.today().strftime('%Y%m%d'), 'a+')
     
     setup_db_esm_smtp()    
     product_to_table_map()
@@ -603,8 +603,7 @@ def update_benchmarks(benchmarks, start_date, end_date=None):
             continue
         
         benchmark_id = rows[0]['benchmark_id']
-        ticker = rows[0]['ticker']
-        
+                
         if benchmark not in table.keys():
             print "%s not in products table in daily_qplum db"%benchmark
             continue
@@ -619,22 +618,32 @@ def update_benchmarks(benchmarks, start_date, end_date=None):
         df = pd.read_sql(query, con=db)
         df['raw_data'] = df['raw_data'].map(lambda x: float(x))
         df['logreturn'] = np.log(df['raw_data']/ df['raw_data'].shift(1))
-        df['benchmark_id'] = benchmark_id
-        df['ticker'] = ticker
         
-        daily_basic = df.ix[1:]
-        del daily_basic['logreturn']
-        daily_basic.to_sql(name='workbench.benchmark_daily_basic', con=db, index = False, if_exists='append', flavor='mysql', chunksize=10000)
-        
-        daily = df.ix[1:]
-        del daily['raw_data']
-        daily['percent'] = None
-        daily.to_sql(name='workbench.benchmark_daily', con=db, index = False, if_exists='append', flavor='mysql', chunksize=10000)
-        
-        print daily_basic
-        print daily 
+        df = df.ix[1:]
+        for i in xrange(len(df.index)):
+            try:
+                query = "INSERT INTO workbench.benchmark_daily_basic VALUES('%s','%s','%s','%s')" % (benchmark_id, benchmark, df.iloc[i]['raw_data'], df.iloc[i]['date'])
+                print query
+                db_cursor.execute(query)
+                db.commit()
+            except Exception, err:
+                print traceback.format_exc()
+                db.rollback()
+                print('EXCEPTION in benchmark update %s %s'% (benchmark, df.iloc[i]['date']))
+                server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 3 %s %s'% (record, date))
+            try:
+                query = "INSERT INTO workbench.benchmark_daily VALUES('%s','%s','%s','%s','%s')" % (benchmark_id, benchmark, df.iloc[i]['logreturn'], None, df.iloc[i]['date'])
+                print query
+                db_cursor.execute(query)
+                db.commit()
+            except Exception, err:
+                print traceback.format_exc()
+                db.rollback()
+                print('EXCEPTION in benchmark update %s %s'% (benchmark, df.iloc[i]['date']))
+                server.sendmail("sanchit.gupta@tworoads.co.in", "sanchit.gupta@tworoads.co.in;debidatta.dwibedi@tworoads.co.in", 'EXCEPTION in add_future_quote block 3 %s %s'% (record, date))
+
     # Return print output to stdout
-    #sys.stdout = stdout
+    sys.stdout = stdout
 
 def __main__() :
     if len( sys.argv ) > 1:
